@@ -1,0 +1,57 @@
+%% Selenium Boot — Test Execution Flow (v3.3.0)
+sequenceDiagram
+    autonumber
+    participant Runner as TestNG / JUnit5 / Cucumber
+    participant SL as SuiteExecutionListener
+    participant FB as FrameworkBootstrap
+    participant CL as ConfigurationLoader
+    participant Ctx as SeleniumBootContext
+    participant Regs as SPI Registries
+    participant TL as TestExecutionListener
+    participant DM as DriverManager
+    participant PC as PreConditionRunner
+    participant TD as TestDataStore
+    participant TM as Test Method
+    participant WE as WaitEngine / Locator
+    participant SH as SelfHealingLocator
+    participant SS as ScreenshotManager
+    participant EM as ExecutionMetrics
+    participant RP as ReportAdapterRegistry
+    participant BT as BuildThresholdEnforcer
+
+    Runner->>SL: onSuiteStart
+    SL->>FB: initialize() (idempotent)
+    FB->>CL: load selenium-boot.yml / profile
+    CL->>Ctx: publish validated config
+    FB->>Regs: load Driver / Hook / Report / Plugin providers
+    SL->>DM: apply parallel mode & session limits
+
+    loop For each test
+        Runner->>TL: onTestStart
+        alt not @NoBrowser / BaseApiTest
+            TL->>DM: createDriver() (ThreadLocal + Semaphore)
+        end
+        TL->>PC: run @PreCondition (cached session)
+        TL->>TD: load @TestData
+        TL->>TM: invoke test method
+        TM->>WE: interact / assert with auto-wait
+        opt timeout & self-healing enabled
+            WE->>SH: tryHeal(By) → log to HealLog
+        end
+        TM-->>TL: result / exception
+        alt failure
+            TL->>SS: capture screenshot
+            TL->>EM: record error + stack + retry count
+        else success
+            TL->>EM: record PASSED
+        end
+        TL->>DM: quitDriver / clear multi-sessions
+        TL->>TD: clear test data
+    end
+
+    Runner->>SL: onSuiteFinish
+    SL->>EM: export metrics JSON + history
+    SL->>RP: generateAll (HTML, Allure, JUnit XML, Notifications)
+    SL->>BT: enforce pass-rate / flaky thresholds
+    SL->>DM: quitAllSuiteDrivers
+    SL->>Regs: unload plugins

@@ -1,0 +1,27 @@
+browser:
+  name: chrome
+  headless: false
+  arguments:
+    - --start-maximized
+    - --disable-notifications
+    - --remote-allow-origins=*
+  capabilities:
+    acceptInsecureCerts: true
+    pageLoadStrategy: eager
+
+execution:
+  mode: local
+  baseUrl: https://panjatan.netlify.app/
+  gridUrl: http://localhost:4444/wd/hub
+#  parallel: none/methods/classes
+  parallel: methods
+  threadCount: 4
+  maxActiveSessions: 4
+
+retry:
+  enabled: true
+  maxAttempts: 2
+
+timeouts:
+  explicit: 10
+  pageLoad: 30

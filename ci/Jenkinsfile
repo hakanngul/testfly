@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven-3'
+    }
+
+    environment {
+        // Selenium Boot detects JENKINS_URL and auto-enables headless mode
+        CI = 'true'
+    }
+
+    options {
+        timestamps()
+        timeout(time: 60, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10'))
+    }
+
+    triggers {
+        // Build on every push (webhook gives instant builds; pollSCM is the fallback).
+        pollSCM('H/5 * * * *')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean compile --no-transfer-progress'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'mvn test --no-transfer-progress'
+            }
+            post {
+                always {
+                    // Parse JUnit XML produced by JUnitXmlReporter
+                    junit testResults: 'target/surefire-reports/TEST-*.xml',
+                          allowEmptyResults: true
+
+                    // Archive HTML report
+                    archiveArtifacts artifacts: 'target/selenium-boot-report.html',
+                                     allowEmptyArchive: true
+
+                    // Archive metrics JSON + history
+                    archiveArtifacts artifacts: 'target/selenium-boot-metrics.json, target/metrics-history/**',
+                                     allowEmptyArchive: true
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Build finished: ${currentBuild.currentResult}"
+        }
+        failure {
+            echo "Tests failed — check the HTML report in build artifacts."
+        }
+        success {
+            echo "All tests passed."
+            // Validate this framework build against the consumer test suite,
+            // building selenium-boot from source so unpublished changes are
+            // exercised end-to-end before release.
+            // Replace 'selenium-boot-test' with the consumer job's name in Jenkins.
+            build job: 'selenium-boot-test',
+                  parameters: [
+                      booleanParam(name: 'BUILD_FRAMEWORK_FROM_SOURCE', value: true),
+                      string(name: 'FRAMEWORK_BRANCH', value: env.BRANCH_NAME ?: 'master')
+                  ],
+                  wait: false
+        }
+    }
+}
