@@ -4,7 +4,7 @@ This document is the **contract between the TestFly framework and the
 [TestFly MCP server](https://github.com/testfly/testfly-mcp)**.
 
 The MCP server generates framework-native Java from a recorded browser session
-(`framework="selenium_boot"`). To do that it hard-codes a mirror of parts of this
+(`framework="testfly"`). To do that it hard-codes a mirror of parts of this
 framework's public API — the locator factories, the `Role` enum, the base-class
 helpers, and the assertion methods. **If you change any API listed here, update
 the MCP server's `codegen_tools.py` in the same change**, or generated code will
@@ -68,7 +68,7 @@ It currently maps these to `Role.*`: `BUTTON, LINK, CHECKBOX, RADIO, SWITCH,
 TEXTBOX, SEARCHBOX, COMBOBOX, OPTION, HEADING, IMG, TAB, MENUITEM, SLIDER,
 SPINBUTTON`. Only `BUTTON`, `LINK`, `HEADING` are emitted with an accessible
 name today. The authoritative list of roles lives in
-[`Role.java`](../src/main/java/com/testfly/locator/Role.java) — if you add or
+[`Role.java`](../src/main/java/io/testfly/locator/Role.java) — if you add or
 rename a role that the MCP should target, update `_ROLE_ENUM`.
 
 ## 3. `Locator` terminal actions used by generated code
@@ -107,6 +107,6 @@ recorded absolute URL; a cross-origin navigation falls back to
 ---
 
 **When you touch the public API, grep the MCP repo's `codegen_tools.py` for the
-symbol before merging.** The MCP's `detect_selenium_boot` tool keys off
+symbol before merging.** The MCP's `detect_testfly` tool keys off
 `testfly.yml` and the `io.testfly` coordinates — keep those
 stable too.

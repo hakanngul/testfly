@@ -13,6 +13,8 @@ import io.testfly.config.TestFlyConfig.Notifications;
 import io.testfly.reporting.AllureReportAdapter;
 import io.testfly.reporting.NotificationAdapter;
 import io.testfly.reporting.ReportAdapterRegistry;
+import io.testfly.reporting.reportportal.ReportPortalPropertiesWriter;
+import io.testfly.reporting.reportportal.ReportPortalReportAdapter;
 
 /**
  * FrameworkBootstrap is responsible for initializing TestFly
@@ -55,6 +57,17 @@ public final class FrameworkBootstrap {
         if (reporting != null && reporting.isAllureEnabled()) {
             ReportAdapterRegistry.register(new AllureReportAdapter());
             System.out.println("[TestFly] Allure adapter enabled → target/allure-results/");
+        }
+
+        if (reporting != null && reporting.getReportPortal() != null && reporting.getReportPortal().isEnabled()) {
+            try {
+                ReportPortalPropertiesWriter.applyAsSystemProperties(config);
+                ReportAdapterRegistry.register(new ReportPortalReportAdapter());
+                System.out.println("[TestFly] ReportPortal adapter enabled → "
+                        + reporting.getReportPortal().getEndpoint());
+            } catch (IllegalArgumentException e) {
+                System.err.println("[TestFly] ReportPortal adapter disabled: " + e.getMessage());
+            }
         }
 
         Notifications notifs = config.getNotifications();

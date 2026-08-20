@@ -136,6 +136,7 @@ Outcomes first — the API that delivers each one is named so you can find it in
 - **Switch environments without touching code** — YAML config with environment profile switching
 - **See exactly why a test failed** — screenshot auto-captured on failure and embedded in the report
 - **Hand stakeholders a report they'll actually read** — HTML dashboard with pass-rate gauge, donut chart, slowest tests, step timeline, dark mode
+- **Stream results to ReportPortal** — native TestNG integration for live launch dashboards and historical trends
 - **Write pages, not plumbing** — `BasePage` with wait-backed `click`, `type`, `getText`, `isDisplayed`, iFrame helpers, file upload
 - **Log in once, reuse the session** — `@PreCondition` with automatic cookie + localStorage caching
 - **Catch JavaScript errors your users would hit** — `ConsoleErrorCollector` (Chrome via logs, Firefox via shim)

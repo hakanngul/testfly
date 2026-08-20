@@ -389,9 +389,55 @@ public final class TestFlyConfig {
 
     public static final class Reporting {
         private boolean allureEnabled = false;
+        private ReportPortal reportPortal = new ReportPortal();
 
         public boolean isAllureEnabled()                      { return allureEnabled; }
         public void    setAllureEnabled(boolean allureEnabled) { this.allureEnabled = allureEnabled; }
+
+        public ReportPortal getReportPortal()                 { return reportPortal; }
+        public void         setReportPortal(ReportPortal v)   { this.reportPortal = v != null ? v : new ReportPortal(); }
+
+        public static final class ReportPortal {
+            private boolean enabled = false;
+            private String  endpoint;
+            private String  apiKey;
+            private String  project = "superadmin_personal";
+            private String  launch = "TestFly Launch";
+            private String  description = "Automated TestFly test execution";
+            private String  attributes = "";
+            /**
+             * ReportPortal listener mode:
+             * <ul>
+             *   <li>{@code default} — standard TestNG listener</li>
+             *   <li>{@code step} — each test method as a step</li>
+             * </ul>
+             */
+            private String  mode = "default";
+
+            public boolean isEnabled()                  { return enabled; }
+            public void    setEnabled(boolean v)      { this.enabled = v; }
+
+            public String  getEndpoint()                { return endpoint; }
+            public void    setEndpoint(String v)        { this.endpoint = v; }
+
+            public String  getApiKey()                  { return apiKey; }
+            public void    setApiKey(String v)          { this.apiKey = v; }
+
+            public String  getProject()                 { return project; }
+            public void    setProject(String v)         { this.project = v; }
+
+            public String  getLaunch()                  { return launch; }
+            public void    setLaunch(String v)          { this.launch = v; }
+
+            public String  getDescription()             { return description; }
+            public void    setDescription(String v)     { this.description = v; }
+
+            public String  getAttributes()              { return attributes; }
+            public void    setAttributes(String v)      { this.attributes = v; }
+
+            public String  getMode()                    { return mode; }
+            public void    setMode(String v)            { this.mode = v; }
+        }
     }
 
     public static final class Recording {

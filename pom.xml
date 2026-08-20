@@ -138,6 +138,18 @@
             <optional>true</optional>
         </dependency>
 
+        <!--
+            ReportPortal TestNG agent — optional so it is NOT pulled transitively.
+            Consumers who enable reporting.reportportal must add agent-java-testng
+            to their own project, or use testfly with this optional dependency included.
+        -->
+        <dependency>
+            <groupId>com.epam.reportportal</groupId>
+            <artifactId>agent-java-testng</artifactId>
+            <version>5.6.8</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Unit-test tooling (test scope only) -->
         <dependency>
             <groupId>org.mockito</groupId>

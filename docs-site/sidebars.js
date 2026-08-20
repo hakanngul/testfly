@@ -89,6 +89,7 @@ const sidebars = {
       items: [
         'reporting/html-report',
         'reporting/junit-xml',
+        'reporting/report-portal',
       ],
     },
     'junit5',

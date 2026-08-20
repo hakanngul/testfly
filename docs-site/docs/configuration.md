@@ -141,6 +141,20 @@ email:
     password: ${EMAIL_PASS}
     folder:   INBOX
 
+# ── Reporting ───────────────────────────────────────────────────────────────
+reporting:
+  allure:
+    enabled: false        # write Allure 2 results to target/allure-results/
+
+  reportportal:
+    enabled: false
+    endpoint: http://localhost:8080
+    apiKey: ${RP_API_KEY}
+    project: superadmin_personal
+    launch: "TestFly Launch"
+    description: "Automated TestFly test execution"
+    attributes: "env:ci;branch:main"
+
 # ── Clock Mocking ────────────────────────────────────────────────────────────
 clock:
   injectHeader: false      # send X-Mock-Date header to server

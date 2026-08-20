@@ -67,11 +67,44 @@ public final class SuiteExecutionListener implements ISuiteListener {
             PreConditionRegistry.loadAll();
             HookRegistry.onSuiteStart();
             TestManagementReporter.getInstance().onSuiteStart();
+            registerReportPortalListenerIfEnabled(suite);
 
         } catch (Exception e) {
             // Abort entire suite on bootstrap failure
             throw new IllegalStateException(
                 "TestFly failed to initialize. Aborting test suite execution.", e);
+        }
+    }
+
+    private static final String REPORTPORTAL_TESTNG_LISTENER =
+            "com.epam.reportportal.testng.ReportPortalTestNGListener";
+
+    /**
+     * Registers the ReportPortal TestNG listener when {@code reporting.reportportal.enabled}
+     * is {@code true} and the ReportPortal agent is present on the classpath.
+     *
+     * <p>The listener class is referenced by name so that TestFly remains compilable
+     * even when the optional {@code agent-java-testng} dependency is not present.
+     */
+    private void registerReportPortalListenerIfEnabled(ISuite suite) {
+        if (!TestFlyContext.isInitialized()) {
+            return;
+        }
+        TestFlyConfig config = TestFlyContext.getConfig();
+        TestFlyConfig.Reporting reporting = config.getReporting();
+        if (reporting == null
+                || reporting.getReportPortal() == null
+                || !reporting.getReportPortal().isEnabled()) {
+            return;
+        }
+        try {
+            Class.forName(REPORTPORTAL_TESTNG_LISTENER);
+            suite.getXmlSuite().addListener(REPORTPORTAL_TESTNG_LISTENER);
+            System.out.println("[TestFly] ReportPortal TestNG listener registered");
+        } catch (ClassNotFoundException e) {
+            System.err.println(
+                    "[TestFly] ReportPortal is enabled but the TestNG agent is not on the classpath. "
+                            + "Add com.epam.reportportal:agent-java-testng to your project dependencies.");
         }
     }
 
