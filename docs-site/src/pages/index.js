@@ -1,77 +1,104 @@
 import React, { useEffect, useState } from 'react';
 import Link from '@docusaurus/Link';
+import useBaseUrl from '@docusaurus/useBaseUrl';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import { useColorMode } from '@docusaurus/theme-common';
+import { Highlight } from 'prism-react-renderer';
+import { themes } from 'prism-react-renderer';
 import Layout from '@theme/Layout';
 import styles from './index.module.css';
 
 // ─── Feature data ─────────────────────────────────────────────────────────────
-// `highlight: true` features are shown by default; the rest reveal on "Show all".
 
-// Flagship features — shown large in the bento grid. `span: 2` cards get a
-// signature visual (a code snippet or the mini report widget).
 const flagshipFeatures = [
   {
-    icon: '⚡',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+      </svg>
+    ),
     title: 'Zero Boilerplate',
     span: 2,
     description: 'Extend BaseTest, write @Test methods, and go. Driver lifecycle, waits, retries, reports, and screenshots are all handled — no setup code required.',
-    code: `class LoginTest
-    extends BaseTest {
+    code: `class CheckoutTest extends BaseTest {
 
-  @Test void login() {
-    open();                 // driver ready
-    getByRole(BUTTON)       // auto-waits
-      .withName("Sign in")
-      .click();
+  @Test
+  void completeOrder() {
+    open();
+    find("#checkout").click();
+    assertThat(find("[role='alert']"))
+        .isVisible();
   }
 }`,
   },
   {
-    icon: '🎯',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 16v-4M12 8h.01" />
+      </svg>
+    ),
     title: 'Tests Survive CSS Refactors',
     description: 'Accessibility-first getByRole / getByText / getByLabel target the accessibility tree — Playwright-style, auto-waiting, and resilient to CSS or DOM refactors.',
   },
   {
-    icon: '🩺',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+        <path d="m9 12 2 2 4-4" />
+      </svg>
+    ),
     title: 'Locators That Repair Themselves',
     description: 'When a locator breaks, self-healing falls back through id, name, text, and data-testid automatically — and flags every heal in the report.',
   },
   {
-    icon: '📊',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 3v18h18" />
+        <path d="M18 17V9M13 17V5M8 17v-3" />
+      </svg>
+    ),
     title: 'A Report Stakeholders Actually Read',
     span: 2,
     visual: 'report',
     description: 'A tabbed HTML dashboard with a pass-rate gauge, retry badges, expandable errors, a Flakiness Radar, trace links, search, and dark mode.',
   },
   {
-    icon: '🧠',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
+        <path d="M9 21h6" />
+      </svg>
+    ),
     title: 'Know Why a Test Failed',
     description: 'On every failure, AI failure analysis has Claude read the error, steps, and URL, then embeds a plain-English root cause and suggested fix in the report.',
   },
   {
-    icon: '🤖',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="m9 9 6 6M15 9l-6 6" />
+      </svg>
+    ),
     title: 'Generate Tests From a Prompt',
     description: 'AI test authoring via testfly-mcp lets Claude or Copilot drive a real browser and generate ready-to-run TestFly tests from a single prompt.',
   },
 ];
 
-// The rest of the toolkit — shown compact, one line each.
 const moreFeatures = [
   { icon: '📄', title: 'Switch Environments Without Code Changes', short: 'One testfly.yml controls browsers, threads, timeouts, retry, and CI gates.' },
-  { icon: '🔁', title: 'Flaky Tests Stop Failing Your Build',     short: 'Auto-retry flaky tests and rank them HIGH / WATCH / STABLE in the report.' },
-  { icon: '📋', title: 'Write Pages, Not Plumbing',               short: 'BasePage wraps clicks, waits, dropdowns, iframes, Shadow DOM, and uploads.' },
-  { icon: '🔗', title: 'Pin Down Any Element',                    short: 'Fluent, Playwright-style chainable locators with auto-retrying assertThat().' },
-  { icon: '🌐', title: 'Test Without a Real Backend',             short: 'Mock API responses over CDP; read and write storage, cookies, and geo.' },
-  { icon: '📸', title: 'Catch Visual Regressions',               short: 'Pixel-diff screenshots and one-line device emulation for 6 mobile profiles.' },
-  { icon: '🪜', title: 'Read the Test Like a Spec',              short: 'Step logging — named steps with screenshots and a self-contained failure trace.' },
-  { icon: '🔐', title: 'Log In Once, Reuse the Session',         short: '@PreCondition runs login once, caches the session, and restores it for every test.' },
-  { icon: '📧', title: 'Assert on the Email Your App Sent',      short: 'Email verification waits for real emails via Mailhog, Mailtrap, Graph API, or IMAP.' },
-  { icon: '🕐', title: 'Test Time Without Waiting for It',       short: 'Clock mocking freezes the browser clock to test expiry, trials, and countdowns.' },
-  { icon: '☁️', title: 'Run on Real Cloud Browsers',             short: 'BrowserStack or Sauce Labs by changing one config line.' },
-  { icon: '🔌', title: 'Extend It Without Forking It',           short: 'Register custom drivers, report adapters, and hooks via Java SPI / ServiceLoader.' },
+  { icon: '🔁', title: 'Flaky Tests Stop Failing Your Build', short: 'Auto-retry flaky tests and rank them HIGH / WATCH / STABLE in the report.' },
+  { icon: '📋', title: 'Write Pages, Not Plumbing', short: 'BasePage wraps clicks, waits, dropdowns, iframes, Shadow DOM, and uploads.' },
+  { icon: '🔗', title: 'Pin Down Any Element', short: 'Fluent, Playwright-style chainable locators with auto-retrying assertThat().' },
+  { icon: '🌐', title: 'Test Without a Real Backend', short: 'Mock API responses over CDP; read and write storage, cookies, and geo.' },
+  { icon: '📸', title: 'Catch Visual Regressions', short: 'Pixel-diff screenshots and one-line device emulation for 6 mobile profiles.' },
+  { icon: '🪜', title: 'Read the Test Like a Spec', short: 'Step logging — named steps with screenshots and a self-contained failure trace.' },
+  { icon: '🔐', title: 'Log In Once, Reuse the Session', short: '@PreCondition runs login once, caches the session, and restores it for every test.' },
+  { icon: '📧', title: 'Assert on the Email Your App Sent', short: 'Email verification waits for real emails via Mailhog, Mailtrap, Graph API, or IMAP.' },
+  { icon: '🕐', title: 'Test Time Without Waiting for It', short: 'Clock mocking freezes the browser clock to test expiry, trials, and countdowns.' },
+  { icon: '☁️', title: 'Run on Real Cloud Browsers', short: 'BrowserStack or Sauce Labs by changing one config line.' },
+  { icon: '🔌', title: 'Extend It Without Forking It', short: 'Register custom drivers, report adapters, and hooks via Java SPI / ServiceLoader.' },
 ];
-
-// ─── FAQ data ─────────────────────────────────────────────────────────────────
 
 const faqs = [
   {
@@ -105,29 +132,43 @@ const faqs = [
 ];
 
 const stats = [
-  { value: '1',   label: 'Dependency to add' },
+  { value: '1', label: 'Dependency to add' },
   { value: '20+', label: 'Built-in features' },
-  { value: '4',   label: 'CI platforms auto-detected' },
-  { value: '0',   label: 'Boilerplate required' },
+  { value: '4', label: 'CI platforms auto-detected' },
+  { value: '0', label: 'Boilerplate required' },
 ];
 
 // ─── Components ───────────────────────────────────────────────────────────────
 
-function CodeWindow({ filename, code, className }) {
+function CodeWindow({ filename, code, className, language = 'java' }) {
+  const { colorMode } = useColorMode();
+  const prismTheme = colorMode === 'dark' ? themes.dracula : themes.oneLight;
+
   return (
     <div className={`${styles.codeWindow} ${className || ''}`}>
       <div className={styles.codeWindowBar}>
-        <span className={styles.dot} data-color="red" />
-        <span className={styles.dot} data-color="yellow" />
-        <span className={styles.dot} data-color="green" />
+        <span className={styles.dot} />
+        <span className={styles.dot} />
+        <span className={styles.dot} />
         <span className={styles.codeWindowFilename}>{filename}</span>
       </div>
-      <pre className={styles.codeWindowBody}>{code}</pre>
+      <Highlight theme={prismTheme} code={code.trim()} language={language}>
+        {({ className: hlClass, style, tokens, getLineProps, getTokenProps }) => (
+          <pre className={`${styles.codeWindowBody} ${hlClass}`} style={style}>
+            {tokens.map((line, i) => (
+              <div key={i} {...getLineProps({ line })}>
+                {line.map((token, key) => (
+                  <span key={key} {...getTokenProps({ token })} />
+                ))}
+              </div>
+            ))}
+          </pre>
+        )}
+      </Highlight>
     </div>
   );
 }
 
-// Mini HTML-report visual for the flagship "Advanced HTML Report" card.
 function ReportPreview() {
   return (
     <div className={styles.reportPreview} aria-hidden>
@@ -149,16 +190,10 @@ function ReportPreview() {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 function FaqItem({ item, isOpen, onToggle }) {
   return (
     <div className={styles.faqItem} data-open={isOpen ? '' : undefined}>
-      <button
-        className={styles.faqQuestion}
-        onClick={onToggle}
-        aria-expanded={isOpen}
-      >
+      <button className={styles.faqQuestion} onClick={onToggle} aria-expanded={isOpen}>
         <span>{item.q}</span>
         <span className={styles.faqChevron} aria-hidden>›</span>
       </button>
@@ -171,12 +206,12 @@ function FaqItem({ item, isOpen, onToggle }) {
   );
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function Home() {
   const { siteConfig } = useDocusaurusContext();
-
   const [openFaq, setOpenFaq] = useState(0);
 
-  // Scroll-reveal: add data-visible attribute when element enters the viewport
   useEffect(() => {
     const els = document.querySelectorAll('[data-reveal]');
     const observer = new IntersectionObserver(
@@ -184,7 +219,7 @@ export default function Home() {
         entries.forEach((e) => {
           if (e.isIntersecting) {
             e.target.setAttribute('data-visible', '');
-            observer.unobserve(e.target); // fire once
+            observer.unobserve(e.target);
           }
         });
       },
@@ -196,87 +231,69 @@ export default function Home() {
 
   return (
     <Layout title="Home" description={siteConfig.tagline}>
-
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className={styles.heroSection}>
-        {/* Decorative background blobs */}
-        <div className={styles.heroBlob1} aria-hidden />
-        <div className={styles.heroBlob2} aria-hidden />
-        <div className={styles.heroBlob3} aria-hidden />
-        {/* Dot-grid overlay */}
-        <div className={styles.heroDots} aria-hidden />
-
-        <div className="container">
-          <div className={styles.heroInner}>
-
-            {/* Left column — text */}
-            <div className={styles.heroLeft}>
-              <div className={styles.heroBadge}>
-                <span className={styles.badgePulse} />
-                Java · Selenium · TestNG · JUnit 5
-              </div>
-
-              <h1 className={styles.heroTitle}>
-                Test automation<br />
-                <span className={styles.gradientText}>without the noise</span>
-              </h1>
-
-              <p className={styles.heroSubtitle}>{siteConfig.tagline}</p>
-
-              <div className={styles.heroActions}>
-                <Link className={styles.btnPrimary} to="/docs/getting-started">
-                  Get Started <span className={styles.arrow}>→</span>
-                </Link>
-                <Link className={styles.btnGhost} to="https://github.com/testfly/testfly">
-                  <svg className={styles.githubIcon} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
-                  </svg>
-                  GitHub
-                </Link>
-              </div>
-
-              <CodeWindow
-                filename="pom.xml"
-                className={styles.heroSnippet}
-                code={`<dependency>
+      <main>
+        {/* ── Hero ─────────────────────────────────────────────────────────── */}
+        <section className={styles.hero}>
+          <div className={styles.heroBackground} aria-hidden />
+          <img
+            src={useBaseUrl('/img/logo2.svg')}
+            alt=""
+            className={styles.heroLogoWatermark}
+            aria-hidden
+          />
+          <div className="container">
+            <div className={styles.heroInner}>
+              <div className={styles.heroText}>
+                <span className={styles.heroEyebrow}>Java · Selenium · TestNG · JUnit 5</span>
+                <h1 className={styles.heroTitle}>
+                  Test automation
+                  <br />
+                  <span className={styles.heroTitleAccent}>without the noise</span>
+                </h1>
+                <p className={styles.heroSubtitle}>{siteConfig.tagline}</p>
+                <div className={styles.heroActions}>
+                  <Link className={styles.buttonPrimary} to="/docs/getting-started">
+                    Get Started
+                  </Link>
+                  <Link className={styles.buttonSecondary} to="https://github.com/testfly/testfly">
+                    View on GitHub
+                  </Link>
+                </div>
+                <CodeWindow
+                  filename="pom.xml"
+                  className={styles.heroSnippet}
+                  code={`<dependency>
   <groupId>io.testfly</groupId>
   <artifactId>testfly</artifactId>
   <version>1.0.0</version>
 </dependency>`}
-              />
-            </div>
+                />
+              </div>
 
-            {/* Right column — code preview */}
-            <div className={styles.heroRight}>
-              <CodeWindow
-                filename="LoginTest.java"
-                code={`public class LoginTest extends BaseTest {
+              <div className={styles.heroVisual}>
+                <CodeWindow
+                  filename="LoginTest.java"
+                  code={`public class LoginTest extends BaseTest {
 
-  @Test(description = "Valid user can log in")
-  public void loginTest() {
-    StepLogger.step("Open login page");
+  @Test
+  public void userCanSignIn() {
+    StepLogger.step("Open app");
     open();
 
-    StepLogger.step("Enter credentials", true);
-    new LoginPage(getDriver())
-        .login("admin", "secret");
+    StepLogger.step("Enter credentials");
+    find("#email").type("admin@testfly.io");
+    find("#password").type("secret");
+    find("[data-testid='sign-in']").click();
 
-    StepLogger.step("Assert dashboard");
-    Assert.assertTrue(
-        new DashboardPage(getDriver()).isLoaded()
-    );
+    StepLogger.step("Verify dashboard");
+    assertThat(find("h1")).hasText("Dashboard");
   }
 }`}
-              />
-              {/* Glow ring behind the code card */}
-              <div className={styles.codeGlow} aria-hidden />
+                />
+              </div>
             </div>
-
           </div>
-        </div>
-      </section>
-
-      <main>
+        </section>
 
         {/* ── Stats strip ──────────────────────────────────────────────────── */}
         <section className={styles.statsSection}>
@@ -296,7 +313,7 @@ export default function Home() {
         <section className={styles.compareSection}>
           <div className="container">
             <div className={styles.sectionHeader} data-reveal>
-              <span className={styles.sectionTag}>Before / After</span>
+              <span className={styles.sectionEyebrow}>Before / After</span>
               <h2 className={styles.sectionTitle}>Same test.<br />None of the plumbing.</h2>
               <p className={styles.sectionSubtitle}>
                 TestFly lets your team focus on testing, not framework engineering.
@@ -318,7 +335,7 @@ wait.until(ExpectedConditions
     .click();
 
 wait.until(ExpectedConditions.textToBe(
-    By.cssSelector("h1"), "Welcome"));`}
+    By.cssSelector("h1"), "Dashboard"));`}
                 />
               </div>
 
@@ -332,9 +349,10 @@ wait.until(ExpectedConditions.textToBe(
                 <CodeWindow
                   filename="LoginTest.java"
                   className={styles.compareWindow}
-                  code={`$("#login").click();   // auto-waits
+                  code={`find("#login").click();   // auto-waits
 
-assertThat($("h1")).hasText("Welcome");`}
+assertThat(find("h1"))
+    .hasText("Dashboard");`}
                 />
               </div>
             </div>
@@ -344,16 +362,14 @@ assertThat($("h1")).hasText("Welcome");`}
         {/* ── Features ─────────────────────────────────────────────────────── */}
         <section className={styles.featuresSection}>
           <div className="container">
-
             <div className={styles.sectionHeader} data-reveal>
-              <span className={styles.sectionTag}>Features</span>
+              <span className={styles.sectionEyebrow}>Features</span>
               <h2 className={styles.sectionTitle}>Everything you need,<br />nothing you don't</h2>
               <p className={styles.sectionSubtitle}>
                 One dependency. Zero required config. Full-stack automation power, ready the moment you extend BaseTest.
               </p>
             </div>
 
-            {/* Flagship bento — the six headline capabilities */}
             <div className={styles.bentoGrid}>
               {flagshipFeatures.map((f, i) => (
                 <div
@@ -363,9 +379,7 @@ assertThat($("h1")).hasText("Welcome");`}
                   data-reveal
                   style={{ '--i': i % 3 }}
                 >
-                  <div className={styles.featureIconWrap}>
-                    <span className={styles.featureIcon}>{f.icon}</span>
-                  </div>
+                  <div className={styles.featureIconWrap}>{f.icon}</div>
                   <h3 className={styles.bentoTitle}>{f.title}</h3>
                   <p className={styles.bentoDesc}>{f.description}</p>
                   {f.code && <pre className={styles.bentoCode}>{f.code}</pre>}
@@ -374,7 +388,6 @@ assertThat($("h1")).hasText("Welcome");`}
               ))}
             </div>
 
-            {/* Compact toolkit — everything else, one line each */}
             <div className={styles.moreHeader} data-reveal>
               <h3 className={styles.moreTitle}>The complete toolkit</h3>
               <p className={styles.moreSubtitle}>
@@ -405,15 +418,14 @@ assertThat($("h1")).hasText("Welcome");`}
         <section className={styles.quickSection}>
           <div className="container">
             <div className={styles.quickInner}>
-
               <div className={styles.quickText} data-reveal>
-                <span className={styles.sectionTag}>Quick Start</span>
+                <span className={styles.sectionEyebrow}>Quick Start</span>
                 <h2 className={styles.quickTitle}>Up and running<br />in 3 minutes</h2>
                 <p className={styles.quickSubtitle}>
                   Add the dependency, create a YAML config, extend BaseTest — your first test runs with full reporting, retry, and smart waits already configured.
                 </p>
-                <Link className={styles.btnPrimary} to="/docs/getting-started">
-                  Read the guide <span className={styles.arrow}>→</span>
+                <Link className={styles.buttonPrimary} to="/docs/getting-started">
+                  Read the guide
                 </Link>
               </div>
 
@@ -438,7 +450,6 @@ clock:
   injectHeader: false`}
                 />
               </div>
-
             </div>
           </div>
         </section>
@@ -447,7 +458,7 @@ clock:
         <section className={styles.faqSection}>
           <div className="container">
             <div className={styles.sectionHeader} data-reveal>
-              <span className={styles.sectionTag}>FAQ</span>
+              <span className={styles.sectionEyebrow}>FAQ</span>
               <h2 className={styles.sectionTitle}>Questions, answered</h2>
               <p className={styles.sectionSubtitle}>
                 The things teams ask before adopting TestFly.
@@ -471,26 +482,27 @@ clock:
         <section className={styles.ctaSection}>
           <div className="container">
             <div className={styles.ctaCard} data-reveal>
-              <div className={styles.ctaBlob} aria-hidden />
+              <img
+                src={useBaseUrl('/img/logo3.svg')}
+                alt=""
+                className={styles.ctaLogo}
+                aria-hidden
+              />
               <h2 className={styles.ctaTitle}>Ready to delete your boilerplate?</h2>
               <p className={styles.ctaSubtitle}>
                 One dependency. One YAML file. Tests that read like intent.
               </p>
               <div className={styles.ctaActions}>
-                <Link className={styles.btnPrimary} to="/docs/getting-started">
-                  Get Started <span className={styles.arrow}>→</span>
+                <Link className={styles.buttonPrimary} to="/docs/getting-started">
+                  Get Started
                 </Link>
-                <Link className={styles.btnGhost} to="https://github.com/testfly/testfly">
-                  <svg className={styles.githubIcon} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
-                  </svg>
-                  Star on GitHub
+                <Link className={styles.buttonSecondary} to="https://github.com/testfly/testfly">
+                  View on GitHub
                 </Link>
               </div>
             </div>
           </div>
         </section>
-
       </main>
     </Layout>
   );

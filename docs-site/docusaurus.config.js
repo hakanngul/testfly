@@ -89,9 +89,9 @@ const config = {
     ({
       image: 'img/logo.svg',
       colorMode: {
-        defaultMode: 'dark',
+        defaultMode: 'light',
         disableSwitch: false,
-        respectPrefersColorScheme: false,
+        respectPrefersColorScheme: true,
       },
       navbar: {
         title: 'TestFly',
@@ -119,7 +119,7 @@ const config = {
         ],
       },
       footer: {
-        style: 'dark',
+        style: 'light',
         links: [
           {
             title: 'Docs',
@@ -149,7 +149,7 @@ const config = {
         copyright: `Copyright © ${new Date().getFullYear()} TestFly. Built with Docusaurus.`,
       },
       prism: {
-        theme: themes.github,
+        theme: themes.oneLight,
         darkTheme: themes.dracula,
         additionalLanguages: ['java', 'yaml', 'bash', 'markup'],
       },
