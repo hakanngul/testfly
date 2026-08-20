@@ -1,5 +1,5 @@
 ---
-description: "Add a custom WebDriver to TestFly: plug in Edge, Safari, Appium, or a cloud driver via NamedDriverProvider without touching the framework."
+description: "Add a custom WebDriver to TestFly: plug in Appium, a custom grid, or a niche browser via NamedDriverProvider without touching the framework. Edge and Safari are already built-in."
 id: custom-drivers
 title: Custom Drivers
 sidebar_position: 3
@@ -7,7 +7,11 @@ sidebar_position: 3
 
 # Custom Drivers
 
-`NamedDriverProvider` lets you plug in any WebDriver implementation — Edge, Safari, BrowserStack, Appium — without modifying the framework. Custom providers take precedence over the built-in Chrome/Firefox providers.
+`NamedDriverProvider` lets you plug in any WebDriver implementation — Appium, a custom Selenium Grid wrapper, or a niche browser — without modifying the framework. Custom providers take precedence over the built-in providers.
+
+:::info Edge and Safari are built-in
+You do not need a custom provider for Edge or Safari. Set `browser.name: edge` or `browser.name: safari` in `testfly.yml` and TestFly handles them natively.
+:::
 
 ---
 
@@ -15,21 +19,24 @@ sidebar_position: 3
 
 ```java
 import io.testfly.driver.NamedDriverProvider;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.edge.EdgeDriver;
-import org.openqa.selenium.edge.EdgeOptions;
 
-public class EdgeDriverProvider implements NamedDriverProvider {
+public class AndroidProvider implements NamedDriverProvider {
 
     @Override
     public String browserName() {
-        return "edge";   // matched case-insensitively against browser.name in testfly.yml
+        return "android";   // matched case-insensitively against browser.name in testfly.yml
     }
 
     @Override
     public WebDriver createDriver() {
-        EdgeOptions options = new EdgeOptions();
-        return new EdgeDriver(options);
+        UiAutomator2Options options = new UiAutomator2Options();
+        options.setPlatformName("Android");
+        options.setDeviceName("Pixel 7");
+        options.setApp("/path/to/app.apk");
+        return new AndroidDriver(options);
     }
 }
 ```
@@ -45,14 +52,14 @@ src/main/resources/META-INF/services/io.testfly.driver.NamedDriverProvider
 Contents:
 
 ```
-com.example.drivers.EdgeDriverProvider
+com.example.drivers.AndroidProvider
 ```
 
 Then set `browser.name` in your config:
 
 ```yaml title="testfly.yml"
 browser:
-  name: edge
+  name: android
 ```
 
 TestFly selects your provider automatically.
@@ -64,7 +71,7 @@ TestFly selects your provider automatically.
 ```java
 import io.testfly.driver.DriverProviderRegistry;
 
-DriverProviderRegistry.register(new EdgeDriverProvider());
+DriverProviderRegistry.register(new AndroidProvider());
 ```
 
 ---

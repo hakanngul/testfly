@@ -27,6 +27,19 @@ getWait().waitForInvisible(By.cssSelector(".spinner"));  // wait for loaders to 
 getWait().waitForClickable(By.id("submit"));
 ```
 
+### Enabled / disabled
+
+```java
+getWait().waitForEnabled(By.id("submit"));   // ready to interact
+getWait().waitForDisabled(By.id("submit"));  // button is greyed out
+```
+
+### Selected
+
+```java
+getWait().waitForSelected(By.id("terms"));   // checkbox or radio is checked
+```
+
 ### Text content
 
 ```java
@@ -65,6 +78,21 @@ getWait().waitForStaleness(old);  // wait for DOM replacement / AJAX reload
 
 ```java
 getWait().waitForPageLoad();  // waits until document.readyState === "complete"
+```
+
+### Windows and frames
+
+```java
+getWait().waitForNumberOfWindowsToBe(2);   // new tab opened
+getWait().waitForFrameAvailableAndSwitchToIt(By.id("payment-iframe"));
+```
+
+### Minimum element count
+
+Useful for lists and infinite-scroll feeds that grow asynchronously:
+
+```java
+getWait().waitForMinimumElementCount(By.cssSelector(".product-card"), 10);
 ```
 
 ### Custom condition

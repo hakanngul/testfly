@@ -137,23 +137,23 @@ Items from [`ROADMAP.md`](ROADMAP.md) that are actively open for contribution:
 
 ### Documentation & Discoverability
 
-- Per-page SEO descriptions (in progress)
-- Additional "Why" pages (Why TestFly, Why not Playwright, Why accessibility-first, etc.)
-- Recipes section (upload file, download PDF, iframes, Shadow DOM, tables, infinite scroll, OAuth/SSO, alerts, drag & drop)
-- Migration guides (Selenide, Serenity)
-- Homepage before/after visual component
-- SEO hygiene — sitemap verification, page titles
+- ✅ Per-page SEO descriptions — completed; all docs pages include `description:` frontmatter
+- ✅ Additional "Why" pages — `why-testfly`, `why-not-plain-selenium`, `why-not-playwright`, `why-accessibility-first`, `why-waitengine`
+- ✅ Recipes section — `upload-a-file`, `download-and-verify-a-pdf`, `handle-iframes`, `handle-shadow-dom`, `tables`, `infinite-scroll`, `oauth-sso`, `alerts`, `drag-and-drop`
+- ✅ Migration guides — `from-selenium-testng`, `from-webdrivermanager`, `coming-from-playwright`, `from-selenide`, `from-serenity`
+- ✅ Homepage before/after visual component — Plain Selenium vs TestFly comparison on homepage
+- ✅ SEO hygiene — sitemap plugin configured; homepage title tightened
 
 ### Framework & Ecosystem
 
-- More built-in `WaitEngine` conditions
-- First-class Edge and Safari driver providers via SPI
+- ✅ More built-in `WaitEngine` conditions — `waitForEnabled`, `waitForDisabled`, `waitForSelected`, `waitForNumberOfWindowsToBe`, `waitForFrameAvailableAndSwitchToIt`, `waitForMinimumElementCount`
+- ✅ First-class Edge and Safari driver providers via SPI — `LocalEdgeDriverProvider`, `LocalSafariDriverProvider`
 - Continuous alignment with `testfly-mcp` codegen
 
 ### Quality & Platform
 
-- Grow unit-test coverage for untested paths
-- Blocking session queue instead of fail-fast when `maxActiveSessions` is reached
+- ✅ Grow unit-test coverage for untested paths — `WaitEngine`, `DriverProviderFactory`, and `BrowserArgumentValidator` coverage expanded
+- ✅ Blocking session queue instead of fail-fast when `maxActiveSessions` is reached — implemented via fair Semaphore in `DriverManager`
 - Keep consumer sample project (`testfly-test`) in sync with new features
 
 ---

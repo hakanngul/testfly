@@ -42,6 +42,14 @@ public final class DriverProviderFactory {
             return new LocalFirefoxDriverProvider();
         }
 
+        if ("edge".equalsIgnoreCase(browser)) {
+            return new LocalEdgeDriverProvider();
+        }
+
+        if ("safari".equalsIgnoreCase(browser)) {
+            return new LocalSafariDriverProvider();
+        }
+
         throw new IllegalStateException(
             "Unsupported browser: " + browser +
             ". Register a NamedDriverProvider via SPI or DriverProviderRegistry.register()."

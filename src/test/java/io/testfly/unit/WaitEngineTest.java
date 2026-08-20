@@ -12,6 +12,8 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.util.List;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -76,6 +78,7 @@ public class WaitEngineTest {
         assertTrue(WaitEngine.waitForUrlMatches(".*/orders/\\d+"));
     }
 
+
     // ── waitForTextMatches (regex) ─────────────────────────────────────────────
 
     @Test
@@ -88,5 +91,83 @@ public class WaitEngineTest {
         WebElement result = WaitEngine.waitForTextMatches(locator, "\\$\\d+\\.\\d{2}");
 
         assertSame(result, element);
+    }
+
+    // ── waitForEnabled / waitForDisabled ───────────────────────────────────────
+
+    @Test
+    public void waitForEnabled_returnsElement_whenElementIsClickable() {
+        By locator = By.id("submit");
+        WebElement element = mock(WebElement.class);
+        when(element.isDisplayed()).thenReturn(true);
+        when(element.isEnabled()).thenReturn(true);
+        when(mockDriver.findElement(locator)).thenReturn(element);
+
+        WebElement result = WaitEngine.waitForEnabled(locator);
+
+        assertSame(result, element);
+    }
+
+    @Test
+    public void waitForDisabled_returnsTrue_whenElementIsDisabled() {
+        By locator = By.id("submit");
+        WebElement element = mock(WebElement.class);
+        when(mockDriver.findElement(locator)).thenReturn(element);
+        when(element.getAttribute("disabled")).thenReturn("true");
+        when(element.getDomAttribute("disabled")).thenReturn("true");
+
+        assertTrue(WaitEngine.waitForDisabled(locator));
+    }
+
+    // ── waitForSelected ────────────────────────────────────────────────────────
+
+    @Test
+    public void waitForSelected_returnsTrue_whenElementIsSelected() {
+        By locator = By.id("terms");
+        WebElement element = mock(WebElement.class);
+        when(mockDriver.findElement(locator)).thenReturn(element);
+        when(element.isSelected()).thenReturn(true);
+
+        assertTrue(WaitEngine.waitForSelected(locator));
+    }
+
+    // ── waitForNumberOfWindowsToBe ─────────────────────────────────────────────
+
+    @Test
+    public void waitForNumberOfWindowsToBe_returnsTrue_whenCountMatches() {
+        when(mockDriver.getWindowHandles()).thenReturn(java.util.Set.of("win-1", "win-2"));
+
+        assertTrue(WaitEngine.waitForNumberOfWindowsToBe(2));
+    }
+
+    // ── waitForFrameAvailableAndSwitchToIt ─────────────────────────────────────
+
+    @Test
+    public void waitForFrameAvailableAndSwitchToIt_switchesDriverToFrame() {
+        By locator = By.id("payment-iframe");
+        WebElement frame = mock(WebElement.class);
+        WebDriver.TargetLocator targetLocator = mock(WebDriver.TargetLocator.class);
+
+        when(mockDriver.findElement(locator)).thenReturn(frame);
+        when(mockDriver.switchTo()).thenReturn(targetLocator);
+        when(targetLocator.frame(frame)).thenReturn(mockDriver);
+
+        WebDriver result = WaitEngine.waitForFrameAvailableAndSwitchToIt(locator);
+
+        assertSame(result, mockDriver);
+    }
+
+    // ── waitForMinimumElementCount ─────────────────────────────────────────────
+
+    @Test
+    public void waitForMinimumElementCount_returnsElements_whenEnoughPresent() {
+        By locator = By.cssSelector(".product-card");
+        WebElement card1 = mock(WebElement.class);
+        WebElement card2 = mock(WebElement.class);
+        when(mockDriver.findElements(locator)).thenReturn(List.of(card1, card2));
+
+        List<WebElement> result = WaitEngine.waitForMinimumElementCount(locator, 2);
+
+        assertEquals(result.size(), 2);
     }
 }

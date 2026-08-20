@@ -3,7 +3,7 @@ const { themes } = require('prism-react-renderer');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'TestFly',
+  title: 'TestFly — Java Test Automation SDK',
   tagline: 'Java Test Automation SDK — web, API, mobile, and AI/MCP-powered test automation without hiding Selenium',
   favicon: 'img/favicon.svg',
 

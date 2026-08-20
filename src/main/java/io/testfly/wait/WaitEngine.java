@@ -17,6 +17,7 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -75,6 +76,45 @@ public final class WaitEngine {
     public static boolean waitForStaleness(WebElement element) {
         return createWait()
                 .until(ExpectedConditions.stalenessOf(element));
+    }
+
+    /**
+     * Waits until the element is enabled (not disabled).
+     *
+     * <pre>
+     * WaitEngine.waitForEnabled(By.id("submit"));
+     * </pre>
+     */
+    public static WebElement waitForEnabled(By locator) {
+        try {
+            return createWait().until(ExpectedConditions.elementToBeClickable(locator));
+        } catch (TimeoutException | NoSuchElementException e) {
+            WebElement healed = tryHeal(locator);
+            if (healed != null) return healed;
+            throw e;
+        }
+    }
+
+    /**
+     * Waits until the element is disabled.
+     *
+     * <pre>
+     * WaitEngine.waitForDisabled(By.id("submit"));
+     * </pre>
+     */
+    public static boolean waitForDisabled(By locator) {
+        return createWait().until(ExpectedConditions.attributeToBe(locator, "disabled", "true"));
+    }
+
+    /**
+     * Waits until a form control is selected (checkbox, radio button, or option).
+     *
+     * <pre>
+     * WaitEngine.waitForSelected(By.id("terms"));
+     * </pre>
+     */
+    public static boolean waitForSelected(By locator) {
+        return createWait().until(ExpectedConditions.elementToBeSelected(locator));
     }
 
     // ----------------------------------------------------------
@@ -147,6 +187,45 @@ public final class WaitEngine {
         createWait().until(driver ->
                 "complete".equals(((JavascriptExecutor) driver)
                         .executeScript("return document.readyState")));
+    }
+
+    // ----------------------------------------------------------
+    // Windows & frames
+    // ----------------------------------------------------------
+
+    /**
+     * Waits until the browser has the expected number of open windows/tabs.
+     *
+     * <pre>
+     * WaitEngine.waitForNumberOfWindowsToBe(2);
+     * </pre>
+     */
+    public static boolean waitForNumberOfWindowsToBe(int expectedNumberOfWindows) {
+        return createWait().until(ExpectedConditions.numberOfWindowsToBe(expectedNumberOfWindows));
+    }
+
+    /**
+     * Waits until a frame is available and switches the driver context to it.
+     * Remember to call {@code driver.switchTo().defaultContent()} when done.
+     *
+     * <pre>
+     * WaitEngine.waitForFrameAvailableAndSwitchToIt(By.id("payment-iframe"));
+     * </pre>
+     */
+    public static WebDriver waitForFrameAvailableAndSwitchToIt(By frameLocator) {
+        return createWait().until(ExpectedConditions.frameToBeAvailableAndSwitchToIt(frameLocator));
+    }
+
+    /**
+     * Waits until at least {@code minimumCount} elements matching the locator are present.
+     * Useful for infinite-scroll feeds or lists that grow asynchronously.
+     *
+     * <pre>
+     * WaitEngine.waitForMinimumElementCount(By.cssSelector(".product-card"), 10);
+     * </pre>
+     */
+    public static List<WebElement> waitForMinimumElementCount(By locator, int minimumCount) {
+        return createWait().until(ExpectedConditions.numberOfElementsToBeMoreThan(locator, minimumCount - 1));
     }
 
     // ----------------------------------------------------------

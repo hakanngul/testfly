@@ -20,22 +20,23 @@ Items tagged **`good first issue`** or **`help wanted`** are open for contributi
 
 Most users find a framework by searching, not by browsing GitHub.
 
-- **Per-page SEO descriptions** across all docs pages — *in progress*.
-- **"Why" pages** — Why TestFly? · Why not plain Selenium? · Why not Playwright? · Why accessibility-first locators? · Why WaitEngine? `good first issue`
-- **Recipes section** — task-titled, search-matched guides: upload a file, download a PDF, iframes, Shadow DOM, tables, infinite scroll, OAuth/SSO, alerts, drag & drop, REST + UI. `good first issue`
-- **Migration guides** — from Selenium + TestNG, from WebDriverManager, from Selenide, from Serenity; plus a "coming from Playwright" bridge (familiar vs. different, **not** a replacement claim). `help wanted`
-- **Homepage before/after** — a visual `wait.until(...)` → `click("#login")` comparison component. `enhancement`
-- **SEO hygiene** — verify `sitemap.xml` generation, tighten generic page `<title>`s. `good first issue`
+- ✅ **Per-page SEO descriptions** across all docs pages — completed.
+- ✅ **"Why" pages** — Why TestFly? · Why not plain Selenium? · Why not Playwright? · Why accessibility-first locators? · Why WaitEngine?
+- ✅ **Recipes section** — task-titled, search-matched guides: upload a file, download a PDF, iframes, Shadow DOM, tables, infinite scroll, OAuth/SSO, alerts, drag & drop, REST + UI.
+- ✅ **Migration guides** — from Selenium + TestNG, from WebDriverManager, from Selenide, from Serenity; plus a "coming from Playwright" bridge (familiar vs. different, **not** a replacement claim).
+- ✅ **Homepage before/after** — a visual `wait.until(...)` → `click("#login")` comparison component.
+- ✅ **SEO hygiene** — `sitemap.xml` generation verified, generic page `<title>`s tightened.
 
 ### Framework & ecosystem
 
-- More built-in `WaitEngine` conditions requested by users. `help wanted`
-- Additional first-class browser providers (Edge, Safari) via the existing SPI. `help wanted`
+- ✅ More built-in `WaitEngine` conditions requested by users.
+- ✅ Additional first-class browser providers (Edge, Safari) via the existing SPI.
 - **testfly-mcp** — keep MCP codegen output framework-native and accessibility-first as the API evolves. (See the [MCP repo](https://github.com/testfly/testfly-mcp).)
 
 ### Ongoing quality
 
-- Grow unit-test coverage for untested code paths. `good first issue`
+- ✅ Grow unit-test coverage for untested code paths.
+- ✅ Blocking session queue instead of fail-fast when `maxActiveSessions` is reached — implemented via fair Semaphore in `DriverManager`.
 - Keep the consumer sample project (`testfly-test`) in step with new features.
 
 > Don't see what you want to work on? Open a
