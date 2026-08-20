@@ -25,10 +25,10 @@ import java.util.stream.Collectors;
  *
  * <pre>
  * // In BasePage or BaseTest:
- * $(".row").filter(".active").nth(0).click();
- * $("button").withText("Submit").click();
- * $(By.id("username")).type("admin");
- * assertThat($(".error-msg")).isVisible();
+ * find(".row").filter(".active").nth(0).click();
+ * find("button").withText("Submit").click();
+ * find(By.id("username")).type("admin");
+ * assertThat(find(".error-msg")).isVisible();
  * </pre>
  */
 @TestFlyApi(since = "1.4.0")

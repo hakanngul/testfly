@@ -15,8 +15,8 @@ TestFly's `mailbox()` API lets you verify that your application sends the right 
 
 ```java
 // 1. Trigger the email in your app
-$(By.id("email")).type("user@test.com");
-$(By.id("register")).click();
+find(By.id("email")).type("user@test.com");
+find(By.id("register")).click();
 
 // 2. Wait for it and assert
 Email email = mailbox().waitForEmail(to("user@test.com").timeout(30));

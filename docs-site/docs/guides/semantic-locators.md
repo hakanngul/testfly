@@ -30,7 +30,7 @@ on both `BaseTest` and `BasePage`.
 
 ```java
 // Brittle — breaks the moment the markup is refactored:
-$(By.cssSelector("div.modal > form button.btn-primary")).click();
+find(By.cssSelector("div.modal > form button.btn-primary")).click();
 
 // Resilient — targets the role + accessible name the user sees:
 getByRole(Role.BUTTON).withName("Submit").click();

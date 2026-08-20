@@ -52,7 +52,7 @@ See [Accessibility-First Locators](/docs/guides/semantic-locators).
 Like Playwright, actions wait for the element to be actionable before interacting — no `Thread.sleep()`, no manually constructed waits.
 
 ```java
-$("#login").click();   // auto-waits for the element to be clickable
+find("#login").click();   // auto-waits for the element to be clickable
 ```
 
 When you need an explicit condition, [`WaitEngine`](/docs/guides/wait-engine) gives you a fluent, pre-configured wait — the Selenium equivalent of Playwright's `expect(...).toBeVisible()` waiting.
@@ -63,7 +63,7 @@ Playwright's auto-retrying `expect()` has a direct counterpart: `assertThat(...)
 
 ```java
 assertThat(getByRole(Role.HEADING)).hasText("Welcome back");
-assertThat($(".cart-count")).hasText("3");
+assertThat(find(".cart-count")).hasText("3");
 ```
 
 ### Convention over configuration

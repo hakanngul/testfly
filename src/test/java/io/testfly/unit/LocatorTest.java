@@ -2,6 +2,7 @@ package io.testfly.unit;
 
 import io.testfly.locator.Locator;
 import io.testfly.locator.LocatorException;
+import io.testfly.test.BaseTest;
 import org.mockito.Mockito;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -95,5 +96,46 @@ public class LocatorTest {
         assertNotNull(base);
         assertNotNull(filtered);
         assertTrue(filtered.toString().contains(".active"));
+    }
+
+    // ----------------------------------------------------------
+    // BaseTest.find() alias
+    // ----------------------------------------------------------
+
+    private static class BaseTestFixture extends BaseTest {
+        Locator findCss(String css) {
+            return find(css);
+        }
+
+        Locator findBy(By by) {
+            return find(by);
+        }
+
+        @SuppressWarnings("removal")
+        Locator dollarCss(String css) {
+            return $(css);
+        }
+    }
+
+    @Test
+    public void baseTest_findByCss_delegatesToLocatorOfCss() {
+        BaseTestFixture fixture = new BaseTestFixture();
+        Locator loc = fixture.findCss(".submit-btn");
+        assertTrue(loc.toString().contains("submit-btn"));
+    }
+
+    @Test
+    public void baseTest_findByBy_delegatesToLocatorOf() {
+        BaseTestFixture fixture = new BaseTestFixture();
+        Locator loc = fixture.findBy(By.id("username"));
+        assertTrue(loc.toString().contains("username"));
+    }
+
+    @SuppressWarnings("removal")
+    @Test
+    public void baseTest_dollarAliasStillWorks() {
+        BaseTestFixture fixture = new BaseTestFixture();
+        Locator loc = fixture.dollarCss(".submit-btn");
+        assertTrue(loc.toString().contains("submit-btn"));
     }
 }

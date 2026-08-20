@@ -26,9 +26,9 @@ public class LoginTest extends BaseTest {
     @XrayTest("PROJ-99")
     public void validLogin() {
         open();
-        $("input#email").type("admin@example.com");
-        $("input#password").type("secret");
-        $("button[type='submit']").click();
+        find("input#email").type("admin@example.com");
+        find("input#password").type("secret");
+        find("button[type='submit']").click();
         assertThat(By.id("dashboard")).isVisible();
     }
 

@@ -294,9 +294,9 @@ public class LoginTest extends BaseTest {
     @Test
     public void validLogin() {
         open("/login");
-        $("input#username").type("admin");
-        $("input#password").type("secret");
-        $("button[type='submit']").click();
+        find("input#username").type("admin");
+        find("input#password").type("secret");
+        find("button[type='submit']").click();
         assertThat(By.id("dashboard")).isVisible();
     }
 }

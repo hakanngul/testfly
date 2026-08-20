@@ -111,7 +111,7 @@ Outcomes first — the API that delivers each one is on the right so you can jum
 | **Bring your own test runner** | Full JUnit 5 parity via `@ExtendWith(TestFlyExtension.class)` or `BaseJUnit5Test` |
 | **Write specs your product team can read** | BDD / Cucumber — `BaseCucumberSteps`, `CucumberHooks`, per-scenario steps in report |
 | **Test UI and API in the same suite** | `BaseApiTest`, fluent `ApiClient`, JSONPath, schema validation, hybrid UI+API |
-| **Pin down the exact element, fluently** | `$("selector").filter().nth().withText()` — Playwright-style chainable locators |
+| **Pin down the exact element, fluently** | `find("selector").filter().nth().withText()` — Playwright-style chainable locators |
 | **Tests survive CSS and DOM refactors** | Accessibility-first locators — `getByRole(Role.BUTTON).withName("Submit")`, `getByText`, `getByLabel`, `getByPlaceholder`, `getByTestId` |
 | **Assertions that don't flake on timing** | Web-first `assertThat(By.id("x")).isVisible()` — auto-retrying until timeout |
 | **Test admin-and-user flows in one test** | `withSession("admin", () -> { ... })` — two browsers in one test |

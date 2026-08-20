@@ -22,7 +22,7 @@ public class InvoiceTest extends BaseTest {
     @Test
     public void downloadsInvoicePdf() {
         open("/invoices/123");
-        $("#download-pdf").click();
+        find("#download-pdf").click();
 
         // Dynamic filename (timestamped) → wait for any file, up to 15s:
         File pdf = DownloadManager.waitForAnyFile(15);

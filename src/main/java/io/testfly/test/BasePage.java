@@ -541,11 +541,11 @@ public abstract class BasePage {
      * Creates a chainable {@link Locator} from a CSS selector.
      *
      * <pre>
-     * $(".row").filter(".active").nth(0).click();
-     * $("button").withText("Save").click();
+     * find(".row").filter(".active").nth(0).click();
+     * find("button").withText("Save").click();
      * </pre>
      */
-    protected Locator $(String css) {
+    protected Locator find(String css) {
         return Locator.ofCss(css);
     }
 
@@ -553,12 +553,32 @@ public abstract class BasePage {
      * Creates a chainable {@link Locator} from a Selenium {@link By} locator.
      *
      * <pre>
-     * $(By.id("submit")).click();
-     * $(By.name("email")).type("user@example.com");
+     * find(By.id("submit")).click();
+     * find(By.name("email")).type("user@example.com");
      * </pre>
      */
-    protected Locator $(By by) {
+    protected Locator find(By by) {
         return Locator.of(by);
+    }
+
+    /**
+     * Creates a chainable {@link Locator} from a CSS selector.
+     *
+     * @deprecated Use {@link #find(String)} instead. Scheduled for removal in 2.0.0.
+     */
+    @Deprecated(since = "1.1.0", forRemoval = true)
+    protected Locator $(String css) {
+        return find(css);
+    }
+
+    /**
+     * Creates a chainable {@link Locator} from a Selenium {@link By} locator.
+     *
+     * @deprecated Use {@link #find(By)} instead. Scheduled for removal in 2.0.0.
+     */
+    @Deprecated(since = "1.1.0", forRemoval = true)
+    protected Locator $(By by) {
+        return find(by);
     }
 
     // ----------------------------------------------------------

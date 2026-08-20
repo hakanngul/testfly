@@ -21,7 +21,7 @@ The MCP emits these in priority order. Two calling contexts exist:
 
 | Context | Base class | Locator style the MCP emits |
 |---|---|---|
-| `generate_java_page_object`, `generate_java_testng` | `BasePage` / `BaseTest` | **instance** methods: `getByRole(...)`, `getByLabel(...)`, `$(...)` |
+| `generate_java_page_object`, `generate_java_testng` | `BasePage` / `BaseTest` | **instance** methods: `getByRole(...)`, `getByLabel(...)`, `find(...)` |
 | `generate_java_junit5`, `generate_gherkin` | `BaseJUnit5Test` / `BaseCucumberSteps` | **static** factories: `Locator.byRole(...)`, `Locator.byLabel(...)`, `Locator.of(...)` |
 
 > ⚠️ `BaseJUnit5Test` and `BaseCucumberSteps` expose `$()` / `assertThat()` /

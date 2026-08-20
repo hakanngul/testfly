@@ -49,9 +49,9 @@ class LoginTest extends BaseJUnit5Test {
     void validLogin() {
         open();
         step("Enter credentials");
-        $("input#username").type("admin");
-        $("input#password").type("secret");
-        $("button[type='submit']").click();
+        find("input#username").type("admin");
+        find("input#password").type("secret");
+        find("button[type='submit']").click();
 
         step("Verify dashboard", true);
         assertThat(By.id("dashboard")).isVisible();

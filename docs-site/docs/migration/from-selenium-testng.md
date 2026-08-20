@@ -116,7 +116,7 @@ WaitUtils.waitVisible(driver, By.id("login")).click();
 **After** — every locator **auto-waits**, and `WaitEngine` (pre-configured from your `timeouts.explicit`) covers the explicit cases:
 
 ```java
-$("#login").click();                          // auto-waits for clickable
+find("#login").click();                          // auto-waits for clickable
 getWait().waitForInvisible(By.cssSelector(".spinner"));
 getWait().waitForText(By.cssSelector("h1"), "Welcome back");
 ```

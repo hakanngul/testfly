@@ -73,13 +73,33 @@ public abstract class BaseJUnit5Test {
     }
 
     /** Fluent chainable locator from a CSS selector. */
-    protected Locator $(String css) {
+    protected Locator find(String css) {
         return Locator.ofCss(css);
     }
 
     /** Fluent chainable locator from a Selenium {@link By}. */
-    protected Locator $(By by) {
+    protected Locator find(By by) {
         return Locator.of(by);
+    }
+
+    /**
+     * Fluent chainable locator from a CSS selector.
+     *
+     * @deprecated Use {@link #find(String)} instead. Scheduled for removal in 2.0.0.
+     */
+    @Deprecated(since = "1.1.0", forRemoval = true)
+    protected Locator $(String css) {
+        return find(css);
+    }
+
+    /**
+     * Fluent chainable locator from a Selenium {@link By}.
+     *
+     * @deprecated Use {@link #find(By)} instead. Scheduled for removal in 2.0.0.
+     */
+    @Deprecated(since = "1.1.0", forRemoval = true)
+    protected Locator $(By by) {
+        return find(by);
     }
 
     /** Auto-retrying assertion on a {@link By} locator. */

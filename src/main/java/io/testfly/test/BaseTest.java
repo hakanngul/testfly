@@ -161,17 +161,37 @@ public abstract class BaseTest {
     }
 
     // ----------------------------------------------------------
-    // Fluent Locator API  ($)
+    // Fluent Locator API  (find / $)
     // ----------------------------------------------------------
 
     /** Creates a chainable {@link Locator} from a CSS selector. */
-    protected Locator $(String css) {
+    protected Locator find(String css) {
         return Locator.ofCss(css);
     }
 
     /** Creates a chainable {@link Locator} from a Selenium {@link By} locator. */
-    protected Locator $(By by) {
+    protected Locator find(By by) {
         return Locator.of(by);
+    }
+
+    /**
+     * Creates a chainable {@link Locator} from a CSS selector.
+     *
+     * @deprecated Use {@link #find(String)} instead. Scheduled for removal in 2.0.0.
+     */
+    @Deprecated(since = "1.1.0", forRemoval = true)
+    protected Locator $(String css) {
+        return find(css);
+    }
+
+    /**
+     * Creates a chainable {@link Locator} from a Selenium {@link By} locator.
+     *
+     * @deprecated Use {@link #find(By)} instead. Scheduled for removal in 2.0.0.
+     */
+    @Deprecated(since = "1.1.0", forRemoval = true)
+    protected Locator $(By by) {
+        return find(by);
     }
 
     // ----------------------------------------------------------
