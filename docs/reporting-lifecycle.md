@@ -1,6 +1,6 @@
-# Selenium Boot – Reporting Lifecycle Specification
+# TestFly – Reporting Lifecycle Specification
 
-This document defines the **reporting lifecycle contract** for Selenium Boot.
+This document defines the **reporting lifecycle contract** for TestFly.
 It specifies reporting events, generated artifacts, and final outputs.
 
 The reporting system is designed to provide **maximum observability** without
@@ -211,6 +211,6 @@ Reporting must reduce investigation time, not increase it.
 
 ## Summary
 
-Selenium Boot reporting is designed as an **observability layer**, not a decoration.
+TestFly reporting is designed as an **observability layer**, not a decoration.
 Clear events, reliable artifacts, and stable outputs ensure trust in automation
 results across local, CI, and enterprise environments.

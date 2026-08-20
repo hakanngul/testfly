@@ -47,8 +47,8 @@ public void editProfile() {
 Extend `BaseConditions` and annotate methods with `@ConditionProvider`:
 
 ```java
-import com.seleniumboot.precondition.BaseConditions;
-import com.seleniumboot.precondition.ConditionProvider;
+import io.testfly.precondition.BaseConditions;
+import io.testfly.precondition.ConditionProvider;
 import org.openqa.selenium.By;
 
 public class AppConditions extends BaseConditions {
@@ -84,7 +84,7 @@ public class AppConditions extends BaseConditions {
 Create the SPI file:
 
 ```
-src/main/resources/META-INF/services/com.seleniumboot.precondition.BaseConditions
+src/main/resources/META-INF/services/io.testfly.precondition.BaseConditions
 ```
 
 Contents:
@@ -160,8 +160,8 @@ private void login(String user, String pass) {
 If you prefer not to use SPI:
 
 ```java
-import com.seleniumboot.precondition.PreConditionRegistry;
+import io.testfly.precondition.PreConditionRegistry;
 
-// In a @BeforeSuite or SeleniumBootPlugin.onLoad()
+// In a @BeforeSuite or TestFlyPlugin.onLoad()
 PreConditionRegistry.register(new AppConditions());
 ```

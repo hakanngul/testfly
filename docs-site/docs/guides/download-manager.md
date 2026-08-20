@@ -13,7 +13,7 @@ sidebar_position: 10
 
 ## Configuration
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 browser:
   downloadDir: ./target/downloads   # default
 ```
@@ -23,7 +23,7 @@ browser:
 ## Wait for a specific file
 
 ```java
-import com.seleniumboot.browser.DownloadManager;
+import io.testfly.browser.DownloadManager;
 
 @Test
 public void exportCsvTest() {

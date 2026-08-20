@@ -13,7 +13,7 @@ sidebar_position: 11
 
 ## Configuration
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 browser:
   captureConsoleErrors: true    # collect JS errors (default: false)
   failOnConsoleErrors: false    # fail test on any JS error (default: false)
@@ -24,7 +24,7 @@ browser:
 ## Manual collection in a test
 
 ```java
-import com.seleniumboot.browser.ConsoleErrorCollector;
+import io.testfly.browser.ConsoleErrorCollector;
 
 @Test
 public void noJsErrorsOnLogin() {

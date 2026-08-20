@@ -1,6 +1,6 @@
-# Selenium Boot – Getting Started
+# TestFly – Getting Started
 
-This guide walks through running your first Selenium Boot test with minimal setup.
+This guide walks through running your first TestFly test with minimal setup.
 
 ---
 
@@ -18,8 +18,8 @@ No WebDriver binaries required — Selenium Manager handles it automatically.
 
 ```xml
 <dependency>
-    <groupId>io.github.seleniumboot</groupId>
-    <artifactId>selenium-boot</artifactId>
+    <groupId>io.testfly</groupId>
+    <artifactId>testfly</artifactId>
     <version>0.2.0</version>
 </dependency>
 
@@ -46,7 +46,7 @@ Also add the Surefire plugin:
 
 ---
 
-## Step 2: Create `selenium-boot.yml`
+## Step 2: Create `testfly.yml`
 
 Place this file at your **project root** (same level as `pom.xml`):
 
@@ -75,7 +75,7 @@ timeouts:
 ## Step 3: Write Your First Test
 
 ```java
-import com.seleniumboot.test.BaseTest;
+import io.testfly.test.BaseTest;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;
@@ -111,8 +111,8 @@ After execution, two files are generated in the `target/` folder:
 
 | File | Description |
 |---|---|
-| `target/selenium-boot-report.html` | Full HTML report — open in any browser |
-| `target/selenium-boot-metrics.json` | Raw metrics in JSON format |
+| `target/testfly-report.html` | Full HTML report — open in any browser |
+| `target/testfly-metrics.json` | Raw metrics in JSON format |
 
 The HTML report includes:
 - Suite summary with total / passed / failed / skipped counts
@@ -127,4 +127,4 @@ The HTML report includes:
 - Add Page Objects — see the [README](../README.md) for an example
 - Enable `@Retryable` on flaky tests
 - Switch to remote/Grid execution by changing `execution.mode: remote` and adding `gridUrl`
-- Use environment profiles (`selenium-boot-staging.yml`) for multi-environment setups
+- Use environment profiles (`testfly-staging.yml`) for multi-environment setups

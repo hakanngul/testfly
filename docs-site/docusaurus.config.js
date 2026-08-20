@@ -3,15 +3,15 @@ const { themes } = require('prism-react-renderer');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'Selenium Boot',
-  tagline: 'The Spring Boot of Selenium — Playwright-inspired APIs, zero setup, without hiding Selenium',
+  title: 'TestFly',
+  tagline: 'Java Test Automation SDK — web, API, mobile, and AI/MCP-powered test automation without hiding Selenium',
   favicon: 'img/favicon.svg',
 
-  url: 'https://docs.seleniumboot.com',
-  baseUrl: '/',
+  url: 'https://testfly.github.io',
+  baseUrl: '/testfly/',
 
-  organizationName: 'seleniumboot',
-  projectName: 'selenium-boot',
+  organizationName: 'testfly',
+  projectName: 'testfly',
   deploymentBranch: 'gh-pages',
   trailingSlash: false,
 
@@ -19,7 +19,7 @@ const config = {
   onBrokenMarkdownLinks: 'warn',
 
   // GoatCounter — cookieless, no personal data, no consent banner (same account as
-  // seleniumboot.com, see the site's /privacy page).
+  // testfly.github.io/testfly, see the site's /privacy page).
   //
   // Docs and the marketing site report into ONE GoatCounter site, so raw paths would
   // collide: the apex homepage and the docs homepage both count as "/". The first
@@ -37,7 +37,7 @@ const config = {
       attributes: {
         async: 'true',
         src: 'https://gc.zgo.at/count.js',
-        'data-goatcounter': 'https://seleniumboot.goatcounter.com/count',
+        'data-goatcounter': 'https://testfly.goatcounter.com/count',
       },
     },
   ],
@@ -54,7 +54,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/seleniumboot/selenium-boot/edit/master/docs-site/',
+          editUrl: 'https://github.com/testfly/testfly/edit/master/docs-site/',
         },
         blog: false,
         theme: {
@@ -87,16 +87,16 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      image: 'img/selenium-boot-social.png',
+      image: 'img/logo.svg',
       colorMode: {
         defaultMode: 'dark',
         disableSwitch: false,
         respectPrefersColorScheme: false,
       },
       navbar: {
-        title: 'Selenium Boot',
+        title: 'TestFly',
         logo: {
-          alt: 'Selenium Boot Logo',
+          alt: 'TestFly Logo',
           src: 'img/logo.svg',
         },
         items: [
@@ -107,12 +107,12 @@ const config = {
             label: 'Docs',
           },
           {
-            href: 'https://central.sonatype.com/artifact/io.github.seleniumboot/selenium-boot',
+            href: 'https://central.sonatype.com/artifact/io.testfly/testfly',
             label: 'Maven Central',
             position: 'right',
           },
           {
-            href: 'https://github.com/seleniumboot/selenium-boot',
+            href: 'https://github.com/testfly/testfly',
             label: 'GitHub',
             position: 'right',
           },
@@ -133,20 +133,20 @@ const config = {
           {
             title: 'Community',
             items: [
-              { label: 'GitHub Issues', href: 'https://github.com/seleniumboot/selenium-boot/issues' },
-              { label: 'GitHub Discussions', href: 'https://github.com/seleniumboot/selenium-boot/discussions' },
+              { label: 'GitHub Issues', href: 'https://github.com/testfly/testfly/issues' },
+              { label: 'GitHub Discussions', href: 'https://github.com/testfly/testfly/discussions' },
             ],
           },
           {
             title: 'More',
             items: [
-              { label: 'GitHub', href: 'https://github.com/seleniumboot/selenium-boot' },
-              { label: 'Maven Central', href: 'https://central.sonatype.com/artifact/io.github.seleniumboot/selenium-boot' },
+              { label: 'GitHub', href: 'https://github.com/testfly/testfly' },
+              { label: 'Maven Central', href: 'https://central.sonatype.com/artifact/io.testfly/testfly' },
               { label: 'Changelog', to: '/docs/changelog' },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Selenium Boot. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} TestFly. Built with Docusaurus.`,
       },
       prism: {
         theme: themes.github,

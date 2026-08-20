@@ -1,5 +1,5 @@
 ---
-description: "BaseTest is the one superclass every Selenium Boot test extends, the only setup required. Driver lifecycle, waits, and reporting come for free."
+description: "BaseTest is the one superclass every TestFly test extends, the only setup required. Driver lifecycle, waits, and reporting come for free."
 id: base-test
 title: BaseTest
 sidebar_position: 1
@@ -7,14 +7,14 @@ sidebar_position: 1
 
 # BaseTest
 
-`BaseTest` is the mandatory superclass for all Selenium Boot tests. Extending it is the only setup required.
+`BaseTest` is the mandatory superclass for all TestFly tests. Extending it is the only setup required.
 
 ---
 
 ## Usage
 
 ```java
-import com.seleniumboot.test.BaseTest;
+import io.testfly.test.BaseTest;
 import org.testng.annotations.Test;
 
 public class LoginTest extends BaseTest {
@@ -40,7 +40,7 @@ public class LoginTest extends BaseTest {
 ## Available methods
 
 ### `open()`
-Navigates the browser to the `baseUrl` configured in `selenium-boot.yml`.
+Navigates the browser to the `baseUrl` configured in `testfly.yml`.
 
 ```java
 open();  // → browser.get(config.execution.baseUrl)

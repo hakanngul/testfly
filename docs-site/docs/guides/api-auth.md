@@ -5,7 +5,7 @@ sidebar_position: 14
 
 # API Authentication
 
-Selenium Boot supports three auth strategies out of the box: Bearer token, Basic auth, and OAuth2 client credentials.
+TestFly supports three auth strategies out of the box: Bearer token, Basic auth, and OAuth2 client credentials.
 
 ---
 
@@ -50,9 +50,9 @@ The framework sends a `POST` with `grant_type=client_credentials` and caches the
 Set auth once in `@BeforeSuite` and every subsequent request on that thread automatically includes it. No `.auth()` call needed on each request.
 
 ```java
-import com.seleniumboot.test.BaseApiTest;
-import com.seleniumboot.client.ApiAuth;
-import com.seleniumboot.client.ApiClient;
+import io.testfly.test.BaseApiTest;
+import io.testfly.client.ApiAuth;
+import io.testfly.client.ApiClient;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
@@ -87,7 +87,7 @@ ApiClient.clearGlobalAuth();
 
 ## `@UseAuth` — Config-Based Auth Strategies
 
-Define named auth strategies in `selenium-boot.yml` and apply them per test or per class with `@UseAuth`.
+Define named auth strategies in `testfly.yml` and apply them per test or per class with `@UseAuth`.
 
 ### Configuration
 

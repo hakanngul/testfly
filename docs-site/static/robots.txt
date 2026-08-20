@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://docs.seleniumboot.com/sitemap.xml
+Sitemap: https://testfly.github.io/testfly/sitemap.xml

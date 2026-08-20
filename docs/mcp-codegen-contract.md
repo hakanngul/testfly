@@ -1,7 +1,7 @@
 # MCP Codegen Contract
 
-This document is the **contract between the Selenium Boot framework and the
-[Selenium Boot MCP server](https://github.com/seleniumboot/selenium-mcp)**.
+This document is the **contract between the TestFly framework and the
+[TestFly MCP server](https://github.com/testfly/testfly-mcp)**.
 
 The MCP server generates framework-native Java from a recorded browser session
 (`framework="selenium_boot"`). To do that it hard-codes a mirror of parts of this
@@ -10,7 +10,7 @@ helpers, and the assertion methods. **If you change any API listed here, update
 the MCP server's `codegen_tools.py` in the same change**, or generated code will
 stop compiling for users.
 
-Everything below is part of the `@SeleniumBootApi` stable surface. Treat a change
+Everything below is part of the `@TestFlyApi` stable surface. Treat a change
 here as a breaking change that needs a coordinated MCP release.
 
 ---
@@ -68,7 +68,7 @@ It currently maps these to `Role.*`: `BUTTON, LINK, CHECKBOX, RADIO, SWITCH,
 TEXTBOX, SEARCHBOX, COMBOBOX, OPTION, HEADING, IMG, TAB, MENUITEM, SLIDER,
 SPINBUTTON`. Only `BUTTON`, `LINK`, `HEADING` are emitted with an accessible
 name today. The authoritative list of roles lives in
-[`Role.java`](../src/main/java/com/seleniumboot/locator/Role.java) — if you add or
+[`Role.java`](../src/main/java/com/testfly/locator/Role.java) — if you add or
 rename a role that the MCP should target, update `_ROLE_ENUM`.
 
 ## 3. `Locator` terminal actions used by generated code
@@ -85,7 +85,7 @@ The MCP emits `assertThat(<locator>)` chained with:
 `hasAttribute(String, String)`, `count(int)`.
 Page-title / URL checks fall back to `org.testng.Assert` (TestNG flavors) or
 `org.junit.jupiter.api.Assertions` (JUnit 5) on `getDriver().getTitle()` /
-`getCurrentUrl()`. See [`LocatorAssert.java`](../src/main/java/com/seleniumboot/assertion/LocatorAssert.java).
+`getCurrentUrl()`. See [`LocatorAssert.java`](../src/main/java/com/testfly/assertion/LocatorAssert.java).
 
 ## 5. Base-class helpers the generated code calls
 
@@ -99,7 +99,7 @@ Page-title / URL checks fall back to `org.testng.Assert` (TestNG flavors) or
 ## 6. `open(path)` semantics
 
 Generated tests call `open("/path")`, which resolves against
-`execution.baseUrl` in `selenium-boot.yml`. The MCP strips the origin from the
+`execution.baseUrl` in `testfly.yml`. The MCP strips the origin from the
 recorded absolute URL; a cross-origin navigation falls back to
 `getDriver().get(absoluteUrl)`. Keep `open(String)` resolving relative to
 `execution.baseUrl`.
@@ -108,5 +108,5 @@ recorded absolute URL; a cross-origin navigation falls back to
 
 **When you touch the public API, grep the MCP repo's `codegen_tools.py` for the
 symbol before merging.** The MCP's `detect_selenium_boot` tool keys off
-`selenium-boot.yml` and the `io.github.seleniumboot` coordinates — keep those
+`testfly.yml` and the `io.testfly` coordinates — keep those
 stable too.

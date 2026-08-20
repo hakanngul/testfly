@@ -7,7 +7,7 @@ sidebar_position: 16
 
 # Performance Assertions (Core Web Vitals)
 
-Selenium Boot 2.4.0 lets you assert Google's Core Web Vitals directly in your Selenium tests — no extra tool, no proxy, no external service. Call `assertPerformance()` after `open()` and set thresholds for each metric.
+TestFly 2.4.0 lets you assert Google's Core Web Vitals directly in your Selenium tests — no extra tool, no proxy, no external service. Call `assertPerformance()` after `open()` and set thresholds for each metric.
 
 ---
 
@@ -130,7 +130,7 @@ When a metric is unavailable in the current browser (value = `-1`), the assertio
 
 Enable automatic collection after every passing test:
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 performance:
   captureOnEveryTest: true
 ```
@@ -182,7 +182,7 @@ public void productPage_loadsQuicklyAndRendersCorrectly() {
 
 ## Config reference
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 performance:
   captureOnEveryTest: false   # auto-capture and show in HTML report (default off)
   lcpWarnMs:  2500            # (future) report warning when LCP exceeds this; 0 = disabled

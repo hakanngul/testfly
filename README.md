@@ -1,13 +1,13 @@
-# Selenium Boot
+# TestFly
 
-**The Spring Boot of Selenium — Playwright-inspired APIs, zero setup, and enterprise features, without hiding Selenium**
+**Java Test Automation SDK — web, API, mobile, and AI/MCP-powered test automation without hiding Selenium**
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.seleniumboot/selenium-boot)](https://central.sonatype.com/artifact/io.github.seleniumboot/selenium-boot)
+[![Maven Central](https://img.shields.io/maven-central/v/io.testfly/testfly)](https://central.sonatype.com/artifact/io.testfly/testfly)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Good first issues](https://img.shields.io/github/issues/seleniumboot/selenium-boot/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/seleniumboot/selenium-boot/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+[![Good first issues](https://img.shields.io/github/issues/testfly/testfly/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/testfly/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
-**[Documentation](https://docs.seleniumboot.com) · [Sample Project](https://github.com/seleniumboot/selenium-boot-test) · [Changelog](#project-status)**
+**[Documentation](https://testfly.github.io/testfly) · [Sample Project](https://github.com/testfly/testfly-test) · [Changelog](#project-status)**
 
 ---
 
@@ -26,9 +26,9 @@ Three files. Copy them as-is and `mvn test` goes green against a real Chrome.
 
 <dependencies>
     <dependency>
-        <groupId>io.github.seleniumboot</groupId>
-        <artifactId>selenium-boot</artifactId>
-        <version>3.3.0</version>
+        <groupId>io.testfly</groupId>
+        <artifactId>testfly</artifactId>
+        <version>1.0.0</version>
     </dependency>
 </dependencies>
 
@@ -48,7 +48,7 @@ Three files. Copy them as-is and `mvn test` goes green against a real Chrome.
 </build>
 ```
 
-**2. `selenium-boot.yml`** — project root, next to `pom.xml`. This is the complete minimum; every key below is required.
+**2. `testfly.yml`** — project root, next to `pom.xml`. This is the complete minimum; every key below is required.
 
 ```yaml
 execution:
@@ -66,7 +66,7 @@ timeouts:
 **3. `src/test/java/SmokeTest.java`**
 
 ```java
-import com.seleniumboot.test.BaseTest;
+import io.testfly.test.BaseTest;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertTrue;
@@ -87,40 +87,40 @@ Then:
 mvn test
 ```
 
-No driver setup, no teardown, no waits, no `WebDriver` to manage — `BaseTest` owns the lifecycle. The HTML report lands at `target/selenium-boot-report.html`.
+No driver setup, no teardown, no waits, no `WebDriver` to manage — `BaseTest` owns the lifecycle. The HTML report lands at `target/testfly-report.html`.
 
 Next: [the full Getting Started walkthrough](#getting-started) adds page objects, parallel execution, and reporting.
 
 ---
 
-> **AI-powered test authoring for Selenium Boot users**
-> Use **seleniumboot-mcp** to let Claude / GitHub Copilot control a real browser, record your session, and generate ready-to-run Selenium Boot test code — TestNG, JUnit 5, Page Object, Gherkin, or C# NUnit.
+> **AI-powered test authoring for TestFly users**
+> Use **testfly-mcp** to let Claude / GitHub Copilot control a real browser, record your session, and generate ready-to-run TestFly test code — TestNG, JUnit 5, Page Object, Gherkin, or C# NUnit.
 > ```
-> pip install seleniumboot-mcp
+> pip install testfly-mcp
 > ```
-> [PyPI](https://pypi.org/project/seleniumboot-mcp/) · [GitHub](https://github.com/seleniumboot/selenium-mcp) · 84 tools · self-healing locators · codegen for Java / Python / C# / Playwright
+> [PyPI](https://pypi.org/project/testfly-mcp/) · [GitHub](https://github.com/testfly/testfly-mcp) · 84 tools · self-healing locators · codegen for Java / Python / C# / Playwright
 
 ---
 
 ## Overview
 
-Selenium Boot is a zero-boilerplate, production-ready automation framework for Java Selenium, inspired by the philosophy of Spring Boot.
+TestFly is a zero-boilerplate, production-ready automation framework for Java Selenium, inspired by the philosophy of Spring Boot.
 
 It eliminates repetitive boilerplate by providing sensible defaults, a standardized project structure, and a convention-over-configuration approach — while keeping Selenium fully visible and accessible.
 
 ### Design Philosophy
 
-Selenium Boot is **the Spring Boot of Java test automation** — and that positioning is deliberately layered:
+TestFly is **the Spring Boot of Java test automation** — and that positioning is deliberately layered:
 
-1. **Opinionated core (primary).** Convention over configuration, zero boilerplate by default. Add one dependency, extend `BaseTest` / `BasePage`, and the framework has already made the sensible decisions — driver lifecycle, waits, retries, reporting, CI wiring. `selenium-boot.yml` stays short — a handful of required keys, and `SeleniumBootDefaults` covers the rest.
-2. **Never hides Selenium (the constraint).** Unlike heavier abstractions, Selenium Boot never takes the raw `WebDriver` away from you. When the conventions don't fit, drop straight down to `WebDriver` / `By` / `WebElement`. Opinionated without being a cage.
+1. **Opinionated core (primary).** Convention over configuration, zero boilerplate by default. Add one dependency, extend `BaseTest` / `BasePage`, and the framework has already made the sensible decisions — driver lifecycle, waits, retries, reporting, CI wiring. `testfly.yml` stays short — a handful of required keys, and `TestFlyDefaults` covers the rest.
+2. **Never hides Selenium (the constraint).** Unlike heavier abstractions, TestFly never takes the raw `WebDriver` away from you. When the conventions don't fit, drop straight down to `WebDriver` / `By` / `WebElement`. Opinionated without being a cage.
 3. **Extensible toolkit (the escape hatch).** An SPI/registry plugin system (`DriverProviderRegistry`, `PluginRegistry`, `ReportAdapterRegistry`) makes it modular for the power users who need it — serving the opinionated core, not replacing it. Most users never touch it.
 
-**Already invested in Selenium?** Selenium Boot gives you the productivity features people love in Playwright — **accessibility-first locators** (`getByRole` / `getByLabel` / `getByText`), **auto-waiting** so `Thread.sleep()` disappears, and **web-first assertions** — while keeping your existing Selenium / Java / TestNG stack, team skills, and Selenium Grid. You get the modern ergonomics without leaving the ecosystem you've already built on, and without ever hiding raw Selenium.
+**Already invested in Selenium?** TestFly gives you the productivity features people love in Playwright — **accessibility-first locators** (`getByRole` / `getByLabel` / `getByText`), **auto-waiting** so `Thread.sleep()` disappears, and **web-first assertions** — while keeping your existing Selenium / Java / TestNG stack, team skills, and Selenium Grid. You get the modern ergonomics without leaving the ecosystem you've already built on, and without ever hiding raw Selenium.
 
-**Why not just build your own framework?** Most teams already have a home-grown `BaseTest` + `DriverFactory` + wait-utils they've rewritten a dozen times. Selenium Boot *is* that framework — maintained, tested, parallel-safe, and documented — so the driver lifecycle, retries, reporting, and CI wiring stop being unpaid infrastructure you own forever. You keep your test code; you delete the plumbing.
+**Why not just build your own framework?** Most teams already have a home-grown `BaseTest` + `DriverFactory` + wait-utils they've rewritten a dozen times. TestFly *is* that framework — maintained, tested, parallel-safe, and documented — so the driver lifecycle, retries, reporting, and CI wiring stop being unpaid infrastructure you own forever. You keep your test code; you delete the plumbing.
 
-> Selenium Boot is the Spring Boot of Selenium — zero setup, smarter defaults, Playwright-inspired APIs, and enterprise features, without hiding Selenium.
+> TestFly is the Spring Boot of Selenium — zero setup, smarter defaults, Playwright-inspired APIs, and enterprise features, without hiding Selenium.
 
 ---
 
@@ -166,9 +166,9 @@ Add to your `pom.xml`:
 
 ```xml
 <dependency>
-    <groupId>io.github.seleniumboot</groupId>
-    <artifactId>selenium-boot</artifactId>
-    <version>3.3.0</version>
+    <groupId>io.testfly</groupId>
+    <artifactId>testfly</artifactId>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -201,7 +201,7 @@ Also pin the compiler plugin and add Surefire so `mvn test` discovers TestNG tes
 
 ### Step 2: Create the Configuration File
 
-Create `selenium-boot.yml` at your **project root** (same level as `pom.xml`):
+Create `testfly.yml` at your **project root** (same level as `pom.xml`):
 
 ```yaml
 execution:
@@ -229,7 +229,7 @@ timeouts:
   pageLoad: 30          # seconds
 ```
 
-That is the only configuration file needed, and it is **required** — Selenium Boot fails fast at startup if it is missing. Most fields are optional, but `execution.mode`, `browser.name` (or `browser.matrix`), and both `timeouts` values are validated and must be present:
+That is the only configuration file needed, and it is **required** — TestFly fails fast at startup if it is missing. Most fields are optional, but `execution.mode`, `browser.name` (or `browser.matrix`), and both `timeouts` values are validated and must be present:
 
 ```yaml
 execution:
@@ -251,7 +251,7 @@ timeouts:
 ```
 your-project/
 ├── pom.xml
-├── selenium-boot.yml
+├── testfly.yml
 └── src/
     └── test/
         └── java/
@@ -273,7 +273,7 @@ Extend the framework's built-in `BasePage` — it provides wait-backed interacti
 ```java
 package com.yourcompany.pages;
 
-import com.seleniumboot.test.BasePage;
+import io.testfly.test.BasePage;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
@@ -306,8 +306,8 @@ Extend `BaseTest` — that's all the setup needed:
 ```java
 package com.yourcompany.tests;
 
-import com.seleniumboot.steps.StepLogger;
-import com.seleniumboot.test.BaseTest;
+import io.testfly.steps.StepLogger;
+import io.testfly.test.BaseTest;
 import com.yourcompany.pages.LoginPage;
 import org.testng.annotations.Test;
 
@@ -342,7 +342,7 @@ public class LoginTest extends BaseTest {
 mvn test
 ```
 
-That's it. Selenium Boot handles driver creation, parallel execution, retries, screenshots, and report generation automatically.
+That's it. TestFly handles driver creation, parallel execution, retries, screenshots, and report generation automatically.
 
 ---
 
@@ -351,7 +351,7 @@ That's it. Selenium Boot handles driver creation, parallel execution, retries, s
 After execution, open the HTML report:
 
 ```
-target/selenium-boot-report.html
+target/testfly-report.html
 ```
 
 The report includes:
@@ -382,7 +382,7 @@ public class AppConditions extends BaseConditions {
 
 ```
 // 2. Register via SPI
-src/test/resources/META-INF/services/com.seleniumboot.precondition.BaseConditions
+src/test/resources/META-INF/services/io.testfly.precondition.BaseConditions
 → com.yourcompany.conditions.AppConditions
 ```
 
@@ -407,7 +407,7 @@ Cache is per-thread — safe for parallel execution. On retry, cache is invalida
 
 ## API Testing
 
-Selenium Boot supports **pure API tests** and **hybrid UI + API tests** — same framework, same config, same HTML report.
+TestFly supports **pure API tests** and **hybrid UI + API tests** — same framework, same config, same HTML report.
 
 ### Pure API Tests
 
@@ -447,7 +447,7 @@ ApiClient.get("/api/orders")
 ApiClient.to("https://other-service.com").get("/health").send();
 ```
 
-Configure the default base URL in `selenium-boot.yml`:
+Configure the default base URL in `testfly.yml`:
 
 ```yaml
 api:
@@ -599,7 +599,7 @@ String userId = suiteCtx().get("createdUserId");      // in test 2
 `WaitEngine` uses the `timeouts.explicit` value from your config. Never use `Thread.sleep()`.
 
 ```java
-import com.seleniumboot.wait.WaitEngine;
+import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.By;
 
 WebElement el  = WaitEngine.waitForVisible(By.id("submit-btn"));
@@ -628,7 +628,7 @@ public void flakyTest() {
 
 ## Remote Execution (Selenium Grid)
 
-Update `selenium-boot.yml`:
+Update `testfly.yml`:
 
 ```yaml
 execution:
@@ -652,9 +652,9 @@ No code changes required — just config.
 Name your config files by environment and activate with a system property:
 
 ```
-selenium-boot.yml          # default
-selenium-boot-staging.yml  # staging profile
-selenium-boot-prod.yml     # prod profile
+testfly.yml          # default
+testfly-staging.yml  # staging profile
+testfly-prod.yml     # prod profile
 ```
 
 ```bash
@@ -665,7 +665,7 @@ mvn test -Denv=staging
 
 ## Extending the Framework
 
-Selenium Boot exposes four extension points. All support both **Java SPI** (automatic discovery) and **programmatic registration**.
+TestFly exposes four extension points. All support both **Java SPI** (automatic discovery) and **programmatic registration**.
 
 ### Custom Driver Provider
 
@@ -676,7 +676,7 @@ public class EdgeDriverProvider implements NamedDriverProvider {
 }
 ```
 
-Register via SPI (`META-INF/services/com.seleniumboot.driver.NamedDriverProvider`) or:
+Register via SPI (`META-INF/services/io.testfly.driver.NamedDriverProvider`) or:
 ```java
 DriverProviderRegistry.register(new EdgeDriverProvider());
 ```
@@ -690,7 +690,7 @@ public class SlackReportAdapter implements ReportAdapter {
 }
 ```
 
-Register via SPI (`META-INF/services/com.seleniumboot.reporting.ReportAdapter`) or:
+Register via SPI (`META-INF/services/io.testfly.reporting.ReportAdapter`) or:
 ```java
 ReportAdapterRegistry.register(new SlackReportAdapter());
 ```
@@ -713,9 +713,9 @@ Available events: `onSuiteStart`, `onSuiteEnd`, `onTestStart`, `onTestEnd`, `onT
 Combine driver providers, report adapters, and hooks into a single deployable unit:
 
 ```java
-public class MyPlugin implements SeleniumBootPlugin {
+public class MyPlugin implements TestFlyPlugin {
     @Override public String getName() { return "my-plugin"; }
-    @Override public void onLoad(SeleniumBootConfig config) {
+    @Override public void onLoad(TestFlyConfig config) {
         ReportAdapterRegistry.register(new SlackReportAdapter());
     }
 }
@@ -730,12 +730,12 @@ Declare minimum required framework version to prevent incompatibility:
 
 ## CI/CD Integration
 
-Selenium Boot auto-detects CI environments and applies sensible defaults — no YAML changes required.
+TestFly auto-detects CI environments and applies sensible defaults — no YAML changes required.
 
 - `browser.headless` is forced to `true`
 - `threadCount` is auto-derived from available CPU cores
 - Docker/container flags (`--no-sandbox`, `--disable-dev-shm-usage`) are auto-applied to Chrome
-- JUnit XML written to `target/surefire-reports/TEST-SeleniumBoot.xml` on every run
+- JUnit XML written to `target/surefire-reports/TEST-TestFly.xml` on every run
 
 ### Build Quality Gates
 
@@ -749,7 +749,7 @@ ci:
 
 ## Project Status
 
-**Current release: v3.3.0** — `execution.parallel` is now validated against TestNG's own parallel modes, so `tests` and `instances` are accepted alongside `none`, `methods`, and `classes`.
+**Current release: v1.0.0** — `execution.parallel` is now validated against TestNG's own parallel modes, so `tests` and `instances` are accepted alongside `none`, `methods`, and `classes`.
 
 See the full version history in **[CHANGELOG.md](CHANGELOG.md)**.
 
@@ -758,13 +758,13 @@ See the full version history in **[CHANGELOG.md](CHANGELOG.md)**.
 ## Sample Project
 
 A working demo project covering all framework features is available at:
-**[github.com/seleniumboot/selenium-boot-test](https://github.com/seleniumboot/selenium-boot-test)**
+**[github.com/testfly/testfly-test](https://github.com/testfly/testfly-test)**
 
 ---
 
 ## Documentation
 
-Full documentation at **[seleniumboot.github.io/selenium-boot](https://seleniumboot.github.io/selenium-boot)**
+Full documentation at **[testfly.github.io/testfly](https://testfly.github.io/testfly)**
 
 ---
 
@@ -776,19 +776,19 @@ Licensed under the [Apache License, Version 2.0](LICENSE).
 
 ## Contributing
 
-Contributions are warmly welcome — Selenium Boot is opinionated, and contributions that align with its philosophy (zero boilerplate, convention over configuration, never hide Selenium) help the whole community.
+Contributions are warmly welcome — TestFly is opinionated, and contributions that align with its philosophy (zero boilerplate, convention over configuration, never hide Selenium) help the whole community.
 
 **New here?** The best place to start:
 
-- 🙌 [**Good first issues**](https://github.com/seleniumboot/selenium-boot/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — scoped, self-contained tasks
-- 🤝 [**Help wanted**](https://github.com/seleniumboot/selenium-boot/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) — larger pieces we'd love a hand with
+- 🙌 [**Good first issues**](https://github.com/testfly/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — scoped, self-contained tasks
+- 🤝 [**Help wanted**](https://github.com/testfly/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) — larger pieces we'd love a hand with
 - 🗺️ [**Roadmap**](ROADMAP.md) — where the project is heading and where help fits
-- 💬 [**Discussions**](https://github.com/seleniumboot/selenium-boot/discussions) — questions and feature ideas
+- 💬 [**Discussions**](https://github.com/testfly/testfly/discussions) — questions and feature ideas
 
-Then read [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, the PR checklist, and the backward-compatibility policy. Bug reports and feature requests both have [issue templates](https://github.com/seleniumboot/selenium-boot/issues/new/choose) to guide you.
+Then read [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, the PR checklist, and the backward-compatibility policy. Bug reports and feature requests both have [issue templates](https://github.com/testfly/testfly/issues/new/choose) to guide you.
 
 ---
 
 ## Disclaimer
 
-Selenium Boot is an independent open-source project and is not affiliated with Selenium or the Spring Framework.
+TestFly is an independent open-source project and is not affiliated with Selenium or the Spring Framework.

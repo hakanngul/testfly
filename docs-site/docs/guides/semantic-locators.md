@@ -7,7 +7,7 @@ sidebar_position: 10
 
 # Accessibility-First Locators
 
-Selenium Boot ships Playwright-style **semantic locators** that target the
+TestFly ships Playwright-style **semantic locators** that target the
 **accessibility tree** — what the user actually perceives — instead of brittle
 CSS classes or DOM structure. The result: locators that read like the page and
 survive redesigns.
@@ -85,7 +85,7 @@ getByText("Submit").exact();  // matches only "Submit"
 
 ## Configuring the test-id attribute
 
-`getByTestId` uses `data-testid` by default. Override it in `selenium-boot.yml`:
+`getByTestId` uses `data-testid` by default. Override it in `testfly.yml`:
 
 ```yaml
 locators:

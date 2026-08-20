@@ -1,4 +1,4 @@
-# Selenium Boot – MVP Implementation Checklist
+# TestFly – MVP Implementation Checklist
 
 This checklist converts design docs into implementation steps.
 

@@ -1,6 +1,6 @@
-# Selenium Boot – TestNG Listener Wiring Specification
+# TestFly – TestNG Listener Wiring Specification
 
-This document defines how Selenium Boot integrates with TestNG listeners.
+This document defines how TestFly integrates with TestNG listeners.
 It formalizes listener responsibilities, execution order, and lifecycle boundaries.
 
 This specification is **contractual** and must be followed by all framework implementations.
@@ -21,7 +21,7 @@ The listener system is designed to:
 
 ## Listener Registration Strategy
 
-Selenium Boot registers TestNG listeners using **ServiceLoader-based auto-registration** or explicit `@Listeners` binding via the base test class.
+TestFly registers TestNG listeners using **ServiceLoader-based auto-registration** or explicit `@Listeners` binding via the base test class.
 
 Users must not manually register framework listeners.
 
@@ -173,6 +173,6 @@ Violations are considered framework defects.
 
 ## Summary
 
-The TestNG listener system is the **control spine** of Selenium Boot.
+The TestNG listener system is the **control spine** of TestFly.
 Strict listener boundaries ensure predictable execution, stable parallelism,
 and enterprise-grade reliability.

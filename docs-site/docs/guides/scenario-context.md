@@ -5,7 +5,7 @@ sidebar_position: 15
 
 # Scenario & Suite Context
 
-Selenium Boot provides two built-in context stores for sharing state between steps and tests without static fields or thread-unsafe globals.
+TestFly provides two built-in context stores for sharing state between steps and tests without static fields or thread-unsafe globals.
 
 ---
 

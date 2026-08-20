@@ -1,5 +1,5 @@
 ---
-description: "Selenium Boot emits JUnit-compatible XML that Jenkins, GitHub Actions, and GitLab CI parse natively for standard test result reporting."
+description: "TestFly emits JUnit-compatible XML that Jenkins, GitHub Actions, and GitLab CI parse natively for standard test result reporting."
 id: junit-xml
 title: Selenium JUnit XML Report
 sidebar_label: JUnit XML
@@ -8,7 +8,7 @@ sidebar_position: 2
 
 # JUnit XML
 
-Selenium Boot generates a JUnit-compatible XML report at `target/surefire-reports/TEST-SeleniumBoot.xml`. This format is understood by virtually every CI system and test reporting tool.
+TestFly generates a JUnit-compatible XML report at `target/surefire-reports/TEST-TestFly.xml`. This format is understood by virtually every CI system and test reporting tool.
 
 ---
 
@@ -17,7 +17,7 @@ Selenium Boot generates a JUnit-compatible XML report at `target/surefire-report
 ```
 target/
 └── surefire-reports/
-    └── TEST-SeleniumBoot.xml
+    └── TEST-TestFly.xml
 ```
 
 ---
@@ -26,7 +26,7 @@ target/
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="SeleniumBoot" tests="12" failures="1" errors="0" skipped="1" time="34.21">
+<testsuite name="TestFly" tests="12" failures="1" errors="0" skipped="1" time="34.21">
 
     <testcase classname="LoginTest" name="validLogin" time="2.341"/>
 
@@ -65,7 +65,7 @@ This means CI tools that display failure summaries (GitHub Actions, Jenkins, Azu
   uses: dorny/test-reporter@v1
   if: always()
   with:
-    name: Selenium Boot Results
+    name: TestFly Results
     path: '**/surefire-reports/TEST-*.xml'
     reporter: java-junit
     fail-on-empty: false
@@ -89,7 +89,7 @@ post {
   inputs:
     testResultsFormat: JUnit
     testResultsFiles: '**/surefire-reports/TEST-*.xml'
-    testRunTitle: 'Selenium Boot'
+    testRunTitle: 'TestFly'
 ```
 
 ---

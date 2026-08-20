@@ -1,5 +1,5 @@
 name: "🐛 Bug report"
-description: Report a defect in Selenium Boot so we can reproduce and fix it.
+description: Report a defect in TestFly so we can reproduce and fix it.
 title: "[Bug]: "
 labels: ["bug"]
 body:
@@ -20,9 +20,9 @@ body:
     id: repro
     attributes:
       label: Steps to reproduce
-      description: Minimal steps (ideally a tiny test class + the relevant `selenium-boot.yml`).
+      description: Minimal steps (ideally a tiny test class + the relevant `testfly.yml`).
       placeholder: |
-        1. selenium-boot.yml with `execution.parallel: methods`, `threadCount: 4`
+        1. testfly.yml with `execution.parallel: methods`, `threadCount: 4`
         2. Two test classes extending BaseTest that call `getDriver()`
         3. Run `mvn test`
         4. See NPE / wrong session in the report
@@ -31,7 +31,7 @@ body:
   - type: input
     id: sb-version
     attributes:
-      label: Selenium Boot version
+      label: TestFly version
       placeholder: "3.2.0"
     validations:
       required: true

@@ -4,9 +4,9 @@ const sidebars = {
     'intro',
     {
       type: 'category',
-      label: 'Why Selenium Boot',
+      label: 'Why TestFly',
       items: [
-        'why/why-selenium-boot',
+        'why/why-testfly',
         'why/why-not-plain-selenium',
         'why/why-not-playwright',
       ],

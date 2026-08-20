@@ -7,7 +7,7 @@ sidebar_position: 11
 
 # Email Verification
 
-Selenium Boot's `mailbox()` API lets you verify that your application sends the right emails — confirmation links, password resets, welcome messages — as part of your UI test flow, with no extra tooling required.
+TestFly's `mailbox()` API lets you verify that your application sends the right emails — confirmation links, password resets, welcome messages — as part of your UI test flow, with no extra tooling required.
 
 ---
 
@@ -35,7 +35,7 @@ The `to()` shorthand is available directly in `BaseTest` and `BaseJUnit5Test` �
 
 ## Backends
 
-Configure the backend once in `selenium-boot.yml`. Test code is identical regardless of which backend you use.
+Configure the backend once in `testfly.yml`. Test code is identical regardless of which backend you use.
 
 | Provider | Best for |
 |---|---|
@@ -54,9 +54,9 @@ Run Mailhog alongside your app in Docker:
 docker run -d -p 1025:1025 -p 8025:8025 mailhog/mailhog
 ```
 
-Configure Selenium Boot to use it:
+Configure TestFly to use it:
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 email:
   provider: mailhog
   mailhog:
@@ -70,7 +70,7 @@ Point your application's SMTP to `localhost:1025`. Mailhog captures all outgoing
 
 ## Mailtrap (hosted sandbox)
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 email:
   provider: mailtrap
   mailtrap:
@@ -94,7 +94,7 @@ Uses the **Microsoft Graph API** with app-only OAuth2 client credentials — no 
 3. Click **Grant admin consent**
 4. **Certificates & secrets** → New client secret → copy the value
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 email:
   provider: outlook
   outlook:
@@ -121,7 +121,7 @@ Add the optional Jakarta Mail dependency to your project:
 </dependency>
 ```
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 email:
   provider: imap
   imap:
@@ -198,7 +198,7 @@ public void cleanInbox() {
 
 Or enable automatic clearing in config:
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 email:
   autoClear: true   # clear inbox before every test automatically
 ```
@@ -207,7 +207,7 @@ email:
 
 ## Full config reference
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 email:
   provider: mailhog        # mailhog | mailtrap | outlook | imap
   timeoutSeconds: 30       # default wait timeout

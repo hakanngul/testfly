@@ -1,5 +1,5 @@
 ---
-description: "Add a custom WebDriver to Selenium Boot: plug in Edge, Safari, Appium, or a cloud driver via NamedDriverProvider without touching the framework."
+description: "Add a custom WebDriver to TestFly: plug in Edge, Safari, Appium, or a cloud driver via NamedDriverProvider without touching the framework."
 id: custom-drivers
 title: Custom Drivers
 sidebar_position: 3
@@ -14,7 +14,7 @@ sidebar_position: 3
 ## Create a custom driver provider
 
 ```java
-import com.seleniumboot.driver.NamedDriverProvider;
+import io.testfly.driver.NamedDriverProvider;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.edge.EdgeOptions;
@@ -23,7 +23,7 @@ public class EdgeDriverProvider implements NamedDriverProvider {
 
     @Override
     public String browserName() {
-        return "edge";   // matched case-insensitively against browser.name in selenium-boot.yml
+        return "edge";   // matched case-insensitively against browser.name in testfly.yml
     }
 
     @Override
@@ -39,7 +39,7 @@ public class EdgeDriverProvider implements NamedDriverProvider {
 ## Register via Java SPI (auto-discovery)
 
 ```
-src/main/resources/META-INF/services/com.seleniumboot.driver.NamedDriverProvider
+src/main/resources/META-INF/services/io.testfly.driver.NamedDriverProvider
 ```
 
 Contents:
@@ -50,19 +50,19 @@ com.example.drivers.EdgeDriverProvider
 
 Then set `browser.name` in your config:
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 browser:
   name: edge
 ```
 
-Selenium Boot selects your provider automatically.
+TestFly selects your provider automatically.
 
 ---
 
 ## Register programmatically
 
 ```java
-import com.seleniumboot.driver.DriverProviderRegistry;
+import io.testfly.driver.DriverProviderRegistry;
 
 DriverProviderRegistry.register(new EdgeDriverProvider());
 ```
@@ -94,7 +94,7 @@ public class BrowserStackProvider implements NamedDriverProvider {
 }
 ```
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 browser:
   name: browserstack
 ```

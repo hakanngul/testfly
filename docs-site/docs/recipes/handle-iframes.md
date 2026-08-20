@@ -1,5 +1,5 @@
 ---
-description: "Handle iframes in Selenium without manual switchTo() bookkeeping: Selenium Boot's withinFrame runs your actions inside the frame and restores the previous context automatically, even when nested."
+description: "Handle iframes in Selenium without manual switchTo() bookkeeping: TestFly's withinFrame runs your actions inside the frame and restores the previous context automatically, even when nested."
 id: handle-iframes
 title: Handle iframes
 sidebar_label: Handle iframes
@@ -10,7 +10,7 @@ sidebar_label: Handle iframes
 Interacting with content inside an `<iframe>` normally means `driver.switchTo().frame(...)` and remembering to switch back. `BasePage`'s `withinFrame(...)` does the bookkeeping for you: it switches in, runs your action, and restores the previous context — even when nested.
 
 ```java title="CheckoutPage.java"
-import com.seleniumboot.test.BasePage;
+import io.testfly.test.BasePage;
 import org.openqa.selenium.By;
 
 public class CheckoutPage extends BasePage {

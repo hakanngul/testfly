@@ -1,6 +1,6 @@
-# Selenium Boot – Internal Design & Execution Model
+# TestFly – Internal Design & Execution Model
 
-This document describes the internal design contracts of Selenium Boot.
+This document describes the internal design contracts of TestFly.
 It defines how execution, lifecycle management, threading, waits, retries, and reporting interact internally.
 
 This document is intended for framework maintainers and advanced contributors.
@@ -27,7 +27,7 @@ This document is intended for framework maintainers and advanced contributors.
 
 ## Execution Lifecycle Overview
 
-Selenium Boot integrates with TestNG using listeners and execution hooks.
+TestFly integrates with TestNG using listeners and execution hooks.
 
 High-level lifecycle:
 
@@ -187,6 +187,6 @@ Violations are considered framework misuse.
 
 ## Summary
 
-Selenium Boot internals prioritize correctness, predictability, and maintainability.
+TestFly internals prioritize correctness, predictability, and maintainability.
 The framework defines strict execution contracts to ensure stability across
 parallel, long-running, enterprise-scale test suites.

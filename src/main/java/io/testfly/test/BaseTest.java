@@ -1,0 +1,465 @@
+package io.testfly.test;
+
+import io.testfly.accessibility.AccessibilityAssert;
+import io.testfly.api.TestFlyApi;
+import io.testfly.clock.TestClock;
+import io.testfly.performance.PerformanceAssert;
+import io.testfly.performance.PerformanceCollector;
+import io.testfly.performance.PerformanceMetrics;
+import io.testfly.assertion.LocatorAssert;
+import io.testfly.assertion.SeleniumAssert;
+import io.testfly.assertion.SoftAssertionCollector;
+import io.testfly.assertion.SoftAssertions;
+import io.testfly.browser.ClipboardHelper;
+import io.testfly.browser.ConsoleErrorCollector;
+import io.testfly.browser.DeviceEmulator;
+import io.testfly.browser.GeoLocation;
+import io.testfly.browser.StorageHelper;
+import io.testfly.visual.VisualAssert;
+import io.testfly.visual.VisualTolerance;
+import io.testfly.client.ApiClient;
+import io.testfly.context.ScenarioContext;
+import io.testfly.context.SuiteContext;
+import io.testfly.db.DbClient;
+import io.testfly.driver.DriverManager;
+import io.testfly.email.EmailCriteria;
+import io.testfly.email.MailboxClient;
+import io.testfly.internal.TestFlyContext;
+import io.testfly.listeners.SuiteExecutionListener;
+import io.testfly.listeners.TestExecutionListener;
+import io.testfly.locator.Locator;
+import io.testfly.locator.Role;
+import io.testfly.network.NetworkMock;
+import io.testfly.session.MultiSessionManager;
+import io.testfly.testdata.TestDataStore;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.testng.annotations.Listeners;
+
+import java.util.Map;
+
+/**
+ * BaseTest is the mandatory superclass for all TestFly tests.
+ *
+ * Responsibilities:
+ * - Provide access to the framework-managed WebDriver
+ *
+ * Rules:
+ * - Tests must NOT create or quit WebDriver
+ * - Tests must NOT manage waits or retries
+ */
+@TestFlyApi(since = "0.1.0")
+@Listeners({
+        SuiteExecutionListener.class,
+        TestExecutionListener.class
+})
+public abstract class BaseTest {
+
+    protected WebDriver getDriver() {
+        return DriverManager.getDriver();
+    }
+
+    protected void open() {
+        String baseURL = TestFlyContext.getConfig()
+                .getExecution().getBaseUrl();
+
+        if (baseURL == null || baseURL.isEmpty()) {
+            throw new IllegalStateException("baseURL is null or empty");
+        }
+        getDriver().get(baseURL);
+        if (ConsoleErrorCollector.isEnabled()) ConsoleErrorCollector.injectShim();
+    }
+
+    protected void open(String path) {
+        String baseUrl = TestFlyContext.getConfig()
+                .getExecution().getBaseUrl();
+        if (baseUrl == null || baseUrl.isEmpty()) {
+            throw new IllegalStateException("baseURL is null or empty");
+        }
+
+        String normalized = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+
+        String fullUrl = normalized + path;
+        getDriver().get(fullUrl);
+        if (ConsoleErrorCollector.isEnabled()) ConsoleErrorCollector.injectShim();
+    }
+
+    /**
+     * Returns the test data loaded by {@code @TestData} for the current test.
+     * Returns an empty map if no {@code @TestData} annotation was declared.
+     *
+     * <pre>
+     * Map&lt;String, Object&gt; data = getTestData();
+     * String username = (String) data.get("username");
+     * </pre>
+     */
+    protected Map<String, Object> getTestData() {
+        return TestDataStore.get();
+    }
+
+    /**
+     * Returns the soft assertion collector for this test.
+     * Failures collected here are reported all-at-once at test end
+     * without interrupting test execution.
+     *
+     * <pre>
+     * softAssert().that(pageTitle.equals("Home"), "Expected title 'Home', was: " + pageTitle);
+     * softAssert().that(isLoggedIn, "User should be logged in after login flow");
+     * </pre>
+     */
+    protected SoftAssertionCollector softAssert() {
+        return SoftAssertions.get();
+    }
+
+    /** API client for hybrid UI+API tests. */
+    protected ApiClient apiClient() {
+        return ApiClient.create();
+    }
+
+    /** In-test thread-local context store. Cleared after each test. */
+    protected ScenarioContext ctx() {
+        return ScenarioContextHolder.INSTANCE;
+    }
+
+    /** Suite-scoped global context store. Survives between tests. */
+    protected SuiteContext suiteCtx() {
+        return SuiteContextHolder.INSTANCE;
+    }
+
+    // ----------------------------------------------------------
+    // Phase 14 — Network, Storage, GeoLocation, Clipboard
+    // ----------------------------------------------------------
+
+    /** Network interception — stub API responses via CDP. */
+    protected NetworkMock networkMock() {
+        return NetworkMock.get();
+    }
+
+    /** localStorage read/write helpers. */
+    protected StorageHelper.LocalStorage localStorage() {
+        return StorageHelper.localStorage();
+    }
+
+    /** sessionStorage read/write helpers. */
+    protected StorageHelper.SessionStorage sessionStorage() {
+        return StorageHelper.sessionStorage();
+    }
+
+    /** Cookie read/write helpers. */
+    protected StorageHelper.Cookies cookies() {
+        return StorageHelper.cookies();
+    }
+
+    /** Geolocation mock — override browser location via CDP or JS. */
+    protected GeoLocation mockLocation() {
+        return GeoLocation.instance();
+    }
+
+    /** Clipboard read/write helpers. */
+    protected ClipboardHelper clipboard() {
+        return ClipboardHelper.instance();
+    }
+
+    // ----------------------------------------------------------
+    // Fluent Locator API  ($)
+    // ----------------------------------------------------------
+
+    /** Creates a chainable {@link Locator} from a CSS selector. */
+    protected Locator $(String css) {
+        return Locator.ofCss(css);
+    }
+
+    /** Creates a chainable {@link Locator} from a Selenium {@link By} locator. */
+    protected Locator $(By by) {
+        return Locator.of(by);
+    }
+
+    // ----------------------------------------------------------
+    // Accessibility-first locators  (getBy*)
+    // ----------------------------------------------------------
+
+    /**
+     * Locates elements by their ARIA role — the most resilient strategy, since it
+     * targets the accessibility tree rather than DOM structure.
+     *
+     * <pre>
+     * getByRole(Role.BUTTON).withName("Submit").click();
+     * getByRole(Role.HEADING).withLevel(1).getText();
+     * </pre>
+     */
+    protected Locator getByRole(Role role) {
+        return Locator.byRole(role);
+    }
+
+    /** Locates an element by its ARIA role and accessible name in one call. */
+    protected Locator getByRole(Role role, String name) {
+        return Locator.byRole(role).withName(name);
+    }
+
+    /** Locates an element by visible text — case-insensitive substring by default. */
+    protected Locator getByText(String text) {
+        return Locator.byText(text);
+    }
+
+    /** Locates a form control by its associated label text. */
+    protected Locator getByLabel(String label) {
+        return Locator.byLabel(label);
+    }
+
+    /** Locates an element by its {@code placeholder} attribute. */
+    protected Locator getByPlaceholder(String placeholder) {
+        return Locator.byPlaceholder(placeholder);
+    }
+
+    /** Locates an element by its test-id attribute (default {@code data-testid}). */
+    protected Locator getByTestId(String testId) {
+        return Locator.byTestId(testId);
+    }
+
+    /** Locates an element (typically {@code <img>}) by its {@code alt} text. */
+    protected Locator getByAltText(String altText) {
+        return Locator.byAltText(altText);
+    }
+
+    /** Locates an element by its {@code title} attribute. */
+    protected Locator getByTitle(String title) {
+        return Locator.byTitle(title);
+    }
+
+    // ----------------------------------------------------------
+    // Web-First Assertions  (assertThat)
+    // ----------------------------------------------------------
+
+    /** Begins a fluent, auto-retrying assertion on the given locator. */
+    protected LocatorAssert assertThat(By locator) {
+        return SeleniumAssert.assertThat(locator);
+    }
+
+    /** Begins a fluent, auto-retrying assertion on the given {@link Locator} chain. */
+    protected LocatorAssert assertThat(Locator locator) {
+        return SeleniumAssert.assertThat(locator);
+    }
+
+    // ----------------------------------------------------------
+    // Phase 15 — Visual Regression + Device Emulation
+    // ----------------------------------------------------------
+
+    /** Full-page screenshot comparison against the stored baseline. */
+    protected void assertScreenshot(String name) {
+        VisualAssert.assertScreenshot(name);
+    }
+
+    /** Full-page screenshot comparison with a custom pixel-difference tolerance. */
+    protected void assertScreenshot(String name, VisualTolerance tolerance) {
+        VisualAssert.assertScreenshot(name, tolerance);
+    }
+
+    /** Element-scoped screenshot comparison against the stored baseline. */
+    protected void assertScreenshot(String name, By region) {
+        VisualAssert.assertScreenshot(name, region);
+    }
+
+    /** Element-scoped screenshot comparison with a custom tolerance. */
+    protected void assertScreenshot(String name, By region, VisualTolerance tolerance) {
+        VisualAssert.assertScreenshot(name, region, tolerance);
+    }
+
+    /** Applies a named device profile (e.g. {@code "iPhone 14"}) to the current browser session. */
+    protected void emulateDevice(String deviceName) {
+        DeviceEmulator.emulate(deviceName);
+    }
+
+    /** Resets device emulation (restores desktop viewport and default user-agent). */
+    protected void resetDevice() {
+        DeviceEmulator.reset();
+    }
+
+    // ----------------------------------------------------------
+    // Phase 18 — Multi-Session Testing
+    // ----------------------------------------------------------
+
+    /**
+     * Returns the named session's {@link WebDriver}.
+     * Creates a new browser instance on first access; reuses it on subsequent calls.
+     * The session is automatically closed at test end.
+     *
+     * <pre>
+     * WebDriver adminDriver = session("admin");
+     * adminDriver.get(baseUrl + "/admin");
+     * </pre>
+     */
+    protected WebDriver session(String name) {
+        return MultiSessionManager.getSession(name);
+    }
+
+    /**
+     * Switches the active driver to the named session, runs the action,
+     * then restores the previous driver. All framework methods ({@code open()},
+     * {@code $()}, {@code assertThat()}) use the session driver inside the lambda.
+     *
+     * <pre>
+     * withSession("admin", () -&gt; {
+     *     open("/admin/approvals");
+     *     $(By.id("approve-btn")).click();
+     * });
+     * withSession("user", () -&gt; {
+     *     open("/dashboard");
+     *     assertThat(By.id("status")).hasText("Approved");
+     * });
+     * </pre>
+     */
+    protected void withSession(String name, MultiSessionManager.SessionAction action) {
+        MultiSessionManager.withSession(name, action);
+    }
+
+    // ----------------------------------------------------------
+    // Phase 18 — Database Assertions
+    // ----------------------------------------------------------
+
+    /**
+     * Returns a {@link DbClient} backed by the default {@code database} config block.
+     *
+     * <pre>
+     * db().assertRowExists("users", Map.of("email", "alice@example.com"));
+     * db().query("SELECT name FROM users WHERE id = ?", 1).assertValue("name", "Alice");
+     * </pre>
+     */
+    protected DbClient db() {
+        return DbClient.forDefault();
+    }
+
+    /**
+     * Returns a {@link DbClient} backed by the named entry under
+     * {@code database.datasources} in {@code testfly.yml}.
+     *
+     * <pre>
+     * db("reporting").assertRowCount("monthly_summary", 12);
+     * </pre>
+     */
+    protected DbClient db(String datasource) {
+        return DbClient.forNamed(datasource);
+    }
+
+    // ----------------------------------------------------------
+    // Phase 19 — Email Verification
+    // ----------------------------------------------------------
+
+    /**
+     * Returns an email inbox client configured from {@code email.*} in
+     * {@code testfly.yml}. Supports Mailhog, Mailtrap, Outlook, and IMAP.
+     *
+     * <pre>
+     * Email email = mailbox().waitForEmail(to("user@example.com"));
+     * email.assertSubject("Verify your account");
+     * String link = email.extractLink("Verify Email");
+     * open(link);
+     * </pre>
+     */
+    protected MailboxClient mailbox() {
+        return MailboxClient.create();
+    }
+
+    /**
+     * Shorthand for {@link EmailCriteria#to(String)} —
+     * use inside {@code mailbox().waitForEmail(to("..."))} without a static import.
+     */
+    protected EmailCriteria to(String address) {
+        return EmailCriteria.to(address);
+    }
+
+    // ----------------------------------------------------------
+    // Phase 23 — Performance Assertions (Core Web Vitals)
+    // ----------------------------------------------------------
+
+    /**
+     * Collects Core Web Vitals from the active browser page and returns a fluent
+     * assertion builder. Call after {@link #open()} once the page has loaded.
+     *
+     * <pre>
+     * open("/dashboard");
+     *
+     * assertPerformance()
+     *     .lcp().isBelow(2500)    // Largest Contentful Paint &lt; 2.5 s
+     *     .fcp().isBelow(1800)    // First Contentful Paint &lt; 1.8 s
+     *     .ttfb().isBelow(600)    // Time To First Byte &lt; 600 ms
+     *     .cls().isBelow(0.1);    // Cumulative Layout Shift &lt; 0.1
+     * </pre>
+     *
+     * LCP and CLS are available on Chrome/Edge only. On other browsers those
+     * assertions are silently skipped (not failed).
+     */
+    protected PerformanceAssert assertPerformance() {
+        return PerformanceAssert.of(PerformanceCollector.collect());
+    }
+
+    /**
+     * Collects and returns raw Core Web Vitals for custom inspection or assertions.
+     *
+     * <pre>
+     * PerformanceMetrics perf = collectPerformance();
+     * Assert.assertTrue(perf.lcp() &lt; 3000, "LCP regression detected: " + perf.lcp() + "ms");
+     * </pre>
+     */
+    protected PerformanceMetrics collectPerformance() {
+        return PerformanceCollector.collect();
+    }
+
+    // ----------------------------------------------------------
+    // Phase 21 — Clock Mocking
+    // ----------------------------------------------------------
+
+    /**
+     * Returns a {@link TestClock} that controls the browser's perception of time.
+     * Call after {@link #open()} so the page is loaded before injecting the mock.
+     *
+     * <pre>
+     * clock().set("2030-06-01T00:00:00Z");
+     * open("/dashboard");
+     * assertThat(By.id("trial-banner")).hasText("Your trial expired 30 days ago");
+     * </pre>
+     *
+     * The clock is reset automatically at the end of each test.
+     */
+    protected TestClock clock() {
+        return TestClock.create();
+    }
+
+    // ----------------------------------------------------------
+    // Phase 24 — Accessibility Assertions (axe-core)
+    // ----------------------------------------------------------
+
+    /**
+     * Returns a fluent accessibility assertion builder backed by axe-core.
+     * Call after {@link #open()} so the page is fully loaded before scanning.
+     *
+     * <pre>
+     * open("/checkout");
+     *
+     * // Assert zero WCAG 2.1 AA violations
+     * accessibility()
+     *     .withTags("wcag2a", "wcag21aa")
+     *     .withLevel(Impact.SERIOUS)
+     *     .excluding("#cookie-banner")
+     *     .run();
+     *
+     * // Scope scan to a specific section
+     * accessibility().withContext("#main-form").run();
+     *
+     * // Collect results without asserting
+     * AccessibilityResult result = accessibility().collect();
+     * </pre>
+     *
+     * <p>axe-core is bundled in the JAR — no internet connection or extra dependency required.
+     * The library is injected once per page load and reused for subsequent calls.
+     */
+    protected AccessibilityAssert accessibility() {
+        return AccessibilityAssert.create();
+    }
+
+    private static final class ScenarioContextHolder {
+        static final ScenarioContext INSTANCE = new ScenarioContext();
+    }
+    private static final class SuiteContextHolder {
+        static final SuiteContext INSTANCE = new SuiteContext();
+    }
+}

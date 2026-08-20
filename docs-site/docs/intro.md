@@ -1,23 +1,23 @@
 ---
-description: "Selenium Boot is the Spring Boot of Selenium: zero setup, Playwright-inspired locators and auto-waiting, and enterprise features, without hiding Selenium."
+description: "TestFly is a Java Test Automation SDK for web, API, mobile, and AI/MCP-powered test automation — zero setup, Playwright-inspired locators and auto-waiting, and enterprise features, without hiding Selenium."
 id: intro
 title: Introduction
 sidebar_position: 1
 slug: /
 ---
 
-# Selenium Boot
+# TestFly
 
 **An opinionated, Spring Boot–inspired Java test automation framework.**
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.seleniumboot/selenium-boot)](https://central.sonatype.com/artifact/io.github.seleniumboot/selenium-boot)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/seleniumboot/selenium-boot/blob/master/LICENSE)
+[![Maven Central](https://img.shields.io/maven-central/v/io.testfly/testfly)](https://central.sonatype.com/artifact/io.testfly/testfly)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/testfly/testfly/blob/master/LICENSE)
 
 ---
 
-## What is Selenium Boot?
+## What is TestFly?
 
-Selenium Boot eliminates the boilerplate that every Java Selenium project repeats — WebDriver setup and teardown, wait helpers, retry logic, screenshot capture, and report generation — so your test code contains only test intent.
+TestFly eliminates the boilerplate that every Java Selenium project repeats — WebDriver setup and teardown, wait helpers, retry logic, screenshot capture, and report generation — so your test code contains only test intent.
 
 It is inspired by **Spring Boot's philosophy**: sensible defaults, convention over configuration, and zero required setup for common cases.
 
@@ -40,22 +40,22 @@ No `WebDriver` setup. No `@AfterMethod` teardown. No wait helpers. No retry conf
 
 ## Design philosophy
 
-People often ask whether Selenium Boot is meant to be an opinionated framework, an extensible toolkit, or a thin productivity layer over Selenium. It's **the Spring Boot of Java test automation** — and the answer is layered, not equal parts of all three:
+People often ask whether TestFly is meant to be an opinionated framework, an extensible toolkit, or a thin productivity layer over Selenium. It's **the Spring Boot of Java test automation** — and the answer is layered, not equal parts of all three:
 
-1. **Opinionated core (primary).** Convention over configuration, zero boilerplate by default. Add one dependency, extend `BaseTest` / `BasePage`, and the framework has already made the sensible decisions for you. `selenium-boot.yml` is optional — `SeleniumBootDefaults` covers you if you never write it.
-2. **Never hides Selenium (the constraint).** Unlike heavier abstractions, Selenium Boot never takes the raw `WebDriver` away from you. When the conventions don't fit, drop straight down to `WebDriver` / `By` / `WebElement`. Opinionated without being a cage.
+1. **Opinionated core (primary).** Convention over configuration, zero boilerplate by default. Add one dependency, extend `BaseTest` / `BasePage`, and the framework has already made the sensible decisions for you. `testfly.yml` is optional — `TestFlyDefaults` covers you if you never write it.
+2. **Never hides Selenium (the constraint).** Unlike heavier abstractions, TestFly never takes the raw `WebDriver` away from you. When the conventions don't fit, drop straight down to `WebDriver` / `By` / `WebElement`. Opinionated without being a cage.
 3. **Extensible toolkit (the escape hatch).** An SPI/registry plugin system (`DriverProviderRegistry`, `PluginRegistry`, `ReportAdapterRegistry`) makes it modular for the power users who need it — serving the opinionated core, not replacing it. Most users never touch it.
 
 ### Already invested in Selenium?
 
-You don't have to abandon Selenium to get the ergonomics people love in Playwright. Selenium Boot brings those ideas into the Selenium ecosystem — so you keep your stack, your grid, and your team's skills:
+You don't have to abandon Selenium to get the ergonomics people love in Playwright. TestFly brings those ideas into the Selenium ecosystem — so you keep your stack, your grid, and your team's skills:
 
-| Playwright idea | In Selenium Boot |
+| Playwright idea | In TestFly |
 |---|---|
 | Accessibility-first locators | `getByRole`, `getByLabel`, `getByText`, `getByPlaceholder`, `getByTestId` — target the accessibility tree, survive CSS/DOM refactors |
 | Auto-waiting | `WaitEngine`-backed actions — `Thread.sleep()` disappears |
 | Web-first assertions | `assertThat(...)` that auto-retries until true |
-| Convention over configuration | Zero-boilerplate defaults, optional `selenium-boot.yml` |
+| Convention over configuration | Zero-boilerplate defaults, optional `testfly.yml` |
 
 …all **without hiding raw Selenium**, and while keeping your existing Selenium / Java / TestNG stack, team skills, and Selenium Grid.
 
@@ -63,9 +63,9 @@ You don't have to abandon Selenium to get the ergonomics people love in Playwrig
 
 Almost every Java team already has one: a home-grown `BaseTest`, a `DriverFactory`, a pile of wait utilities, and a reporting hack — rewritten from scratch at each new project or company. It's unpaid infrastructure you own, debug, and maintain forever, and it's rarely tested or parallel-safe.
 
-Selenium Boot **is** that framework — already built, maintained, tested, thread-safe, and documented. You keep the part that's actually yours (the test intent) and delete the plumbing:
+TestFly **is** that framework — already built, maintained, tested, thread-safe, and documented. You keep the part that's actually yours (the test intent) and delete the plumbing:
 
-| Roll your own | Selenium Boot |
+| Roll your own | TestFly |
 |---|---|
 | Write & maintain driver lifecycle, waits, retries | Provided, thread-safe, zero config |
 | Build a reporting layer from scratch | HTML report + JUnit XML included |
@@ -73,21 +73,21 @@ Selenium Boot **is** that framework — already built, maintained, tested, threa
 | Onboarding = "read our internal wiki" | Onboarding = public docs + one dependency |
 | You fix the bugs | The framework ships the fixes |
 
-> Selenium Boot is the Spring Boot of Selenium — zero setup, smarter defaults, Playwright-inspired APIs, and enterprise features, without hiding Selenium.
+> TestFly is the Spring Boot of Selenium — zero setup, smarter defaults, Playwright-inspired APIs, and enterprise features, without hiding Selenium.
 
 ---
 
 :::tip AI-powered test authoring
-**seleniumboot-mcp** lets Claude or GitHub Copilot control a real browser, record your session, and
-generate Selenium Boot test code — TestNG, JUnit 5, Page Object, Gherkin, C# NUnit — in one prompt.
+**testfly-mcp** lets Claude or GitHub Copilot control a real browser, record your session, and
+generate TestFly test code — TestNG, JUnit 5, Page Object, Gherkin, C# NUnit — in one prompt.
 
 ```bash
-pip install seleniumboot-mcp
+pip install testfly-mcp
 ```
 
 84 tools · self-healing locators · mobile emulation · codegen for Java / Python / C# / Playwright
 
-[PyPI](https://pypi.org/project/seleniumboot-mcp/) · [GitHub](https://github.com/seleniumboot/selenium-mcp)
+[PyPI](https://pypi.org/project/testfly-mcp/) · [GitHub](https://github.com/testfly/testfly-mcp)
 :::
 
 ---
@@ -108,7 +108,7 @@ Outcomes first — the API that delivers each one is on the right so you can jum
 | **Plug into any CI without extra tooling** | JUnit XML parsed natively by Jenkins, GitHub Actions, GitLab CI |
 | **CI that configures itself** | Headless forced, threads auto-tuned, no config changes needed |
 | **Extend it without forking it** | SPI-based plugins — custom drivers, hooks, report adapters |
-| **Bring your own test runner** | Full JUnit 5 parity via `@ExtendWith(SeleniumBootExtension.class)` or `BaseJUnit5Test` |
+| **Bring your own test runner** | Full JUnit 5 parity via `@ExtendWith(TestFlyExtension.class)` or `BaseJUnit5Test` |
 | **Write specs your product team can read** | BDD / Cucumber — `BaseCucumberSteps`, `CucumberHooks`, per-scenario steps in report |
 | **Test UI and API in the same suite** | `BaseApiTest`, fluent `ApiClient`, JSONPath, schema validation, hybrid UI+API |
 | **Pin down the exact element, fluently** | `$("selector").filter().nth().withText()` — Playwright-style chainable locators |
@@ -133,7 +133,7 @@ Outcomes first — the API that delivers each one is on the right so you can jum
 2. **Convention over configuration** — smart defaults, YAML opt-in for advanced behaviour
 3. **No required external services** — works offline, no cloud APIs in core
 4. **Opt-in complexity** — advanced features behind config flags, off by default
-5. **Single dependency** — add `selenium-boot` and nothing else is required
+5. **Single dependency** — add `testfly` and nothing else is required
 6. **Test code stays clean** — internals handle lifecycle; test methods contain only intent
 
 ---

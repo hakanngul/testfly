@@ -1,6 +1,6 @@
-# Selenium Boot – Opinionated Project Structure
+# TestFly – Opinionated Project Structure
 
-This document defines the standard, opinionated project structure enforced by Selenium Boot.
+This document defines the standard, opinionated project structure enforced by TestFly.
 
 The structure is designed to promote consistency, readability, and long-term maintainability across automation projects.
 
@@ -21,9 +21,9 @@ The project structure aims to:
 ## Root Directory Layout
 
 ```
-selenium-boot-project
+testfly-project
 ├── pom.xml
-├── selenium-boot.yml
+├── testfly.yml
 ├── README.md
 ├── docs/
 ├── src/
@@ -49,10 +49,10 @@ selenium-boot-project
 
 ### pom.xml
 - Maven build and dependency configuration
-- Selenium Boot starter dependency
+- TestFly starter dependency
 - Test execution profiles
 
-### selenium-boot.yml
+### testfly.yml
 - Single source of configuration
 - Environment-specific overrides
 - Execution, browser, and reporting settings
@@ -126,7 +126,7 @@ com.company.project.flows
 - No static WebDriver references
 - No implicit waits
 - Page Objects must not contain assertions
-- Configuration must come from selenium-boot.yml
+- Configuration must come from testfly.yml
 
 Violations reduce framework stability and are discouraged.
 
@@ -143,5 +143,5 @@ Violations reduce framework stability and are discouraged.
 ## Summary
 
 This opinionated project structure removes ambiguity and enforces discipline.
-Teams adopting Selenium Boot should follow this layout to ensure consistency,
+Teams adopting TestFly should follow this layout to ensure consistency,
 stability, and maintainability across automation projects.

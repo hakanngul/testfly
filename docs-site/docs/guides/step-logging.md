@@ -14,8 +14,8 @@ sidebar_position: 6
 ## Basic usage
 
 ```java
-import com.seleniumboot.steps.StepLogger;
-import com.seleniumboot.steps.StepStatus;
+import io.testfly.steps.StepLogger;
+import io.testfly.steps.StepStatus;
 
 public class LoginTest extends BaseTest {
 
@@ -93,7 +93,7 @@ Each step shows:
 
 ## Thread safety
 
-`StepLogger` uses `SeleniumBootContext.getCurrentTestId()` to bind steps to the correct test. It is **thread-safe** — safe to use in parallel test execution. Each thread's steps are recorded independently.
+`StepLogger` uses `TestFlyContext.getCurrentTestId()` to bind steps to the correct test. It is **thread-safe** — safe to use in parallel test execution. Each thread's steps are recorded independently.
 
 ---
 

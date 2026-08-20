@@ -8,13 +8,13 @@ sidebar_position: 8
 
 # Screenshots
 
-Selenium Boot captures screenshots automatically on test failure and embeds them directly in the HTML report as Base64 — no external image files, no broken paths in CI.
+TestFly captures screenshots automatically on test failure and embeds them directly in the HTML report as Base64 — no external image files, no broken paths in CI.
 
 ---
 
 ## Automatic failure screenshots
 
-No configuration needed. When a test fails, Selenium Boot captures a screenshot and attaches it to the test's detail panel in the HTML report.
+No configuration needed. When a test fails, TestFly captures a screenshot and attaches it to the test's detail panel in the HTML report.
 
 The screenshot appears as a thumbnail in the Failures tab. Click it to open the full-size lightbox.
 
@@ -46,7 +46,7 @@ Screenshots are encoded as Base64 and embedded directly in the HTML report. This
 
 ## Configuration
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 screenshots:
   onFailure: true   # default — capture screenshot on every failure
 ```
@@ -67,7 +67,7 @@ Step screenshots (via `StepLogger`) are controlled by the `boolean screenshot` a
 If you need to capture a screenshot outside of `StepLogger` (for example, in a utility method), use `ScreenshotManager` directly:
 
 ```java
-import com.seleniumboot.reporting.ScreenshotManager;
+import io.testfly.reporting.ScreenshotManager;
 
 // Capture and save to disk (returns file path)
 String path = ScreenshotManager.capture(driver, "my-screenshot");
@@ -89,8 +89,8 @@ Because screenshots are Base64-embedded, they appear correctly in the HTML repor
   if: always()
   uses: actions/upload-artifact@v4
   with:
-    name: selenium-boot-report
-    path: target/selenium-boot-report.html
+    name: testfly-report
+    path: target/testfly-report.html
 ```
 
 Download the artifact, open the HTML file locally — all screenshots are inline.

@@ -1,6 +1,6 @@
-# Selenium Boot – Architecture Overview
+# TestFly – Architecture Overview
 
-This document describes the high-level architecture of Selenium Boot, including its core components, design boundaries, and execution flow.
+This document describes the high-level architecture of TestFly, including its core components, design boundaries, and execution flow.
 
 The architecture is intentionally simple, opinionated, and extensible only at well-defined points.
 
@@ -8,7 +8,7 @@ The architecture is intentionally simple, opinionated, and extensible only at we
 
 ## Architectural Goals
 
-The architecture of Selenium Boot is designed to:
+The architecture of TestFly is designed to:
 
 - Minimize Selenium framework boilerplate
 - Enforce consistent usage patterns
@@ -21,11 +21,11 @@ The architecture of Selenium Boot is designed to:
 
 ## High-Level Architecture
 
-Selenium Boot follows a layered, responsibility-driven architecture.
+TestFly follows a layered, responsibility-driven architecture.
 
 Test Layer  
 ↑  
-Selenium Boot Core  
+TestFly Core  
 ↑  
 Infrastructure Layer  
 ↑  
@@ -50,7 +50,7 @@ Rules:
 
 ---
 
-### 2. Selenium Boot Core (Framework-Owned)
+### 2. TestFly Core (Framework-Owned)
 
 Responsibilities:
 - Test lifecycle orchestration
@@ -82,7 +82,7 @@ Responsibilities:
 - WebDriver APIs
 - Browser-level interactions
 
-Selenium Boot does not hide or replace Selenium APIs.
+TestFly does not hide or replace Selenium APIs.
 
 ---
 
@@ -166,5 +166,5 @@ Violations are considered design errors.
 
 ## Summary
 
-Selenium Boot’s architecture prioritizes clarity, discipline, and production readiness.
+TestFly’s architecture prioritizes clarity, discipline, and production readiness.
 It standardizes framework concerns while preserving full control over test logic.

@@ -1,5 +1,5 @@
 ---
-description: "Use Selenium Boot with Gradle: the recommended build.gradle setup for running TestNG or JUnit 5 Selenium tests with the Maven Central JAR."
+description: "Use TestFly with Gradle: the recommended build.gradle setup for running TestNG or JUnit 5 Selenium tests with the Maven Central JAR."
 id: gradle
 title: Gradle Build Support
 sidebar_position: 3
@@ -7,7 +7,7 @@ sidebar_position: 3
 
 # Gradle Build Support
 
-Selenium Boot works with Gradle out of the box — the JAR on Maven Central is build-tool-agnostic. This page covers the recommended setup for both Groovy DSL (`build.gradle`) and Kotlin DSL (`build.gradle.kts`).
+TestFly works with Gradle out of the box — the JAR on Maven Central is build-tool-agnostic. This page covers the recommended setup for both Groovy DSL (`build.gradle`) and Kotlin DSL (`build.gradle.kts`).
 
 ---
 
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.github.seleniumboot:selenium-boot:2.6.0'
+    testImplementation 'io.testfly:testfly:2.6.0'
 }
 ```
 
@@ -46,7 +46,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation("io.github.seleniumboot:selenium-boot:2.6.0")
+    testImplementation("io.testfly:testfly:2.6.0")
 }
 ```
 
@@ -105,14 +105,14 @@ tasks.test {
 
 ### JUnit 5 bridge
 
-If you're using `BaseJUnit5Test` or `@EnableSeleniumBoot`:
+If you're using `BaseJUnit5Test` or `@EnableTestFly`:
 
 <Tabs>
 <TabItem value="groovy" label="Groovy DSL">
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.github.seleniumboot:selenium-boot:2.6.0'
+    testImplementation 'io.testfly:testfly:2.6.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
 }
@@ -128,7 +128,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.github.seleniumboot:selenium-boot:2.6.0")
+    testImplementation("io.testfly:testfly:2.6.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
 }
@@ -146,9 +146,9 @@ tasks.test {
 
 ## Step 3 — Configuration file
 
-Create `selenium-boot.yml` at the **project root** (same level as `build.gradle`):
+Create `testfly.yml` at the **project root** (same level as `build.gradle`):
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 execution:
   mode: local
   baseUrl: https://example.com
@@ -189,20 +189,20 @@ retry:
 
 | Report type | Gradle path |
 |---|---|
-| HTML report (Selenium Boot) | `build/selenium-boot-report/index.html` |
-| JUnit XML (Selenium Boot) | `build/test-results/test/TEST-SeleniumBoot.xml` |
+| HTML report (TestFly) | `build/testfly-report/index.html` |
+| JUnit XML (TestFly) | `build/test-results/test/TEST-TestFly.xml` |
 | Gradle's own HTML report | `build/reports/tests/test/index.html` |
 | Allure results (if enabled) | `build/allure-results/` |
 
 :::info JUnit XML auto-detection
-Selenium Boot automatically detects Gradle by checking whether a `build/` directory exists and `target/` does not, then writes XML to `build/test-results/test/`. Override with `-Dseleniumboot.reports.dir=path/to/dir` if needed.
+TestFly automatically detects Gradle by checking whether a `build/` directory exists and `target/` does not, then writes XML to `build/test-results/test/`. Override with `-Dtestfly.reports.dir=path/to/dir` if needed.
 :::
 
 ---
 
 ## Parallel execution
 
-For parallel runs with Gradle, configure the `test` task alongside `selenium-boot.yml`:
+For parallel runs with Gradle, configure the `test` task alongside `testfly.yml`:
 
 <Tabs>
 <TabItem value="groovy" label="Groovy DSL">
@@ -229,7 +229,7 @@ tasks.test {
 </TabItem>
 </Tabs>
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 execution:
   parallel: methods
   threadCount: 4
@@ -239,7 +239,7 @@ execution:
 
 ## Optional dependencies
 
-These are `compileOnly` / optional in the Selenium Boot JAR — add them only if you use the corresponding feature:
+These are `compileOnly` / optional in the TestFly JAR — add them only if you use the corresponding feature:
 
 | Feature | Dependency |
 |---|---|
@@ -256,7 +256,7 @@ A minimal working Gradle project (Groovy DSL, TestNG):
 ```
 my-tests/
 ├── build.gradle
-├── selenium-boot.yml
+├── testfly.yml
 └── src/
     └── test/
         └── java/
@@ -274,7 +274,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.github.seleniumboot:selenium-boot:2.6.0'
+    testImplementation 'io.testfly:testfly:2.6.0'
 }
 
 test {
@@ -285,7 +285,7 @@ test {
 ```
 
 ```java title="src/test/java/com/example/LoginTest.java"
-import com.seleniumboot.test.BaseTest;
+import io.testfly.test.BaseTest;
 import org.openqa.selenium.By;
 import org.testng.annotations.Test;
 

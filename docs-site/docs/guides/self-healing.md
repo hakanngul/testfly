@@ -20,7 +20,7 @@ locator had worked, and a `⚠ healed` badge appears in the HTML report.
 
 ## Enabling it
 
-Off by default. Turn it on in `selenium-boot.yml`:
+Off by default. Turn it on in `testfly.yml`:
 
 ```yaml
 locators:

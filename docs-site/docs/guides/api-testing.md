@@ -1,11 +1,11 @@
 ---
-description: "API testing in Selenium Boot: write pure API tests or hybrid UI plus API tests in the same suite, config, and HTML report."
+description: "API testing in TestFly: write pure API tests or hybrid UI plus API tests in the same suite, config, and HTML report."
 sidebar_position: 13
 ---
 
 # API Testing
 
-Selenium Boot supports **pure API tests** and **hybrid UI + API tests** out of the box — same framework, same config, same report.
+TestFly supports **pure API tests** and **hybrid UI + API tests** out of the box — same framework, same config, same report.
 
 ---
 
@@ -14,9 +14,9 @@ Selenium Boot supports **pure API tests** and **hybrid UI + API tests** out of t
 Extend `BaseApiTest` instead of `BaseTest`. No browser is launched; the full framework lifecycle still applies (reporting, `@TestData`, retry, CI gates).
 
 ```java
-import com.seleniumboot.test.BaseApiTest;
-import com.seleniumboot.client.ApiClient;
-import com.seleniumboot.client.ApiResponse;
+import io.testfly.test.BaseApiTest;
+import io.testfly.client.ApiClient;
+import io.testfly.client.ApiResponse;
 import org.testng.annotations.Test;
 
 public class UserApiTest extends BaseApiTest {
@@ -48,7 +48,7 @@ ApiClient.delete("/api/users/1")
 
 ### Base URL
 
-By default, `ApiClient` uses `api.baseUrl` from `selenium-boot.yml`. Falls back to `execution.baseUrl` if not set.
+By default, `ApiClient` uses `api.baseUrl` from `testfly.yml`. Falls back to `execution.baseUrl` if not set.
 
 ```yaml
 api:
@@ -206,7 +206,7 @@ Every `ApiClient` request is automatically logged in the step timeline:
 [API] DELETE /api/orders/5 → 404 (12ms)   ← logged as FAIL
 ```
 
-Enable body logging in `selenium-boot.yml`:
+Enable body logging in `testfly.yml`:
 
 ```yaml
 api:

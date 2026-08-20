@@ -14,7 +14,7 @@ sidebar_position: 2
 ## Create a hook
 
 ```java
-import com.seleniumboot.hooks.ExecutionHook;
+import io.testfly.hooks.ExecutionHook;
 
 public class TimingHook implements ExecutionHook {
 
@@ -55,7 +55,7 @@ Only override the methods you need — the others are no-ops by default.
 ## Register via Java SPI (auto-discovery)
 
 ```
-src/main/resources/META-INF/services/com.seleniumboot.hooks.ExecutionHook
+src/main/resources/META-INF/services/io.testfly.hooks.ExecutionHook
 ```
 
 Contents:
@@ -69,12 +69,12 @@ com.example.hooks.TimingHook
 ## Register programmatically
 
 ```java
-import com.seleniumboot.hooks.HookRegistry;
+import io.testfly.hooks.HookRegistry;
 
 HookRegistry.register(new TimingHook());
 ```
 
-Call this before the suite starts (e.g. in a `@BeforeSuite` method or a `SeleniumBootPlugin.onLoad`).
+Call this before the suite starts (e.g. in a `@BeforeSuite` method or a `TestFlyPlugin.onLoad`).
 
 ---
 
@@ -102,7 +102,7 @@ Hook failures are **isolated** — an exception in one hook is logged but does n
 
 ## Hook vs Plugin
 
-| | `ExecutionHook` | `SeleniumBootPlugin` |
+| | `ExecutionHook` | `TestFlyPlugin` |
 |---|---|---|
 | Per-test events | Yes | No |
 | Suite events | Yes | Yes (onLoad/onUnload) |

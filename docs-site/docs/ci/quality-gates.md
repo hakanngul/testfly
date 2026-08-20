@@ -84,9 +84,9 @@ When using `dorny/test-reporter` in GitHub Actions, the step fails the workflow 
 
 ## Retry-aware quality gates
 
-Selenium Boot records retry counts in `target/selenium-boot-metrics.json`. A post-build script can check whether too many tests are flaky:
+TestFly records retry counts in `target/testfly-metrics.json`. A post-build script can check whether too many tests are flaky:
 
-```json title="target/selenium-boot-metrics.json (example)"
+```json title="target/testfly-metrics.json (example)"
 {
   "flakyTests": 3,
   "recoveredTests": 2,
@@ -98,8 +98,8 @@ Selenium Boot records retry counts in `target/selenium-boot-metrics.json`. A pos
 ```bash
 - name: Quality gate — max 5% flaky tests
   run: |
-    FLAKY=$(cat target/selenium-boot-metrics.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('flakyTests', 0))")
-    TOTAL=$(cat target/selenium-boot-metrics.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('total', 1))")
+    FLAKY=$(cat target/testfly-metrics.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('flakyTests', 0))")
+    TOTAL=$(cat target/testfly-metrics.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('total', 1))")
     RATE=$(echo "scale=1; $FLAKY * 100 / $TOTAL" | bc)
     echo "Flaky rate: $RATE% ($FLAKY/$TOTAL)"
     if (( $(echo "$RATE > 5" | bc -l) )); then

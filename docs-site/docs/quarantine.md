@@ -13,9 +13,9 @@ Test quarantine lets you mark known-flaky or temporarily broken tests so the fra
 
 ## How it works
 
-Create a file called `selenium-quarantine.yml` in your **project root** (next to `pom.xml`). List the tests you want to skip. Commit it to version control. Every CI run — even a fresh clone — will skip them.
+Create a file called `testfly-quarantine.yml` in your **project root** (next to `pom.xml`). List the tests you want to skip. Commit it to version control. Every CI run — even a fresh clone — will skip them.
 
-```yaml title="selenium-quarantine.yml"
+```yaml title="testfly-quarantine.yml"
 quarantine:
   # Skip a specific test method
   - com.example.tests.LoginTest#loginWithExpiredSession
@@ -113,7 +113,7 @@ Best for: single scenarios, when the owning team manages the feature file.
 
 ---
 
-### Method 2 — Entries in `selenium-quarantine.yml`
+### Method 2 — Entries in `testfly-quarantine.yml`
 
 Three YAML entry formats are supported for Cucumber:
 
@@ -121,7 +121,7 @@ Three YAML entry formats are supported for Cucumber:
 
 Any scenario that carries the tag is skipped, regardless of which feature file it lives in.
 
-```yaml title="selenium-quarantine.yml"
+```yaml title="testfly-quarantine.yml"
 quarantine:
   - "@smoke"                         # skips every scenario tagged @smoke
   - test: "@regression"
@@ -174,7 +174,7 @@ Best for: quarantining one specific scenario when you can't or don't want to edi
 
 ### Configuring the tag name
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 quarantine:
   cucumberTag: quarantine   # default — change if this conflicts with your tag conventions
 ```
@@ -185,9 +185,9 @@ quarantine:
 
 The framework looks for the quarantine file in this priority order:
 
-1. **System property** — `-Dselenium.boot.quarantine=/path/to/custom-quarantine.yml`
-2. **Working directory** — `./selenium-quarantine.yml` (next to `pom.xml`)
-3. **Classpath** — `src/test/resources/selenium-quarantine.yml`
+1. **System property** — `-Dtestfly.quarantine=/path/to/custom-quarantine.yml`
+2. **Working directory** — `./testfly-quarantine.yml` (next to `pom.xml`)
+3. **Classpath** — `src/test/resources/testfly-quarantine.yml`
 
 If no file is found, quarantine is silently disabled (no error, no warning).
 
@@ -195,7 +195,7 @@ If no file is found, quarantine is silently disabled (no error, no warning).
 
 ## Config
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 quarantine:
   enabled: true           # set to false to temporarily disable without deleting the file
   cucumberTag: quarantine # Cucumber tag name (without the @ prefix)
@@ -211,19 +211,19 @@ To run the full suite including quarantined tests (e.g. to verify a fix):
 
 ```bash
 # Option 1: system property override pointing to an empty file
-mvn test -Dselenium.boot.quarantine=/dev/null
+mvn test -Dtestfly.quarantine=/dev/null
 
 # Option 2: disable via config property  
-mvn test -Dselenium.boot.config=config/no-quarantine.yml
+mvn test -Dtestfly.config=config/no-quarantine.yml
 ```
 
 Or set `quarantine.enabled: false` in a profile-specific YAML:
 
 ```bash
-mvn test -Dselenium.boot.profile=full-run
+mvn test -Dtestfly.profile=full-run
 ```
 
-```yaml title="selenium-boot-full-run.yml"
+```yaml title="testfly-full-run.yml"
 quarantine:
   enabled: false
 ```
@@ -233,7 +233,7 @@ quarantine:
 ## Workflow
 
 1. A test fails intermittently in CI → file a ticket
-2. Add the test to `selenium-quarantine.yml` with the ticket number as reason
+2. Add the test to `testfly-quarantine.yml` with the ticket number as reason
 3. Commit and push → CI stops failing on that test
 4. Fix the root cause → remove the entry → verify in CI → close the ticket
 

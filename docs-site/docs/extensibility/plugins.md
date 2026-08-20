@@ -1,5 +1,5 @@
 ---
-description: "Extend Selenium Boot with plugins: SeleniumBootPlugin adds behaviour alongside the framework, auto-discovered via Java SPI and ServiceLoader."
+description: "Extend TestFly with plugins: TestFlyPlugin adds behaviour alongside the framework, auto-discovered via Java SPI and ServiceLoader."
 id: plugins
 title: Plugins
 sidebar_position: 1
@@ -7,17 +7,17 @@ sidebar_position: 1
 
 # Plugins
 
-`SeleniumBootPlugin` is the main extension point for adding behaviour that runs alongside the framework. Plugins are discovered automatically via Java SPI — no registration code needed in your tests.
+`TestFlyPlugin` is the main extension point for adding behaviour that runs alongside the framework. Plugins are discovered automatically via Java SPI — no registration code needed in your tests.
 
 ---
 
 ## Create a plugin
 
 ```java
-import com.seleniumboot.config.SeleniumBootConfig;
-import com.seleniumboot.extension.SeleniumBootPlugin;
+import io.testfly.config.TestFlyConfig;
+import io.testfly.extension.TestFlyPlugin;
 
-public class SlackNotificationPlugin implements SeleniumBootPlugin {
+public class SlackNotificationPlugin implements TestFlyPlugin {
 
     @Override
     public String getName() {
@@ -30,7 +30,7 @@ public class SlackNotificationPlugin implements SeleniumBootPlugin {
     }
 
     @Override
-    public void onLoad(SeleniumBootConfig config) {
+    public void onLoad(TestFlyConfig config) {
         // called once after config is loaded — read settings, open connections
         String baseUrl = config.getBrowser().getBaseUrl();
         System.out.println("SlackPlugin initialised for " + baseUrl);
@@ -50,7 +50,7 @@ public class SlackNotificationPlugin implements SeleniumBootPlugin {
 Create the SPI registration file in your project:
 
 ```
-src/main/resources/META-INF/services/com.seleniumboot.extension.SeleniumBootPlugin
+src/main/resources/META-INF/services/io.testfly.extension.TestFlyPlugin
 ```
 
 Contents — one fully-qualified class name per line:
@@ -59,7 +59,7 @@ Contents — one fully-qualified class name per line:
 com.example.plugins.SlackNotificationPlugin
 ```
 
-Selenium Boot discovers and loads this plugin automatically when your JAR is on the classpath. No listener registration, no config entries.
+TestFly discovers and loads this plugin automatically when your JAR is on the classpath. No listener registration, no config entries.
 
 ---
 
@@ -68,10 +68,10 @@ Selenium Boot discovers and loads this plugin automatically when your JAR is on 
 For plugins that need to be registered before framework boot:
 
 ```java
-import com.seleniumboot.extension.PluginRegistry;
-import com.seleniumboot.context.SeleniumBootContext;
+import io.testfly.extension.PluginRegistry;
+import io.testfly.context.TestFlyContext;
 
-PluginRegistry.register(new SlackNotificationPlugin(), SeleniumBootContext.getConfig());
+PluginRegistry.register(new SlackNotificationPlugin(), TestFlyContext.getConfig());
 ```
 
 ---
@@ -90,10 +90,10 @@ public String minFrameworkVersion() {
 If the running framework is older, the plugin is **skipped with a warning** — it will not fail the build. You can also assert from inside `onLoad`:
 
 ```java
-import com.seleniumboot.extension.FrameworkVersion;
+import io.testfly.extension.FrameworkVersion;
 
 @Override
-public void onLoad(SeleniumBootConfig config) {
+public void onLoad(TestFlyConfig config) {
     FrameworkVersion.requireAtLeast("0.7.0");  // throws IncompatiblePluginException if too old
 }
 ```
@@ -126,7 +126,7 @@ Suite ends
 | Use case | Approach |
 |---|---|
 | Suite-level setup/teardown | `onLoad` / `onUnload` |
-| Reading framework config | `onLoad(SeleniumBootConfig config)` |
+| Reading framework config | `onLoad(TestFlyConfig config)` |
 | Initialising external clients | `onLoad` |
 | Flushing metrics / closing connections | `onUnload` |
 | Per-test events | Use [`ExecutionHook`](/docs/extensibility/hooks) instead |

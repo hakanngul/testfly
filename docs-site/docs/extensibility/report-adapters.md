@@ -14,7 +14,7 @@ sidebar_position: 4
 ## Create a report adapter
 
 ```java
-import com.seleniumboot.reporting.ReportAdapter;
+import io.testfly.reporting.ReportAdapter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
@@ -52,7 +52,7 @@ public class SlackReportAdapter implements ReportAdapter {
 ## Register via Java SPI (auto-discovery)
 
 ```
-src/main/resources/META-INF/services/com.seleniumboot.reporting.ReportAdapter
+src/main/resources/META-INF/services/io.testfly.reporting.ReportAdapter
 ```
 
 Contents:
@@ -66,7 +66,7 @@ com.example.reporting.SlackReportAdapter
 ## Register programmatically
 
 ```java
-import com.seleniumboot.reporting.ReportAdapterRegistry;
+import io.testfly.reporting.ReportAdapterRegistry;
 
 ReportAdapterRegistry.register(new SlackReportAdapter());
 ```
@@ -75,7 +75,7 @@ ReportAdapterRegistry.register(new SlackReportAdapter());
 
 ## Metrics JSON structure
 
-The `metricsJson` file (`target/selenium-boot-metrics.json`) passed to `generate()` contains:
+The `metricsJson` file (`target/testfly-metrics.json`) passed to `generate()` contains:
 
 ```json
 {
@@ -120,7 +120,7 @@ Each adapter runs independently — a failure in one is logged but does not prev
 
 ## Allure integration
 
-Run Allure alongside Selenium Boot by adding the Allure TestNG dependency. Both register listeners independently via SPI:
+Run Allure alongside TestFly by adding the Allure TestNG dependency. Both register listeners independently via SPI:
 
 ```xml title="pom.xml"
 <dependency>
@@ -130,4 +130,4 @@ Run Allure alongside Selenium Boot by adding the Allure TestNG dependency. Both 
 </dependency>
 ```
 
-No `ReportAdapter` needed — Allure hooks directly into TestNG. You get both the Selenium Boot HTML report and a full Allure report from a single run.
+No `ReportAdapter` needed — Allure hooks directly into TestNG. You get both the TestFly HTML report and a full Allure report from a single run.

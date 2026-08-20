@@ -1,17 +1,17 @@
-# Selenium Boot — Agent Guide
+# TestFly — Agent Guide
 
-This file is intended for AI coding agents working in the `selenium-boot` repository.
+This file is intended for AI coding agents working in the `testfly` repository.
 It summarizes the project's architecture, build/test workflows, code conventions, and extension points so you can be productive without guessing.
 
 ---
 
 ## Project Overview
 
-**Selenium Boot** is an opinionated, zero-boilerplate Java test-automation framework built on top of Selenium WebDriver.
+**TestFly** is an opinionated, zero-boilerplate Java test-automation framework built on top of Selenium WebDriver.
 It is published to Maven Central as a single JAR that users add as a dependency.
 
-- **Group / Artifact:** `io.github.seleniumboot:selenium-boot`
-- **Current version:** `3.3.0`
+- **Group / Artifact:** `io.testfly:testfly`
+- **Current version:** `1.0.0`
 - **Java baseline:** 17 (compiled with `--release 17`)
 - **Build tool:** Maven 3.8+
 - **Primary test framework:** TestNG 7.9.0
@@ -64,9 +64,9 @@ Docs site:
 ## Repository Layout
 
 ```
-selenium-boot/
+testfly/
 ├── pom.xml                           # Maven build configuration
-├── selenium-boot.yml                 # Framework config for local test runs
+├── testfly.yml                 # Framework config for local test runs
 ├── README.md                         # User-facing landing page
 ├── CLAUDE.md                         # Maintainer cheat sheet (read it!)
 ├── CONTRIBUTING.md                   # PR checklist and philosophy
@@ -79,17 +79,17 @@ selenium-boot/
 │   ├── docusaurus.config.js
 │   ├── docs/
 │   └── src/
-├── src/main/java/com/seleniumboot/   # Framework source
-└── src/test/java/com/seleniumboot/unit/# Framework unit tests
+├── src/main/java/com/testfly/   # Framework source
+└── src/test/java/com/testfly/unit/# Framework unit tests
 ```
 
-### Main source packages (`src/main/java/com/seleniumboot/`)
+### Main source packages (`src/main/java/com/testfly/`)
 
 | Package | Responsibility |
 |---------|----------------|
 | `test/` | User-facing base classes: `BaseTest`, `BaseApiTest`, `BasePage`, `SmartLocator` |
 | `driver/` | `DriverManager`, driver providers (Chrome, Firefox, Remote, BrowserStack, Sauce Labs), registries |
-| `config/` | `ConfigurationLoader`, `SeleniumBootConfig`, defaults and validation |
+| `config/` | `ConfigurationLoader`, `TestFlyConfig`, defaults and validation |
 | `lifecycle/` | `FrameworkBootstrap` — wires the framework at suite start |
 | `listeners/` | TestNG listeners for suite/test execution and `@Retryable` handling |
 | `hooks/` | `ExecutionHook` + `HookRegistry` lifecycle callbacks |
@@ -103,8 +103,8 @@ selenium-boot/
 | `reporting/` | HTML report generator, JUnit XML, `ScreenshotManager`, report adapters (Allure, Slack, Teams, etc.) |
 | `metrics/` | `ExecutionMetrics`, `TestTiming` — suite timing and outcomes |
 | `ci/` | CI environment detection and build threshold enforcement |
-| `extension/` | SPI plugin system: `SeleniumBootPlugin`, `PluginRegistry` |
-| `junit5/` | Optional JUnit 5 bridge: `BaseJUnit5Test`, `EnableSeleniumBoot`, `SeleniumBootExtension` |
+| `extension/` | SPI plugin system: `TestFlyPlugin`, `PluginRegistry` |
+| `junit5/` | Optional JUnit 5 bridge: `BaseJUnit5Test`, `EnableTestFly`, `TestFlyExtension` |
 | `cucumber/` | Optional Cucumber bridge: `BaseCucumberTest`, `BaseCucumberSteps`, hooks |
 | `email/` | Mailbox clients (Mailhog, Mailtrap, Outlook Graph, IMAP) |
 | `db/` | `DbClient` and database assertions |
@@ -119,12 +119,12 @@ selenium-boot/
 | `recording/` | Test session screen recordings |
 | `tracing/` | Execution tracing |
 | `clock/` | Browser clock mocking (`TestClock`) |
-| `quarantine/` | `selenium-quarantine.yml` loader |
+| `quarantine/` | `testfly-quarantine.yml` loader |
 | `flakiness/` | Flakiness history and scoring |
-| `internal/` | Framework-only context (`SeleniumBootContext`) |
+| `internal/` | Framework-only context (`TestFlyContext`) |
 | `exceptions/` | Framework-specific runtime exceptions |
 
-### Tests (`src/test/java/com/seleniumboot/unit/`)
+### Tests (`src/test/java/com/testfly/unit/`)
 
 - Pure unit tests using **TestNG + Mockito**
 - No real browser is required to run the framework test suite
@@ -155,7 +155,7 @@ mvn test -Dtest=ConfigurationLoaderTest
 # Run a single test method
 mvn test -Dtest=ConfigurationLoaderTest#testMethodName
 
-# Run with an environment profile (uses selenium-boot-{profile}.yml)
+# Run with an environment profile (uses testfly-{profile}.yml)
 mvn test -Denv=staging
 
 # Skip GPG signing during local install
@@ -175,7 +175,7 @@ npm run build     # production build
 
 ## Configuration
 
-Consumer projects configure the framework via a **required** YAML file at the project root: `selenium-boot.yml`.
+Consumer projects configure the framework via a **required** YAML file at the project root: `testfly.yml`.
 
 The minimum required config:
 
@@ -192,7 +192,7 @@ timeouts:
   pageLoad: 30
 ```
 
-Key config blocks (all in `SeleniumBootConfig`):
+Key config blocks (all in `TestFlyConfig`):
 
 - `execution`: `mode` (`local`/`remote`/`browserstack`/`saucelabs`), `baseUrl`, `parallel`, `threadCount`, `maxActiveSessions`, `gridUrl`, cloud credentials
 - `browser`: `name`, `headless`, `arguments`, `capabilities`, `lifecycle` (`per-test`/`per-suite`), `downloadDir`, `captureConsoleErrors`, `failOnConsoleErrors`, `matrix`, `device`
@@ -210,7 +210,7 @@ Key config blocks (all in `SeleniumBootConfig`):
 - `ai`: failure-analysis model/key settings
 - `flakiness`: history runs and risk thresholds
 
-Profiles are activated with `-Denv=<profile>` and load `selenium-boot-<profile>.yml`.
+Profiles are activated with `-Denv=<profile>` and load `testfly-<profile>.yml`.
 
 ---
 
@@ -220,7 +220,7 @@ Profiles are activated with `-Denv=<profile>` and load `selenium-boot-<profile>.
 - Use explicit, descriptive names; avoid clever abbreviations.
 - Prefer JDK builtins over new dependencies.
 - Keep public API surfaces small; every public method is a long-term commitment.
-- Mark stable public types/methods with `@SeleniumBootApi(since = "x.y.z")`.
+- Mark stable public types/methods with `@TestFlyApi(since = "x.y.z")`.
 - Internal implementation details belong in `*.internal.*` packages or lack the annotation.
 - Utility classes should have a `private` constructor.
 - Avoid `Thread.sleep()`; route waits through `WaitEngine`.
@@ -236,14 +236,14 @@ Profiles are activated with `-Denv=<profile>` and load `selenium-boot-<profile>.
 mvn test
 ```
 
-- Located in `src/test/java/com/seleniumboot/unit/`
+- Located in `src/test/java/com/testfly/unit/`
 - Run with TestNG via `maven-surefire-plugin` (configured for TestNG in `pom.xml`)
 - Mockito is used to mock Selenium/browser interactions
 - No real browser is opened
 
 ### Consumer integration tests
 
-A separate sample/consumer project exists at `github.com/seleniumboot/selenium-boot-test`.
+A separate sample/consumer project exists at `github.com/testfly/testfly-test`.
 To test framework changes end-to-end:
 
 ```bash
@@ -256,10 +256,10 @@ mvn clean install -DskipTests
 
 ### CI
 
-GitHub Actions (`.github/workflows/selenium-boot.yml`):
+GitHub Actions (`.github/workflows/testfly.yml`):
 
 1. `unit-tests` job — runs `mvn test`
-2. `integration-tests` job — installs the framework, checks out `seleniumboot/selenium-boot-test`, pins it to the current version, and runs API demo tests
+2. `integration-tests` job — installs the framework, checks out `testfly/testfly-test`, pins it to the current version, and runs API demo tests
 
 Jenkins (`ci/Jenkinsfile`):
 
@@ -270,8 +270,8 @@ Jenkins (`ci/Jenkinsfile`):
 
 ## Public API Stability Contract
 
-- Types and methods annotated with `@SeleniumBootApi` are the stable public contract.
-- Do not rename, remove, or change signatures of `@SeleniumBootApi` elements within the same major version.
+- Types and methods annotated with `@TestFlyApi` are the stable public contract.
+- Do not rename, remove, or change signatures of `@TestFlyApi` elements within the same major version.
 - When adding a method to a stable interface, provide a `default` implementation.
 - Deprecate for at least one minor version before removing; remove only in the next major version.
 - Internal classes (no annotation or in `*.internal.*`) may change freely.
@@ -279,7 +279,7 @@ Jenkins (`ci/Jenkinsfile`):
 Important stable entry points:
 
 - `BaseTest`, `BasePage`, `BaseApiTest`
-- `BaseJUnit5Test` + `@EnableSeleniumBoot`
+- `BaseJUnit5Test` + `@EnableTestFly`
 - `BaseCucumberTest`, `BaseCucumberSteps`
 - `WaitEngine`
 - `ApiClient`, `ApiResponse`
@@ -307,16 +307,16 @@ When changing the framework version, update **all** occurrences:
 - `docs-site/docs/changelog.md`
 - `docs-site/src/pages/index.js`
 
-After release, also update `LATEST_VERSION` in the separate `seleniumboot/website` repo.
+After release, also update `LATEST_VERSION` in the separate `testfly/website` repo.
 
 ---
 
 ## Security Considerations
 
-- Selenium Boot is a test framework; it runs inside your build and drives browsers you control.
+- TestFly is a test framework; it runs inside your build and drives browsers you control.
 - **Never commit secrets** (API keys, cloud credentials, OAuth client secrets, DB passwords) to this repo.
-- Sensitive config values should be injected via environment variables and referenced with `${VAR}` placeholders in `selenium-boot.yml`.
-- Report vulnerabilities privately to `security@seleniumboot.com` per `SECURITY.md`; do not open public issues.
+- Sensitive config values should be injected via environment variables and referenced with `${VAR}` placeholders in `testfly.yml`.
+- Report vulnerabilities privately to `security@testfly.github.io/testfly` per `SECURITY.md`; do not open public issues.
 - Optional dependencies (Cucumber, JUnit 5, JSON Schema validator, IMAP, POI) are marked `<optional>true</optional>` so they are not pulled transitively into consumer projects.
 - If you add a feature that reads external input (config files, test data, email bodies, network stubs), validate and sanitize it defensively.
 
@@ -328,10 +328,10 @@ The framework supports controlled extension via Java SPI and programmatic regist
 
 | Extension | Registration |
 |-----------|--------------|
-| Custom driver provider | `META-INF/services/com.seleniumboot.driver.NamedDriverProvider` or `DriverProviderRegistry.register(...)` |
-| Custom report adapter | `META-INF/services/com.seleniumboot.reporting.ReportAdapter` or `ReportAdapterRegistry.register(...)` |
-| Lifecycle hook | `META-INF/services/com.seleniumboot.hooks.ExecutionHook` or `HookRegistry.register(...)` |
-| Full plugin | Implement `SeleniumBootPlugin` and register via SPI or `PluginRegistry` |
+| Custom driver provider | `META-INF/services/io.testfly.driver.NamedDriverProvider` or `DriverProviderRegistry.register(...)` |
+| Custom report adapter | `META-INF/services/io.testfly.reporting.ReportAdapter` or `ReportAdapterRegistry.register(...)` |
+| Lifecycle hook | `META-INF/services/io.testfly.hooks.ExecutionHook` or `HookRegistry.register(...)` |
+| Full plugin | Implement `TestFlyPlugin` and register via SPI or `PluginRegistry` |
 
 Plugins can declare a `minFrameworkVersion()` to fail fast on incompatibility.
 

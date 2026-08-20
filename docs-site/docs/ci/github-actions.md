@@ -7,7 +7,7 @@ sidebar_position: 1
 
 # GitHub Actions
 
-Run your Selenium Boot tests on every push and pull request. The workflow below installs Chrome, runs the suite, and uploads the HTML report as a downloadable artifact.
+Run your TestFly tests on every push and pull request. The workflow below installs Chrome, runs the suite, and uploads the HTML report as a downloadable artifact.
 
 ---
 
@@ -45,17 +45,17 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: selenium-boot-report
-          path: target/selenium-boot-report.html
+          name: testfly-report
+          path: target/testfly-report.html
 ```
 
 ---
 
 ## Headless Chrome
 
-Chrome on CI runners must run headless. Configure this in `selenium-boot.yml`:
+Chrome on CI runners must run headless. Configure this in `testfly.yml`:
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 browser:
   type: chrome
   headless: true
@@ -125,7 +125,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: report-${{ matrix.browser }}
-          path: target/selenium-boot-report.html
+          path: target/testfly-report.html
 ```
 
 ---
@@ -143,4 +143,4 @@ The `cache: maven` option in `setup-java` caches `~/.m2/repository` automaticall
         run: mvn test -B -Dparallel=methods -DthreadCount=4
 ```
 
-Or define parallel settings in `selenium-boot.yml` and commit it — the CI runner picks them up automatically.
+Or define parallel settings in `testfly.yml` and commit it — the CI runner picks them up automatically.

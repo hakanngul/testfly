@@ -1,12 +1,12 @@
-# Selenium Boot – Roadmap v1.0
+# TestFly – Roadmap v1.0
 
-This document outlines the planned evolution of Selenium Boot from MVP to a stable, extensible automation framework.
+This document outlines the planned evolution of TestFly from MVP to a stable, extensible automation framework.
 
 The roadmap is intentionally opinionated and incremental. Each phase focuses on delivering production value before expanding scope.
 
 > **Contributors, start here.** Phases 0–5 below are complete (the framework is past v1.0). The list
 > immediately below is where active work and **open contribution opportunities** live today. The
-> [issue tracker](https://github.com/seleniumboot/selenium-boot/issues) is the source of truth for what's
+> [issue tracker](https://github.com/testfly/testfly/issues) is the source of truth for what's
 > actionable right now — this document is the higher-level picture.
 
 ---
@@ -21,7 +21,7 @@ Items tagged **`good first issue`** or **`help wanted`** are open for contributi
 Most users find a framework by searching, not by browsing GitHub.
 
 - **Per-page SEO descriptions** across all docs pages — *in progress*.
-- **"Why" pages** — Why Selenium Boot? · Why not plain Selenium? · Why not Playwright? · Why accessibility-first locators? · Why WaitEngine? `good first issue`
+- **"Why" pages** — Why TestFly? · Why not plain Selenium? · Why not Playwright? · Why accessibility-first locators? · Why WaitEngine? `good first issue`
 - **Recipes section** — task-titled, search-matched guides: upload a file, download a PDF, iframes, Shadow DOM, tables, infinite scroll, OAuth/SSO, alerts, drag & drop, REST + UI. `good first issue`
 - **Migration guides** — from Selenium + TestNG, from WebDriverManager, from Selenide, from Serenity; plus a "coming from Playwright" bridge (familiar vs. different, **not** a replacement claim). `help wanted`
 - **Homepage before/after** — a visual `wait.until(...)` → `click("#login")` comparison component. `enhancement`
@@ -31,15 +31,15 @@ Most users find a framework by searching, not by browsing GitHub.
 
 - More built-in `WaitEngine` conditions requested by users. `help wanted`
 - Additional first-class browser providers (Edge, Safari) via the existing SPI. `help wanted`
-- **seleniumboot-mcp** — keep MCP codegen output framework-native and accessibility-first as the API evolves. (See the [MCP repo](https://github.com/seleniumboot/selenium-mcp).)
+- **testfly-mcp** — keep MCP codegen output framework-native and accessibility-first as the API evolves. (See the [MCP repo](https://github.com/testfly/testfly-mcp).)
 
 ### Ongoing quality
 
 - Grow unit-test coverage for untested code paths. `good first issue`
-- Keep the consumer sample project (`selenium-boot-test`) in step with new features.
+- Keep the consumer sample project (`testfly-test`) in step with new features.
 
 > Don't see what you want to work on? Open a
-> [Discussion](https://github.com/seleniumboot/selenium-boot/discussions) — ideas that fit the
+> [Discussion](https://github.com/testfly/testfly/discussions) — ideas that fit the
 > philosophy are welcome, and we'll turn agreed ones into issues.
 
 ---
@@ -112,11 +112,11 @@ Most users find a framework by searching, not by browsing GitHub.
 **Goal:** Allow controlled customization without breaking conventions
 
 ### Features
-- ✅ Plugin-style extension points (`SeleniumBootPlugin` + `PluginRegistry`)
+- ✅ Plugin-style extension points (`TestFlyPlugin` + `PluginRegistry`)
 - ✅ Custom driver providers (`NamedDriverProvider` + `DriverProviderRegistry`)
 - ✅ Custom reporting adapters (`ReportAdapter` + `ReportAdapterRegistry`)
 - ✅ Hook system for execution lifecycle events (`ExecutionHook` + `HookRegistry`)
-- ✅ Framework-safe overrides for defaults (`SeleniumBootDefaults`)
+- ✅ Framework-safe overrides for defaults (`TestFlyDefaults`)
 
 ---
 
@@ -128,24 +128,24 @@ Most users find a framework by searching, not by browsing GitHub.
 ### Features
 - ✅ CI-friendly execution modes (`CiEnvironmentDetector` — GitHub Actions, Jenkins, CircleCI, GitLab CI, Travis, TeamCity, Bitbucket)
 - ✅ Parallel execution tuning for CI environments (thread count auto-derived from CPU cores)
-- ✅ Machine-readable execution outputs (`JUnitXmlReporter` → `target/surefire-reports/TEST-SeleniumBoot.xml`)
+- ✅ Machine-readable execution outputs (`JUnitXmlReporter` → `target/surefire-reports/TEST-TestFly.xml`)
 - ✅ Build failure strategies and thresholds (`BuildThresholdEnforcer` — pass rate gate, flaky test gate)
 - ✅ Docker-friendly execution support (`--no-sandbox`, `--disable-dev-shm-usage` auto-applied in containers)
-- ✅ Sample CI templates (`.github/workflows/selenium-boot.yml`, `ci/Jenkinsfile`)
+- ✅ Sample CI templates (`.github/workflows/testfly.yml`, `ci/Jenkinsfile`)
 
 ---
 
 ## Phase 5 – Ecosystem & Community (v1.0)
 
 **Status:** Complete
-**Goal:** Establish Selenium Boot as a stable ecosystem
+**Goal:** Establish TestFly as a stable ecosystem
 
 ### Features
-- ✅ Official documentation website — live at https://seleniumboot.github.io/selenium-boot/
-- ~~Sample reference projects~~ — replaced by the consumer test project at https://github.com/seleniumboot/selenium-boot-test
+- ✅ Official documentation website — live at https://testfly.github.io/testfly/
+- ~~Sample reference projects~~ — replaced by the consumer test project at https://github.com/testfly/testfly-test
 - ✅ Community contribution guidelines — see CONTRIBUTING.md
 - ✅ Versioned plugin ecosystem — `FrameworkVersion`, `minFrameworkVersion()`, `IncompatiblePluginException`
-- ✅ Backward compatibility guarantees — `@SeleniumBootApi` annotation, policy in CONTRIBUTING.md
+- ✅ Backward compatibility guarantees — `@TestFlyApi` annotation, policy in CONTRIBUTING.md
 
 ---
 

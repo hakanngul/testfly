@@ -7,10 +7,10 @@ sidebar_position: 12
 
 # Cloud Execution
 
-Selenium Boot supports running your test suite on **BrowserStack** and **Sauce Labs** with zero test-code changes. Switch from local Chrome to a cloud browser farm by changing one line in `selenium-boot.yml`.
+TestFly supports running your test suite on **BrowserStack** and **Sauce Labs** with zero test-code changes. Switch from local Chrome to a cloud browser farm by changing one line in `testfly.yml`.
 
-:::caution Requires Selenium Boot 3.2.1+
-Cloud execution (`execution.mode: browserstack` or `saucelabs`) requires **Selenium Boot 3.2.1 or later**. It does not work in any earlier release — config loading rejects any `execution.mode` other than `local` or `remote` at startup — regardless of what the examples on this page show.
+:::caution Requires TestFly 3.2.1+
+Cloud execution (`execution.mode: browserstack` or `saucelabs`) requires **TestFly 3.2.1 or later**. It does not work in any earlier release — config loading rejects any `execution.mode` other than `local` or `remote` at startup — regardless of what the examples on this page show.
 :::
 
 ---
@@ -37,7 +37,7 @@ All four execution modes share the same driver lifecycle — tests use `getDrive
 
 ### Config
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 execution:
   mode: browserstack
   browserstack:
@@ -49,14 +49,14 @@ execution:
     browserVersion: latest
 
 browser:
-  name: chrome   # required by every selenium-boot.yml, distinct from browserstack.browser above
+  name: chrome   # required by every testfly.yml, distinct from browserstack.browser above
 
 timeouts:
   explicit: 10
   pageLoad: 30
 ```
 
-`browser` and `timeouts` are required top-level blocks for every `selenium-boot.yml` — see the [Configuration Reference](/docs/configuration).
+`browser` and `timeouts` are required top-level blocks for every `testfly.yml` — see the [Configuration Reference](/docs/configuration).
 
 Set environment variables before running:
 
@@ -149,7 +149,7 @@ After each test, the BrowserStack session URL is captured automatically. A **☁
 
 ### Config
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 execution:
   mode: saucelabs
   saucelabs:
@@ -211,7 +211,7 @@ Same as BrowserStack — a **☁ View Session** link appears in each test's deta
 
 ## Parallel execution on cloud
 
-Parallel config works the same as local — set it in `selenium-boot.yml` and the cloud provider scales accordingly:
+Parallel config works the same as local — set it in `testfly.yml` and the cloud provider scales accordingly:
 
 ```yaml
 execution:
@@ -249,10 +249,10 @@ Use Maven profiles or environment variables to switch execution targets without 
 mvn test
 
 # BrowserStack
-BS_USER=user BS_KEY=key mvn test -Dselenium.boot.config=config/browserstack.yml
+BS_USER=user BS_KEY=key mvn test -Dtestfly.config=config/browserstack.yml
 
 # Sauce Labs
-SAUCE_USER=user SAUCE_KEY=key mvn test -Dselenium.boot.config=config/saucelabs.yml
+SAUCE_USER=user SAUCE_KEY=key mvn test -Dtestfly.config=config/saucelabs.yml
 ```
 
 Keep separate YAML files per environment — each imports shared settings and only overrides `execution.mode` and cloud credentials.
@@ -261,7 +261,7 @@ Keep separate YAML files per environment — each imports shared settings and on
 
 ## Full config reference
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 execution:
   mode: browserstack   # local | remote | browserstack | saucelabs
 

@@ -1,6 +1,6 @@
-# Contributing to Selenium Boot
+# Contributing to TestFly
 
-Thank you for your interest in contributing! Selenium Boot is an opinionated framework — contributions that align with its core philosophy are warmly welcomed.
+Thank you for your interest in contributing! TestFly is an opinionated framework — contributions that align with its core philosophy are warmly welcomed.
 
 ---
 
@@ -10,7 +10,7 @@ Before contributing, please understand the guiding principles:
 
 1. **Zero boilerplate** — if a user needs more than 1 line to enable something, it should be a default
 2. **Convention over configuration** — smart defaults, YAML opt-in for advanced behaviour
-3. **Single dependency** — adding `selenium-boot` should be all a user needs
+3. **Single dependency** — adding `testfly` should be all a user needs
 4. **Test code stays clean** — internals handle lifecycle; test methods contain only intent
 
 Features that significantly increase complexity without clear user value may be declined. This is intentional — the framework's simplicity is its main feature.
@@ -38,8 +38,8 @@ Features that significantly increase complexity without clear user value may be 
 ### Clone and build
 
 ```bash
-git clone https://github.com/seleniumboot/selenium-boot.git
-cd selenium-boot
+git clone https://github.com/testfly/testfly.git
+cd testfly
 mvn clean verify
 ```
 
@@ -48,14 +48,14 @@ All unit tests must pass before submitting a PR.
 ### Test against the consumer project
 
 A working consumer project is available at:
-**https://github.com/seleniumboot/selenium-boot-test**
+**https://github.com/testfly/testfly-test**
 
 Clone it alongside this repo and update its `pom.xml` to use your local snapshot:
 
 ```xml
 <dependency>
-    <groupId>io.github.seleniumboot</groupId>
-    <artifactId>selenium-boot</artifactId>
+    <groupId>io.testfly</groupId>
+    <artifactId>testfly</artifactId>
     <version>YOUR-SNAPSHOT-VERSION</version>
 </dependency>
 ```
@@ -96,10 +96,10 @@ And run the consumer project tests to verify end-to-end behaviour.
 
 ## Reporting bugs
 
-Open an Issue at: https://github.com/seleniumboot/selenium-boot/issues
+Open an Issue at: https://github.com/testfly/testfly/issues
 
 Include:
-- Selenium Boot version
+- TestFly version
 - Java version
 - Browser + driver version
 - Minimal reproduction steps
@@ -110,7 +110,7 @@ Include:
 ## Suggesting features
 
 Open a GitHub Discussion before writing any code:
-https://github.com/seleniumboot/selenium-boot/discussions
+https://github.com/testfly/testfly/discussions
 
 Describe:
 - The problem you're solving (not just the solution)
@@ -121,10 +121,10 @@ Describe:
 
 ## Backward compatibility policy
 
-Selenium Boot follows these rules to protect users from unexpected breakage:
+TestFly follows these rules to protect users from unexpected breakage:
 
-### Stable API (`@SeleniumBootApi`)
-Classes and interfaces annotated with `@SeleniumBootApi` are the public contract:
+### Stable API (`@TestFlyApi`)
+Classes and interfaces annotated with `@TestFlyApi` are the public contract:
 
 | Rule | Detail |
 |---|---|
@@ -135,8 +135,8 @@ Classes and interfaces annotated with `@SeleniumBootApi` are the public contract
 | Config keys are frozen | `browser.name`, `retry.maxAttempts` etc. never change |
 | Breaking changes — major versions only | `0.x → 1.0` or `1.x → 2.0` may break; minor/patch never do |
 
-### Internal classes (no `@SeleniumBootApi`)
-Classes without `@SeleniumBootApi` are implementation details and may change at any time. Do not depend on them in external code.
+### Internal classes (no `@TestFlyApi`)
+Classes without `@TestFlyApi` are implementation details and may change at any time. Do not depend on them in external code.
 
 ### Deprecation process
 Before removing a stable API:
@@ -149,7 +149,7 @@ Always provide a `default` implementation:
 
 ```java
 // ✅ safe — existing implementations are unaffected
-@SeleniumBootApi(since = "0.8.0")
+@TestFlyApi(since = "0.8.0")
 default void onTestRetry(String testId, int attempt) {}
 
 // ❌ breaking — forces all implementations to add the method

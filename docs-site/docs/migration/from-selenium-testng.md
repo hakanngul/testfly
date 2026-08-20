@@ -1,5 +1,5 @@
 ---
-description: "Migrate a Selenium + TestNG framework to Selenium Boot: delete your driver factory, wait utils, retry analyzer, and reporting glue, and see the boilerplate disappear side by side."
+description: "Migrate a Selenium + TestNG framework to TestFly: delete your driver factory, wait utils, retry analyzer, and reporting glue, and see the boilerplate disappear side by side."
 id: from-selenium-testng
 title: Migrate from Selenium + TestNG
 sidebar_label: From Selenium + TestNG
@@ -8,12 +8,12 @@ sidebar_position: 1
 
 # Migrate from Selenium + TestNG
 
-If you already run a hand-rolled **Selenium + TestNG** framework, you have written — and now maintain — a driver factory, a waits utility, a retry analyzer, screenshot-on-failure glue, and a reporting integration. Selenium Boot ships all of that as one dependency.
+If you already run a hand-rolled **Selenium + TestNG** framework, you have written — and now maintain — a driver factory, a waits utility, a retry analyzer, screenshot-on-failure glue, and a reporting integration. TestFly ships all of that as one dependency.
 
-This guide is a side-by-side **"your current setup → Selenium Boot equivalent."** The short version: most of the plumbing you maintain today simply gets deleted.
+This guide is a side-by-side **"your current setup → TestFly equivalent."** The short version: most of the plumbing you maintain today simply gets deleted.
 
 :::info Nothing to relearn
-Selenium Boot is still Selenium. `WebDriver`, `By`, `WebElement`, and your existing page-object patterns all still work — you're removing boilerplate, not switching tools.
+TestFly is still Selenium. `WebDriver`, `By`, `WebElement`, and your existing page-object patterns all still work — you're removing boilerplate, not switching tools.
 :::
 
 ---
@@ -24,15 +24,15 @@ Remove your Selenium, WebDriverManager, and reporting dependencies and add one:
 
 ```xml title="pom.xml"
 <dependency>
-    <groupId>io.github.seleniumboot</groupId>
-    <artifactId>selenium-boot</artifactId>
-    <version>3.3.0</version>
+    <groupId>io.testfly</groupId>
+    <artifactId>testfly</artifactId>
+    <version>1.0.0</version>
 </dependency>
 ```
 
-Selenium Boot brings Selenium (and TestNG) transitively. You no longer declare `selenium-java`, `webdrivermanager`, or a reporting library yourself.
+TestFly brings Selenium (and TestNG) transitively. You no longer declare `selenium-java`, `webdrivermanager`, or a reporting library yourself.
 
-Then create a small [`selenium-boot.yml`](/docs/configuration) — see [config mapping](#config-mapping) below.
+Then create a small [`testfly.yml`](/docs/configuration) — see [config mapping](#config-mapping) below.
 
 ---
 
@@ -70,7 +70,7 @@ public class BaseTest {
 **After** — extend `BaseTest`. Driver creation, per-thread isolation, and teardown are handled for you:
 
 ```java title="LoginTest.java"
-import com.seleniumboot.test.BaseTest;
+import io.testfly.test.BaseTest;
 import org.testng.annotations.Test;
 
 public class LoginTest extends BaseTest {
@@ -83,12 +83,12 @@ public class LoginTest extends BaseTest {
 }
 ```
 
-- **No `WebDriverManager`.** Modern Selenium (4.6+) bundles **Selenium Manager**, which downloads the right driver binary automatically. Selenium Boot uses it — delete the `.setup()` calls and the dependency. See [Migrate from WebDriverManager](/docs/migration/from-webdrivermanager) for the details.
+- **No `WebDriverManager`.** Modern Selenium (4.6+) bundles **Selenium Manager**, which downloads the right driver binary automatically. TestFly uses it — delete the `.setup()` calls and the dependency. See [Migrate from WebDriverManager](/docs/migration/from-webdrivermanager) for the details.
 - **No `ThreadLocal`.** `DriverManager` isolates the driver per thread, so [parallel runs](/docs/guides/parallel) are safe out of the box.
 - Need the raw driver? It's still there: `getDriver()`.
 
 :::caution Drop the implicit wait
-Delete `implicitlyWait(...)`. Selenium Boot's locators auto-wait explicitly; mixing implicit and explicit waits is a classic source of flaky, slow tests.
+Delete `implicitlyWait(...)`. TestFly's locators auto-wait explicitly; mixing implicit and explicit waits is a classic source of flaky, slow tests.
 :::
 
 ---
@@ -149,7 +149,7 @@ public class RetryListener implements IAnnotationTransformer {
 
 **After** — one config line turns on retry for the whole suite:
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 retry:
   enabled: true
   maxAttempts: 2   # total attempts including the first run
@@ -181,7 +181,7 @@ public class ScreenshotListener implements ITestListener {
 }
 ```
 
-**After** — nothing. Selenium Boot captures a screenshot on every failure automatically and embeds it in the HTML report. Delete the listener. See [Screenshots](/docs/guides/screenshots).
+**After** — nothing. TestFly captures a screenshot on every failure automatically and embeds it in the HTML report. Delete the listener. See [Screenshots](/docs/guides/screenshots).
 
 ---
 
@@ -189,7 +189,7 @@ public class ScreenshotListener implements ITestListener {
 
 **Before** — wire in ExtentReports/Allure: a listener, a `flush()` in an `@AfterSuite`, and per-test logging calls scattered through your code.
 
-**After** — a self-contained **HTML report** at `target/selenium-boot-report.html` (pass-rate gauge, retries, embedded screenshots, flakiness) and a **JUnit XML** file for CI, both generated automatically after every run. Add named steps with the optional [Step Logging](/docs/guides/step-logging) API if you want richer reports.
+**After** — a self-contained **HTML report** at `target/testfly-report.html` (pass-rate gauge, retries, embedded screenshots, flakiness) and a **JUnit XML** file for CI, both generated automatically after every run. Add named steps with the optional [Step Logging](/docs/guides/step-logging) API if you want richer reports.
 
 See [HTML Report](/docs/reporting/html-report) and [JUnit XML](/docs/reporting/junit-xml).
 
@@ -197,7 +197,7 @@ See [HTML Report](/docs/reporting/html-report) and [JUnit XML](/docs/reporting/j
 
 ## What gets deleted
 
-| Your current setup | Selenium Boot |
+| Your current setup | TestFly |
 |---|---|
 | `DriverFactory` + `ThreadLocal<WebDriver>` | ✅ Built in — extend `BaseTest` |
 | `WebDriverManager.chromedriver().setup()` | ✅ Selenium Manager (automatic) |
@@ -216,7 +216,7 @@ Your page objects and `@Test` methods stay — they just get shorter.
 
 Settings that lived in `testng.xml` attributes and scattered constants move into one file:
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 execution:
   baseUrl: https://your-app.com
   parallel: methods        # was: <suite parallel="methods">
@@ -235,7 +235,7 @@ retry:
   maxAttempts: 2           # was: RetryAnalyzer MAX
 ```
 
-You still keep a minimal `testng.xml` to list your test classes — Selenium Boot registers its own listeners, so you can remove the `<listeners>` block. See the [Configuration Reference](/docs/configuration) for every option.
+You still keep a minimal `testng.xml` to list your test classes — TestFly registers its own listeners, so you can remove the `<listeners>` block. See the [Configuration Reference](/docs/configuration) for every option.
 
 ---
 
@@ -243,11 +243,11 @@ You still keep a minimal `testng.xml` to list your test classes — Selenium Boo
 
 You don't have to convert everything at once:
 
-1. Add the dependency and a `selenium-boot.yml`.
+1. Add the dependency and a `testfly.yml`.
 2. Point **one** test class at `BaseTest`, delete its `@BeforeMethod`/`@AfterMethod`, and run it.
 3. Once green, delete your `DriverFactory`, `WaitUtils`, retry analyzer, and screenshot listener as the last class stops referencing them.
 
-Because Selenium Boot *is* Selenium, a half-migrated suite runs fine.
+Because TestFly *is* Selenium, a half-migrated suite runs fine.
 
 ---
 
@@ -256,4 +256,4 @@ Because Selenium Boot *is* Selenium, a half-migrated suite runs fine.
 - [Getting Started](/docs/getting-started) — the 5-minute version
 - [BaseTest](/docs/guides/base-test) / [BasePage](/docs/guides/base-page) — the base classes you'll extend
 - [Accessibility-First Locators](/docs/guides/semantic-locators) — `getByRole`/`getByLabel`, once the boilerplate is gone
-- [Configuration Reference](/docs/configuration) — the full `selenium-boot.yml`
+- [Configuration Reference](/docs/configuration) — the full `testfly.yml`

@@ -1,5 +1,5 @@
 ---
-description: "Automatic retry for flaky Selenium tests: Selenium Boot re-runs failures with no IRetryAnalyzer wiring, enabled in a single config line."
+description: "Automatic retry for flaky Selenium tests: TestFly re-runs failures with no IRetryAnalyzer wiring, enabled in a single config line."
 id: retry
 title: Selenium Retry
 sidebar_label: Retry
@@ -8,13 +8,13 @@ sidebar_position: 4
 
 # Retry
 
-Selenium Boot retries failed tests automatically. No `IRetryAnalyzer` wiring required.
+TestFly retries failed tests automatically. No `IRetryAnalyzer` wiring required.
 
 ---
 
 ## Global retry
 
-Enable retry for all tests in `selenium-boot.yml`:
+Enable retry for all tests in `testfly.yml`:
 
 ```yaml
 retry:
@@ -31,7 +31,7 @@ retry:
 Use `@Retryable` to override the global setting for a specific test:
 
 ```java
-import com.seleniumboot.listeners.Retryable;
+import io.testfly.listeners.Retryable;
 
 @Test
 @Retryable(maxAttempts = 3)
@@ -69,6 +69,6 @@ Retried tests are marked with a `↻ Nx` badge in the Test Cases table.
 
 ## How it works
 
-`RetryAnnotationTransformer` is registered via Java SPI (`META-INF/services/org.testng.ITestNGListener`). It is discovered automatically when `selenium-boot` is on the classpath — no listener registration needed.
+`RetryAnnotationTransformer` is registered via Java SPI (`META-INF/services/org.testng.ITestNGListener`). It is discovered automatically when `testfly` is on the classpath — no listener registration needed.
 
 At runtime, `RetryListener` checks the global config and `@Retryable` annotation, then returns `true` (retry) or `false` (stop) to TestNG.

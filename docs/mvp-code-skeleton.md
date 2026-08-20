@@ -1,6 +1,6 @@
-# Selenium Boot – MVP Code Skeleton
+# TestFly – MVP Code Skeleton
 
-This document defines the **initial code skeleton** for Selenium Boot.
+This document defines the **initial code skeleton** for TestFly.
 It specifies packages, core classes, and responsibilities **without implementation details**.
 
 The goal is to lock structure before writing logic.
@@ -10,9 +10,9 @@ The goal is to lock structure before writing logic.
 ## Package Structure (Framework)
 
 ```
-com.seleniumboot
+io.testfly
 ├── config
-│   ├── SeleniumBootConfig.java
+│   ├── TestFlyConfig.java
 │   └── ConfigurationLoader.java
 │
 ├── driver
@@ -48,7 +48,7 @@ com.seleniumboot
 │   └── ExecutionException.java
 │
 └── internal
-    └── SeleniumBootContext.java
+    └── TestFlyContext.java
 ```
 
 ---
@@ -56,7 +56,7 @@ com.seleniumboot
 ## Base Classes (User-Facing)
 
 ```
-com.seleniumboot.test
+io.testfly.test
 ├── BaseTest.java
 └── BasePage.java
 ```
@@ -122,7 +122,7 @@ Responsibilities:
 
 ## Core Context Objects
 
-### SeleniumBootContext
+### TestFlyContext
 Responsibilities:
 - Holds immutable execution state
 - Stores configuration reference
@@ -211,4 +211,4 @@ Once this structure is agreed upon:
 ## Summary
 
 This skeleton establishes **clear ownership boundaries** and **non-negotiable structure**.
-Implementation must follow this layout to preserve Selenium Boot’s architectural integrity.
+Implementation must follow this layout to preserve TestFly’s architectural integrity.

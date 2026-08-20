@@ -1,4 +1,4 @@
-# Selenium Boot – Pre-Publish Checklist
+# TestFly – Pre-Publish Checklist
 
 This document tracks everything that must be completed before the v0.1 public release.
 Items are ordered by priority. Blockers must be resolved before any other work ships.

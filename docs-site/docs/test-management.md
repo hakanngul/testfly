@@ -7,7 +7,7 @@ sidebar_position: 16
 
 # TestRail & Xray Integration
 
-Selenium Boot pushes test results to **TestRail** and/or **Xray** automatically — no extra code in your test methods beyond a single annotation.
+TestFly pushes test results to **TestRail** and/or **Xray** automatically — no extra code in your test methods beyond a single annotation.
 
 ---
 
@@ -16,8 +16,8 @@ Selenium Boot pushes test results to **TestRail** and/or **Xray** automatically 
 ### 1 — Annotate your tests
 
 ```java
-import com.seleniumboot.testmanagement.TestRailCase;
-import com.seleniumboot.testmanagement.XrayTest;
+import io.testfly.testmanagement.TestRailCase;
+import io.testfly.testmanagement.XrayTest;
 
 public class LoginTest extends BaseTest {
 
@@ -40,7 +40,7 @@ public class LoginTest extends BaseTest {
 }
 ```
 
-### 2 — Configure in `selenium-boot.yml`
+### 2 — Configure in `testfly.yml`
 
 ```yaml
 testmanagement:
@@ -51,7 +51,7 @@ testmanagement:
     apiKey: YOUR_API_KEY
     projectId: 1
     suiteId: 2
-    runName: "Selenium Boot – CI run"
+    runName: "TestFly – CI run"
 
   xray:
     enabled: true
@@ -73,7 +73,7 @@ TestRail uses HTTP Basic authentication. The `apiKey` is the API key generated i
 
 ### Run management
 
-By default, Selenium Boot creates a new test run at suite start:
+By default, TestFly creates a new test run at suite start:
 
 ```yaml
 testmanagement:
@@ -93,7 +93,7 @@ testmanagement:
 
 ### Status mapping
 
-| Selenium Boot | TestRail |
+| TestFly | TestRail |
 |---|---|
 | `PASSED`  | 1 — Passed |
 | `FAILED`  | 5 — Failed |
@@ -126,7 +126,7 @@ testmanagement:
     projectKey: PROJ
 ```
 
-Selenium Boot obtains a JWT token from `https://xray.cloud.getxpecto.com/api/v2/authenticate` and imports results to the same host. Generate `clientId` / `clientSecret` in Jira → **Xray → API Keys**.
+TestFly obtains a JWT token from `https://xray.cloud.getxpecto.com/api/v2/authenticate` and imports results to the same host. Generate `clientId` / `clientSecret` in Jira → **Xray → API Keys**.
 
 ### Server / Data Center mode
 
@@ -153,7 +153,7 @@ testmanagement:
 
 ### Status mapping
 
-| Selenium Boot | Xray |
+| TestFly | Xray |
 |---|---|
 | `PASSED`  | `PASS` |
 | `FAILED`  | `FAIL` |
@@ -177,7 +177,7 @@ testmanagement:
     apiKey:                     # API key from My Settings → API Keys
     projectId: 0                # TestRail project ID
     suiteId: 0                  # omit for single-suite projects
-    runName: "Selenium Boot Run"
+    runName: "TestFly Run"
     autoCreateRun: true         # false → provide runId below
     runId: 0                    # used when autoCreateRun: false
 
@@ -203,7 +203,7 @@ testmanagement:
 Store credentials as CI secrets and pass them via environment variables:
 
 ```yaml
-# selenium-boot.yml
+# testfly.yml
 testmanagement:
   testrail:
     enabled: true

@@ -1,5 +1,5 @@
 ---
-description: "Selenium Boot HTML report: a self-contained dashboard with pass-rate gauge, retries, screenshots, flakiness radar, and dark mode, no server needed."
+description: "TestFly HTML report: a self-contained dashboard with pass-rate gauge, retries, screenshots, flakiness radar, and dark mode, no server needed."
 id: html-report
 title: Selenium HTML Report
 sidebar_label: HTML Report
@@ -8,7 +8,7 @@ sidebar_position: 1
 
 # HTML Report
 
-Selenium Boot generates a self-contained HTML report at `target/selenium-boot-report.html` after every test run. It requires no server, no extra tools — just open the file in a browser.
+TestFly generates a self-contained HTML report at `target/testfly-report.html` after every test run. It requires no server, no extra tools — just open the file in a browser.
 
 ---
 
@@ -16,7 +16,7 @@ Selenium Boot generates a self-contained HTML report at `target/selenium-boot-re
 
 ```
 target/
-└── selenium-boot-report.html   ← open this
+└── testfly-report.html   ← open this
 ```
 
 ---
@@ -88,7 +88,7 @@ Thumbnails are clickable — they open full-size in a lightbox overlay.
 
 ## Configuration
 
-The report path and name are not currently configurable — the file is always written to `target/selenium-boot-report.html`.
+The report path and name are not currently configurable — the file is always written to `target/testfly-report.html`.
 
 ---
 
@@ -101,8 +101,8 @@ Upload the report as an artifact to preserve it after the CI workspace is cleane
   if: always()
   uses: actions/upload-artifact@v4
   with:
-    name: selenium-boot-report
-    path: target/selenium-boot-report.html
+    name: testfly-report
+    path: target/testfly-report.html
 ```
 
 The `if: always()` ensures the report is uploaded even when tests fail.

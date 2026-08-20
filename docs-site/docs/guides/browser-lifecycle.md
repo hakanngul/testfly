@@ -13,7 +13,7 @@ Control when the WebDriver session is created and closed.
 
 ## Configuration
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 browser:
   lifecycle: per-test   # per-test (default) | per-suite
 ```

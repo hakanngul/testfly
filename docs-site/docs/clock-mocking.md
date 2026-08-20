@@ -161,7 +161,7 @@ The framework calls `TestClock.autoReset()` after every test in all outcome path
 
 ## Config
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 clock:
   injectHeader: false      # send X-Mock-Date header to server with each request
   headerName: X-Mock-Date  # header name (requires browser CDP support)

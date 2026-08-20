@@ -4,14 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github.seleniumboot</groupId>
-    <artifactId>selenium-boot</artifactId>
-    <version>3.3.0</version>
+    <groupId>io.testfly</groupId>
+    <artifactId>testfly</artifactId>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
-    <name>Selenium Boot</name>
-    <description>Opinionated Selenium framework inspired by Spring Boot</description>
-    <url>https://seleniumboot.com</url>
+    <name>TestFly</name>
+    <description>Java Test Automation SDK for scalable web, API, mobile, and AI/MCP-powered test automation</description>
+    <url>https://testfly.github.io/testfly</url>
 
     <licenses>
         <license>
@@ -23,16 +23,16 @@
 
     <developers>
         <developer>
-            <id>seleniumboot</id>
-            <name>Selenium Boot</name>
-            <url>https://github.com/seleniumboot</url>
+            <id>testfly</id>
+            <name>TestFly</name>
+            <url>https://github.com/testfly</url>
         </developer>
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/seleniumboot/selenium-boot.git</connection>
-        <developerConnection>scm:git:ssh://github.com/seleniumboot/selenium-boot.git</developerConnection>
-        <url>https://github.com/seleniumboot/selenium-boot/tree/master</url>
+        <connection>scm:git:git://github.com/testfly/testfly.git</connection>
+        <developerConnection>scm:git:ssh://github.com/testfly/testfly.git</developerConnection>
+        <url>https://github.com/testfly/testfly/tree/master</url>
     </scm>
 
     <properties>
@@ -174,7 +174,7 @@
                     <properties>
                         <property>
                             <name>listener</name>
-                            <value>com.seleniumboot.listeners.RetryAnnotationTransformer</value>
+                            <value>io.testfly.listeners.RetryAnnotationTransformer</value>
                         </property>
                     </properties>
                 </configuration>

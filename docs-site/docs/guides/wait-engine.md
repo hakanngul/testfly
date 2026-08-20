@@ -1,5 +1,5 @@
 ---
-description: "Explicit waits in Selenium without Thread.sleep(): WaitEngine gives fluent, auto-configured waits driven by your selenium-boot.yml timeout."
+description: "Explicit waits in Selenium without Thread.sleep(): WaitEngine gives fluent, auto-configured waits driven by your testfly.yml timeout."
 id: wait-engine
 title: Selenium Waits (WaitEngine)
 sidebar_label: WaitEngine
@@ -8,7 +8,7 @@ sidebar_position: 3
 
 # WaitEngine
 
-`WaitEngine` provides fluent explicit waits. It is pre-configured with the timeout from `selenium-boot.yml` (`timeouts.explicit`) and is available in every `BasePage` via `getWait()`.
+`WaitEngine` provides fluent explicit waits. It is pre-configured with the timeout from `testfly.yml` (`timeouts.explicit`) and is available in every `BasePage` via `getWait()`.
 
 ---
 
@@ -88,7 +88,7 @@ getWait(30).waitForVisible(By.id("slow-element"));  // 30-second timeout
 
 ## Configuration
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 timeouts:
   explicit: 10   # seconds — default for all WaitEngine calls
   pageLoad: 30   # seconds — browser page load timeout

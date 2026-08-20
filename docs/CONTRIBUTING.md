@@ -1,4 +1,4 @@
-# Contributing to Selenium Boot
+# Contributing to TestFly
 
 Thank you for your interest in contributing.
 

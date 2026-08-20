@@ -1,5 +1,5 @@
 ---
-description: "Run Selenium Boot with JUnit 5: opt in via @ExtendWith(SeleniumBootExtension) or BaseJUnit5Test for the same lifecycle, waits, and reporting as TestNG."
+description: "Run TestFly with JUnit 5: opt in via @ExtendWith(TestFlyExtension) or BaseJUnit5Test for the same lifecycle, waits, and reporting as TestNG."
 id: junit5
 title: JUnit 5 Support
 sidebar_position: 10
@@ -7,7 +7,7 @@ sidebar_position: 10
 
 # JUnit 5 Support
 
-Selenium Boot supports both **TestNG** (built-in) and **JUnit 5** (opt-in). The JUnit 5 integration provides the same lifecycle — driver management, HTML report, step timeline, screenshots, AI failure analysis, tracing, and flakiness tracking — with zero configuration beyond adding the dependency.
+TestFly supports both **TestNG** (built-in) and **JUnit 5** (opt-in). The JUnit 5 integration provides the same lifecycle — driver management, HTML report, step timeline, screenshots, AI failure analysis, tracing, and flakiness tracking — with zero configuration beyond adding the dependency.
 
 ---
 
@@ -15,9 +15,9 @@ Selenium Boot supports both **TestNG** (built-in) and **JUnit 5** (opt-in). The 
 
 ```xml title="pom.xml"
 <dependency>
-    <groupId>io.github.seleniumboot</groupId>
-    <artifactId>selenium-boot</artifactId>
-    <version>3.3.0</version>
+    <groupId>io.testfly</groupId>
+    <artifactId>testfly</artifactId>
+    <version>1.0.0</version>
 </dependency>
 
 <dependency>
@@ -63,12 +63,12 @@ class LoginTest extends BaseJUnit5Test {
 
 ---
 
-## Option B — `@EnableSeleniumBoot`
+## Option B — `@EnableTestFly`
 
 Composed annotation for your own base class:
 
 ```java
-@EnableSeleniumBoot
+@EnableTestFly
 abstract class AppTest {
     protected WebDriver getDriver() { return DriverManager.getDriver(); }
 }
@@ -81,7 +81,7 @@ abstract class AppTest {
 No base class needed. Inject `WebDriver` directly into test methods:
 
 ```java
-@ExtendWith(SeleniumBootExtension.class)
+@ExtendWith(TestFlyExtension.class)
 class LoginTest {
 
     @Test
@@ -144,7 +144,7 @@ public class AppConditions extends BaseConditions {
 ```
 
 ```
-src/test/resources/META-INF/services/com.seleniumboot.precondition.BaseConditions
+src/test/resources/META-INF/services/io.testfly.precondition.BaseConditions
 → com.yourcompany.conditions.AppConditions
 ```
 
@@ -176,9 +176,9 @@ Place `@Retryable` on the class to apply to all its test methods:
 class FlakyTest extends BaseJUnit5Test { ... }
 ```
 
-`maxAttempts` overrides the global `retry.maxAttempts` from `selenium-boot.yml`. Omit it to use the config value:
+`maxAttempts` overrides the global `retry.maxAttempts` from `testfly.yml`. Omit it to use the config value:
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 retry:
   enabled: true
   maxAttempts: 1
@@ -206,7 +206,7 @@ ThreadLocal driver isolation makes all three options thread-safe.
 | Feature | Status |
 |---|---|
 | Auto driver provisioning | ✅ |
-| `selenium-boot.yml` config | ✅ |
+| `testfly.yml` config | ✅ |
 | Parallel execution | ✅ |
 | `WaitEngine` | ✅ |
 | `BasePage` | ✅ |

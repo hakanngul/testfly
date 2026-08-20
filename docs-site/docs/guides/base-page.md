@@ -1,5 +1,5 @@
 ---
-description: "BasePage in Selenium Boot: wait-backed click, type, getText, dropdown, iframe, and upload helpers so you never write raw Selenium in page objects."
+description: "BasePage in TestFly: wait-backed click, type, getText, dropdown, iframe, and upload helpers so you never write raw Selenium in page objects."
 id: base-page
 title: BasePage
 sidebar_position: 2
@@ -14,7 +14,7 @@ sidebar_position: 2
 ## Creating a page object
 
 ```java
-import com.seleniumboot.test.BasePage;
+import io.testfly.test.BasePage;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
@@ -85,7 +85,7 @@ if (isDisplayed(By.id("error-banner"))) {
 For advanced waits not covered by the helpers above, use `getWait()`:
 
 ```java
-import com.seleniumboot.wait.WaitEngine;
+import io.testfly.wait.WaitEngine;
 
 public class DashboardPage extends BasePage {
 

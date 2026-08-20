@@ -1,5 +1,5 @@
 ---
-description: "Run Selenium tests on Jenkins: a ready Jenkinsfile pipeline that runs the suite, publishes JUnit results, and archives the Selenium Boot HTML report."
+description: "Run Selenium tests on Jenkins: a ready Jenkinsfile pipeline that runs the suite, publishes JUnit results, and archives the TestFly HTML report."
 id: jenkins
 title: Jenkins
 sidebar_position: 2
@@ -7,7 +7,7 @@ sidebar_position: 2
 
 # Jenkins
 
-Run Selenium Boot tests on Jenkins using a `Jenkinsfile`. The pipeline below checks out the code, runs the tests, publishes JUnit results, and archives the HTML report.
+Run TestFly tests on Jenkins using a `Jenkinsfile`. The pipeline below checks out the code, runs the tests, publishes JUnit results, and archives the HTML report.
 
 ---
 
@@ -36,7 +36,7 @@ pipeline {
             post {
                 always {
                     junit '**/surefire-reports/TEST-*.xml'
-                    archiveArtifacts artifacts: 'target/selenium-boot-report.html',
+                    archiveArtifacts artifacts: 'target/testfly-report.html',
                                      allowEmptyArchive: true
                 }
             }
@@ -50,8 +50,8 @@ pipeline {
                 alwaysLinkToLastBuild: true,
                 keepAll              : true,
                 reportDir            : 'target',
-                reportFiles          : 'selenium-boot-report.html',
-                reportName           : 'Selenium Boot Report'
+                reportFiles          : 'testfly-report.html',
+                reportName           : 'TestFly Report'
             ])
         }
     }
@@ -66,7 +66,7 @@ pipeline {
 
 Add Chrome to the agent and configure headless mode:
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 browser:
   type: chrome
   headless: true
@@ -108,7 +108,7 @@ stage('Test') {
 
 ## Environment variables
 
-Pass configuration values without modifying `selenium-boot.yml`:
+Pass configuration values without modifying `testfly.yml`:
 
 ```groovy
 environment {

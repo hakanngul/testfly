@@ -14,7 +14,7 @@ sidebar_position: 9
 ## Basic usage
 
 ```java
-import com.seleniumboot.test.SmartLocator;
+import io.testfly.test.SmartLocator;
 
 // Try CSS first, fall back to XPath
 WebElement btn = SmartLocator.find(driver,

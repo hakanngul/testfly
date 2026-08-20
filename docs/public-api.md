@@ -1,6 +1,6 @@
-# Selenium Boot – Public API Contract
+# TestFly – Public API Contract
 
-This document defines the **public API surface** of Selenium Boot.
+This document defines the **public API surface** of TestFly.
 Anything not explicitly listed here is considered **internal** and may change without notice.
 
 ---
@@ -41,7 +41,7 @@ Forbidden:
 
 ---
 
-### Configuration (selenium-boot.yml)
+### Configuration (testfly.yml)
 
 - All documented configuration keys are public
 - Undocumented keys are unsupported

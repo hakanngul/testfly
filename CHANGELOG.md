@@ -1,15 +1,26 @@
 # Changelog
 
-All notable changes to **Selenium Boot** are documented in this file.
+All notable changes to **TestFly** are documented in this file.
 
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+### v1.0.0 — 2026-08-20
+
+- **Project rebrand to TestFly** — complete identity migration from Selenium Boot to TestFly:
+  - New Maven coordinates: `io.testfly:testfly:1.0.0`
+  - New Java namespace: `io.testfly`
+  - New configuration file: `testfly.yml`
+  - New public API annotation: `@TestFlyApi`
+  - New report artifacts: `testfly-report.html` and `testfly-metrics.json`
+  - Documentation, CI workflows, and MCP tooling rebranded under the TestFly identity
+  - No breaking functional changes; the same Selenium-based ecosystem continues under the new name.
+
 ### v3.3.0 — 2026-08-15
 
-- **`execution.parallel` now validates against TestNG's own parallel modes, not a hand-written allowlist that had drifted from them** — `tests` and `instances` are legitimate TestNG modes that flow straight through to `XmlSuite.setParallel()` and work exactly like `methods`/`classes` downstream, but Selenium Boot's bootstrap validator rejected them anyway, and did so with a "Parallel execution configuration missing" message — telling users their config was absent when it was present but simply not on the list. Validation now delegates to TestNG's `XmlSuite.ParallelMode` enum directly, so anything TestNG accepts, Selenium Boot accepts, and an unrecognised value's error message names both the rejected value and the full valid set instead of going stale again. (Fixes #35)
+- **`execution.parallel` now validates against TestNG's own parallel modes, not a hand-written allowlist that had drifted from them** — `tests` and `instances` are legitimate TestNG modes that flow straight through to `XmlSuite.setParallel()` and work exactly like `methods`/`classes` downstream, but TestFly's bootstrap validator rejected them anyway, and did so with a "Parallel execution configuration missing" message — telling users their config was absent when it was present but simply not on the list. Validation now delegates to TestNG's `XmlSuite.ParallelMode` enum directly, so anything TestNG accepts, TestFly accepts, and an unrecognised value's error message names both the rejected value and the full valid set instead of going stale again. (Fixes #35)
 
 ### v3.2.0 — 2026-07-18
 
@@ -17,12 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - `waitForAttribute(By, attribute, value)` — waits for an exact attribute match (use the existing `waitForAttributeContains` for a substring match)
   - `waitForUrlMatches(String regex)` — waits for the current URL to match a regular expression (use the existing `waitForUrlContains` for a substring match)
   - `waitForTextMatches(By, String regex)` — waits for an element's visible text to match a regular expression
-  - Purely additive to the `@SeleniumBootApi` surface — no breaking changes. (Closes #12)
+  - Purely additive to the `@TestFlyApi` surface — no breaking changes. (Closes #12)
 
 ### v3.1.1 — 2026-06-26
 
-- **Per-engine report output directory** — the metrics JSON, HTML report, and metrics history now honor the `seleniumboot.reports.dir` system property (the same switch already used for the JUnit XML report), defaulting to `target` as before. This fixes the HTML report being **overwritten** when two test engines run in one build — e.g. a TestNG suite (Surefire) and JUnit 5 tests (Failsafe): point each engine's run at its own directory (`-Dseleniumboot.reports.dir=target/junit5`) and each produces a self-contained report instead of the last one clobbering the first.
-- New `com.seleniumboot.reporting.ReportPaths` helper centralizes report path resolution.
+- **Per-engine report output directory** — the metrics JSON, HTML report, and metrics history now honor the `testfly.reports.dir` system property (the same switch already used for the JUnit XML report), defaulting to `target` as before. This fixes the HTML report being **overwritten** when two test engines run in one build — e.g. a TestNG suite (Surefire) and JUnit 5 tests (Failsafe): point each engine's run at its own directory (`-Dtestfly.reports.dir=target/junit5`) and each produces a self-contained report instead of the last one clobbering the first.
+- New `io.testfly.reporting.ReportPaths` helper centralizes report path resolution.
 
 ### v3.1.0 — 2026-06-25
 
@@ -30,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **`getByRole(Role)`** — 38 WAI-ARIA roles, each matching both implicit HTML elements (`<button>`, `<a href>`, `<h1>`…) and explicit `role="…"` attributes; refine with `.withName("Submit")` (accessible-name match) and `.withLevel(1)` (heading level)
 - **Case-insensitive substring by default**, exact opt-in via `.exact()` — mirrors Playwright ergonomics; all locators flow through the existing auto-wait `Locator` chain (no `Thread.sleep`, no explicit waits)
 - **`toBy()` escape hatch** — every semantic locator can return its synthesized Selenium `By` for drop-down to raw Selenium or `SmartLocator`
-- **Configurable test-id attribute** — `locators.testIdAttribute` in `selenium-boot.yml` (default `data-testid`)
+- **Configurable test-id attribute** — `locators.testIdAttribute` in `testfly.yml` (default `data-testid`)
 - Accessible-name computation follows ARIA precedence (`aria-label` → `aria-labelledby` → associated `<label>` → text → `value`/`alt`/`title`)
 
 ### v3.0.0 — 2026-06-21
@@ -40,11 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Xray Cloud** — authenticates via OAuth2 client credentials (`clientId` + `clientSecret`); uses `https://xray.cloud.getxpecto.com/api/v2` endpoints; supports `testPlanKey` linking
 - **Xray Server/DC** — HTTP Basic auth (`jiraUrl` + `username` + `password`); posts to `/rest/raven/1.0/import/execution`; both modes use the same `@XrayTest` annotation
 - **Zero extra dependencies** — clients use `java.net.http.HttpClient` (Java 17 built-in); no OkHttp, Apache HttpClient, or Jackson required for this feature
-- **Works with TestNG and JUnit 5** — `SuiteExecutionListener` + `TestExecutionListener` handle TestNG; `SeleniumBootExtension` + `SeleniumBootLauncherListener` handle JUnit 5
+- **Works with TestNG and JUnit 5** — `SuiteExecutionListener` + `TestExecutionListener` handle TestNG; `TestFlyExtension` + `TestFlyLauncherListener` handle JUnit 5
 
 ### v2.6.0 — 2026-06-20
 
-- **Gradle Build Support** — `testImplementation 'io.github.seleniumboot:selenium-boot:2.6.0'` in `build.gradle`; `test { useTestNG() }` is all that's needed; full docs with Groovy + Kotlin DSL samples, parallel config, JUnit 5 setup, and optional-dep table; `JUnitXmlReporter` auto-detects Maven vs Gradle by directory layout and writes to `build/test-results/test/` (Gradle) or `target/surefire-reports/` (Maven); override with `-Dseleniumboot.reports.dir=`; `FrameworkVersion` now reads `Implementation-Version` from MANIFEST.MF (set by `maven-jar-plugin` and Gradle `jar` task) so `FrameworkVersion.get()` returns the correct version in both build tools
+- **Gradle Build Support** — `testImplementation 'io.testfly:testfly:2.6.0'` in `build.gradle`; `test { useTestNG() }` is all that's needed; full docs with Groovy + Kotlin DSL samples, parallel config, JUnit 5 setup, and optional-dep table; `JUnitXmlReporter` auto-detects Maven vs Gradle by directory layout and writes to `build/test-results/test/` (Gradle) or `target/surefire-reports/` (Maven); override with `-Dtestfly.reports.dir=`; `FrameworkVersion` now reads `Implementation-Version` from MANIFEST.MF (set by `maven-jar-plugin` and Gradle `jar` task) so `FrameworkVersion.get()` returns the correct version in both build tools
 
 ### v2.5.0 — 2026-06-20
 
@@ -83,17 +94,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **Multi-Session Testing** — `withSession("alice", () -> { ... })` runs a lambda with a named browser session active; `session("name")` returns the raw `WebDriver`; all named sessions are automatically closed at test end; nested `withSession()` calls supported via stack-based driver restoration; available in `BaseTest` and `BaseJUnit5Test`
 - **Database Assertions** — `db().assertRowExists(table, conditions)`, `db().assertNoRow()`, `db().assertRowCount()`, `db().query(sql, params).assertValue(column, expected)`, `db().scalar(sql, params)`; plain JDBC, no ORM dependency; named datasources via `db("reporting")`; connections pooled per thread and closed automatically at test end
-- New `sessions.maxPerTest` and `database.*` config blocks in `selenium-boot.yml`
+- New `sessions.maxPerTest` and `database.*` config blocks in `testfly.yml`
 
 ### v1.11.0 — 2026-05-03
 
-- **`@Retryable` for JUnit 5** — `InvocationInterceptor` in `SeleniumBootExtension` retries failed test methods with full driver recreation between attempts; `@Retryable(maxAttempts = N)` on method or class overrides global config
+- **`@Retryable` for JUnit 5** — `InvocationInterceptor` in `TestFlyExtension` retries failed test methods with full driver recreation between attempts; `@Retryable(maxAttempts = N)` on method or class overrides global config
 - **`@Retryable` for Cucumber** — entire scenario reruns from step 1 with a fresh driver via `RetryAnnotationTransformer`; retry detected in `CucumberHooks` and shown as retry badge in HTML report
 - `@Retryable` — new `maxAttempts` attribute + class-level target; fully backward-compatible
 
 ### v1.10.0 — 2026-05-02
 
-- **JUnit 5 Support** — `SeleniumBootExtension` (`@ExtendWith`) handles driver lifecycle, screenshot on failure, AI analysis, trace, and recording; `WebDriver` injectable as test method parameter; `BaseJUnit5Test` base class with `getDriver()`, `getWait()`, `open()`, `$()`, `assertThat()`, `step()`; `@EnableSeleniumBoot` composed annotation; `SeleniumBootLauncherListener` generates HTML report when the JUnit Platform test plan finishes (registered via ServiceLoader — no config needed); parallel execution via `junit-platform.properties`
+- **JUnit 5 Support** — `TestFlyExtension` (`@ExtendWith`) handles driver lifecycle, screenshot on failure, AI analysis, trace, and recording; `WebDriver` injectable as test method parameter; `BaseJUnit5Test` base class with `getDriver()`, `getWait()`, `open()`, `$()`, `assertThat()`, `step()`; `@EnableTestFly` composed annotation; `TestFlyLauncherListener` generates HTML report when the JUnit Platform test plan finishes (registered via ServiceLoader — no config needed); parallel execution via `junit-platform.properties`
 
 ### v1.9.0 — 2026-05-02
 
@@ -199,7 +210,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **`ConsoleErrorCollector`** — JS console error capture (Chrome via WebDriver logs, Firefox via injected shim)
 - **`@PreCondition`** — session-aware pre-conditions with cookie + localStorage caching per thread
 - **`@ConditionProvider`** + `BaseConditions` — define named condition providers, registered via SPI
-- **`@SeleniumBootApi`** — annotation marking stable public API with `since` version
+- **`@TestFlyApi`** — annotation marking stable public API with `since` version
 - **`FrameworkVersion`** + `minFrameworkVersion()` — runtime version checks, plugin compatibility enforcement
 - **Config additions** — `browser.downloadDir`, `browser.captureConsoleErrors`, `browser.failOnConsoleErrors`
 
@@ -217,7 +228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### v0.5.0 — 2025-10-15
 
-- **Retry support** — `retry.enabled` + `retry.maxAttempts` in `selenium-boot.yml`
+- **Retry support** — `retry.enabled` + `retry.maxAttempts` in `testfly.yml`
 - **`@Retryable`** — per-method retry override
 - **Retry metrics** — retry counts tracked in `ExecutionMetrics` and exported to JSON
 
@@ -225,25 +236,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **CI auto-detection** — GitHub Actions, Jenkins, CircleCI, GitLab CI; forces headless, tunes thread count
 - **Container detection** — Docker and Kubernetes; auto-applies Chrome container flags
-- **JUnit XML reporter** — `target/surefire-reports/TEST-SeleniumBoot.xml`
+- **JUnit XML reporter** — `target/surefire-reports/TEST-TestFly.xml`
 - **Build quality gates** — `BuildThresholdEnforcer` enforces pass-rate and flaky-test thresholds
 - **CI templates** — GitHub Actions workflow and Jenkinsfile included
 
 ### v0.3.0 — 2025-06-10
 
-- **Plugin system** — `SeleniumBootPlugin` + `PluginRegistry` with SPI discovery
+- **Plugin system** — `TestFlyPlugin` + `PluginRegistry` with SPI discovery
 - **Custom driver providers** — `NamedDriverProvider` + `DriverProviderRegistry`
 - **Custom report adapters** — `ReportAdapter` + `ReportAdapterRegistry`
 - **Lifecycle hooks** — `ExecutionHook` + `HookRegistry`
-- **`SeleniumBootDefaults`** — programmatic config defaults for shared test-base JARs
+- **`TestFlyDefaults`** — programmatic config defaults for shared test-base JARs
 
 ### v0.2.0 — 2025-04-05
 
 - **`WaitEngine`** — fluent explicit wait API
-- **Thread-safe config** — `SeleniumBootContext` with `AtomicReference`
+- **Thread-safe config** — `TestFlyContext` with `AtomicReference`
 - **Session semaphore** — `maxActiveSessions` cap with fair wait
 - **Global retry** — `retry.enabled: true` retries all tests without `@Retryable`
 
 ### v0.1.0 — 2025-02-01
 
-- Initial release — Chrome/Firefox, TestNG integration, `selenium-boot.yml`, basic HTML report, screenshot on failure
+- Initial release — Chrome/Firefox, TestNG integration, `testfly.yml`, basic HTML report, screenshot on failure

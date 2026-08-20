@@ -7,7 +7,7 @@ sidebar_position: 2
 
 # Getting Started
 
-Get your first Selenium Boot test running in under 5 minutes.
+Get your first TestFly test running in under 5 minutes.
 
 ---
 
@@ -33,9 +33,9 @@ No WebDriver binaries required — Selenium Manager handles browser driver downl
 
 ```xml title="pom.xml"
 <dependency>
-    <groupId>io.github.seleniumboot</groupId>
-    <artifactId>selenium-boot</artifactId>
-    <version>3.3.0</version>
+    <groupId>io.testfly</groupId>
+    <artifactId>testfly</artifactId>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -44,7 +44,7 @@ No WebDriver binaries required — Selenium Manager handles browser driver downl
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.github.seleniumboot:selenium-boot:3.3.0'
+    testImplementation 'io.testfly:testfly:1.0.0'
 }
 
 test {
@@ -58,7 +58,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.github.seleniumboot:selenium-boot:3.3.0")
+    testImplementation("io.testfly:testfly:1.0.0")
 }
 
 tasks.test {
@@ -78,9 +78,9 @@ See the full [Gradle Setup Guide](/docs/gradle) for parallel config, JUnit 5, op
 
 ## Step 2 — Create the configuration file
 
-Create `selenium-boot.yml` in your project root (next to `pom.xml` or `build.gradle`):
+Create `testfly.yml` in your project root (next to `pom.xml` or `build.gradle`):
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 browser:
   name: chrome
   headless: false
@@ -102,7 +102,7 @@ timeouts:
 ## Step 3 — Write your first test
 
 ```java title="src/test/java/com/example/LoginTest.java"
-import com.seleniumboot.test.BaseTest;
+import io.testfly.test.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -124,7 +124,7 @@ public class LoginTest extends BaseTest {
 ```xml title="testng.xml"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="selenium-boot-suite" verbose="1">
+<suite name="testfly-suite" verbose="1">
     <test name="MyTests">
         <classes>
             <class name="com.example.LoginTest"/>
@@ -158,13 +158,13 @@ mvn test
 
 ## What happens
 
-1. Framework loads `selenium-boot.yml`
+1. Framework loads `testfly.yml`
 2. Chrome launches automatically
 3. Your test runs
 4. Screenshot captured on any failure
 5. Browser closes
-6. HTML report generated at `target/selenium-boot-report.html` (Maven) or `build/selenium-boot-report/` (Gradle)
-7. Metrics JSON at `target/selenium-boot-metrics.json`
+6. HTML report generated at `target/testfly-report.html` (Maven) or `build/testfly-report/` (Gradle)
+7. Metrics JSON at `target/testfly-metrics.json`
 
 ---
 
@@ -176,7 +176,7 @@ mvn test
 ```
 your-project/
 ├── pom.xml
-├── selenium-boot.yml
+├── testfly.yml
 ├── testng.xml
 └── src/test/java/com/example/
     ├── pages/LoginPage.java
@@ -189,7 +189,7 @@ your-project/
 ```
 your-project/
 ├── build.gradle (or build.gradle.kts)
-├── selenium-boot.yml
+├── testfly.yml
 ├── testng.xml
 └── src/test/java/com/example/
     ├── pages/LoginPage.java
@@ -204,7 +204,7 @@ your-project/
 ## Working example project
 
 A complete working project is available at:
-**https://github.com/seleniumboot/selenium-boot-test**
+**https://github.com/testfly/testfly-test**
 
 Clone it, run `mvn test` (or `./gradlew test`), and you'll have a full working suite with page objects, step logging, and retry configured.
 

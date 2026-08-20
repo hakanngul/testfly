@@ -1,6 +1,6 @@
-# Selenium Boot – Retry & Wait Interaction Specification
+# TestFly – Retry & Wait Interaction Specification
 
-This document defines how **retry logic** and **wait strategies** interact inside Selenium Boot.
+This document defines how **retry logic** and **wait strategies** interact inside TestFly.
 Its primary goal is to reduce flakiness **without masking real failures**.
 
 This specification is authoritative and must be followed by all implementations.
@@ -33,7 +33,7 @@ The retry + wait system is designed to:
 
 ### Explicit Waits Only
 
-- Selenium Boot uses **explicit waits exclusively**
+- TestFly uses **explicit waits exclusively**
 - Implicit waits are enforced as `0` at all times
 - Any attempt to enable implicit waits is overridden
 
@@ -203,6 +203,6 @@ Retry + wait logic must make failures **easier**, not harder, to debug.
 
 ## Summary
 
-Selenium Boot treats waits and retries as **surgical tools**, not blunt instruments.
+TestFly treats waits and retries as **surgical tools**, not blunt instruments.
 Strict separation, conservative retry rules, and fixed wait boundaries ensure
 reliable execution without masking real application defects.

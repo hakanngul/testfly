@@ -1,0 +1,328 @@
+package io.testfly.driver;
+
+import io.testfly.config.TestFlyConfig;
+import io.testfly.internal.TestFlyContext;
+import io.testfly.metrics.ExecutionMetrics;
+import org.openqa.selenium.WebDriver;
+
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * DriverManager controls the WebDriver lifecycle.
+ *
+ * Rules:
+ * <li>One WebDriver per thread</li>
+ * <li>ThreadLocal ownership</li>
+ * <li>Framework-managed creation &amp; destruction only</li>
+ * <li>Session limit is enforced with a blocking Semaphore — tests wait for a slot
+ *     rather than failing fast, preventing spurious failures under parallel load</li>
+ */
+public final class DriverManager {
+
+    private static final ThreadLocal<WebDriver> DRIVER = ThreadLocal.withInitial(() -> null);
+
+    /** Session dashboard URL set after driver creation for cloud providers (BrowserStack / Sauce Labs). */
+    private static final ThreadLocal<String> CLOUD_SESSION_URL = ThreadLocal.withInitial(() -> null);
+
+    /**
+     * Stack of named-session driver overrides pushed by {@code MultiSessionManager.withSession()}.
+     * When non-empty, {@code getDriver()} returns the top of the stack instead of the primary driver.
+     * Stack allows nested {@code withSession()} calls to restore the correct previous session.
+     */
+    private static final ThreadLocal<java.util.Deque<WebDriver>> SESSION_STACK =
+            ThreadLocal.withInitial(java.util.ArrayDeque::new);
+
+    /** Tracks all drivers created under per-suite lifecycle for bulk teardown. */
+    private static final java.util.Set<WebDriver> SUITE_DRIVERS =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** Lazy-initialized from config; null until first createDriver() call. */
+    private static volatile Semaphore SESSION_SEMAPHORE;
+    private static volatile int MAX_SESSIONS;
+
+    private static Semaphore getOrInitSemaphore() {
+        if (SESSION_SEMAPHORE == null) {
+            synchronized (DriverManager.class) {
+                if (SESSION_SEMAPHORE == null) {
+                    MAX_SESSIONS = TestFlyContext.getConfig()
+                            .getExecution()
+                            .getMaxActiveSessions();
+                    SESSION_SEMAPHORE = new Semaphore(MAX_SESSIONS, true); // fair
+                }
+            }
+        }
+        return SESSION_SEMAPHORE;
+    }
+
+    private static int activeSessions() {
+        return SESSION_SEMAPHORE == null ? 0 : MAX_SESSIONS - SESSION_SEMAPHORE.availablePermits();
+    }
+
+    private DriverManager() {}
+
+    // ==========================================================
+    // Lifecycle helpers
+    // ==========================================================
+
+    private static boolean isPerSuite() {
+        try {
+            TestFlyConfig.Browser b = TestFlyContext.getConfig().getBrowser();
+            return b != null && "per-suite".equalsIgnoreCase(b.getLifecycle());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns {@code true} when the framework should quit the driver after
+     * each test method (default {@code per-test} lifecycle).
+     * {@code false} means the driver is kept alive until suite end.
+     */
+    public static boolean shouldQuitAfterTest() {
+        return !isPerSuite();
+    }
+
+    // ==========================================================
+    // Driver Creation
+    // ==========================================================
+
+    /**
+     * Create and bind WebDriver to current thread.
+     * Idempotent — safe for retry scenarios.
+     */
+    public static void createDriver() {
+
+        if (DRIVER.get() != null) {
+            return; // retry-safe — semaphore permit already held by this thread
+        }
+
+        Semaphore semaphore = getOrInitSemaphore();
+
+        try {
+            boolean acquired = semaphore.tryAcquire(30, TimeUnit.SECONDS);
+            if (!acquired) {
+                throw new IllegalStateException(
+                        "Timed out waiting for an available session slot after 30s. " +
+                        "Consider increasing maxActiveSessions in configuration."
+                );
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for a session slot", e);
+        }
+
+        try {
+
+            long startTime = System.currentTimeMillis();
+
+            DriverProvider provider =
+                    DriverProviderFactory.getProvider();
+
+            WebDriver driver = provider.createDriver();
+
+            if (driver == null) {
+                throw new IllegalStateException(
+                        "DriverProvider returned null WebDriver"
+                );
+            }
+
+            long startupDuration =
+                    System.currentTimeMillis() - startTime;
+
+            DRIVER.set(driver);
+
+            // Capture cloud session URL for BrowserStack / Sauce Labs
+            try {
+                String mode = TestFlyContext.getConfig().getExecution().getMode();
+                if (driver instanceof org.openqa.selenium.remote.RemoteWebDriver rdw) {
+                    String sessionId = rdw.getSessionId().toString();
+                    if ("browserstack".equalsIgnoreCase(mode)) {
+                        CLOUD_SESSION_URL.set(BrowserStackProvider.SESSION_URL_PREFIX + sessionId);
+                    } else if ("saucelabs".equalsIgnoreCase(mode)) {
+                        CLOUD_SESSION_URL.set(SauceLabsProvider.SESSION_URL_PREFIX + sessionId);
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            // Register in suite-driver registry when lifecycle is per-suite
+            if (isPerSuite()) {
+                SUITE_DRIVERS.add(driver);
+                System.out.println("[TestFly] Browser lifecycle: per-suite — driver will be reused across tests on this thread.");
+            }
+
+            // Record driver startup timing
+            String testId = TestFlyContext.getCurrentTestId();
+
+            if (testId != null) {
+                ExecutionMetrics.recordDriverStartup(
+                        testId,
+                        startupDuration
+                );
+            }
+
+            System.out.println("[TestFly] Active sessions: " + activeSessions());
+
+        } catch (Exception e) {
+            semaphore.release(); // return the permit — driver was never stored
+            throw e;
+        }
+    }
+
+    // ==========================================================
+    // Named-session override (MultiSessionManager)
+    // ==========================================================
+
+    /**
+     * Pushes a named-session driver onto the override stack.
+     * While on the stack, {@link #getDriver()} returns this driver.
+     * Call {@link #popSessionOverride()} to restore the previous driver.
+     */
+    public static void pushSessionOverride(WebDriver driver) {
+        SESSION_STACK.get().push(driver);
+    }
+
+    /**
+     * Pops the topmost named-session driver from the override stack.
+     * After popping, {@link #getDriver()} returns the driver that was active before the push.
+     */
+    /**
+     * Returns the cloud session dashboard URL (BrowserStack or Sauce Labs) for the
+     * current thread's driver, or {@code null} when running locally or against a
+     * custom Selenium Grid.
+     */
+    public static String getCloudSessionUrl() {
+        return CLOUD_SESSION_URL.get();
+    }
+
+    public static void popSessionOverride() {
+        java.util.Deque<WebDriver> stack = SESSION_STACK.get();
+        if (!stack.isEmpty()) stack.pop();
+        if (stack.isEmpty()) SESSION_STACK.remove();
+    }
+
+    // ==========================================================
+    // Driver Access
+    // ==========================================================
+
+    /**
+     * Get WebDriver bound to current thread.
+     * When a named-session override is active (via {@code withSession()}), returns that driver.
+     * Otherwise performs a health check and returns the primary thread driver.
+     */
+    public static WebDriver getDriver() {
+
+        java.util.Deque<WebDriver> stack = SESSION_STACK.get();
+        if (!stack.isEmpty()) return stack.peek();
+
+        WebDriver driver = DRIVER.get();
+
+        if (driver == null) {
+            throw new IllegalStateException(
+                    "WebDriver not initialized for current thread."
+            );
+        }
+
+        if (!isDriverAlive()) {
+
+            System.err.println(
+                    "[TestFly] Driver session invalid. Recreating..."
+            );
+
+            recreateDriver();
+            driver = DRIVER.get();
+        }
+
+        return driver;
+    }
+
+    // ==========================================================
+    // Driver Recreation (Self-Healing)
+    // ==========================================================
+
+    public static void recreateDriver() {
+
+        try {
+            quitDriver();
+        } catch (Exception ignored) {
+        }
+
+        createDriver();
+    }
+
+    /**
+     * Lightweight session health check.
+     */
+    public static boolean isDriverAlive() {
+
+        WebDriver driver = DRIVER.get();
+
+        if (driver == null) {
+            return false;
+        }
+
+        try {
+            driver.getTitle(); // lightweight call
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // ==========================================================
+    // Driver Teardown
+    // ==========================================================
+
+    /**
+     * Quit and unbind WebDriver from current thread.
+     * No-op when lifecycle is {@code per-suite} — driver stays alive until
+     * {@link #quitAllSuiteDrivers()} is called at suite end.
+     */
+    public static void quitDriver() {
+
+        if (isPerSuite()) {
+            return; // driver intentionally kept alive for next test on this thread
+        }
+
+        WebDriver driver = DRIVER.get();
+
+        try {
+            if (driver != null) {
+                driver.quit();
+                getOrInitSemaphore().release();
+            }
+        } catch (Exception e) {
+            System.err.println("[TestFly] Driver quit failed: " + e.getMessage());
+        } finally {
+            DRIVER.remove();
+            CLOUD_SESSION_URL.remove();
+        }
+
+        System.out.println("[TestFly] Active sessions: " + activeSessions());
+    }
+
+    /**
+     * Quits all drivers tracked under {@code per-suite} lifecycle and releases
+     * their semaphore permits. Called once by {@code SuiteExecutionListener.onFinish}.
+     * Safe to call in {@code per-test} mode — no-op when registry is empty.
+     */
+    public static void quitAllSuiteDrivers() {
+        if (SUITE_DRIVERS.isEmpty()) return;
+        int released = 0;
+        for (WebDriver driver : SUITE_DRIVERS) {
+            try {
+                driver.quit();
+                released++;
+            } catch (Exception e) {
+                System.err.println("[TestFly] Error quitting suite driver: " + e.getMessage());
+                released++; // release permit regardless — session is gone
+            }
+        }
+        if (SESSION_SEMAPHORE != null) {
+            SESSION_SEMAPHORE.release(released);
+        }
+        SUITE_DRIVERS.clear();
+        DRIVER.remove();
+        System.out.println("[TestFly] All suite drivers quit. Released " + released + " session slot(s).");
+    }
+}

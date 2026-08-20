@@ -1,5 +1,5 @@
 ---
-description: "Complete selenium-boot.yml configuration reference: browser, parallel threads, timeouts, retry, and CI quality gates, every option in one place."
+description: "Complete testfly.yml configuration reference: browser, parallel threads, timeouts, retry, and CI quality gates, every option in one place."
 id: configuration
 title: Configuration Reference
 sidebar_position: 3
@@ -7,7 +7,7 @@ sidebar_position: 3
 
 # Configuration Reference
 
-All framework behaviour is controlled by `selenium-boot.yml`.
+All framework behaviour is controlled by `testfly.yml`.
 
 ---
 
@@ -15,9 +15,9 @@ All framework behaviour is controlled by `selenium-boot.yml`.
 
 The framework looks for the config file in this priority order:
 
-1. **System property** — `-Dselenium.boot.config=/path/to/custom.yml`
-2. **Working directory** — `./selenium-boot.yml` (next to `pom.xml`)
-3. **Classpath** — `src/test/resources/selenium-boot.yml`
+1. **System property** — `-Dtestfly.config=/path/to/custom.yml`
+2. **Working directory** — `./testfly.yml` (next to `pom.xml`)
+3. **Classpath** — `src/test/resources/testfly.yml`
 
 ---
 
@@ -181,7 +181,7 @@ Use `per-suite` when your suite has many sequential tests and browser startup ti
 ## Execution
 
 ### `parallel`
-Maps directly to TestNG parallel execution mode. Thread count is set via `threadCount`. Selenium Boot validates this value at suite bootstrap against TestNG's own set of modes; an unrecognised value fails immediately with a message naming both the rejected value and the accepted ones.
+Maps directly to TestNG parallel execution mode. Thread count is set via `threadCount`. TestFly validates this value at suite bootstrap against TestNG's own set of modes; an unrecognised value fails immediately with a message naming both the rejected value and the accepted ones.
 
 | Value | Behaviour |
 |---|---|
@@ -233,15 +233,15 @@ to `data-qa`, `data-test`, etc. to match your app. See
 Override the default config for a specific environment using a profile suffix:
 
 ```
-selenium-boot.yml            ← base config
-selenium-boot-staging.yml    ← staging overrides
-selenium-boot-prod.yml       ← prod overrides
+testfly.yml            ← base config
+testfly-staging.yml    ← staging overrides
+testfly-prod.yml       ← prod overrides
 ```
 
 Activate with:
 
 ```bash
-mvn test -Dselenium.boot.profile=staging
+mvn test -Dtestfly.profile=staging
 ```
 
 Only the fields present in the profile file are overridden — everything else falls back to the base config.

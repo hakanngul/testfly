@@ -1,5 +1,5 @@
 ---
-description: "Parallel Selenium test execution: set the thread count in selenium-boot.yml and get thread-safe, isolated WebDriver instances automatically."
+description: "Parallel Selenium test execution: set the thread count in testfly.yml and get thread-safe, isolated WebDriver instances automatically."
 id: parallel
 title: Selenium Parallel Testing
 sidebar_label: Parallel Execution
@@ -8,13 +8,13 @@ sidebar_position: 5
 
 # Parallel Execution
 
-Selenium Boot supports parallel test execution out of the box. Configure the thread count in `selenium-boot.yml` and the framework handles thread-safe driver management automatically.
+TestFly supports parallel test execution out of the box. Configure the thread count in `testfly.yml` and the framework handles thread-safe driver management automatically.
 
 ---
 
 ## Configuration
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 execution:
   mode: local
   parallel: methods       # none (default) | methods | classes | tests | instances
@@ -29,7 +29,7 @@ timeouts:
   pageLoad: 30
 ```
 
-`parallel`, `threadCount` and `maxActiveSessions` all live under `execution:` — see the [Configuration Reference](/docs/configuration#execution). `timeouts.explicit` and `timeouts.pageLoad` are required by every `selenium-boot.yml`, parallel or not.
+`parallel`, `threadCount` and `maxActiveSessions` all live under `execution:` — see the [Configuration Reference](/docs/configuration#execution). `timeouts.explicit` and `timeouts.pageLoad` are required by every `testfly.yml`, parallel or not.
 
 `maxActiveSessions` acts as a hard ceiling on concurrent browsers. If `threadCount` is 4 but `maxActiveSessions` is 2, at most 2 browsers will run at the same time.
 
@@ -41,7 +41,7 @@ Parallel execution requires a TestNG suite XML file:
 
 ```xml title="testng.xml"
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="SeleniumBoot" parallel="methods" thread-count="4">
+<suite name="TestFly" parallel="methods" thread-count="4">
     <test name="All Tests">
         <classes>
             <class name="com.example.tests.LoginTest"/>
@@ -71,7 +71,7 @@ Run it with Maven Surefire:
 
 ## How thread safety works
 
-| Concern | How Selenium Boot handles it |
+| Concern | How TestFly handles it |
 |---|---|
 | WebDriver instance | `ThreadLocal<WebDriver>` — each thread has its own driver |
 | Config access | `AtomicReference` — reads are lock-free |

@@ -1,4 +1,4 @@
-<!-- Thanks for contributing to Selenium Boot! Please fill this out so reviewers have context. -->
+<!-- Thanks for contributing to TestFly! Please fill this out so reviewers have context. -->
 
 ## What & why
 
@@ -21,7 +21,7 @@ Closes #
 - [ ] New behaviour is covered by unit tests
 - [ ] No new external dependencies introduced without prior discussion
 - [ ] Code follows existing conventions (no new frameworks, minimal abstraction)
-- [ ] No breaking changes to `@SeleniumBootApi` public APIs (or a major version bump is justified below)
+- [ ] No breaking changes to `@TestFlyApi` public APIs (or a major version bump is justified below)
 - [ ] Docs updated if user-facing behaviour changed (`docs-site/`)
 
 ## Notes for reviewers

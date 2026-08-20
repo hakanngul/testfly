@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Selenium Boot** is a Java library (JAR) published to Maven Central — an opinionated, zero-boilerplate Selenium automation framework inspired by Spring Boot. Users add it as a single dependency; the framework handles WebDriver lifecycle, waits, retries, reporting, and CI integration automatically.
+**TestFly** is a Java library (JAR) published to Maven Central — an opinionated, zero-boilerplate Selenium automation framework inspired by Spring Boot. Users add it as a single dependency; the framework handles WebDriver lifecycle, waits, retries, reporting, and CI integration automatically.
 
-- **GroupId / ArtifactId:** `io.github.seleniumboot / selenium-boot`
+- **GroupId / ArtifactId:** `io.testfly / testfly`
 - **Java:** 17+ required
 - **Build:** Maven 3.8+
 - **Test Framework:** TestNG 7.9.0
@@ -47,20 +47,20 @@ The framework is a **4-layer library**:
 ```
 Consumer Test Code  (BaseTest / BasePage subclasses, user's test project)
        ↑
-Selenium Boot Core  (lifecycle, driver mgmt, waits, retries, reporting)
+TestFly Core  (lifecycle, driver mgmt, waits, retries, reporting)
        ↑
 Infrastructure      (config loading, SPI plugin registry, listeners)
        ↑
 Selenium WebDriver  (browser automation)
 ```
 
-All source lives under `src/main/java/com/seleniumboot/`. Key packages:
+All source lives under `src/main/java/com/testfly/`. Key packages:
 
 | Package | Role |
 |---|---|
 | `test/` | `BaseTest`, `BasePage`, `SmartLocator` — user-facing base classes |
 | `driver/` | `DriverManager` (ThreadLocal), provider registry, Chrome/Firefox/Remote providers |
-| `config/` | `ConfigurationLoader` reads `selenium-boot.yml`; `SeleniumBootDefaults` supplies fallbacks |
+| `config/` | `ConfigurationLoader` reads `testfly.yml`; `TestFlyDefaults` supplies fallbacks |
 | `lifecycle/` | `FrameworkBootstrap` — wires everything together at suite start |
 | `listeners/` | TestNG `SuiteExecutionListener` / `TestExecutionListener`; `@Retryable` + `RetryListener` |
 | `hooks/` | `HookRegistry` + `ExecutionHook` — plugin lifecycle callbacks |
@@ -70,26 +70,26 @@ All source lives under `src/main/java/com/seleniumboot/`. Key packages:
 | `extension/` | `PluginRegistry` + SPI — custom drivers, report adapters, hooks |
 | `ci/` | `CiEnvironmentDetector`, `BuildThresholdEnforcer` — pass-rate gates |
 | `steps/` | `StepLogger`, `StepRecord` — named test steps with screenshots |
-| `junit5/` | Optional JUnit 5 bridge (`BaseJUnit5Test`, `@EnableSeleniumBoot`) |
+| `junit5/` | Optional JUnit 5 bridge (`BaseJUnit5Test`, `@EnableTestFly`) |
 
 ### Key Design Patterns
 
 - **Registry + SPI** — `DriverProviderRegistry`, `PluginRegistry`, `ReportAdapterRegistry` use `ServiceLoader` for extensibility.
 - **ThreadLocal driver isolation** — `DriverManager` stores `WebDriver` per thread; safe for parallel TestNG execution.
 - **Template Method** — `BaseTest` / `BasePage` define framework-managed lifecycle; users override hook methods.
-- **Convention over configuration** — `SeleniumBootDefaults` supplies fallbacks for optional fields, but `selenium-boot.yml` itself is **required**: `ConfigurationLoader` throws if the file is absent, and validates that `execution.mode`, `browser.name` (or `browser.matrix`), `timeouts.explicit` and `timeouts.pageLoad` are all present and positive.
+- **Convention over configuration** — `TestFlyDefaults` supplies fallbacks for optional fields, but `testfly.yml` itself is **required**: `ConfigurationLoader` throws if the file is absent, and validates that `execution.mode`, `browser.name` (or `browser.matrix`), `timeouts.explicit` and `timeouts.pageLoad` are all present and positive.
 
 ### Public API Contract
 
-Classes/methods annotated `@SeleniumBootApi` are the stable public surface. Avoid breaking changes to these without a version bump. Internal packages (classes not annotated) may change freely.
+Classes/methods annotated `@TestFlyApi` are the stable public surface. Avoid breaking changes to these without a version bump. Internal packages (classes not annotated) may change freely.
 
 ## Tests
 
-Unit tests are in `src/test/java/com/seleniumboot/unit/` (39 test classes, 480 tests). They use **TestNG + Mockito**. Tests mock Selenium/browser interactions — no real browser is required to run the test suite.
+Unit tests are in `src/test/java/com/testfly/unit/` (39 test classes, 480 tests). They use **TestNG + Mockito**. Tests mock Selenium/browser interactions — no real browser is required to run the test suite.
 
 ## Configuration Reference
 
-Consumer projects configure via `selenium-boot.yml` at the project root:
+Consumer projects configure via `testfly.yml` at the project root:
 
 ```yaml
 execution:
@@ -132,11 +132,11 @@ When upgrading the project version, **always update all places the version is re
 | `PLAN.md` | Released versions table |
 
 **Outside this repo** — the marketing site ships the version too, so a bump here without
-a bump there advertises a stale release on seleniumboot.com:
+a bump there advertises a stale release on testfly.github.io/testfly:
 
 | Repo / File | Location |
 |---|---|
-| `seleniumboot/website` → `src/data/content.ts` | `LATEST_VERSION` — feeds the copy-to-clipboard Maven snippet in the homepage CTA |
+| `testfly/website` → `src/data/content.ts` | `LATEST_VERSION` — feeds the copy-to-clipboard Maven snippet in the homepage CTA |
 
 Also add a new changelog entry in `CHANGELOG.md` and `docs-site/docs/changelog.md` describing what changed. The full version history lives in `CHANGELOG.md` (extracted from the README); the README only keeps a one-line "Current release" pointer.
 
@@ -160,14 +160,14 @@ Also add a new changelog entry in `CHANGELOG.md` and `docs-site/docs/changelog.m
    Verify with `gh release list` (newest version should show "Latest").
 6. Publish to Maven Central (`mvn deploy`) and finish the manual publish in the
    Central Portal (see Publishing below).
-7. **Last**, bump `LATEST_VERSION` in the `seleniumboot/website` repo and push to
+7. **Last**, bump `LATEST_VERSION` in the `testfly/website` repo and push to
    `main` (Actions deploys it). Do this *after* the artifact is live on Central —
    the homepage snippet is copy-to-clipboard, so bumping earlier hands visitors a
    `pom.xml` that won't resolve yet.
 
 ## Publishing
 
-Maven Central publishing is handled by `central-publishing-maven-plugin` with GPG signing. The CI workflow (`.github/workflows/selenium-boot.yml`) runs `mvn test`. Publishing is a manual step.
+Maven Central publishing is handled by `central-publishing-maven-plugin` with GPG signing. The CI workflow (`.github/workflows/testfly.yml`) runs `mvn test`. Publishing is a manual step.
 
 GPG key and Maven Central credentials are configured in `~/.m2/settings.xml`. To publish:
 

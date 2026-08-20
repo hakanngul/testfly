@@ -7,7 +7,7 @@ sidebar_position: 13
 
 # External Test Data Sources
 
-Selenium Boot 2.2.0 extends `@TestData` to load rows directly from CSV files, Excel workbooks, and live database queries — no extra boilerplate needed.
+TestFly 2.2.0 extends `@TestData` to load rows directly from CSV files, Excel workbooks, and live database queries — no extra boilerplate needed.
 
 ---
 

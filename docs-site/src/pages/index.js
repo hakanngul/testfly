@@ -51,13 +51,13 @@ const flagshipFeatures = [
   {
     icon: '🤖',
     title: 'Generate Tests From a Prompt',
-    description: 'AI test authoring via seleniumboot-mcp lets Claude or Copilot drive a real browser and generate ready-to-run Selenium Boot tests from a single prompt.',
+    description: 'AI test authoring via testfly-mcp lets Claude or Copilot drive a real browser and generate ready-to-run TestFly tests from a single prompt.',
   },
 ];
 
 // The rest of the toolkit — shown compact, one line each.
 const moreFeatures = [
-  { icon: '📄', title: 'Switch Environments Without Code Changes', short: 'One selenium-boot.yml controls browsers, threads, timeouts, retry, and CI gates.' },
+  { icon: '📄', title: 'Switch Environments Without Code Changes', short: 'One testfly.yml controls browsers, threads, timeouts, retry, and CI gates.' },
   { icon: '🔁', title: 'Flaky Tests Stop Failing Your Build',     short: 'Auto-retry flaky tests and rank them HIGH / WATCH / STABLE in the report.' },
   { icon: '📋', title: 'Write Pages, Not Plumbing',               short: 'BasePage wraps clicks, waits, dropdowns, iframes, Shadow DOM, and uploads.' },
   { icon: '🔗', title: 'Pin Down Any Element',                    short: 'Fluent, Playwright-style chainable locators with auto-retrying assertThat().' },
@@ -80,23 +80,23 @@ const faqs = [
   },
   {
     q: 'Does it work with JUnit 5 and Cucumber, or only TestNG?',
-    a: 'All three. TestNG is the default, JUnit 5 has full parity via BaseJUnit5Test or @ExtendWith(SeleniumBootExtension.class), and Cucumber is supported through BaseCucumberSteps + CucumberHooks.',
+    a: 'All three. TestNG is the default, JUnit 5 has full parity via BaseJUnit5Test or @ExtendWith(TestFlyExtension.class), and Cucumber is supported through BaseCucumberSteps + CucumberHooks.',
   },
   {
-    q: 'Is selenium-boot.yml required?',
-    a: 'No — it is optional. SeleniumBootDefaults supplies sensible defaults for everything, so the framework runs with zero config. Add selenium-boot.yml only when you want to override a default.',
+    q: 'Is testfly.yml required?',
+    a: 'No — it is optional. TestFlyDefaults supplies sensible defaults for everything, so the framework runs with zero config. Add testfly.yml only when you want to override a default.',
   },
   {
     q: 'Can I still drop down to the raw Selenium WebDriver?',
-    a: 'Always. getDriver() gives you the live WebDriver, and every fluent locator exposes toBy() to hand back a standard Selenium By. Selenium Boot wraps Selenium — it never hides it.',
+    a: 'Always. getDriver() gives you the live WebDriver, and every fluent locator exposes toBy() to hand back a standard Selenium By. TestFly wraps Selenium — it never hides it.',
   },
   {
     q: 'How is this different from Playwright?',
-    a: 'Selenium Boot keeps you on the Selenium ecosystem (Grid, cloud vendors, the whole Java tooling world) while giving you the ergonomics people love about Playwright — fluent and accessibility-first locators, auto-waiting assertions, tracing, and codegen.',
+    a: 'TestFly keeps you on the Selenium ecosystem (Grid, cloud vendors, the whole Java tooling world) while giving you the ergonomics people love about Playwright — fluent and accessibility-first locators, auto-waiting assertions, tracing, and codegen.',
   },
   {
     q: 'Does parallel execution work out of the box?',
-    a: 'Yes. The driver is held in a ThreadLocal, so parallel TestNG/JUnit runs are isolated by default. Set parallel and threadCount in selenium-boot.yml and go.',
+    a: 'Yes. The driver is held in a ThreadLocal, so parallel TestNG/JUnit runs are isolated by default. Set parallel and threadCount in testfly.yml and go.',
   },
   {
     q: 'What does it cost?',
@@ -227,7 +227,7 @@ export default function Home() {
                 <Link className={styles.btnPrimary} to="/docs/getting-started">
                   Get Started <span className={styles.arrow}>→</span>
                 </Link>
-                <Link className={styles.btnGhost} to="https://github.com/seleniumboot/selenium-boot">
+                <Link className={styles.btnGhost} to="https://github.com/testfly/testfly">
                   <svg className={styles.githubIcon} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                     <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
                   </svg>
@@ -239,9 +239,9 @@ export default function Home() {
                 filename="pom.xml"
                 className={styles.heroSnippet}
                 code={`<dependency>
-  <groupId>io.github.seleniumboot</groupId>
-  <artifactId>selenium-boot</artifactId>
-  <version>3.3.0</version>
+  <groupId>io.testfly</groupId>
+  <artifactId>testfly</artifactId>
+  <version>1.0.0</version>
 </dependency>`}
               />
             </div>
@@ -299,7 +299,7 @@ export default function Home() {
               <span className={styles.sectionTag}>Before / After</span>
               <h2 className={styles.sectionTitle}>Same test.<br />None of the plumbing.</h2>
               <p className={styles.sectionSubtitle}>
-                Selenium Boot lets your team focus on testing, not framework engineering.
+                TestFly lets your team focus on testing, not framework engineering.
                 The waits, the driver setup, the boilerplate — handled.
               </p>
             </div>
@@ -324,11 +324,11 @@ wait.until(ExpectedConditions.textToBe(
 
               <div className={styles.compareArrow} aria-hidden>
                 <span className={styles.compareArrowIcon}>→</span>
-                <span className={styles.compareArrowLabel}>Selenium Boot</span>
+                <span className={styles.compareArrowLabel}>TestFly</span>
               </div>
 
               <div className={styles.compareCol}>
-                <span className={styles.compareLabel} data-kind="after">Selenium Boot</span>
+                <span className={styles.compareLabel} data-kind="after">TestFly</span>
                 <CodeWindow
                   filename="LoginTest.java"
                   className={styles.compareWindow}
@@ -419,7 +419,7 @@ assertThat($("h1")).hasText("Welcome");`}
 
               <div className={styles.quickCode} data-reveal style={{ '--i': 1 }}>
                 <CodeWindow
-                  filename="selenium-boot.yml"
+                  filename="testfly.yml"
                   code={`browser:
   name: chrome
   headless: false
@@ -450,7 +450,7 @@ clock:
               <span className={styles.sectionTag}>FAQ</span>
               <h2 className={styles.sectionTitle}>Questions, answered</h2>
               <p className={styles.sectionSubtitle}>
-                The things teams ask before adopting Selenium Boot.
+                The things teams ask before adopting TestFly.
               </p>
             </div>
 
@@ -480,7 +480,7 @@ clock:
                 <Link className={styles.btnPrimary} to="/docs/getting-started">
                   Get Started <span className={styles.arrow}>→</span>
                 </Link>
-                <Link className={styles.btnGhost} to="https://github.com/seleniumboot/selenium-boot">
+                <Link className={styles.btnGhost} to="https://github.com/testfly/testfly">
                   <svg className={styles.githubIcon} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                     <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
                   </svg>

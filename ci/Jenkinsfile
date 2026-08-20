@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        // Selenium Boot detects JENKINS_URL and auto-enables headless mode
+        // TestFly detects JENKINS_URL and auto-enables headless mode
         CI = 'true'
     }
 
@@ -45,11 +45,11 @@ pipeline {
                           allowEmptyResults: true
 
                     // Archive HTML report
-                    archiveArtifacts artifacts: 'target/selenium-boot-report.html',
+                    archiveArtifacts artifacts: 'target/testfly-report.html',
                                      allowEmptyArchive: true
 
                     // Archive metrics JSON + history
-                    archiveArtifacts artifacts: 'target/selenium-boot-metrics.json, target/metrics-history/**',
+                    archiveArtifacts artifacts: 'target/testfly-metrics.json, target/metrics-history/**',
                                      allowEmptyArchive: true
                 }
             }
@@ -66,10 +66,10 @@ pipeline {
         success {
             echo "All tests passed."
             // Validate this framework build against the consumer test suite,
-            // building selenium-boot from source so unpublished changes are
+            // building testfly from source so unpublished changes are
             // exercised end-to-end before release.
-            // Replace 'selenium-boot-test' with the consumer job's name in Jenkins.
-            build job: 'selenium-boot-test',
+            // Replace 'testfly-test' with the consumer job's name in Jenkins.
+            build job: 'testfly-test',
                   parameters: [
                       booleanParam(name: 'BUILD_FRAMEWORK_FROM_SOURCE', value: true),
                       string(name: 'FRAMEWORK_BRANCH', value: env.BRANCH_NAME ?: 'master')

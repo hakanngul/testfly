@@ -6,9 +6,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Selenium Boot is deliberately opinionated — **simplicity is its main feature.** Features that
+        TestFly is deliberately opinionated — **simplicity is its main feature.** Features that
         add significant complexity without clear user value may be declined. For open-ended ideas,
-        please start a [Discussion](https://github.com/seleniumboot/selenium-boot/discussions) first.
+        please start a [Discussion](https://github.com/testfly/testfly/discussions) first.
   - type: textarea
     id: problem
     attributes:
@@ -33,7 +33,7 @@ body:
       description: How does this fit "zero boilerplate, convention over configuration, single dependency"?
       options:
         - "Works with zero config (a sensible default)"
-        - "Opt-in via selenium-boot.yml, off by default"
+        - "Opt-in via testfly.yml, off by default"
         - "Opt-in via annotation / method call"
         - "Not sure — happy to discuss"
     validations:
@@ -44,4 +44,4 @@ body:
       label: Constraints
       options:
         - label: This can be added without a new external dependency (or I've noted why one is needed)
-        - label: This does not break existing `@SeleniumBootApi` public APIs
+        - label: This does not break existing `@TestFlyApi` public APIs

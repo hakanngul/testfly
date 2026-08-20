@@ -1,6 +1,6 @@
-# Selenium Boot – DriverManager Deep Specification
+# TestFly – DriverManager Deep Specification
 
-This document defines the **DriverManager contract** for Selenium Boot.
+This document defines the **DriverManager contract** for TestFly.
 It specifies ThreadLocal usage, lifecycle timing, failure modes, and non-negotiable rules.
 
 This document is authoritative for all DriverManager implementations.
@@ -193,7 +193,7 @@ These must not alter core lifecycle behavior.
 
 ## Summary
 
-DriverManager is the **most critical stability component** in Selenium Boot.
+DriverManager is the **most critical stability component** in TestFly.
 Strict ThreadLocal ownership, deterministic lifecycle control, and explicit
 failure handling are mandatory to ensure reliable, parallel, enterprise-scale
 test execution.

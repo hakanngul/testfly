@@ -1,6 +1,6 @@
-# Selenium Boot – CI Execution Contract
+# TestFly – CI Execution Contract
 
-This document defines how Selenium Boot is expected to run in CI pipelines.
+This document defines how TestFly is expected to run in CI pipelines.
 
 ---
 

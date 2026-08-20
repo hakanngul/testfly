@@ -10,8 +10,8 @@ sidebar_label: Download & verify a PDF
 Click a download link, wait for the file to land, and assert it's a real PDF. `DownloadManager` polls the download directory and ignores partial (`.crdownload`) files until they're complete — no `Thread.sleep()`.
 
 ```java title="InvoiceTest.java"
-import com.seleniumboot.browser.DownloadManager;
-import com.seleniumboot.test.BaseTest;
+import io.testfly.browser.DownloadManager;
+import io.testfly.test.BaseTest;
 import java.io.File;
 import org.openqa.selenium.By;
 import org.testng.Assert;
@@ -41,7 +41,7 @@ File pdf = DownloadManager.waitForFile("invoice-123.pdf", 15);
 
 Set the download directory in config (defaults to `./target/downloads`):
 
-```yaml title="selenium-boot.yml"
+```yaml title="testfly.yml"
 browser:
   downloadDir: ./target/downloads
 ```
