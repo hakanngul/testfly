@@ -4,7 +4,7 @@ const { themes } = require('prism-react-renderer');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'TestFly — Java Test Automation SDK',
-  tagline: 'Java Test Automation SDK — web, API, mobile, and AI/MCP-powered test automation without hiding Selenium',
+  tagline: 'Java Test Automation SDK — web, API, mobile, and AI/MCP-powered test automation without hiding Seleniumxx',
   favicon: 'img/favicon.svg',
 
   url: 'https://testfly.github.io',
