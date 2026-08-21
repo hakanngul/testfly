@@ -105,6 +105,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- JUnit 5 engine — needed to run JUnit 5 example tests locally; not exposed transitively. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+
         <!--
             JSON Schema validation — used by ApiResponse.assertSchema().
             Optional so consumers who don't do API testing don't pull it in.
@@ -183,6 +191,10 @@
                 </dependencies>
                 <configuration>
                     <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                    <excludes>
+                        <!-- Example tests are run explicitly; they need real browsers/APIs. -->
+                        <exclude>**/examples/**/*.java</exclude>
+                    </excludes>
                     <properties>
                         <property>
                             <name>listener</name>

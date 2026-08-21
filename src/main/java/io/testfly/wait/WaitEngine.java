@@ -41,6 +41,33 @@ public final class WaitEngine {
     }
 
     // ----------------------------------------------------------
+    // Basic waits
+    // ----------------------------------------------------------
+
+    /**
+     * Pauses the current thread for the given number of milliseconds.
+     *
+     * <p>Use sparingly — prefer {@link #waitForVisible(By)} and other explicit waits.
+     */
+    public static void waitMillis(long milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("[WaitEngine] Sleep interrupted", e);
+        }
+    }
+
+    /**
+     * Pauses the current thread for the given number of seconds.
+     *
+     * <p>Use sparingly — prefer {@link #waitForVisible(By)} and other explicit waits.
+     */
+    public static void waitSeconds(int seconds) {
+        waitMillis(seconds * 1000L);
+    }
+
+    // ----------------------------------------------------------
     // Visibility
     // ----------------------------------------------------------
 

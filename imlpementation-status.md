@@ -93,7 +93,7 @@ ID   Feature                                        Status    Priority
 28   HTML Reporting Engine (Rich UI)                Stable    High
 29   Execution metrics export to JSON               Stable    Medium
 30   Blocking session queue instead of fail-fast    Stable    Medium
-31   CI metadata integration (build, branch, env)   Planned   High
+31   CI metadata integration (build, branch, env)   Stable    High
 32   Historical trend tracking dashboard            Planned   Medium
 33   Plugin architecture for extensions             Stable    High
 34   Cloud provider integration layer               Stable    High

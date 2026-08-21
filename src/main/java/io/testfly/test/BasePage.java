@@ -67,6 +67,28 @@ public abstract class BasePage {
     }
 
     // ----------------------------------------------------------
+    // Basic waits
+    // ----------------------------------------------------------
+
+    /**
+     * Pauses execution for the given number of milliseconds.
+     *
+     * <p>Use sparingly — prefer explicit waits such as {@link #waitForVisible(By)}.
+     */
+    protected void waitMillis(long milliseconds) {
+        WaitEngine.waitMillis(milliseconds);
+    }
+
+    /**
+     * Pauses execution for the given number of seconds.
+     *
+     * <p>Use sparingly — prefer explicit waits such as {@link #waitForVisible(By)}.
+     */
+    protected void waitSeconds(int seconds) {
+        WaitEngine.waitSeconds(seconds);
+    }
+
+    // ----------------------------------------------------------
     // Core interaction helpers
     // ----------------------------------------------------------
 
@@ -744,4 +766,6 @@ public abstract class BasePage {
             "Checked: absolute path, classpath resources, and project-root relative path."
         );
     }
+
+    
 }

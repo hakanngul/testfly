@@ -11,12 +11,17 @@ browser:
 
 execution:
   mode: local
-  baseUrl: https://panjatan.netlify.app/
+  baseUrl: https://www.saucedemo.com/
   gridUrl: http://localhost:4444/wd/hub
 #  parallel: none/methods/classes
   parallel: methods
   threadCount: 4
   maxActiveSessions: 4
+
+api:
+  baseUrl: https://fakeapi.net
+  timeoutSeconds: 30
+  logBody: false
 
 retry:
   enabled: true
