@@ -4,6 +4,8 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.reporting.ScreenshotManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * StepLogger allows test authors to log named steps during test execution.
@@ -22,6 +24,8 @@ import io.testfly.reporting.ScreenshotManager;
  */
 @TestFlyApi(since = "0.7.0")
 public final class StepLogger {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(StepLogger.class);
 
     private StepLogger() {}
 
@@ -55,19 +59,19 @@ public final class StepLogger {
     private static void logWithBase64(String name, StepStatus status, String base64) {
         String testId = TestFlyContext.getCurrentTestId();
         if (testId == null) {
-            System.err.println("[StepLogger] No active test context — step ignored: " + name);
+            LOGGER.warn("[STEP] No active test context — step ignored: {}", name);
             return;
         }
         long startTime = ExecutionMetrics.getTestStartTime(testId);
         long offsetMs  = startTime > 0 ? System.currentTimeMillis() - startTime : 0L;
         ExecutionMetrics.recordStep(testId, new StepRecord(name, offsetMs, status.name(), base64));
-        System.out.printf("[StepLogger] [%-4s] +%dms  %s%n", status.name(), offsetMs, name);
+        LOGGER.info(formatStep(name, status, offsetMs));
     }
 
     private static void log(String name, StepStatus status, boolean screenshot) {
         String testId = TestFlyContext.getCurrentTestId();
         if (testId == null) {
-            System.err.println("[StepLogger] No active test context — step ignored: " + name);
+            LOGGER.warn("[STEP] No active test context — step ignored: {}", name);
             return;
         }
 
@@ -80,6 +84,14 @@ public final class StepLogger {
         }
 
         ExecutionMetrics.recordStep(testId, new StepRecord(name, offsetMs, status.name(), base64));
-        System.out.printf("[StepLogger] [%-4s] +%dms  %s%n", status.name(), offsetMs, name);
+        LOGGER.info(formatStep(name, status, offsetMs));
+    }
+
+    private static String formatStep(String name, StepStatus status, long offsetMs) {
+        String duration = String.format("%.3fs", offsetMs / 1000.0);
+        if (status == StepStatus.INFO) {
+            return String.format("[STEP] %s | Duration: %s", name, duration);
+        }
+        return String.format("[STEP][%s] %s | Duration: %s", status.name(), name, duration);
     }
 }

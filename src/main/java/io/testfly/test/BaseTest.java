@@ -31,6 +31,7 @@ import io.testfly.locator.Locator;
 import io.testfly.locator.Role;
 import io.testfly.network.NetworkMock;
 import io.testfly.session.MultiSessionManager;
+import io.testfly.steps.StepLogger;
 import io.testfly.testdata.TestDataStore;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -66,6 +67,7 @@ public abstract class BaseTest {
         if (baseURL == null || baseURL.isEmpty()) {
             throw new IllegalStateException("baseURL is null or empty");
         }
+        StepLogger.step("Open " + baseURL);
         getDriver().get(baseURL);
         if (ConsoleErrorCollector.isEnabled()) ConsoleErrorCollector.injectShim();
     }
@@ -80,6 +82,7 @@ public abstract class BaseTest {
         String normalized = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
 
         String fullUrl = normalized + path;
+        StepLogger.step("Open " + fullUrl);
         getDriver().get(fullUrl);
         if (ConsoleErrorCollector.isEnabled()) ConsoleErrorCollector.injectShim();
     }
@@ -266,31 +269,37 @@ public abstract class BaseTest {
 
     /** Full-page screenshot comparison against the stored baseline. */
     protected void assertScreenshot(String name) {
+        StepLogger.step("Assert screenshot: " + name);
         VisualAssert.assertScreenshot(name);
     }
 
     /** Full-page screenshot comparison with a custom pixel-difference tolerance. */
     protected void assertScreenshot(String name, VisualTolerance tolerance) {
+        StepLogger.step("Assert screenshot: " + name);
         VisualAssert.assertScreenshot(name, tolerance);
     }
 
     /** Element-scoped screenshot comparison against the stored baseline. */
     protected void assertScreenshot(String name, By region) {
+        StepLogger.step("Assert screenshot: " + name + " (" + region + ")");
         VisualAssert.assertScreenshot(name, region);
     }
 
     /** Element-scoped screenshot comparison with a custom tolerance. */
     protected void assertScreenshot(String name, By region, VisualTolerance tolerance) {
+        StepLogger.step("Assert screenshot: " + name + " (" + region + ")");
         VisualAssert.assertScreenshot(name, region, tolerance);
     }
 
     /** Applies a named device profile (e.g. {@code "iPhone 14"}) to the current browser session. */
     protected void emulateDevice(String deviceName) {
+        StepLogger.step("Emulate device: " + deviceName);
         DeviceEmulator.emulate(deviceName);
     }
 
     /** Resets device emulation (restores desktop viewport and default user-agent). */
     protected void resetDevice() {
+        StepLogger.step("Reset device emulation");
         DeviceEmulator.reset();
     }
 
@@ -309,6 +318,7 @@ public abstract class BaseTest {
      * </pre>
      */
     protected WebDriver session(String name) {
+        StepLogger.step("Get session: " + name);
         return MultiSessionManager.getSession(name);
     }
 
@@ -329,6 +339,7 @@ public abstract class BaseTest {
      * </pre>
      */
     protected void withSession(String name, MultiSessionManager.SessionAction action) {
+        StepLogger.step("Switch to session: " + name);
         MultiSessionManager.withSession(name, action);
     }
 
@@ -409,6 +420,7 @@ public abstract class BaseTest {
      * assertions are silently skipped (not failed).
      */
     protected PerformanceAssert assertPerformance() {
+        StepLogger.step("Assert performance (Core Web Vitals)");
         return PerformanceAssert.of(PerformanceCollector.collect());
     }
 
@@ -421,6 +433,7 @@ public abstract class BaseTest {
      * </pre>
      */
     protected PerformanceMetrics collectPerformance() {
+        StepLogger.step("Collect performance (Core Web Vitals)");
         return PerformanceCollector.collect();
     }
 
@@ -473,6 +486,7 @@ public abstract class BaseTest {
      * The library is injected once per page load and reused for subsequent calls.
      */
     protected AccessibilityAssert accessibility() {
+        StepLogger.step("Run accessibility scan");
         return AccessibilityAssert.create();
     }
 

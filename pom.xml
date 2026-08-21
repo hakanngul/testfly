@@ -158,6 +158,19 @@
             <optional>true</optional>
         </dependency>
 
+        <!--
+            Guice is required by TestNG's SuiteRunner at runtime when listeners are
+            registered programmatically (e.g. ReportPortal). TestNG declares it optional,
+            so it is not pulled transitively; we include it here so TestFly's own tests
+            and ReportPortal-enabled consumers have it on the classpath.
+        -->
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>5.1.0</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Unit-test tooling (test scope only) -->
         <dependency>
             <groupId>org.mockito</groupId>
@@ -166,11 +179,34 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- SLF4J binding — silences "StaticLoggerBinder" warnings during local test runs. -->
+        <!--
+            SLF4J API — used by StepLogger and framework internals.
+            TestNG 7.9.0 declares slf4j-api 1.7.36; we override to 2.0.x because
+            logback-classic 1.5.x / ReportPortal logback appender require SLF4J 2.x.
+            SLF4J 2.0 is backward-compatible with 1.7 callers, so TestNG remains happy.
+        -->
         <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.7.36</version>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.16</version>
+        </dependency>
+
+        <!--
+            ReportPortal logging stack for TestFly's own tests.
+            These are test-scope only so consumers can choose their own SLF4J binding.
+            ReportPortal TestNG agent captures test structure; logback + logger-java-logback
+            sends application logs to the active RP launch.
+        -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.5.8</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.epam.reportportal</groupId>
+            <artifactId>logger-java-logback</artifactId>
+            <version>5.3.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

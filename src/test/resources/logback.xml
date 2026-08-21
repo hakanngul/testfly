@@ -1,0 +1,27 @@
+<configuration>
+
+    <!-- Console output for local test runs -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%level] %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ReportPortal appender: sends every log to the active RP launch/test -->
+    <appender name="RP" class="com.epam.reportportal.logback.appender.ReportPortalAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%level] %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Keep TestFly/Selenium noise reasonable -->
+    <logger name="io.testfly" level="INFO"/>
+    <logger name="org.openqa.selenium" level="WARN"/>
+    <logger name="com.epam.reportportal" level="INFO"/>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="RP"/>
+    </root>
+
+</configuration>

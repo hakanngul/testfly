@@ -1,6 +1,7 @@
 package io.testfly.db;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.steps.StepLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -69,6 +70,7 @@ public final class DbClient {
      * </pre>
      */
     public DbQuery query(String sql, Object... params) {
+        StepLogger.step("[DB] Query: " + sql);
         return new DbQuery(datasourceName, sql, params);
     }
 
@@ -82,6 +84,7 @@ public final class DbClient {
      * @throws DbAssertException if the query returns no rows
      */
     public Object scalar(String sql, Object... params) {
+        StepLogger.step("[DB] Scalar: " + sql);
         try {
             Connection conn = DbConnectionFactory.getConnection(datasourceName);
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -112,6 +115,7 @@ public final class DbClient {
      * @throws DbAssertException if no matching row is found
      */
     public void assertRowExists(String table, Map<String, Object> conditions) {
+        StepLogger.step("[DB] Assert row exists in '" + table + "'");
         long count = countWhere(table, conditions);
         if (count == 0) {
             throw new DbAssertException(

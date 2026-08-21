@@ -1,6 +1,6 @@
 browser:
   name: chrome
-  headless: false
+  headless: true
   arguments:
     - --start-maximized
     - --disable-notifications
@@ -30,3 +30,15 @@ retry:
 timeouts:
   explicit: 10
   pageLoad: 30
+
+reporting:
+  allureEnabled: true
+  reportPortal:
+    enabled: true
+    endpoint: https://reportportal.starlettech.tech
+    apiKey: mobile_o5IMKqyCTm6EPJtn6Q4Jrc7GtURTOQoUSHGFkmdlmPh0mmea4JwgTA7PddZo4sfY
+    project: demo-web
+    launch: "Demo Web- DEV"
+    description: "My awesome launch"
+    attributes: "env:dev"
+    mode: default

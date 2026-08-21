@@ -18,6 +18,8 @@ import io.testfly.reporting.ReportAdapterRegistry;
 import io.testfly.testmanagement.TestManagementReporter;
 import org.testng.ISuite;
 import org.testng.ISuiteListener;
+import org.testng.ITestNGListener;
+import org.testng.SuiteRunner;
 import org.testng.xml.XmlSuite;
 
 /**
@@ -98,13 +100,57 @@ public final class SuiteExecutionListener implements ISuiteListener {
             return;
         }
         try {
-            Class.forName(REPORTPORTAL_TESTNG_LISTENER);
-            suite.getXmlSuite().addListener(REPORTPORTAL_TESTNG_LISTENER);
+            Class<?> listenerClass = Class.forName(REPORTPORTAL_TESTNG_LISTENER);
+            Object listener = listenerClass.getDeclaredConstructor().newInstance();
+
+            // ReportPortalTestNGListener is added dynamically here, which happens after
+            // TestNG has already fired IExecutionListener.onExecutionStart() and
+            // ISuiteListener.onStart(ISuite). Replay those two calls manually so the
+            // launch and suite are created in ReportPortal; TestNG will route the
+            // remaining test-method events to the listener registered below.
+            invokeListenerMethod(listenerClass, listener, "onExecutionStart", new Class<?>[0], new Object[0]);
+            invokeListenerMethod(listenerClass, listener, "onStart", new Class<?>[]{ISuite.class}, new Object[]{suite});
+
+            // Register the same instance with TestNG so it receives test-method events.
+            // XmlSuite.addListener(String) would create a second instance and miss the
+            // replayed lifecycle calls above, so we use the runtime SuiteRunner API.
+            addListenerInstance(suite, listener);
             System.out.println("[TestFly] ReportPortal TestNG listener registered");
         } catch (ClassNotFoundException e) {
             System.err.println(
                     "[TestFly] ReportPortal is enabled but the TestNG agent is not on the classpath. "
                             + "Add com.epam.reportportal:agent-java-testng to your project dependencies.");
+        } catch (Exception e) {
+            System.err.println("[TestFly] Failed to register ReportPortal listener: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void invokeListenerMethod(Class<?> listenerClass, Object listener,
+                                      String methodName, Class<?>[] paramTypes, Object[] args) {
+        try {
+            java.lang.reflect.Method method = listenerClass.getMethod(methodName, paramTypes);
+            method.invoke(listener, args);
+        } catch (NoSuchMethodException e) {
+            // Older agent versions may not expose this lifecycle method; ignore.
+        } catch (Exception e) {
+            System.err.println("[TestFly] Failed to replay ReportPortal listener method "
+                    + methodName + ": " + e.getMessage());
+        }
+    }
+
+    private void addListenerInstance(ISuite suite, Object listener) {
+        try {
+            if (suite instanceof SuiteRunner runner && listener instanceof ITestNGListener testNgListener) {
+                runner.addListener(testNgListener);
+            } else {
+                // Runtime shape doesn't match expectations; fall back to class-name registration
+                // (accepts duplicated lifecycle calls).
+                suite.getXmlSuite().addListener(REPORTPORTAL_TESTNG_LISTENER);
+            }
+        } catch (Exception e) {
+            System.err.println("[TestFly] Failed to add ReportPortal listener instance: " + e.getMessage());
+            suite.getXmlSuite().addListener(REPORTPORTAL_TESTNG_LISTENER);
         }
     }
 

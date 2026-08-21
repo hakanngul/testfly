@@ -3,6 +3,7 @@ package io.testfly.locator;
 import io.testfly.api.TestFlyApi;
 import io.testfly.driver.DriverManager;
 import io.testfly.internal.TestFlyContext;
+import io.testfly.steps.StepLogger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -221,11 +222,13 @@ public final class Locator {
 
     /** Waits for the element to be clickable, then clicks it. */
     public void click() {
+        StepLogger.step("Click " + this);
         waitForClickable(resolve()).click();
     }
 
     /** Waits for the element to be visible, clears it, then types the given text. */
     public void type(String text) {
+        StepLogger.step("Type into " + this);
         WebElement el = waitForVisible(resolve());
         el.clear();
         el.sendKeys(text);
@@ -233,6 +236,7 @@ public final class Locator {
 
     /** Appends text without clearing first. */
     public void append(String text) {
+        StepLogger.step("Append into " + this);
         waitForVisible(resolve()).sendKeys(text);
     }
 
@@ -271,18 +275,21 @@ public final class Locator {
 
     /** Hovers over the element using Actions. */
     public void hover() {
+        StepLogger.step("Hover " + this);
         WebElement el = waitForVisible(resolve());
         new Actions(driver()).moveToElement(el).perform();
     }
 
     /** Scrolls the element into view using JavaScript. */
     public void scrollIntoView() {
+        StepLogger.step("Scroll into view " + this);
         WebElement el = waitForVisible(resolve());
         ((JavascriptExecutor) driver()).executeScript("arguments[0].scrollIntoView(true);", el);
     }
 
     /** Clicks using JavaScript — useful when element is obscured. */
     public void jsClick() {
+        StepLogger.step("JS click " + this);
         WebElement el = waitForVisible(resolve());
         ((JavascriptExecutor) driver()).executeScript("arguments[0].click();", el);
     }

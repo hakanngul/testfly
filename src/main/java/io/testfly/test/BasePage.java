@@ -16,6 +16,7 @@ import io.testfly.locator.Locator;
 import io.testfly.locator.Role;
 import io.testfly.network.NetworkMock;
 import io.testfly.shadow.ShadowDom;
+import io.testfly.steps.StepLogger;
 import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
@@ -96,6 +97,7 @@ public abstract class BasePage {
      * Waits for the element to be clickable, then clicks it.
      */
     protected void click(By locator) {
+        StepLogger.step("Click " + locator);
         WaitEngine.waitForClickable(locator).click();
     }
 
@@ -103,6 +105,7 @@ public abstract class BasePage {
      * Waits for the element to be visible, clears it, then types the given text.
      */
     protected void type(By locator, String text) {
+        StepLogger.step("Type into " + locator);
         WebElement el = WaitEngine.waitForVisible(locator);
         el.clear();
         el.sendKeys(text);
@@ -144,6 +147,7 @@ public abstract class BasePage {
      * <pre>selectByText(By.id("country"), "United Kingdom");</pre>
      */
     protected void selectByText(By locator, String text) {
+        StepLogger.step("Select by text in " + locator);
         new Select(WaitEngine.waitForVisible(locator)).selectByVisibleText(text);
     }
 
@@ -153,6 +157,7 @@ public abstract class BasePage {
      * <pre>selectByValue(By.id("status"), "active");</pre>
      */
     protected void selectByValue(By locator, String value) {
+        StepLogger.step("Select by value in " + locator);
         new Select(WaitEngine.waitForVisible(locator)).selectByValue(value);
     }
 
@@ -162,6 +167,7 @@ public abstract class BasePage {
      * <pre>selectByIndex(By.id("month"), 2);</pre>
      */
     protected void selectByIndex(By locator, int index) {
+        StepLogger.step("Select by index in " + locator);
         new Select(WaitEngine.waitForVisible(locator)).selectByIndex(index);
     }
 
@@ -180,6 +186,7 @@ public abstract class BasePage {
      * Waits for a browser alert to be present, then accepts it (clicks OK).
      */
     protected void acceptAlert() {
+        StepLogger.step("Accept alert");
         waitForAlert().accept();
     }
 
@@ -187,6 +194,7 @@ public abstract class BasePage {
      * Waits for a browser alert to be present, then dismisses it (clicks Cancel).
      */
     protected void dismissAlert() {
+        StepLogger.step("Dismiss alert");
         waitForAlert().dismiss();
     }
 
@@ -204,6 +212,7 @@ public abstract class BasePage {
      * <pre>String msg = getAndAcceptAlert();</pre>
      */
     protected String getAndAcceptAlert() {
+        StepLogger.step("Get and accept alert");
         Alert alert = waitForAlert();
         String text = alert.getText();
         alert.accept();
@@ -216,6 +225,7 @@ public abstract class BasePage {
      * <pre>typeInAlert("my input");</pre>
      */
     protected void typeInAlert(String text) {
+        StepLogger.step("Type in alert");
         Alert alert = waitForAlert();
         alert.sendKeys(text);
         alert.accept();
@@ -237,6 +247,7 @@ public abstract class BasePage {
      * <pre>hover(By.id("menu-item"));</pre>
      */
     protected void hover(By locator) {
+        StepLogger.step("Hover " + locator);
         WebElement el = WaitEngine.waitForVisible(locator);
         new Actions(driver).moveToElement(el).perform();
     }
@@ -245,6 +256,7 @@ public abstract class BasePage {
      * Double-clicks the element.
      */
     protected void doubleClick(By locator) {
+        StepLogger.step("Double-click " + locator);
         WebElement el = WaitEngine.waitForClickable(locator);
         new Actions(driver).doubleClick(el).perform();
     }
@@ -253,6 +265,7 @@ public abstract class BasePage {
      * Right-clicks (context menu) the element.
      */
     protected void rightClick(By locator) {
+        StepLogger.step("Right-click " + locator);
         WebElement el = WaitEngine.waitForVisible(locator);
         new Actions(driver).contextClick(el).perform();
     }
@@ -267,6 +280,7 @@ public abstract class BasePage {
      * <pre>scrollTo(By.id("footer"));</pre>
      */
     protected void scrollTo(By locator) {
+        StepLogger.step("Scroll to " + locator);
         WebElement el = driver.findElement(locator);
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", el);
     }
@@ -275,6 +289,7 @@ public abstract class BasePage {
      * Scrolls the page to the very top.
      */
     protected void scrollToTop() {
+        StepLogger.step("Scroll to top");
         ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, 0);");
     }
 
@@ -282,6 +297,7 @@ public abstract class BasePage {
      * Scrolls the page to the very bottom.
      */
     protected void scrollToBottom() {
+        StepLogger.step("Scroll to bottom");
         ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, document.body.scrollHeight);");
     }
 
@@ -295,6 +311,7 @@ public abstract class BasePage {
      * <pre>jsClick(By.id("hidden-trigger"));</pre>
      */
     protected void jsClick(By locator) {
+        StepLogger.step("JS click " + locator);
         WebElement el = driver.findElement(locator);
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
     }
@@ -306,6 +323,7 @@ public abstract class BasePage {
      * <pre>jsType(By.id("date-picker"), "2025-01-01");</pre>
      */
     protected void jsType(By locator, String text) {
+        StepLogger.step("JS type into " + locator);
         WebElement el = driver.findElement(locator);
         ((JavascriptExecutor) driver).executeScript("arguments[0].value = arguments[1];", el, text);
     }
@@ -373,6 +391,7 @@ public abstract class BasePage {
      * </pre>
      */
     protected void withinFrame(By frameLocator, Runnable action) {
+        StepLogger.step("Switch to frame " + frameLocator);
         WebElement frame = WaitEngine.waitForVisible(frameLocator);
         driver.switchTo().frame(frame);
         FRAME_DEPTH.set(FRAME_DEPTH.get() + 1);
@@ -388,6 +407,7 @@ public abstract class BasePage {
      * then restores the previous context. Safe to nest.
      */
     protected void withinFrameIndex(int index, Runnable action) {
+        StepLogger.step("Switch to frame index " + index);
         driver.switchTo().frame(index);
         FRAME_DEPTH.set(FRAME_DEPTH.get() + 1);
         try {
@@ -402,6 +422,7 @@ public abstract class BasePage {
      * then restores the previous context. Safe to nest.
      */
     protected void withinFrameName(String nameOrId, Runnable action) {
+        StepLogger.step("Switch to frame \"" + nameOrId + "\"");
         driver.switchTo().frame(nameOrId);
         FRAME_DEPTH.set(FRAME_DEPTH.get() + 1);
         try {
@@ -454,6 +475,7 @@ public abstract class BasePage {
      * <pre>shadowClick(By.cssSelector("my-form"), "#submit-btn");</pre>
      */
     protected void shadowClick(By hostLocator, String innerCss) {
+        StepLogger.step("Shadow click " + hostLocator + " / " + innerCss);
         ShadowDom.find(hostLocator, innerCss).click();
     }
 
@@ -463,6 +485,7 @@ public abstract class BasePage {
      * <pre>shadowType(By.cssSelector("my-form"), "#email", "user@example.com");</pre>
      */
     protected void shadowType(By hostLocator, String innerCss, String text) {
+        StepLogger.step("Shadow type into " + hostLocator + " / " + innerCss);
         WebElement el = ShadowDom.find(hostLocator, innerCss);
         el.clear();
         el.sendKeys(text);
@@ -516,6 +539,7 @@ public abstract class BasePage {
      * </pre>
      */
     protected void upload(By inputLocator, String filePath) {
+        StepLogger.step("Upload file to " + inputLocator);
         String absolutePath = resolveFilePath(filePath);
         WebElement input = WaitEngine.waitForVisible(inputLocator);
         input.sendKeys(absolutePath);
@@ -694,6 +718,7 @@ public abstract class BasePage {
      * <pre>assertScreenshot("homepage");</pre>
      */
     protected void assertScreenshot(String name) {
+        StepLogger.step("Assert screenshot: " + name);
         VisualAssert.assertScreenshot(name);
     }
 
@@ -703,6 +728,7 @@ public abstract class BasePage {
      * <pre>assertScreenshot("homepage", VisualTolerance.of(2));</pre>
      */
     protected void assertScreenshot(String name, VisualTolerance tolerance) {
+        StepLogger.step("Assert screenshot: " + name);
         VisualAssert.assertScreenshot(name, tolerance);
     }
 
@@ -712,6 +738,7 @@ public abstract class BasePage {
      * <pre>assertScreenshot("login-form", By.id("login-form"));</pre>
      */
     protected void assertScreenshot(String name, By region) {
+        StepLogger.step("Assert screenshot: " + name + " (" + region + ")");
         VisualAssert.assertScreenshot(name, region);
     }
 
@@ -721,6 +748,7 @@ public abstract class BasePage {
      * <pre>assertScreenshot("login-form", By.id("login-form"), VisualTolerance.of(1));</pre>
      */
     protected void assertScreenshot(String name, By region, VisualTolerance tolerance) {
+        StepLogger.step("Assert screenshot: " + name + " (" + region + ")");
         VisualAssert.assertScreenshot(name, region, tolerance);
     }
 
@@ -730,6 +758,7 @@ public abstract class BasePage {
      * <pre>emulateDevice("Pixel 7");</pre>
      */
     protected void emulateDevice(String deviceName) {
+        StepLogger.step("Emulate device: " + deviceName);
         DeviceEmulator.emulate(deviceName);
     }
 
@@ -737,6 +766,7 @@ public abstract class BasePage {
      * Resets device emulation (restores desktop viewport and default user-agent).
      */
     protected void resetDevice() {
+        StepLogger.step("Reset device emulation");
         DeviceEmulator.reset();
     }
 
