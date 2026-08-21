@@ -21,9 +21,7 @@ public class LoginPage extends BasePage {
     public void login(String username, String password) {
         type(USERNAME, username);
         type(PASSWORD, password);
-        waitSeconds(5);
         click(LOGIN_BUTTON);
-        waitSeconds(3);
     }
 
     public boolean isErrorDisplayed() {

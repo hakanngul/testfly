@@ -18,6 +18,20 @@ public class LocalChromeDriverProvider implements DriverProvider {
     @Override
     public WebDriver createDriver() {
         TestFlyConfig config = TestFlyContext.getConfig();
+        ChromeOptions options = buildOptions(config);
+
+        WebDriver driver = new ChromeDriver(options);
+        driver.manage().timeouts().implicitlyWait(Duration.ZERO);
+        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(config.getTimeouts().getPageLoad()));
+
+        return driver;
+    }
+
+    /**
+     * Builds the {@link ChromeOptions} for a local Chrome session. Exposed as
+     * package-private so it can be unit-tested without launching a browser.
+     */
+    static ChromeOptions buildOptions(TestFlyConfig config) {
         ChromeOptions options = new ChromeOptions();
 
 //        ChromeOption Arguments Validation
@@ -59,6 +73,13 @@ public class LocalChromeDriverProvider implements DriverProvider {
             prefs.put("download.default_directory", downloadDir);
             prefs.put("download.prompt_for_download", false);
             prefs.put("download.directory_upgrade", true);
+
+            // Disable Chrome password manager and leak-detection warnings so they
+            // do not interrupt automated test flows (e.g. data-breach pop-ups).
+            prefs.put("profile.password_manager_enabled", false);
+            prefs.put("profile.password_manager_leak_detection", false);
+            prefs.put("credentials_enable_service", false);
+
             options.setExperimentalOption("prefs", prefs);
         }
 
@@ -67,11 +88,6 @@ public class LocalChromeDriverProvider implements DriverProvider {
         // the next WebDriver command executes, making driver.switchTo().alert() fail.
         options.setCapability("unhandledPromptBehavior", "ignore");
 
-        WebDriver driver = new ChromeDriver(options);
-        driver.manage().timeouts().implicitlyWait(Duration.ZERO);
-
-        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(config.getTimeouts().getPageLoad()));
-
-        return driver;
+        return options;
     }
 }
