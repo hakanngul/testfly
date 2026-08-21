@@ -314,7 +314,7 @@ public final class TestFlyConfig {
     }
 
     /**
-     * CI/CD build quality gates.
+     * CI/CD build quality gates and metadata capture.
      * All thresholds are disabled by default (0 / -1).
      */
     public static final class Ci {
@@ -330,6 +330,14 @@ public final class TestFlyConfig {
          */
         private int maxFlakyTests = -1;
 
+        /**
+         * Capture structured CI metadata (provider, branch, commit, build URL, etc.)
+         * and include it in HTML/JUnit reports and metrics JSON.
+         * {@code null} means "auto" — capture when running inside a recognized CI
+         * environment. Set to {@code false} to disable, or {@code true} to force.
+         */
+        private Boolean captureMetadata;
+
         public double getFailOnPassRateBelow() {
             return failOnPassRateBelow;
         }
@@ -342,6 +350,18 @@ public final class TestFlyConfig {
         }
         public void setMaxFlakyTests(int maxFlakyTests) {
             this.maxFlakyTests = maxFlakyTests;
+        }
+
+        /**
+         * Returns true if metadata capture is enabled. When the user has not
+         * explicitly configured the flag, it defaults to {@code true} only
+         * when running inside a recognized CI environment.
+         */
+        public boolean isCaptureMetadata() {
+            return captureMetadata != null ? captureMetadata : io.testfly.ci.CiEnvironmentDetector.isCI();
+        }
+        public void setCaptureMetadata(boolean captureMetadata) {
+            this.captureMetadata = captureMetadata;
         }
     }
 

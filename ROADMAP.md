@@ -31,6 +31,7 @@ Most users find a framework by searching, not by browsing GitHub.
 
 - ✅ More built-in `WaitEngine` conditions requested by users.
 - ✅ Additional first-class browser providers (Edge, Safari) via the existing SPI.
+- ✅ CI metadata capture — provider, build, branch, commit, and build URL auto-detected from major CI/CD platforms and surfaced in HTML/JUnit reports and metrics JSON.
 - **testfly-mcp** — keep MCP codegen output framework-native and accessibility-first as the API evolves. (See the [MCP repo](https://github.com/testfly/testfly-mcp).)
 
 ### Ongoing quality

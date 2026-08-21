@@ -1,5 +1,9 @@
 package io.testfly.reporting;
 
+import io.testfly.ci.CiEnvironmentDetector;
+import io.testfly.ci.CiMetadata;
+import io.testfly.config.TestFlyConfig;
+import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.metrics.TestTiming;
 
@@ -87,6 +91,8 @@ public final class JUnitXmlReporter {
                 + "skipped=\"%d\" errors=\"0\" time=\"%.3f\">\n",
                 escapeXml(suiteName), total, failed, skipped, totalDurationMs / 1000.0));
 
+        appendCiProperties(xml);
+
         for (TestTiming t : timings) {
             String status  = t.getStatus() != null ? t.getStatus() : "UNKNOWN";
             double seconds = t.getTotalTime() / 1000.0;
@@ -125,6 +131,28 @@ public final class JUnitXmlReporter {
             System.err.println("[TestFly] Failed to write JUnit XML report: "
                     + e.getMessage());
         }
+    }
+
+    private static void appendCiProperties(StringBuilder xml) {
+        if (!TestFlyContext.isInitialized()) {
+            return;
+        }
+        TestFlyConfig.Ci ciConfig = TestFlyContext.getConfig().getCi();
+        if (ciConfig == null || !ciConfig.isCaptureMetadata()) {
+            return;
+        }
+        CiMetadata metadata = ExecutionMetrics.getCiMetadata();
+        Map<String, Object> props = (metadata != null ? metadata : CiEnvironmentDetector.captureMetadata()).toMap();
+        if (props.isEmpty()) {
+            return;
+        }
+        xml.append("  <properties>\n");
+        for (Map.Entry<String, Object> entry : props.entrySet()) {
+            xml.append("    <property name=\"").append(escapeXml(entry.getKey()))
+               .append("\" value=\"").append(escapeXml(String.valueOf(entry.getValue())))
+               .append("\"/>\n");
+        }
+        xml.append("  </properties>\n");
     }
 
     private static String capitalize(String s) {

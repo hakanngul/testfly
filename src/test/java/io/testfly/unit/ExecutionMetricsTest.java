@@ -1,5 +1,8 @@
 package io.testfly.unit;
 
+import io.testfly.ci.CiMetadata;
+import io.testfly.config.TestFlyConfig;
+import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.metrics.TestTiming;
 import org.testng.annotations.AfterMethod;
@@ -8,9 +11,11 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.testng.Assert.*;
 
@@ -26,8 +31,41 @@ public class ExecutionMetricsTest {
     }
 
     @AfterMethod
-    public void cleanUp() {
+    public void cleanUp() throws Exception {
         ExecutionMetrics.reset();
+        resetTestFlyContext();
+    }
+
+    private static void resetTestFlyContext() throws Exception {
+        Field configField = TestFlyContext.class.getDeclaredField("CONFIG");
+        configField.setAccessible(true);
+        AtomicReference<?> ref = (AtomicReference<?>) configField.get(null);
+        ref.set(null);
+    }
+
+    private static TestFlyConfig minimalConfig(boolean captureMetadata) {
+        TestFlyConfig config = new TestFlyConfig();
+
+        TestFlyConfig.Browser browser = new TestFlyConfig.Browser();
+        browser.setName("chrome");
+        config.setBrowser(browser);
+
+        TestFlyConfig.Execution execution = new TestFlyConfig.Execution();
+        execution.setMode("local");
+        execution.setBaseUrl("https://example.com");
+        execution.setMaxActiveSessions(5);
+        config.setExecution(execution);
+
+        TestFlyConfig.Timeouts timeouts = new TestFlyConfig.Timeouts();
+        timeouts.setExplicit(10);
+        timeouts.setPageLoad(30);
+        config.setTimeouts(timeouts);
+
+        TestFlyConfig.Ci ci = new TestFlyConfig.Ci();
+        ci.setCaptureMetadata(captureMetadata);
+        config.setCi(ci);
+
+        return config;
     }
 
     // ----------------------------------------------------------
@@ -207,6 +245,56 @@ public class ExecutionMetricsTest {
         String json = Files.readString(new File("target/testfly-metrics.json").toPath());
         assertTrue(json.contains("\"flakyTests\""),     "JSON must include top-level flakyTests");
         assertTrue(json.contains("\"recoveredTests\""), "JSON must include top-level recoveredTests");
+    }
+
+    // ----------------------------------------------------------
+    // exportToJson — CI metadata
+    // ----------------------------------------------------------
+
+    @Test
+    public void exportToJson_withoutContext_doesNotIncludeCiBlock() throws IOException {
+        ExecutionMetrics.markStart("ci-test-1");
+        ExecutionMetrics.markEnd("ci-test-1");
+        ExecutionMetrics.recordStatus("ci-test-1", "PASSED");
+        ExecutionMetrics.exportToJson();
+
+        String json = Files.readString(new File("target/testfly-metrics.json").toPath());
+        assertFalse(json.contains("\"ci\""), "CI block should not appear when context is uninitialized");
+    }
+
+    @Test
+    public void exportToJson_withContextButCaptureDisabled_doesNotIncludeCiBlock() throws IOException {
+        TestFlyContext.initialize(minimalConfig(false));
+
+        ExecutionMetrics.markStart("ci-test-2");
+        ExecutionMetrics.markEnd("ci-test-2");
+        ExecutionMetrics.recordStatus("ci-test-2", "PASSED");
+        ExecutionMetrics.exportToJson();
+
+        String json = Files.readString(new File("target/testfly-metrics.json").toPath());
+        assertFalse(json.contains("\"ci\""), "CI block should not appear when captureMetadata is disabled");
+    }
+
+    @Test
+    public void exportToJson_withCaptureEnabledAndMetadata_includesCiBlock() throws IOException {
+        TestFlyContext.initialize(minimalConfig(true));
+        ExecutionMetrics.setCiMetadata(new CiMetadata(
+                "GitHub Actions", "42", "123", "main",
+                "abc123", null, "https://example.com/run/123",
+                "unit-tests", null, "testfly/testfly",
+                "hagul", "agent-1", null));
+
+        ExecutionMetrics.markStart("ci-test-3");
+        ExecutionMetrics.markEnd("ci-test-3");
+        ExecutionMetrics.recordStatus("ci-test-3", "PASSED");
+        ExecutionMetrics.exportToJson();
+
+        String json = Files.readString(new File("target/testfly-metrics.json").toPath());
+        assertTrue(json.contains("\"ci\""), "CI block must be present");
+        assertTrue(json.contains("\"provider\""), "CI block must include provider");
+        assertTrue(json.contains("GitHub Actions"), "CI provider value must be written");
+        assertTrue(json.contains("\"buildNumber\""), "CI build number key must be written");
+        assertTrue(json.contains("\"42\""), "CI build number value must be written");
     }
 
     // ----------------------------------------------------------

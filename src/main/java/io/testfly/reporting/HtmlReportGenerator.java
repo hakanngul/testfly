@@ -58,9 +58,6 @@ public final class HtmlReportGenerator {
 
     private static String buildMetadataSection(JsonNode root) {
         String profile = System.getProperty("testfly.profile", "default");
-        String buildNumber = System.getenv().getOrDefault("BUILD_NUMBER", "local");
-        String branch = System.getenv().getOrDefault("GIT_BRANCH", "local");
-        String commit = System.getenv().getOrDefault("GIT_COMMIT", "unknown");
 
         TestFlyConfig config = TestFlyContext.getConfig();
 
@@ -85,6 +82,8 @@ public final class HtmlReportGenerator {
         String timestamp = java.time.LocalDateTime.now()
                 .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
+        JsonNode ci = root.has("ci") ? root.get("ci") : null;
+
         StringBuilder sb = new StringBuilder();
         sb.append("<div class=\"card metadata-card\" style=\"margin-bottom:24px;\">\n");
         sb.append("  <div class=\"card-header\">Build Metadata</div>\n");
@@ -102,16 +101,44 @@ public final class HtmlReportGenerator {
         appendMetaItem(sb, "Retry", retryEnabled ? "Enabled (max " + maxAttempts + ")" : "Disabled");
         appendMetaItem(sb, "Explicit Timeout", explicitTimeout + "s");
         appendMetaItem(sb, "Page Load Timeout", pageLoadTimeout + "s");
-        appendMetaItem(sb, "Build Number", buildNumber);
-        appendMetaItem(sb, "Branch", branch);
-        appendMetaItem(sb, "Commit", commit);
+        appendMetaItem(sb, "CI Provider", ciText(ci, "provider"));
+        appendMetaItem(sb, "Build Number", ciText(ci, "buildNumber"));
+        appendMetaItem(sb, "Build ID", ciText(ci, "buildId"));
+        appendMetaItem(sb, "Branch", ciText(ci, "branch"));
+        appendMetaItem(sb, "Commit", ciText(ci, "commitSha"));
+        appendMetaItem(sb, "Repository", ciText(ci, "repository"));
+        appendMetaItem(sb, "Actor", ciText(ci, "actor"));
+        appendMetaItem(sb, "Job Name", ciText(ci, "jobName"));
+        appendMetaItem(sb, "Pull Request", ciText(ci, "pullRequest"));
+        appendMetaItem(sb, "Agent Name", ciText(ci, "agentName"));
+        appendMetaItem(sb, "Environment", ciText(ci, "environment"));
         appendMetaItem(sb, "Generated At", timestamp);
+
+        String buildUrl = ciUrl(ci);
+        if (buildUrl != null) {
+            sb.append("      <div class=\"meta-item\">\n");
+            sb.append("        <span class=\"meta-label\">Build URL</span>\n");
+            sb.append("        <span class=\"meta-value\"><a href=\"").append(escapeHtml(buildUrl)).append("\" target=\"_blank\">").append(escapeHtml(buildUrl)).append("</a></span>\n");
+            sb.append("      </div>\n");
+        }
 
         sb.append("    </div>\n");
         sb.append("  </div>\n");
         sb.append("</div>\n");
 
         return sb.toString();
+    }
+
+    private static String ciText(JsonNode ci, String field) {
+        if (ci == null || !ci.has(field)) return "—";
+        String value = ci.get(field).asText();
+        return value != null && !value.isBlank() ? value : "—";
+    }
+
+    private static String ciUrl(JsonNode ci) {
+        if (ci == null || !ci.has("buildUrl")) return null;
+        String value = ci.get("buildUrl").asText();
+        return value != null && !value.isBlank() ? value : null;
     }
 
     private static String buildScreenshotCell(JsonNode test) {

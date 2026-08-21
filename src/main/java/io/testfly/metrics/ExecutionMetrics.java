@@ -2,6 +2,10 @@ package io.testfly.metrics;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.testfly.ci.CiEnvironmentDetector;
+import io.testfly.ci.CiMetadata;
+import io.testfly.config.TestFlyConfig;
+import io.testfly.internal.TestFlyContext;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +23,8 @@ public final class ExecutionMetrics {
 
     private static final AtomicLong TOTAL_DURATION =
             new AtomicLong(0);
+
+    private static volatile io.testfly.ci.CiMetadata CI_METADATA = null;
 
     private ExecutionMetrics() {}
 
@@ -113,6 +119,24 @@ public final class ExecutionMetrics {
 
     public static TestTiming getTiming(String testId) {
         return TIMINGS.get(testId);
+    }
+
+    /**
+     * Overrides the CI metadata that will be written into the metrics JSON.
+     * When {@code null} (the default), {@link io.testfly.ci.CiEnvironmentDetector}
+     * is queried at export time. Useful for tests and for pipelines that want
+     * to inject pre-computed metadata.
+     */
+    public static void setCiMetadata(io.testfly.ci.CiMetadata metadata) {
+        CI_METADATA = metadata;
+    }
+
+    /**
+     * Returns the currently configured CI metadata override, or {@code null}
+     * if no override has been set.
+     */
+    public static io.testfly.ci.CiMetadata getCiMetadata() {
+        return CI_METADATA;
     }
 
     // ==========================================================
@@ -294,6 +318,17 @@ public final class ExecutionMetrics {
         report.put("averageTimeMs",
                 totalTests == 0 ? 0 : totalTime / totalTests);
 
+        if (TestFlyContext.isInitialized()) {
+            TestFlyConfig.Ci ciConfig = TestFlyContext.getConfig().getCi();
+            if (ciConfig != null && ciConfig.isCaptureMetadata()) {
+                CiMetadata ci = CI_METADATA != null ? CI_METADATA : CiEnvironmentDetector.captureMetadata();
+                Map<String, Object> ciMap = ci.toMap();
+                if (!ciMap.isEmpty()) {
+                    report.put("ci", ciMap);
+                }
+            }
+        }
+
         if (!totalDurations.isEmpty()) {
 
             Map<String, Object> percentiles = new LinkedHashMap<>();
@@ -426,6 +461,7 @@ public final class ExecutionMetrics {
         START_TIMES.clear();
         TIMINGS.clear();
         TOTAL_DURATION.set(0);
+        CI_METADATA = null;
     }
 
     // ==========================================================

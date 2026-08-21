@@ -80,6 +80,7 @@ const sidebars = {
         'ci/github-actions',
         'ci/jenkins',
         'ci/quality-gates',
+        'ci/ci-metadata',
       ],
     },
     {

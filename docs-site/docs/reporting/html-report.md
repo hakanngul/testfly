@@ -92,6 +92,30 @@ The report path and name are not currently configurable — the file is always w
 
 ---
 
+## Build Metadata
+
+The report displays a **Build Metadata** card that surfaces CI context captured at runtime:
+
+| Field | Source |
+|---|---|
+| CI Provider | Detected from env vars (`GITHUB_ACTIONS`, `JENKINS_URL`, `GITLAB_CI`, etc.) |
+| Build Number / Build ID | Provider-specific run identifiers |
+| Branch / Commit | Current branch and SHA |
+| Repository / Actor | Repo slug and the user that triggered the build |
+| Job Name / Agent Name | CI job and runner/agent name |
+| Build URL | Link back to the pipeline run |
+
+Metadata capture is automatic in recognized CI environments and can be disabled in `testfly.yml`:
+
+```yaml title="testfly.yml"
+ci:
+  captureMetadata: false
+```
+
+See [CI Metadata](../ci/ci-metadata) for the full list of supported providers and variables.
+
+---
+
 ## CI usage
 
 Upload the report as an artifact to preserve it after the CI workspace is cleaned:

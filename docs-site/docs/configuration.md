@@ -92,6 +92,8 @@ timeouts:
 ci:
   failOnPassRateBelow: 80   # 0 = disabled. Fail build if pass rate < 80%
   maxFlakyTests: 3          # -1 = disabled. Fail if more than 3 tests retried
+  captureMetadata: true     # auto in CI; set false to disable. Writes provider,
+                            # branch, commit, build URL to reports and metrics JSON
 
 # ── Database Assertions ─────────────────────────────────────────────────────
 database:

@@ -129,6 +129,15 @@ A new, more Java-idiomatic alias for the fluent locator API.
 - Documentation examples migrated to `find()`
 - Backward compatible: existing `$()` calls continue to work
 
+### 3. CI Metadata Integration
+
+Structured CI/CD metadata capture for richer reports and downstream tooling.
+
+- `io.testfly.ci.CiMetadata` value object + provider-aware `CiEnvironmentDetector.captureMetadata()`
+- Supports GitHub Actions, Jenkins, GitLab CI, CircleCI, Travis CI, TeamCity, Bitbucket Pipelines, and generic `CI`
+- Metadata embedded in `target/testfly-metrics.json`, HTML report Build Metadata card, and JUnit XML `<properties>`
+- Configurable via `ci.captureMetadata` in `testfly.yml`
+
 ---
 
 ## Future Roadmap

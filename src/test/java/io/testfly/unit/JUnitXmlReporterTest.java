@@ -1,5 +1,9 @@
 package io.testfly.unit;
 
+import io.testfly.ci.CiMetadata;
+import io.testfly.config.TestFlyConfig;
+import io.testfly.internal.TestFlyContext;
+import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.metrics.TestTiming;
 import io.testfly.reporting.JUnitXmlReporter;
 import org.testng.annotations.AfterMethod;
@@ -7,8 +11,10 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.testng.Assert.*;
 
@@ -22,10 +28,44 @@ public class JUnitXmlReporterTest {
             new File("target/surefire-reports/TEST-TestFly.xml");
 
     @AfterMethod
-    public void cleanup() {
+    public void cleanup() throws Exception {
         if (XML_FILE.exists()) {
             XML_FILE.delete();
         }
+        ExecutionMetrics.reset();
+        resetTestFlyContext();
+    }
+
+    private static void resetTestFlyContext() throws Exception {
+        Field configField = TestFlyContext.class.getDeclaredField("CONFIG");
+        configField.setAccessible(true);
+        AtomicReference<?> ref = (AtomicReference<?>) configField.get(null);
+        ref.set(null);
+    }
+
+    private static TestFlyConfig minimalConfig(boolean captureMetadata) {
+        TestFlyConfig config = new TestFlyConfig();
+
+        TestFlyConfig.Browser browser = new TestFlyConfig.Browser();
+        browser.setName("chrome");
+        config.setBrowser(browser);
+
+        TestFlyConfig.Execution execution = new TestFlyConfig.Execution();
+        execution.setMode("local");
+        execution.setBaseUrl("https://example.com");
+        execution.setMaxActiveSessions(5);
+        config.setExecution(execution);
+
+        TestFlyConfig.Timeouts timeouts = new TestFlyConfig.Timeouts();
+        timeouts.setExplicit(10);
+        timeouts.setPageLoad(30);
+        config.setTimeouts(timeouts);
+
+        TestFlyConfig.Ci ci = new TestFlyConfig.Ci();
+        ci.setCaptureMetadata(captureMetadata);
+        config.setCi(ci);
+
+        return config;
     }
 
     // ----------------------------------------------------------
@@ -166,5 +206,41 @@ public class JUnitXmlReporterTest {
         String xml = readXml();
         assertTrue(xml.contains("tests=\"2\""),
                 "Second export should overwrite with new content");
+    }
+
+    // ----------------------------------------------------------
+    // CI properties
+    // ----------------------------------------------------------
+
+    @Test
+    public void export_withoutContext_doesNotIncludeProperties() throws IOException {
+        JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
+        String xml = readXml();
+        assertFalse(xml.contains("<properties>"), "No context means no CI properties");
+    }
+
+    @Test
+    public void export_withContextButCaptureDisabled_doesNotIncludeProperties() throws IOException {
+        TestFlyContext.initialize(minimalConfig(false));
+        JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
+        String xml = readXml();
+        assertFalse(xml.contains("<properties>"), "Disabled capture means no CI properties");
+    }
+
+    @Test
+    public void export_withCaptureEnabledAndMetadata_includesCiProperties() throws IOException {
+        TestFlyContext.initialize(minimalConfig(true));
+        ExecutionMetrics.setCiMetadata(new CiMetadata(
+                "GitHub Actions", "42", "123", "main",
+                "abc123", null, "https://example.com/run/123",
+                "unit-tests", null, "testfly/testfly",
+                "hagul", "agent-1", null));
+
+        JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
+        String xml = readXml();
+        assertTrue(xml.contains("<properties>"), "CI properties block must be present");
+        assertTrue(xml.contains("name=\"provider\""), "Provider property must be present");
+        assertTrue(xml.contains("value=\"GitHub Actions\""), "Provider value must be present");
+        assertTrue(xml.contains("name=\"buildNumber\""), "Build number property must be present");
     }
 }
