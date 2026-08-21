@@ -1,8 +1,12 @@
 package io.testfly.unit;
 
+import io.testfly.config.TestFlyConfig;
+import io.testfly.driver.DriverManager;
+import io.testfly.internal.TestFlyContext;
 import io.testfly.locator.Locator;
 import io.testfly.locator.LocatorException;
 import io.testfly.test.BaseTest;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -14,6 +18,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 import static org.testng.Assert.*;
 
 /**
@@ -137,5 +144,94 @@ public class LocatorTest {
         BaseTestFixture fixture = new BaseTestFixture();
         Locator loc = fixture.dollarCss(".submit-btn");
         assertTrue(loc.toString().contains("submit-btn"));
+    }
+
+    // ----------------------------------------------------------
+    // Self-healing integration  (Locator → WaitEngine.tryHeal)
+    // ----------------------------------------------------------
+
+    /**
+     * Sets up static mocks for DriverManager and TestFlyContext so that
+     * {@link Locator} terminal actions can resolve elements without a real browser.
+     */
+    private MockedStatic<?>[] setupHealingMocks(boolean selfHealingEnabled) {
+        // Locator's .filter() path casts the driver to JavascriptExecutor, so the mock
+        // must implement both interfaces.
+        WebDriver mockDriver = mock(WebDriver.class,
+                Mockito.withSettings().extraInterfaces(JavascriptExecutor.class));
+        lastMockDriver = mockDriver;
+
+        MockedStatic<DriverManager> driverManagerMock = mockStatic(DriverManager.class);
+        driverManagerMock.when(DriverManager::getDriver).thenReturn(mockDriver);
+
+        TestFlyConfig.Locators locators = new TestFlyConfig.Locators();
+        locators.setSelfHealing(selfHealingEnabled);
+
+        TestFlyConfig.Timeouts timeouts = new TestFlyConfig.Timeouts();
+        timeouts.setExplicit(2);
+
+        TestFlyConfig config = new TestFlyConfig();
+        config.setLocators(locators);
+        config.setTimeouts(timeouts);
+
+        MockedStatic<TestFlyContext> contextMock = mockStatic(TestFlyContext.class);
+        contextMock.when(TestFlyContext::getConfig).thenReturn(config);
+        contextMock.when(TestFlyContext::getCurrentTestId).thenReturn("test-1");
+
+        return new MockedStatic<?>[]{driverManagerMock, contextMock};
+    }
+
+    private WebDriver lastMockDriver;
+
+    private void closeMocks(MockedStatic<?>[] mocks) {
+        for (MockedStatic<?> m : mocks) m.close();
+    }
+
+    @Test
+    public void resolve_triggersSelfHealing_whenPlainByNotFound_andHealingEnabled() {
+        MockedStatic<?>[] mocks = setupHealingMocks(true);
+        try {
+            By primary = By.cssSelector("#login-btn");
+            // Primary locator finds nothing…
+            when(lastMockDriver.findElements(primary)).thenReturn(Collections.emptyList());
+
+            // …but the self-healing fallback (#login-btn → By.id("login-btn")) succeeds.
+            WebElement healed = mock(WebElement.class);
+            when(healed.isDisplayed()).thenReturn(true);
+            when(healed.getText()).thenReturn("Healed Button");
+            when(lastMockDriver.findElements(By.id("login-btn"))).thenReturn(List.of(healed));
+
+            assertEquals(Locator.of(primary).getText(), "Healed Button");
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void resolve_throwsException_whenHealingDisabled_andElementNotFound() {
+        MockedStatic<?>[] mocks = setupHealingMocks(false);
+        try {
+            By primary = By.cssSelector("#login-btn");
+            when(lastMockDriver.findElements(primary)).thenReturn(Collections.emptyList());
+
+            assertThrows(LocatorException.class, () -> Locator.of(primary).getText());
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void resolve_skipsSelfHealing_whenChainFilterApplied() {
+        MockedStatic<?>[] mocks = setupHealingMocks(true);
+        try {
+            By primary = By.cssSelector("#login-btn");
+            when(lastMockDriver.findElements(primary)).thenReturn(Collections.emptyList());
+
+            // A chain filter (.filter) means healing must NOT replace the base selector.
+            assertThrows(LocatorException.class,
+                    () -> Locator.of(primary).filter(".active").getText());
+        } finally {
+            closeMocks(mocks);
+        }
     }
 }

@@ -2,17 +2,14 @@ package io.testfly.locator;
 
 import io.testfly.api.TestFlyApi;
 import io.testfly.driver.DriverManager;
-import io.testfly.internal.TestFlyContext;
 import io.testfly.steps.StepLogger;
+import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -318,9 +315,23 @@ public final class Locator {
     private WebElement resolve() {
         List<WebElement> candidates = resolveAll();
         if (candidates.isEmpty()) {
+            // Self-healing applies only to plain By locators without chain filters,
+            // since healing replaces the whole base selector.
+            if (kind == Kind.CSS_OR_BY && !hasChainFilters()) {
+                WebElement healed = WaitEngine.tryHeal(root);
+                if (healed != null) {
+                    return healed;
+                }
+            }
             throw new LocatorException("No element found for: " + describe());
         }
         return candidates.get(0);
+    }
+
+    /** True when any chain filter (filter/withText/within/nth/name) is applied. */
+    private boolean hasChainFilters() {
+        return filterCss != null || withText != null || withinContainer != null
+                || nthIndex >= 0 || accessibleName != null;
     }
 
     private List<WebElement> resolveAll() {
@@ -529,15 +540,11 @@ public final class Locator {
     // ------------------------------------------------------------------
 
     private WebElement waitForVisible(WebElement el) {
-        int timeout = TestFlyContext.getConfig().getTimeouts().getExplicit();
-        return new WebDriverWait(driver(), Duration.ofSeconds(timeout))
-                .until(ExpectedConditions.visibilityOf(el));
+        return WaitEngine.waitForVisible(el);
     }
 
     private WebElement waitForClickable(WebElement el) {
-        int timeout = TestFlyContext.getConfig().getTimeouts().getExplicit();
-        return new WebDriverWait(driver(), Duration.ofSeconds(timeout))
-                .until(ExpectedConditions.elementToBeClickable(el));
+        return WaitEngine.waitForClickable(el);
     }
 
     // ------------------------------------------------------------------

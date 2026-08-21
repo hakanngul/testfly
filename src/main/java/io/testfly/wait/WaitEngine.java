@@ -81,6 +81,20 @@ public final class WaitEngine {
         }
     }
 
+    /**
+     * Waits until the given already-resolved element is visible.
+     *
+     * <p>Element-based variant used by {@link io.testfly.locator.Locator} after its
+     * candidate set has been resolved. Self-healing is applied earlier, at resolution
+     * time, so this overload only waits.
+     *
+     * @param element the already-resolved element to wait on
+     * @return the element once it is visible
+     */
+    public static WebElement waitForVisible(WebElement element) {
+        return createWait().until(ExpectedConditions.visibilityOf(element));
+    }
+
     public static boolean waitForInvisible(By locator) {
         return createWait()
                 .until(ExpectedConditions.invisibilityOfElementLocated(locator));
@@ -98,6 +112,20 @@ public final class WaitEngine {
             if (healed != null) return healed;
             throw e;
         }
+    }
+
+    /**
+     * Waits until the given already-resolved element is clickable (visible and enabled).
+     *
+     * <p>Element-based variant used by {@link io.testfly.locator.Locator} after its
+     * candidate set has been resolved. Self-healing is applied earlier, at resolution
+     * time, so this overload only waits.
+     *
+     * @param element the already-resolved element to wait on
+     * @return the element once it is clickable
+     */
+    public static WebElement waitForClickable(WebElement element) {
+        return createWait().until(ExpectedConditions.elementToBeClickable(element));
     }
 
     public static boolean waitForStaleness(WebElement element) {
@@ -375,7 +403,19 @@ public final class WaitEngine {
     // Self-healing fallback
     // ----------------------------------------------------------
 
-    private static WebElement tryHeal(By locator) {
+    /**
+     * Attempts to find an element using self-healing fallback strategies when the
+     * primary locator fails. Returns {@code null} if healing is disabled or no
+     * fallback strategy succeeds.
+     *
+     * <p>Enabled via {@code locators.selfHealing: true} in {@code testfly.yml}.
+     * Each successful heal is recorded in {@link ExecutionMetrics} and surfaced in
+     * the HTML report.
+     *
+     * @param locator the failing {@link By} locator
+     * @return a visible {@link WebElement} found by a fallback strategy, or {@code null}
+     */
+    public static WebElement tryHeal(By locator) {
         if (!SelfHealingLocator.isEnabled()) return null;
         String testId = TestFlyContext.getCurrentTestId();
         WebElement healed = SelfHealingLocator.tryHeal(DriverManager.getDriver(), locator, testId);
