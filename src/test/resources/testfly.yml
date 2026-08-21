@@ -24,7 +24,7 @@ api:
   logBody: false
 
 retry:
-  enabled: true
+  enabled: false
   maxAttempts: 2
 
 timeouts:

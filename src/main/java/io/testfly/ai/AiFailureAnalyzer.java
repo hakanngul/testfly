@@ -6,8 +6,6 @@ import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.metrics.TestTiming;
 import io.testfly.steps.StepRecord;
-import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -60,7 +58,6 @@ import java.util.logging.Logger;
 public final class AiFailureAnalyzer {
 
     private static final Logger LOG = Logger.getLogger(AiFailureAnalyzer.class.getName());
-    private static final org.slf4j.Logger SLF4J_LOG = LoggerFactory.getLogger(AiFailureAnalyzer.class);
 
     private AiFailureAnalyzer() {}
 
@@ -104,9 +101,6 @@ public final class AiFailureAnalyzer {
                 ExecutionMetrics.recordAiAnalysis(testId, cleanAnalysis);
                 LOG.info("[AiFailureAnalyzer] Analysis recorded for: " + testId
                         + " (provider: " + provider.name() + ", model: " + aiCfg.getModel() + ")");
-
-                // Log via SLF4J so ReportPortal logback appender picks it up
-                SLF4J_LOG.info("🤖 AI Failure Analysis for [{}]:\n{}", testId, cleanAnalysis);
             }
         } catch (Exception e) {
             LOG.warning("[AiFailureAnalyzer] Analysis failed (non-critical): " + e.getMessage());

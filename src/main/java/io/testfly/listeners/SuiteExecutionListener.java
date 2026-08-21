@@ -100,11 +100,11 @@ public final class SuiteExecutionListener implements ISuiteListener {
             return;
         }
 
-        // When the ReportPortal Cucumber 7 agent is on the classpath, it handles
-        // the full Feature > Scenario > Step hierarchy itself. Registering the
-        // TestNG agent on top of it would create duplicate test items.
-        if (isCucumber7AgentPresent()) {
-            System.out.println("[TestFly] ReportPortal Cucumber 7 agent detected — "
+        // Skip TestNG listener only when the Cucumber 7 agent is ACTIVELY running
+        // (i.e., cucumber.plugin system property contains the RP Cucumber plugin).
+        // This is set by BaseCucumberTest's static block for Cucumber runners only.
+        if (isCucumber7AgentActive()) {
+            System.out.println("[TestFly] ReportPortal Cucumber 7 agent is active — "
                     + "skipping TestNG listener to avoid duplicate reporting");
             return;
         }
@@ -191,19 +191,15 @@ public final class SuiteExecutionListener implements ISuiteListener {
     }
 
     /**
-     * Returns {@code true} when the ReportPortal Cucumber 7 agent
-     * ({@code agent-java-cucumber7}) is on the classpath.
+     * Returns {@code true} when the ReportPortal Cucumber 7 agent is ACTIVELY running,
+     * i.e., the {@code cucumber.plugin} system property contains the RP Cucumber plugin class.
      *
-     * <p>When present, the Cucumber agent handles the full
-     * Feature &gt; Scenario &gt; Step hierarchy in ReportPortal,
-     * so the TestNG agent must not be registered to avoid duplicates.
+     * <p>This is set by {@link io.testfly.cucumber.BaseCucumberTest}'s static block
+     * only when a Cucumber runner (extending {@code BaseCucumberTest}) is executed.
+     * Regular TestNG tests do not set this property, so the TestNG listener is used.
      */
-    private static boolean isCucumber7AgentPresent() {
-        try {
-            Class.forName("com.epam.reportportal.cucumber.ScenarioReporter");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
+    private static boolean isCucumber7AgentActive() {
+        String plugins = System.getProperty("cucumber.plugin", "");
+        return plugins.contains("com.epam.reportportal.cucumber.ScenarioReporter");
     }
 }

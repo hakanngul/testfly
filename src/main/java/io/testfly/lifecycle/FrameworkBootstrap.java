@@ -13,6 +13,7 @@ import io.testfly.config.TestFlyConfig.Notifications;
 import io.testfly.reporting.AllureReportAdapter;
 import io.testfly.reporting.NotificationAdapter;
 import io.testfly.reporting.ReportAdapterRegistry;
+import io.testfly.reporting.reportportal.ReportPortalAttachmentSender;
 import io.testfly.reporting.reportportal.ReportPortalPropertiesWriter;
 import io.testfly.reporting.reportportal.ReportPortalReportAdapter;
 
@@ -63,6 +64,7 @@ public final class FrameworkBootstrap {
             try {
                 ReportPortalPropertiesWriter.applyAsSystemProperties(config);
                 ReportAdapterRegistry.register(new ReportPortalReportAdapter());
+                ReportAdapterRegistry.register(new ReportPortalAttachmentSender());
                 System.out.println("[TestFly] ReportPortal adapter enabled → "
                         + reporting.getReportPortal().getEndpoint());
             } catch (IllegalArgumentException e) {

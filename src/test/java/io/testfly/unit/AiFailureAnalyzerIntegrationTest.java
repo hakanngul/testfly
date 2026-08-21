@@ -51,9 +51,10 @@ public class AiFailureAnalyzerIntegrationTest {
         assertNotNull(analysis, "AI analysis should not be null — API call may have failed");
         assertFalse(analysis.isBlank(), "AI analysis should not be empty");
 
-        // The analysis should contain the expected format
-        assertTrue(analysis.contains("Root Cause") || analysis.contains("root cause")
-                        || analysis.contains("Root cause"),
+        // The analysis should contain a root cause section. The AI response follows the
+        // configured framework language (e.g. English "Root Cause" or Turkish "Kök Neden").
+        String normalized = analysis.toLowerCase(java.util.Locale.ROOT);
+        assertTrue(normalized.contains("root cause") || normalized.contains("kök neden"),
                 "Analysis should contain a root cause section. Got: " + analysis);
 
         System.out.println("═══════════════════════════════════════════════");

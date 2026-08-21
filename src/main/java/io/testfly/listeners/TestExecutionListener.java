@@ -14,6 +14,7 @@ import io.testfly.driver.DriverManager;
 import io.testfly.hooks.HookRegistry;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
+import io.testfly.metrics.TestTiming;
 import io.testfly.ai.AiFailureAnalyzer;
 import io.testfly.network.NetworkMock;
 import io.testfly.precondition.ApiHealthChecker;
@@ -32,6 +33,8 @@ import io.testfly.steps.StepStatus;
 import io.testfly.test.BaseApiTest;
 import io.testfly.test.NoBrowser;
 import io.testfly.testmanagement.TestManagementReporter;
+import org.testng.IInvokedMethod;
+import org.testng.IInvokedMethodListener;
 import org.testng.ITestContext;
 import org.testng.ITestListener;
 import org.testng.ITestResult;
@@ -47,6 +50,9 @@ import java.util.List;
  *     <li>Ensures the WebDriver is terminated after test completion
  *         (success, failure, or skip).</li>
  *     <li>Captures failure artifacts (e.g., screenshots) before driver shutdown.</li>
+ *     <li>Sends failure artifacts to ReportPortal from
+ *         {@link IInvokedMethodListener#afterInvocation}, before the ReportPortal
+ *         TestNG listener closes the failing test item.</li>
  * </ul>
  *
  * <p>Design Principles:
@@ -60,15 +66,25 @@ import java.util.List;
  * Global setup is handled by {@code SuiteExecutionListener}.
  */
 
-public final class TestExecutionListener implements ITestListener {
+public final class TestExecutionListener implements ITestListener, IInvokedMethodListener {
 
     /** Tracks whether JS errors have already been logged for this test (prevents double-logging on failure redirect). */
     private static final ThreadLocal<Boolean> jsErrorsLogged = ThreadLocal.withInitial(() -> false);
+
+    /**
+     * Tracks whether failure artifacts (screenshot, AI analysis) were already captured
+     * and sent to ReportPortal during {@link IInvokedMethodListener#afterInvocation}.
+     * RP closes the test item in its own {@code onTestFailure}, so attachments must be
+     * emitted early; this flag prevents double-capture / double-sending when
+     * {@code onTestFailure} runs later.
+     */
+    private static final ThreadLocal<Boolean> failureArtifactsHandled = ThreadLocal.withInitial(() -> false);
 
     @Override
     public void onTestStart(ITestResult result) {
         if (isCucumberScenario(result)) return;
         String testId = result.getMethod().getQualifiedName();
+        failureArtifactsHandled.set(false);    // fresh attempt
         TestFlyContext.setCurrentTestId(testId);
         ExecutionMetrics.clearSteps(testId);   // discard stale steps from prior retry attempt
         ExecutionMetrics.markStart(testId);
@@ -170,6 +186,10 @@ public final class TestExecutionListener implements ITestListener {
         String testName = result.getMethod().getMethodName();
         String testId = result.getMethod().getQualifiedName();
 
+        // Log failure IMMEDIATELY — before ReportPortal closes the test item
+        org.slf4j.LoggerFactory.getLogger(TestExecutionListener.class)
+            .info("❌ Test failed: {}", testId);
+
         if (!skipBrowser(result) && ConsoleErrorCollector.isEnabled() && !jsErrorsLogged.get()) {
             ConsoleErrorCollector.collect().forEach(e -> StepLogger.step("[JS Error] " + e, StepStatus.WARN));
         }
@@ -183,13 +203,17 @@ public final class TestExecutionListener implements ITestListener {
             ExecutionMetrics.recordError(testId, result.getThrowable());
         }
         saveTraceIfEnabled(testId, result.getMethod().getMethodName(), false);
-        runAiAnalysisIfEnabled(testId);
+
+        // Capture screenshot + AI analysis and send to ReportPortal while the item is open.
+        // If afterInvocation already handled this, skip to avoid duplicates.
+        if (!Boolean.TRUE.equals(failureArtifactsHandled.get())) {
+            captureFailureArtifacts(result, testId, testName);
+        }
+
         HookRegistry.onTestFailure(testId, result.getThrowable());
         String failureComment = result.getThrowable() != null ? result.getThrowable().getMessage() : null;
         TestManagementReporter.getInstance().onTestResult(
                 result.getMethod().getConstructorOrMethod().getMethod(), "FAILED", failureComment);
-        String screenshotPath = skipBrowser(result) ? null : ScreenshotManager.capture(testName);
-        ExecutionMetrics.recordScreenshot(testId, screenshotPath);
         TestClock.autoReset();
         if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest()) DriverManager.quitDriver();
         MultiSessionManager.clearAll();
@@ -380,6 +404,91 @@ public final class TestExecutionListener implements ITestListener {
             } catch (Exception ignored) {}
             AiFailureAnalyzer.analyze(testId, pageUrl, pageTitle);
         } catch (Exception ignored) {}
+    }
+
+    /**
+     * Sends screenshot and AI analysis to ReportPortal immediately while the
+     * current RP test item is still open. ReportPortal rejects log/attachment
+     * calls after the test item finishes, so this must run inside
+     * {@link #onTestFailure(ITestResult)} before the RP listener closes the item.
+     *
+     * <p>Reflection is used so {@code TestExecutionListener} remains safe when the
+     * optional {@code agent-java-testng} dependency is absent on the consumer classpath.
+     *
+     * <p>Allure receives the same data post-hoc from the metrics JSON, but
+     * ReportPortal is a live service and requires in-flight attachment.
+     */
+    private void sendFailureArtifactsToReportPortal(String testId) {
+        try {
+            TestTiming timing = ExecutionMetrics.getTiming(testId);
+            if (timing == null) return;
+
+            String screenshotPath = timing.getScreenshotPath();
+            String aiAnalysis = timing.getAiAnalysis();
+            if ((screenshotPath == null || screenshotPath.isBlank())
+                    && (aiAnalysis == null || aiAnalysis.isBlank())) {
+                return;
+            }
+
+            Class<?> senderClass = Class.forName(
+                    "io.testfly.reporting.reportportal.ReportPortalAttachmentSender");
+            java.lang.reflect.Method sendImmediate = senderClass.getMethod(
+                    "sendImmediate", String.class, String.class, String.class);
+            sendImmediate.invoke(null, testId, screenshotPath, aiAnalysis);
+        } catch (Throwable e) {
+            // Non-critical: never affect the real test outcome.
+            // NoClassDefFoundError is possible when RP agent is not on the classpath.
+            System.err.println("[TestFly] Failed to send failure artifacts to ReportPortal: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Captures a failure screenshot and AI analysis, stores them in
+     * {@link ExecutionMetrics}, and sends them to ReportPortal while the RP test
+     * item is still open. Callers must guard with
+     * {@link #failureArtifactsHandled} to avoid double capture / double send.
+     */
+    private void captureFailureArtifacts(ITestResult result, String testId, String testName) {
+        // Capture screenshot (stored in metrics for post-hoc adapters like Allure)
+        String screenshotPath = skipBrowser(result) ? null : ScreenshotManager.capture(testName);
+        ExecutionMetrics.recordScreenshot(testId, screenshotPath);
+
+        // AI analysis (stored in metrics for post-hoc adapters like Allure)
+        runAiAnalysisIfEnabled(testId);
+
+        // ReportPortal needs attachments while the current RP test item is still open.
+        sendFailureArtifactsToReportPortal(testId);
+        failureArtifactsHandled.set(true);
+    }
+
+    // ------------------------------------------------------------------
+    // IInvokedMethodListener — sends RP attachments before RP's own
+    // onTestFailure closes the test item.
+    // ------------------------------------------------------------------
+
+    @Override
+    public void beforeInvocation(IInvokedMethod method, ITestResult testResult) {
+        // No-op: lifecycle handled by onTestStart.
+    }
+
+    @Override
+    public void afterInvocation(IInvokedMethod method, ITestResult testResult) {
+        if (!method.isTestMethod()) return;
+        if (isCucumberScenario(testResult)) return;
+        if (testResult.getStatus() != ITestResult.FAILURE) return;
+
+        String testId = testResult.getMethod().getQualifiedName();
+        String testName = testResult.getMethod().getMethodName();
+
+        // Record error details early so AI analysis has the stack trace.
+        if (testResult.getThrowable() != null) {
+            ExecutionMetrics.recordError(testId, testResult.getThrowable());
+        }
+
+        // Capture and send artifacts now, while the RP test item is guaranteed open.
+        // IInvokedMethodListener.afterInvocation runs before ITestListener.onTestFailure,
+        // so this emits attachments before ReportPortalTestNGListener closes the item.
+        captureFailureArtifacts(testResult, testId, testName);
     }
 
     private void saveTraceIfEnabled(String testId, String testName, boolean isPassing) {
