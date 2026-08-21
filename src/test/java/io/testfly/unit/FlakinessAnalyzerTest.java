@@ -82,7 +82,7 @@ public class FlakinessAnalyzerTest {
     }
 
     // ------------------------------------------------------------------
-    // AiFailureAnalyzer — extractContent
+    // ClaudeProvider — extractContent
     // ------------------------------------------------------------------
 
     @Test
@@ -92,14 +92,14 @@ public class FlakinessAnalyzerTest {
             + "\"type\":\"message\","
             + "\"content\":[{\"type\":\"text\",\"text\":\"Root cause: element not found.\"}]"
             + "}";
-        String result = io.testfly.ai.AiFailureAnalyzer.extractContent(json);
+        String result = io.testfly.ai.ClaudeProvider.extractContent(json);
         Assert.assertEquals(result, "Root cause: element not found.");
     }
 
     @Test
     public void extractContent_handlesEscapedNewlines() {
         String json = "{\"content\":[{\"type\":\"text\",\"text\":\"Line1\\nLine2\"}]}";
-        String result = io.testfly.ai.AiFailureAnalyzer.extractContent(json);
+        String result = io.testfly.ai.ClaudeProvider.extractContent(json);
         Assert.assertNotNull(result);
         Assert.assertTrue(result.contains("Line1") && result.contains("Line2"));
     }
@@ -107,11 +107,11 @@ public class FlakinessAnalyzerTest {
     @Test
     public void extractContent_missingTextField_returnsNull() {
         String json = "{\"content\":[{\"type\":\"image\"}]}";
-        Assert.assertNull(io.testfly.ai.AiFailureAnalyzer.extractContent(json));
+        Assert.assertNull(io.testfly.ai.ClaudeProvider.extractContent(json));
     }
 
     @Test
     public void extractContent_emptyJson_returnsNull() {
-        Assert.assertNull(io.testfly.ai.AiFailureAnalyzer.extractContent("{}"));
+        Assert.assertNull(io.testfly.ai.ClaudeProvider.extractContent("{}"));
     }
 }

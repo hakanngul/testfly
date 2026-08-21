@@ -6,58 +6,74 @@ import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.metrics.TestTiming;
 import io.testfly.steps.StepRecord;
+import org.slf4j.LoggerFactory;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.List;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 /**
- * Calls the Claude API to generate a plain-English failure analysis for a failed test.
+ * Calls an LLM to generate a plain-English failure analysis for a failed test.
  *
  * <p>Activated when {@code ai.failureAnalysis: true} and {@code ai.apiKey} are set in
  * {@code testfly.yml}. The analysis is stored in the test metrics and surfaced in the
  * HTML report below the stack trace.
  *
- * <p>Uses {@code claude-haiku-4-5-20251001} by default (fast + low cost). Override via
- * {@code ai.model}.
- *
- * <p>The API call is synchronous but bounded by {@code ai.timeoutSeconds} (default 20s).
- * Any failure (network error, API error, timeout) is silently suppressed — the test suite
- * result is never affected by the AI analysis step.
- *
+ * <h3>Supported providers</h3>
  * <pre>
- * # testfly.yml
+ * # Claude (default)
  * ai:
  *   failureAnalysis: true
+ *   provider: claude
  *   apiKey: ${CLAUDE_API_KEY}
  *   model: claude-haiku-4-5-20251001
- *   timeoutSeconds: 20
+ *
+ * # DeepSeek (~$0.14/1M tokens — cheapest option)
+ * ai:
+ *   failureAnalysis: true
+ *   provider: openai-compatible
+ *   baseUrl: https://api.deepseek.com
+ *   apiKey: ${DEEPSEEK_API_KEY}
+ *   model: deepseek-chat
+ *
+ * # Google Gemini Flash
+ * ai:
+ *   failureAnalysis: true
+ *   provider: openai-compatible
+ *   baseUrl: https://generativelanguage.googleapis.com/v1beta/openai
+ *   apiKey: ${GEMINI_API_KEY}
+ *   model: gemini-2.0-flash
+ *
+ * # Local Ollama (free, no API key needed)
+ * ai:
+ *   failureAnalysis: true
+ *   provider: openai-compatible
+ *   baseUrl: http://localhost:11434
+ *   apiKey: ollama
+ *   model: llama3.2
  * </pre>
+ *
+ * <p>The API call is bounded by {@code ai.timeoutSeconds} (default 20s).
+ * Any failure (network error, API error, timeout) is silently suppressed — the test suite
+ * result is never affected by the AI analysis step.
  */
 @TestFlyApi(since = "1.8.0")
 public final class AiFailureAnalyzer {
 
     private static final Logger LOG = Logger.getLogger(AiFailureAnalyzer.class.getName());
-    private static final String API_URL = "https://api.anthropic.com/v1/messages";
-    private static final String API_VERSION = "2023-06-01";
+    private static final org.slf4j.Logger SLF4J_LOG = LoggerFactory.getLogger(AiFailureAnalyzer.class);
 
     private AiFailureAnalyzer() {}
 
     // ------------------------------------------------------------------
-    // Public API — called by TestExecutionListener
+    // Public API — called by TestExecutionListener, TestFlyExtension, CucumberHooks
     // ------------------------------------------------------------------
 
     /**
      * Analyses the failure of {@code testId} and records the result via
      * {@link ExecutionMetrics#recordAiAnalysis}.
      *
-     * @param testId   fully-qualified test method name
-     * @param pageUrl  current page URL at the time of failure (may be null)
+     * @param testId    fully-qualified test method name
+     * @param pageUrl   current page URL at the time of failure (may be null)
      * @param pageTitle current page title (may be null)
      */
     public static void analyze(String testId, String pageUrl, String pageTitle) {
@@ -71,14 +87,26 @@ public final class AiFailureAnalyzer {
                 return;
             }
 
+            AiProvider provider = AiProviderRegistry.get(aiCfg.getProvider(), aiCfg.getBaseUrl());
+            if (provider == null) {
+                LOG.warning("[AiFailureAnalyzer] Unknown ai.provider: " + aiCfg.getProvider()
+                        + ". Available: " + AiProviderRegistry.availableProviders());
+                return;
+            }
+
             TestTiming timing = ExecutionMetrics.getTiming(testId);
             if (timing == null) return;
 
             String prompt = buildPrompt(timing, pageUrl, pageTitle);
-            String analysis = callApi(apiKey, aiCfg.getModel(), prompt, aiCfg.getTimeoutSeconds());
+            String analysis = provider.call(apiKey, aiCfg.getModel(), prompt, aiCfg.getTimeoutSeconds());
             if (analysis != null && !analysis.isBlank()) {
-                ExecutionMetrics.recordAiAnalysis(testId, analysis.strip());
-                LOG.info("[AiFailureAnalyzer] Analysis recorded for: " + testId);
+                String cleanAnalysis = analysis.strip();
+                ExecutionMetrics.recordAiAnalysis(testId, cleanAnalysis);
+                LOG.info("[AiFailureAnalyzer] Analysis recorded for: " + testId
+                        + " (provider: " + provider.name() + ", model: " + aiCfg.getModel() + ")");
+
+                // Log via SLF4J so ReportPortal logback appender picks it up
+                SLF4J_LOG.info("🤖 AI Failure Analysis for [{}]:\n{}", testId, cleanAnalysis);
             }
         } catch (Exception e) {
             LOG.warning("[AiFailureAnalyzer] Analysis failed (non-critical): " + e.getMessage());
@@ -89,7 +117,7 @@ public final class AiFailureAnalyzer {
     // Prompt construction
     // ------------------------------------------------------------------
 
-    static String buildPrompt(TestTiming timing, String pageUrl, String pageTitle) {
+    public static String buildPrompt(TestTiming timing, String pageUrl, String pageTitle) {
         StringBuilder sb = new StringBuilder();
         sb.append("You are a QA automation expert. A Selenium WebDriver test just failed.\n\n");
 
@@ -107,7 +135,6 @@ public final class AiFailureAnalyzer {
         }
 
         if (timing.getStackTrace() != null) {
-            // Truncate to first 30 lines to stay within token budget
             String[] lines = timing.getStackTrace().split("\n");
             int limit = Math.min(lines.length, 30);
             sb.append("\n## Stack Trace (first ").append(limit).append(" lines)\n```\n");
@@ -130,95 +157,34 @@ public final class AiFailureAnalyzer {
         sb.append("**Suggested Fix:**\n- (bullet 1)\n- (bullet 2, if needed)\n\n");
         sb.append("Be specific and actionable. Do not repeat the error message verbatim.");
 
+        // Language instruction
+        String lang = config() != null ? config().getLanguage() : "en";
+        if (lang != null && !lang.isBlank() && !"en".equalsIgnoreCase(lang)) {
+            sb.append("\n\n**IMPORTANT:** Write your entire response in ")
+              .append(resolveLanguageName(lang)).append(".");
+        }
+
         return sb.toString();
     }
 
-    // ------------------------------------------------------------------
-    // HTTP call to Claude API
-    // ------------------------------------------------------------------
-
-    static String callApi(String apiKey, String model, String prompt, int timeoutSeconds) {
-        try {
-            String body = buildRequestBody(model, prompt);
-
-            HttpClient client = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(timeoutSeconds))
-                    .build();
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(API_URL))
-                    .header("x-api-key",          apiKey)
-                    .header("anthropic-version",  API_VERSION)
-                    .header("content-type",       "application/json")
-                    .timeout(Duration.ofSeconds(timeoutSeconds))
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build();
-
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                return extractContent(response.body());
-            } else {
-                LOG.warning("[AiFailureAnalyzer] API returned HTTP " + response.statusCode()
-                        + ": " + response.body().substring(0, Math.min(200, response.body().length())));
-                return null;
-            }
-        } catch (Exception e) {
-            LOG.warning("[AiFailureAnalyzer] HTTP call failed: " + e.getMessage());
-            return null;
-        }
-    }
-
-    // ------------------------------------------------------------------
-    // JSON helpers (no extra dependency — hand-rolled)
-    // ------------------------------------------------------------------
-
-    private static String buildRequestBody(String model, String prompt) {
-        String escaped = prompt
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "")
-                .replace("\t", "\\t");
-        return "{"
-             + "\"model\":\"" + model + "\","
-             + "\"max_tokens\":512,"
-             + "\"messages\":[{\"role\":\"user\",\"content\":\"" + escaped + "\"}]"
-             + "}";
-    }
-
-    /** Extracts {@code content[0].text} from a Claude API response JSON string. */
-    public static String extractContent(String json) {
-        // Simple extraction — avoids adding Jackson dependency to the hot path
-        // Pattern: "text": "..." (first occurrence in content array)
-        int textIdx = json.indexOf("\"text\"");
-        if (textIdx < 0) return null;
-        int colon = json.indexOf(':', textIdx);
-        if (colon < 0) return null;
-        int start = json.indexOf('"', colon + 1);
-        if (start < 0) return null;
-        // Walk forward, handling \" escapes
-        StringBuilder sb = new StringBuilder();
-        int i = start + 1;
-        while (i < json.length()) {
-            char c = json.charAt(i);
-            if (c == '\\' && i + 1 < json.length()) {
-                char next = json.charAt(i + 1);
-                switch (next) {
-                    case '"':  sb.append('"');  i += 2; continue;
-                    case '\\': sb.append('\\'); i += 2; continue;
-                    case 'n':  sb.append('\n'); i += 2; continue;
-                    case 'r':  sb.append('\r'); i += 2; continue;
-                    case 't':  sb.append('\t'); i += 2; continue;
-                    default:   sb.append(next); i += 2; continue;
-                }
-            }
-            if (c == '"') break;
-            sb.append(c);
-            i++;
-        }
-        String result = sb.toString().trim();
-        return result.isEmpty() ? null : result;
+    /**
+     * Maps language codes to human-readable names for the AI prompt.
+     */
+    private static String resolveLanguageName(String code) {
+        return switch (code.toLowerCase()) {
+            case "tr", "tur" -> "Turkish";
+            case "de", "deu" -> "German";
+            case "fr", "fra" -> "French";
+            case "es", "spa" -> "Spanish";
+            case "pt", "por" -> "Portuguese";
+            case "it", "ita" -> "Italian";
+            case "ru", "rus" -> "Russian";
+            case "ja", "jpn" -> "Japanese";
+            case "zh", "zho" -> "Chinese";
+            case "ko", "kor" -> "Korean";
+            case "ar", "ara" -> "Arabic";
+            default -> code;
+        };
     }
 
     // ------------------------------------------------------------------

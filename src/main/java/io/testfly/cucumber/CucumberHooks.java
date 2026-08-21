@@ -113,6 +113,20 @@ public class CucumberHooks {
                 } catch (Exception ignored) {}
 
                 HookRegistry.onTestFailure(testId, new RuntimeException("Scenario failed: " + scenario.getName()));
+
+                // AI failure analysis (non-critical — silently skipped if not configured)
+                try {
+                    String pageUrl = null;
+                    String pageTitle = null;
+                    try {
+                        org.openqa.selenium.WebDriver driver = DriverManager.getDriver();
+                        if (driver != null) {
+                            pageUrl = driver.getCurrentUrl();
+                            pageTitle = driver.getTitle();
+                        }
+                    } catch (Exception ignored) {}
+                    io.testfly.ai.AiFailureAnalyzer.analyze(testId, pageUrl, pageTitle);
+                } catch (Exception ignored) {}
             }
 
             // Collect any JS console errors captured during the scenario

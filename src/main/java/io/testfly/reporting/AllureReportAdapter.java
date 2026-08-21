@@ -158,6 +158,14 @@ public class AllureReportAdapter implements ReportAdapter {
             }
         }
 
+        // AI Failure Analysis attachment
+        if (test.has("aiAnalysis")) {
+            String aiText = test.path("aiAnalysis").asText();
+            String aiFile = UUID.randomUUID() + "-ai-analysis.txt";
+            Files.writeString(new File(outputDir, aiFile).toPath(), aiText);
+            addAttachment(attachments, "🤖 AI Failure Analysis", aiFile, "text/plain");
+        }
+
         result.putArray("parameters");
 
         MAPPER.writerWithDefaultPrettyPrinter()

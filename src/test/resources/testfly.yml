@@ -42,3 +42,12 @@ reporting:
     description: "My awesome launch"
     attributes: "env:dev"
     mode: default
+
+ai:
+  failureAnalysis: true
+  provider: openai-compatible
+  baseUrl: https://api.deepseek.com
+  apiKey: sk-5edc5ac12df243159493bb0e383cb4b4
+  model: deepseek-v4-flash
+  language: tr
+  timeoutSeconds: 20
