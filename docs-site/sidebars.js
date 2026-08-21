@@ -32,6 +32,7 @@ const sidebars = {
       label: 'Core Guides',
       collapsed: false,
       items: [
+        'guides/testfly-yml-guide',
         'guides/base-test',
         'guides/base-page',
         'guides/wait-engine',
