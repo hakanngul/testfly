@@ -1,0 +1,38 @@
+{
+  "version.label": {
+    "message": "Sonraki",
+    "description": "The label for version current"
+  },
+  "sidebar.docsSidebar.category.Why TestFly": {
+    "message": "Neden TestFly",
+    "description": "The label for category Why TestFly in sidebar docsSidebar"
+  },
+  "sidebar.docsSidebar.category.Migration": {
+    "message": "Geçiş",
+    "description": "The label for category Migration in sidebar docsSidebar"
+  },
+  "sidebar.docsSidebar.category.Core Guides": {
+    "message": "Temel Rehberler",
+    "description": "The label for category Core Guides in sidebar docsSidebar"
+  },
+  "sidebar.docsSidebar.category.API Testing": {
+    "message": "API Testi",
+    "description": "The label for category API Testing in sidebar docsSidebar"
+  },
+  "sidebar.docsSidebar.category.Recipes": {
+    "message": "Tarifler",
+    "description": "The label for category Recipes in sidebar docsSidebar"
+  },
+  "sidebar.docsSidebar.category.CI / CD": {
+    "message": "CI / CD",
+    "description": "The label for category CI / CD in sidebar docsSidebar"
+  },
+  "sidebar.docsSidebar.category.Extensibility": {
+    "message": "Genişletilebilirlik",
+    "description": "The label for category Extensibility in sidebar docsSidebar"
+  },
+  "sidebar.docsSidebar.category.Reporting": {
+    "message": "Raporlama",
+    "description": "The label for category Reporting in sidebar docsSidebar"
+  }
+}

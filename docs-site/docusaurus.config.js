@@ -44,7 +44,20 @@ const config = {
 
   i18n: {
     defaultLocale: 'en',
-    locales: ['en'],
+    locales: ['en', 'tr'],
+    path: 'i18n',
+    localeConfigs: {
+      en: {
+        label: 'English',
+        direction: 'ltr',
+        htmlLang: 'en-US',
+      },
+      tr: {
+        label: 'Türkçe',
+        direction: 'ltr',
+        htmlLang: 'tr-TR',
+      },
+    },
   },
 
   presets: [
@@ -105,6 +118,10 @@ const config = {
             sidebarId: 'docsSidebar',
             position: 'left',
             label: 'Docs',
+          },
+          {
+            type: 'localeDropdown',
+            position: 'right',
           },
           {
             href: 'https://central.sonatype.com/artifact/io.testfly/testfly',

@@ -1,0 +1,54 @@
+{
+  "link.title.Docs": {
+    "message": "Dokümanlar",
+    "description": "The title of the footer links column with title=Docs in the footer"
+  },
+  "link.title.Community": {
+    "message": "Topluluk",
+    "description": "The title of the footer links column with title=Community in the footer"
+  },
+  "link.title.More": {
+    "message": "Daha Fazla",
+    "description": "The title of the footer links column with title=More in the footer"
+  },
+  "link.item.label.Getting Started": {
+    "message": "Hızlı Başlangıç",
+    "description": "The label of footer link with label=Getting Started linking to /docs/getting-started"
+  },
+  "link.item.label.Configuration": {
+    "message": "Yapılandırma",
+    "description": "The label of footer link with label=Configuration linking to /docs/configuration"
+  },
+  "link.item.label.Step Logging": {
+    "message": "Adım Loglama",
+    "description": "The label of footer link with label=Step Logging linking to /docs/guides/step-logging"
+  },
+  "link.item.label.CI/CD": {
+    "message": "CI/CD",
+    "description": "The label of footer link with label=CI/CD linking to /docs/ci/github-actions"
+  },
+  "link.item.label.GitHub Issues": {
+    "message": "GitHub Issues",
+    "description": "The label of footer link with label=GitHub Issues linking to https://github.com/testfly/testfly/issues"
+  },
+  "link.item.label.GitHub Discussions": {
+    "message": "GitHub Tartışmalar",
+    "description": "The label of footer link with label=GitHub Discussions linking to https://github.com/testfly/testfly/discussions"
+  },
+  "link.item.label.GitHub": {
+    "message": "GitHub",
+    "description": "The label of footer link with label=GitHub linking to https://github.com/testfly/testfly"
+  },
+  "link.item.label.Maven Central": {
+    "message": "Maven Central",
+    "description": "The label of footer link with label=Maven Central linking to https://central.sonatype.com/artifact/io.testfly/testfly"
+  },
+  "link.item.label.Changelog": {
+    "message": "Değişiklik Günlüğü",
+    "description": "The label of footer link with label=Changelog linking to /docs/changelog"
+  },
+  "copyright": {
+    "message": "Telif Hakkı © 2026 TestFly. Docusaurus ile oluşturulmuştur.",
+    "description": "The footer copyright"
+  }
+}
