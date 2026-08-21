@@ -152,6 +152,7 @@ Items from [`ROADMAP.md`](ROADMAP.md) that are actively open for contribution:
 - ✅ Migration guides — `from-selenium-testng`, `from-webdrivermanager`, `coming-from-playwright`, `from-selenide`, `from-serenity`
 - ✅ Homepage before/after visual component — Plain Selenium vs TestFly comparison on homepage
 - ✅ SEO hygiene — sitemap plugin configured; homepage title tightened
+- 📋 Complete Turkish translation of the docs site content — translate the 60+ markdown pages under `docs-site/docs/` into `docs-site/i18n/tr/docusaurus-plugin-content-docs/current/`. Priority pages: `intro.md`, `getting-started.md`, `configuration.md`
 
 ### Framework & Ecosystem
 
