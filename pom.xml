@@ -159,6 +159,19 @@
         </dependency>
 
         <!--
+            ReportPortal Cucumber 7 agent — optional; reports Given/When/Then steps
+            as nested items in ReportPortal (Feature > Scenario > Step).
+            Auto-registered by BaseCucumberTest when present on the classpath and
+            reporting.reportportal.enabled=true in testfly.yml.
+        -->
+        <dependency>
+            <groupId>com.epam.reportportal</groupId>
+            <artifactId>agent-java-cucumber7</artifactId>
+            <version>5.4.10</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!--
             Guice is required by TestNG's SuiteRunner at runtime when listeners are
             registered programmatically (e.g. ReportPortal). TestNG declares it optional,
             so it is not pulled transitively; we include it here so TestFly's own tests

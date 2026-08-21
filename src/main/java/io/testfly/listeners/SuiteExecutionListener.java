@@ -99,6 +99,16 @@ public final class SuiteExecutionListener implements ISuiteListener {
                 || !reporting.getReportPortal().isEnabled()) {
             return;
         }
+
+        // When the ReportPortal Cucumber 7 agent is on the classpath, it handles
+        // the full Feature > Scenario > Step hierarchy itself. Registering the
+        // TestNG agent on top of it would create duplicate test items.
+        if (isCucumber7AgentPresent()) {
+            System.out.println("[TestFly] ReportPortal Cucumber 7 agent detected — "
+                    + "skipping TestNG listener to avoid duplicate reporting");
+            return;
+        }
+
         try {
             Class<?> listenerClass = Class.forName(REPORTPORTAL_TESTNG_LISTENER);
             Object listener = listenerClass.getDeclaredConstructor().newInstance();
@@ -178,5 +188,22 @@ public final class SuiteExecutionListener implements ISuiteListener {
         // Build quality gates — must run last so all metrics are recorded
         TestFlyConfig config = TestFlyContext.getConfig();
         BuildThresholdEnforcer.enforce(config, ExecutionMetrics.getTimings());
+    }
+
+    /**
+     * Returns {@code true} when the ReportPortal Cucumber 7 agent
+     * ({@code agent-java-cucumber7}) is on the classpath.
+     *
+     * <p>When present, the Cucumber agent handles the full
+     * Feature &gt; Scenario &gt; Step hierarchy in ReportPortal,
+     * so the TestNG agent must not be registered to avoid duplicates.
+     */
+    private static boolean isCucumber7AgentPresent() {
+        try {
+            Class.forName("com.epam.reportportal.cucumber.ScenarioReporter");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 }
