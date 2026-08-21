@@ -18,14 +18,14 @@ public class ProductsPage extends BasePage {
     }
 
     public String getTitle() {
-        return getText(TITLE);
+        return find(TITLE).getText();
     }
 
     public void addFirstProductToCart() {
-        click(FIRST_ADD_TO_CART_BUTTON);
+        find(FIRST_ADD_TO_CART_BUTTON).click();
     }
 
     public String getCartCount() {
-        return getText(CART_BADGE);
+        return find(CART_BADGE).getText();
     }
 }

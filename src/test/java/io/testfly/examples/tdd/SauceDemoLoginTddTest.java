@@ -2,8 +2,8 @@ package io.testfly.examples.tdd;
 
 import io.testfly.examples.pages.LoginPage;
 import io.testfly.examples.pages.ProductsPage;
+import io.testfly.locator.Role;
 import io.testfly.test.BaseTest;
-import org.openqa.selenium.By;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.*;
@@ -22,8 +22,8 @@ public class SauceDemoLoginTddTest extends BaseTest {
         // Act
         open();
 
-        // Assert
-        assertThat(By.id("login-button")).isVisible();
+        // Assert — semantic locator
+        assertThat(getByRole(Role.BUTTON, "Login")).isVisible();
     }
 
     @Test

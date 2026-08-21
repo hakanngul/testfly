@@ -115,6 +115,7 @@ public abstract class BasePage {
      * Waits for the element to be visible and returns its visible text.
      */
     protected String getText(By locator) {
+        StepLogger.step("Get text from " + locator);
         return WaitEngine.waitForVisible(locator).getText();
     }
 
@@ -122,6 +123,7 @@ public abstract class BasePage {
      * Waits for the element to be visible and returns the value of the given attribute.
      */
     protected String getAttribute(By locator, String attribute) {
+        StepLogger.step("Get attribute '" + attribute + "' from " + locator);
         return WaitEngine.waitForVisible(locator).getAttribute(attribute);
     }
 
@@ -175,6 +177,7 @@ public abstract class BasePage {
      * Returns the visible text of the currently selected option in a {@code <select>} element.
      */
     protected String getSelectedOption(By locator) {
+        StepLogger.step("Get selected option from " + locator);
         return new Select(WaitEngine.waitForVisible(locator)).getFirstSelectedOption().getText();
     }
 
@@ -202,6 +205,7 @@ public abstract class BasePage {
      * Waits for a browser alert to be present and returns its text.
      */
     protected String getAlertText() {
+        StepLogger.step("Get alert text");
         return waitForAlert().getText();
     }
 
@@ -367,6 +371,7 @@ public abstract class BasePage {
      * @return the first matching visible element
      */
     protected WebElement smartFind(By primary, By... fallbacks) {
+        StepLogger.step("Smart find " + primary);
         By[] all = new By[1 + fallbacks.length];
         all[0] = primary;
         System.arraycopy(fallbacks, 0, all, 1, fallbacks.length);
@@ -457,6 +462,7 @@ public abstract class BasePage {
      * @param innerCss    CSS selector scoped to the shadow root (XPath not supported)
      */
     protected WebElement shadowFind(By hostLocator, String innerCss) {
+        StepLogger.step("Shadow find " + hostLocator + " / " + innerCss);
         return ShadowDom.find(hostLocator, innerCss);
     }
 
@@ -466,6 +472,7 @@ public abstract class BasePage {
      * @return unmodifiable list; empty if nothing matches
      */
     protected java.util.List<WebElement> shadowFindAll(By hostLocator, String innerCss) {
+        StepLogger.step("Shadow find all " + hostLocator + " / " + innerCss);
         return ShadowDom.findAll(hostLocator, innerCss);
     }
 
@@ -495,6 +502,7 @@ public abstract class BasePage {
      * Returns the visible text of an element inside a shadow root.
      */
     protected String shadowGetText(By hostLocator, String innerCss) {
+        StepLogger.step("Shadow get text " + hostLocator + " / " + innerCss);
         return ShadowDom.find(hostLocator, innerCss).getText();
     }
 
@@ -508,6 +516,7 @@ public abstract class BasePage {
      * </pre>
      */
     protected WebElement shadowPierce(String... cssSelectors) {
+        StepLogger.step("Shadow pierce " + String.join(" -> ", cssSelectors));
         return ShadowDom.pierce(cssSelectors);
     }
 

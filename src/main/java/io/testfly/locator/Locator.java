@@ -239,11 +239,13 @@ public final class Locator {
 
     /** Waits for the element to be visible and returns its trimmed visible text. */
     public String getText() {
+        StepLogger.step("Get text from " + this);
         return waitForVisible(resolve()).getText().trim();
     }
 
     /** Returns the value of the given attribute, waiting for visibility first. */
     public String getAttribute(String name) {
+        StepLogger.step("Get attribute '" + name + "' from " + this);
         return waitForVisible(resolve()).getAttribute(name);
     }
 

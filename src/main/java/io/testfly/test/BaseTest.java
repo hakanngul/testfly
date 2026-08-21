@@ -356,6 +356,7 @@ public abstract class BaseTest {
      * </pre>
      */
     protected DbClient db() {
+        StepLogger.step("Connect to database (default)");
         return DbClient.forDefault();
     }
 
@@ -368,6 +369,7 @@ public abstract class BaseTest {
      * </pre>
      */
     protected DbClient db(String datasource) {
+        StepLogger.step("Connect to database: " + datasource);
         return DbClient.forNamed(datasource);
     }
 
@@ -387,6 +389,7 @@ public abstract class BaseTest {
      * </pre>
      */
     protected MailboxClient mailbox() {
+        StepLogger.step("Open mailbox client");
         return MailboxClient.create();
     }
 
@@ -454,6 +457,7 @@ public abstract class BaseTest {
      * The clock is reset automatically at the end of each test.
      */
     protected TestClock clock() {
+        StepLogger.step("Create test clock");
         return TestClock.create();
     }
 

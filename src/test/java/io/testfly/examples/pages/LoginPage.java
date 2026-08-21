@@ -19,16 +19,16 @@ public class LoginPage extends BasePage {
     }
 
     public void login(String username, String password) {
-        type(USERNAME, username);
-        type(PASSWORD, password);
-        click(LOGIN_BUTTON);
+        find(USERNAME).type(username);
+        find(PASSWORD).type(password);
+        find(LOGIN_BUTTON).click();
     }
 
     public boolean isErrorDisplayed() {
-        return isDisplayed(ERROR_MESSAGE);
+        return find(ERROR_MESSAGE).isVisible();
     }
 
     public String getErrorText() {
-        return getText(ERROR_MESSAGE);
+        return find(ERROR_MESSAGE).getText();
     }
 }

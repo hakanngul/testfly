@@ -2,6 +2,7 @@ package io.testfly.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.testfly.steps.StepLogger;
 
 import java.net.http.HttpResponse;
 
@@ -82,6 +83,7 @@ public class ApiResponse {
 
     /** Fails the test if status does not match. */
     public ApiResponse assertStatus(int expected) {
+        StepLogger.step("Assert API status " + expected);
         if (response.statusCode() != expected) {
             throw new AssertionError(
                 "[ApiResponse] Expected status " + expected +
@@ -93,6 +95,7 @@ public class ApiResponse {
 
     /** Fails the test if the response body does not contain the given substring. */
     public ApiResponse assertBodyContains(String substring) {
+        StepLogger.step("Assert API body contains '" + substring + "'");
         if (!response.body().contains(substring)) {
             throw new AssertionError(
                 "[ApiResponse] Body does not contain: '" + substring + "'. " +
@@ -103,6 +106,7 @@ public class ApiResponse {
 
     /** Fails the test if the JSONPath value does not equal expected. */
     public ApiResponse assertJson(String path, Object expected) {
+        StepLogger.step("Assert API JSON '" + path + "' = " + expected);
         String actual = json(path);
         String expectedStr = String.valueOf(expected);
         if (!expectedStr.equals(actual)) {
@@ -124,6 +128,7 @@ public class ApiResponse {
      * @param schemaPath classpath-relative path, e.g. {@code "schemas/user.json"}
      */
     public ApiResponse assertSchema(String schemaPath) {
+        StepLogger.step("Assert API schema: " + schemaPath);
         SchemaValidator.validate(response.body(), schemaPath);
         return this;
     }

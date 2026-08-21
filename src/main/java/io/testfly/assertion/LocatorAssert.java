@@ -4,6 +4,7 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.driver.DriverManager;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.locator.Locator;
+import io.testfly.steps.StepLogger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -48,6 +49,7 @@ public final class LocatorAssert {
 
     /** Asserts element is present and visible — retries until timeout. */
     public LocatorAssert isVisible() {
+        StepLogger.step("Assert visible: " + description);
         poll(ExpectedConditions.visibilityOfElementLocated(by),
                 "Expected element to be visible: " + description);
         return this;
@@ -55,6 +57,7 @@ public final class LocatorAssert {
 
     /** Asserts element is absent or not visible — retries until timeout. */
     public LocatorAssert isHidden() {
+        StepLogger.step("Assert hidden: " + description);
         poll(ExpectedConditions.invisibilityOfElementLocated(by),
                 "Expected element to be hidden: " + description);
         return this;
@@ -66,6 +69,7 @@ public final class LocatorAssert {
 
     /** Asserts element is present, visible, and enabled — retries until timeout. */
     public LocatorAssert isEnabled() {
+        StepLogger.step("Assert enabled: " + description);
         poll(driver -> {
             List<WebElement> els = driver.findElements(by);
             if (els.isEmpty()) return null;
@@ -77,6 +81,7 @@ public final class LocatorAssert {
 
     /** Asserts element is present but disabled — retries until timeout. */
     public LocatorAssert isDisabled() {
+        StepLogger.step("Assert disabled: " + description);
         poll(driver -> {
             List<WebElement> els = driver.findElements(by);
             if (els.isEmpty()) return null;
@@ -88,6 +93,7 @@ public final class LocatorAssert {
 
     /** Asserts a checkbox or radio button is checked — retries until timeout. */
     public LocatorAssert isChecked() {
+        StepLogger.step("Assert checked: " + description);
         poll(driver -> {
             List<WebElement> els = driver.findElements(by);
             if (els.isEmpty()) return null;
@@ -102,6 +108,7 @@ public final class LocatorAssert {
 
     /** Asserts the element's visible text equals {@code expected} (trimmed) — retries until timeout. */
     public LocatorAssert hasText(String expected) {
+        StepLogger.step("Assert text '" + expected + "' for: " + description);
         poll(ExpectedConditions.textToBe(by, expected),
                 "Expected text [" + expected + "] for: " + description);
         return this;
@@ -109,6 +116,7 @@ public final class LocatorAssert {
 
     /** Asserts the element's visible text contains {@code fragment} — retries until timeout. */
     public LocatorAssert containsText(String fragment) {
+        StepLogger.step("Assert contains text '" + fragment + "' for: " + description);
         poll(ExpectedConditions.textToBePresentInElementLocated(by, fragment),
                 "Expected text to contain [" + fragment + "] for: " + description);
         return this;
@@ -120,6 +128,7 @@ public final class LocatorAssert {
 
     /** Asserts the element's {@code value} attribute equals {@code expected} — retries until timeout. */
     public LocatorAssert hasValue(String expected) {
+        StepLogger.step("Assert value '" + expected + "' for: " + description);
         poll(ExpectedConditions.attributeToBe(by, "value", expected),
                 "Expected value [" + expected + "] for: " + description);
         return this;
@@ -127,6 +136,7 @@ public final class LocatorAssert {
 
     /** Asserts the element has a specific attribute value — retries until timeout. */
     public LocatorAssert hasAttribute(String attribute, String expected) {
+        StepLogger.step("Assert attribute " + attribute + "=" + expected + " for: " + description);
         poll(ExpectedConditions.attributeToBe(by, attribute, expected),
                 "Expected attribute [" + attribute + "=" + expected + "] for: " + description);
         return this;
@@ -134,6 +144,7 @@ public final class LocatorAssert {
 
     /** Asserts the element has the given CSS class — retries until timeout. */
     public LocatorAssert hasClass(String className) {
+        StepLogger.step("Assert has class '" + className + "' for: " + description);
         poll(driver -> {
             List<WebElement> els = driver.findElements(by);
             if (els.isEmpty()) return null;
@@ -153,6 +164,7 @@ public final class LocatorAssert {
 
     /** Asserts the number of matching elements equals {@code expected} — retries until timeout. */
     public LocatorAssert count(int expected) {
+        StepLogger.step("Assert count " + expected + " for: " + description);
         poll(ExpectedConditions.numberOfElementsToBe(by, expected),
                 "Expected " + expected + " element(s) for: " + description);
         return this;
