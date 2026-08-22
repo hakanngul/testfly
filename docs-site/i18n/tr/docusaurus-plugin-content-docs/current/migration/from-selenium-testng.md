@@ -212,7 +212,7 @@ Page object'leriniz ve `@Test` metotlarınız aynı kalır — sadece kısalırl
 
 ---
 
-## Yapılandırma eşlemesi
+## Yapılandırma eşlemesi {#config-mapping}
 
 `testng.xml` özniteliklerinde ve dağınık sabitlerde yaşayan ayarlar tek bir dosyaya taşınır:
 

@@ -74,7 +74,7 @@ public abstract class BasePage {
     /**
      * Pauses execution for the given number of milliseconds.
      *
-     * <p>Use sparingly — prefer explicit waits such as {@link #waitForVisible(By)}.
+     * <p>Use sparingly — prefer explicit waits such as {@link WaitEngine#waitForVisible(By)}.
      */
     protected void waitMillis(long milliseconds) {
         WaitEngine.waitMillis(milliseconds);
@@ -83,7 +83,7 @@ public abstract class BasePage {
     /**
      * Pauses execution for the given number of seconds.
      *
-     * <p>Use sparingly — prefer explicit waits such as {@link #waitForVisible(By)}.
+     * <p>Use sparingly — prefer explicit waits such as {@link WaitEngine#waitForVisible(By)}.
      */
     protected void waitSeconds(int seconds) {
         WaitEngine.waitSeconds(seconds);

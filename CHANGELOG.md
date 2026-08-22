@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## Unreleased
+
+### Security
+- Moved API credentials out of committed YAML. `testfly.yml` now uses `${DEEPSEEK_API_KEY}` and `${REPORTPORTAL_API_KEY}` placeholders. Real values are sourced from environment variables or a local `.env` file. The previous keys have been rotated.
+
+### Build
+- Split integration tests from the unit-test suite. Tests that need real backends (DeepSeek, ReportPortal, live browsers/APIs) moved to `src/test/java/io/testfly/integration/` and run via `maven-failsafe-plugin` with `mvn verify -Preal-backends`.
+- Added `quality` Maven profile (`mvn clean verify -Pquality`) enabling JaCoCo, SpotBugs, Checkstyle, and PMD.
+
+### Fixed
+- Removed two Javadoc warnings in `BasePage` caused by a missing `{@link #waitForVisible(By)}` method reference.
+
+### Documentation
+- Updated `AGENTS.md`, `CLAUDE.md`, and `CONTRIBUTING.md` to reflect the `io.testfly` namespace and the new test / credential workflows.
+
 ### v1.0.0 — 2026-08-20
 
 - **Project rebrand to TestFly** — complete identity migration from Selenium Boot to TestFly:

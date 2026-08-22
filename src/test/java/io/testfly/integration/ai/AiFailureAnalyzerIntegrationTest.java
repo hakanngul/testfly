@@ -1,4 +1,4 @@
-package io.testfly.unit;
+package io.testfly.integration.ai;
 
 import io.testfly.ai.AiFailureAnalyzer;
 import io.testfly.config.ConfigurationLoader;
@@ -15,9 +15,9 @@ import static org.testng.Assert.*;
  * Integration test that calls the real DeepSeek API (deepseek-v4-flash)
  * through {@link AiFailureAnalyzer} and verifies the analysis is recorded.
  *
- * <p>Requires a valid API key in {@code testfly.yml} under {@code ai.apiKey}.
- * Run explicitly with:
- * <pre>mvn test -Dtest=AiFailureAnalyzerIntegrationTest</pre>
+ * <p>Requires a valid API key exported as {@code DEEPSEEK_API_KEY}.
+ * Run with the real-backends profile:
+ * <pre>mvn verify -Preal-backends -Dit.test=AiFailureAnalyzerIntegrationTest</pre>
  */
 public class AiFailureAnalyzerIntegrationTest {
 

@@ -1,3 +1,7 @@
+# Example TestFly configuration for local development.
+# Copy this file to testfly.yml and fill in real credentials, or keep testfly.yml
+# without secrets and export the environment variables referenced below.
+
 browser:
   name: chrome
   headless: true
@@ -13,7 +17,6 @@ execution:
   mode: local
   baseUrl: https://www.saucedemo.com/
   gridUrl: http://localhost:4444/wd/hub
-#  parallel: none/methods/classes
   parallel: methods
   threadCount: 4
   maxActiveSessions: 4
@@ -34,7 +37,7 @@ timeouts:
 reporting:
   allureEnabled: true
   reportPortal:
-    enabled: true
+    enabled: false
     endpoint: ${REPORTPORTAL_ENDPOINT:-https://reportportal.example.com}
     apiKey: ${REPORTPORTAL_API_KEY}
     project: demo-web
@@ -44,7 +47,7 @@ reporting:
     mode: default
 
 ai:
-  failureAnalysis: true
+  failureAnalysis: false
   provider: openai-compatible
   baseUrl: https://api.deepseek.com
   apiKey: ${DEEPSEEK_API_KEY}

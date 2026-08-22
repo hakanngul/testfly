@@ -63,9 +63,11 @@ timeouts:
   pageLoad: 30
 ```
 
-**3. `src/test/java/SmokeTest.java`**
+**3. `src/test/java/io/testfly/examples/testng/SmokeTest.java`**
 
 ```java
+package io.testfly.examples.testng;
+
 import io.testfly.test.BaseTest;
 import org.testng.annotations.Test;
 
@@ -84,7 +86,7 @@ public class SmokeTest extends BaseTest {
 Then:
 
 ```bash
-mvn test
+mvn test -Dtest=io.testfly.examples.testng.SmokeTest
 ```
 
 No driver setup, no teardown, no waits, no `WebDriver` to manage — `BaseTest` owns the lifecycle. The HTML report lands at `target/testfly-report.html`.

@@ -32,11 +32,21 @@ mvn test -Dtest=ConfigurationLoaderTest#testMethodName
 # Run tests against a specific environment profile
 mvn test -Denv=staging
 
+# Run integration tests that need real backends (DeepSeek, ReportPortal, etc.)
+export DEEPSEEK_API_KEY=...
+export REPORTPORTAL_API_KEY=...
+mvn verify -Preal-backends
+
+# Run full quality gate (JaCoCo, SpotBugs, Checkstyle, PMD)
+mvn clean verify -Pquality
+
 # Docs site (Docusaurus) — from docs-site/
 npm install
 npm run start   # dev server
 npm run build   # production build
 ```
+
+Never commit real credentials. Keep local values in `.env` (ignored) and use `${VAR}` placeholders in `testfly.yml`.
 
 No linter/formatter is enforced. Follow the style of existing code.
 
@@ -54,7 +64,7 @@ Infrastructure      (config loading, SPI plugin registry, listeners)
 Selenium WebDriver  (browser automation)
 ```
 
-All source lives under `src/main/java/com/testfly/`. Key packages:
+All source lives under `src/main/java/io.testfly/`. Key packages:
 
 | Package | Role |
 |---|---|
@@ -85,7 +95,7 @@ Classes/methods annotated `@TestFlyApi` are the stable public surface. Avoid bre
 
 ## Tests
 
-Unit tests are in `src/test/java/com/testfly/unit/` (39 test classes, 480 tests). They use **TestNG + Mockito**. Tests mock Selenium/browser interactions — no real browser is required to run the test suite.
+Unit tests are in `src/test/java/io/testfly/unit/` (49 test classes, ~580 tests). They use **TestNG + Mockito**. Tests mock Selenium/browser interactions — no real browser is required to run the test suite. Integration tests that hit real backends live under `src/test/java/io/testfly/integration/` and run with `mvn verify -Preal-backends`.
 
 ## Configuration Reference
 

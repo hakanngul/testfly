@@ -247,37 +247,38 @@
 .codeWindowBar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  background: rgba(0, 0, 0, 0.02);
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.03);
   border-bottom: 1px solid var(--tf-card-border);
 }
 
 [data-theme='dark'] .codeWindowBar {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: var(--tf-text-tertiary);
-  opacity: 0.35;
+  flex-shrink: 0;
 }
 
 .codeWindowFilename {
   margin-left: auto;
-  font-size: 11px;
+  font-size: 12px;
   font-family: var(--ifm-font-family-monospace);
   color: var(--tf-text-tertiary);
-  letter-spacing: 0.3px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .codeWindowBody {
   margin: 0;
   padding: 1.25rem 1.5rem;
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: 13.5px;
+  line-height: 1.7;
   font-family: var(--ifm-font-family-monospace);
   white-space: pre;
   overflow-x: auto;
@@ -285,14 +286,41 @@
   border: none;
   border-radius: 0;
   text-align: left;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .codeWindowBody [class^="token"] {
   font-family: inherit;
+  font-weight: 500;
 }
 
 .codeWindowBody > div {
   display: block;
+  min-height: 1.7em;
+}
+
+/* Bento code snippets (inside feature cards) */
+.bentoCode {
+  margin: 1rem 0 0;
+  padding: 1rem 1.15rem;
+  border-radius: 10px;
+  background: var(--tf-bg-code);
+  border: 1px solid var(--tf-card-border);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--tf-text);
+  white-space: pre;
+  overflow-x: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-theme='dark'] .bentoCode {
+  background: rgba(28, 28, 30, 0.8);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #f5f5f7;
 }
 
 /* ── Stats strip ───────────────────────────────────────────────────────────── */
@@ -482,20 +510,6 @@
   line-height: 1.6;
   color: var(--tf-text-secondary);
   margin: 0;
-}
-
-.bentoCode {
-  margin: 1.15rem 0 0;
-  padding: 1rem 1.15rem;
-  border-radius: 10px;
-  background: var(--tf-bg-code);
-  border: 1px solid var(--tf-card-border);
-  font-family: var(--ifm-font-family-monospace);
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: var(--tf-text);
-  white-space: pre;
-  overflow-x: auto;
 }
 
 .reportPreview {
@@ -837,6 +851,74 @@
 
 [data-theme='dark'] .ctaLogo {
   opacity: 0.08;
+}
+
+/* ── Dark mode refinements ─────────────────────────────────────────────────── */
+
+[data-theme='dark'] .codeWindow {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .codeWindow:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .codeWindowBar {
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .bentoCard {
+  background: rgba(44, 44, 46, 0.5);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .bentoCard:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='dark'] .miniCard {
+  background: rgba(44, 44, 46, 0.4);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .miniCard:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .faqItem {
+  background: rgba(44, 44, 46, 0.4);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .faqItem:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme='dark'] .faqItem[data-open] {
+  border-color: var(--tf-accent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .statItem {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .reportPreview {
+  background: rgba(28, 28, 30, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .ctaCard {
+  background: rgba(28, 28, 30, 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .compareArrow {
+  color: var(--tf-accent);
 }
 
 .ctaTitle {

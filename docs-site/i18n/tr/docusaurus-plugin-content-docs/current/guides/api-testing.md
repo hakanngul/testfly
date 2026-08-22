@@ -133,7 +133,7 @@ ApiClient.get("/api/users/1")
 
 ---
 
-## Şema Doğrulaması
+## Şema Doğrulaması {#schema-validation}
 
 Bir yanıtın bir JSON Schema (Draft-07) ile eşleştiğini doğrulayın:
 

@@ -40,10 +40,29 @@ Features that significantly increase complexity without clear user value may be 
 ```bash
 git clone https://github.com/testfly/testfly.git
 cd testfly
-mvn clean verify
+mvn test
 ```
 
 All unit tests must pass before submitting a PR.
+
+### Local credentials
+
+Never commit real API keys. The repo provides:
+
+- `.env.example` — copy to `.env` and fill in real values
+- `src/test/resources/testfly.yml.example` — copy to `src/test/resources/testfly.yml` if you need local config overrides
+
+Both `.env` and `src/test/resources/testfly.yml` are ignored by Git.
+
+### Running integration tests
+
+Integration tests that hit real backends (DeepSeek, ReportPortal, live browsers/APIs) live under `src/test/java/io/testfly/integration/` and are excluded from the default `mvn test` run. To execute them:
+
+```bash
+export DEEPSEEK_API_KEY=...
+export REPORTPORTAL_API_KEY=...
+mvn verify -Preal-backends
+```
 
 ### Test against the consumer project
 
@@ -86,7 +105,9 @@ And run the consumer project tests to verify end-to-end behaviour.
 
 ### PR checklist
 
-- [ ] All existing tests pass (`mvn clean verify`)
+- [ ] Unit tests pass (`mvn test`)
+- [ ] Integration tests pass with real backends if your change touches them (`mvn verify -Preal-backends`)
+- [ ] Quality gate passes (`mvn clean verify -Pquality`)
 - [ ] New behaviour is covered by unit tests
 - [ ] No new external dependencies introduced without discussion
 - [ ] Code follows existing conventions (no new frameworks, minimal abstraction)

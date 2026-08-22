@@ -34,7 +34,7 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        stage('Unit Tests') {
             steps {
                 sh 'mvn test --no-transfer-progress'
             }
@@ -51,6 +51,22 @@ pipeline {
                     // Archive metrics JSON + history
                     archiveArtifacts artifacts: 'target/testfly-metrics.json, target/metrics-history/**',
                                      allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Integration Tests') {
+            when {
+                // Only run when the DeepSeek API key is available.
+                expression { env.DEEPSEEK_API_KEY != null && env.DEEPSEEK_API_KEY != '' }
+            }
+            steps {
+                sh 'mvn verify -Preal-backends --no-transfer-progress'
+            }
+            post {
+                always {
+                    junit testResults: 'target/failsafe-reports/TEST-*.xml',
+                          allowEmptyResults: true
                 }
             }
         }

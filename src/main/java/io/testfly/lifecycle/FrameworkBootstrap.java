@@ -2,6 +2,7 @@ package io.testfly.lifecycle;
 
 import io.testfly.ci.CiEnvironmentDetector;
 import io.testfly.config.ConfigurationLoader;
+import io.testfly.config.DotEnvLoader;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.config.TestFlyDefaults;
 import io.testfly.driver.DriverProviderRegistry;
@@ -33,6 +34,8 @@ public final class FrameworkBootstrap {
         if (TestFlyContext.isInitialized()) {
             return;
         }
+        // Load .env BEFORE config so ${VAR} placeholders can resolve
+        DotEnvLoader.load();
         TestFlyConfig config = ConfigurationLoader.load();
         TestFlyDefaults.applyMissing(config);
         applyCiOverrides(config);

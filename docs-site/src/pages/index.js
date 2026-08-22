@@ -4,7 +4,6 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import { useColorMode } from '@docusaurus/theme-common';
 import { Highlight } from 'prism-react-renderer';
-import { themes } from 'prism-react-renderer';
 import Layout from '@theme/Layout';
 import styles from './index.module.css';
 
@@ -142,19 +141,49 @@ const stats = [
 
 function CodeWindow({ filename, code, className, language = 'java' }) {
   const { colorMode } = useColorMode();
-  const prismTheme = colorMode === 'dark' ? themes.dracula : themes.oneLight;
+  
+  // Custom themes with better contrast for readability
+  const lightTheme = {
+    plain: { color: '#1d1d1f', backgroundColor: '#f5f5f7' },
+    styles: [
+      { types: ['comment', 'prolog', 'doctype', 'cdata'], style: { color: '#6e6e73' } },
+      { types: ['punctuation'], style: { color: '#1d1d1f' } },
+      { types: ['property', 'tag', 'boolean', 'number', 'constant', 'symbol'], style: { color: '#0071e3' } },
+      { types: ['selector', 'attr-name', 'string', 'char', 'builtin'], style: { color: '#34c759' } },
+      { types: ['operator', 'entity', 'url'], style: { color: '#ff9500' } },
+      { types: ['atrule', 'attr-value', 'keyword'], style: { color: '#af52de' } },
+      { types: ['function', 'class-name'], style: { color: '#ff3b30' } },
+      { types: ['regexp', 'important', 'variable'], style: { color: '#ff9500' } },
+    ],
+  };
+  
+  const darkTheme = {
+    plain: { color: '#f5f5f7', backgroundColor: '#1c1c1e' },
+    styles: [
+      { types: ['comment', 'prolog', 'doctype', 'cdata'], style: { color: '#8e8e93' } },
+      { types: ['punctuation'], style: { color: '#f5f5f7' } },
+      { types: ['property', 'tag', 'boolean', 'number', 'constant', 'symbol'], style: { color: '#0a84ff' } },
+      { types: ['selector', 'attr-name', 'string', 'char', 'builtin'], style: { color: '#30d158' } },
+      { types: ['operator', 'entity', 'url'], style: { color: '#ff9f0a' } },
+      { types: ['atrule', 'attr-value', 'keyword'], style: { color: '#bf5af2' } },
+      { types: ['function', 'class-name'], style: { color: '#ff453a' } },
+      { types: ['regexp', 'important', 'variable'], style: { color: '#ff9f0a' } },
+    ],
+  };
+  
+  const prismTheme = colorMode === 'dark' ? darkTheme : lightTheme;
 
   return (
     <div className={`${styles.codeWindow} ${className || ''}`}>
       <div className={styles.codeWindowBar}>
-        <span className={styles.dot} />
-        <span className={styles.dot} />
-        <span className={styles.dot} />
+        <span className={styles.dot} style={{ background: '#ff5f57' }} />
+        <span className={styles.dot} style={{ background: '#febc2e' }} />
+        <span className={styles.dot} style={{ background: '#28c840' }} />
         <span className={styles.codeWindowFilename}>{filename}</span>
       </div>
       <Highlight theme={prismTheme} code={code.trim()} language={language}>
         {({ className: hlClass, style, tokens, getLineProps, getTokenProps }) => (
-          <pre className={`${styles.codeWindowBody} ${hlClass}`} style={style}>
+          <pre className={`${styles.codeWindowBody} ${hlClass}`} style={{ ...style, background: 'transparent' }}>
             {tokens.map((line, i) => (
               <div key={i} {...getLineProps({ line })}>
                 {line.map((token, key) => (

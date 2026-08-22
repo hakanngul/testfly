@@ -66,7 +66,7 @@ Docs site:
 ```
 testfly/
 ├── pom.xml                           # Maven build configuration
-├── testfly.yml                 # Framework config for local test runs
+├── testfly.yml                       # Framework config for local test runs
 ├── README.md                         # User-facing landing page
 ├── CLAUDE.md                         # Maintainer cheat sheet (read it!)
 ├── CONTRIBUTING.md                   # PR checklist and philosophy
@@ -79,11 +79,11 @@ testfly/
 │   ├── docusaurus.config.js
 │   ├── docs/
 │   └── src/
-├── src/main/java/com/testfly/   # Framework source
-└── src/test/java/com/testfly/unit/# Framework unit tests
+├── src/main/java/io/testfly/         # Framework source
+└── src/test/java/io/testfly/unit/    # Framework unit tests
 ```
 
-### Main source packages (`src/main/java/com/testfly/`)
+### Main source packages (`src/main/java/io/testfly/`)
 
 | Package | Responsibility |
 |---------|----------------|
@@ -124,7 +124,7 @@ testfly/
 | `internal/` | Framework-only context (`TestFlyContext`) |
 | `exceptions/` | Framework-specific runtime exceptions |
 
-### Tests (`src/test/java/com/testfly/unit/`)
+### Tests (`src/test/java/io/testfly/unit/`)
 
 - Pure unit tests using **TestNG + Mockito**
 - No real browser is required to run the framework test suite
@@ -236,10 +236,11 @@ Profiles are activated with `-Denv=<profile>` and load `testfly-<profile>.yml`.
 mvn test
 ```
 
-- Located in `src/test/java/com/testfly/unit/`
+- Located in `src/test/java/io/testfly/unit/`
 - Run with TestNG via `maven-surefire-plugin` (configured for TestNG in `pom.xml`)
 - Mockito is used to mock Selenium/browser interactions
 - No real browser is opened
+- Integration tests that need real backends live under `src/test/java/io/testfly/integration/` and are run by `maven-failsafe-plugin` via `mvn verify -Preal-backends`
 
 ### Consumer integration tests
 

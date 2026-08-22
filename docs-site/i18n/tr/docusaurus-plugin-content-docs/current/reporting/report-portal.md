@@ -16,7 +16,7 @@ TestFly, TestNG sonuçlarını gerçek zamanlı olarak [ReportPortal](https://re
 * Test durumları, ReportPortal aracısı tarafından otomatik olarak eşlenir.
 * Takım (suite) bittikten sonra TestFly, ReportPortal panel URL'sini ve bir özeti konsola yazdırır.
 
-## Ön koşullar
+## Ön koşullar {#prerequisites}
 
 ReportPortal TestNG aracısı, TestFly içinde **isteğe bağlı** bir bağımlılıktır. Bunu projenize açıkça ekleyin:
 

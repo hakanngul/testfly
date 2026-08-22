@@ -4,6 +4,9 @@ target/
 !**/src/test/**/target/
 .kotlin
 
+
+.qwen
+
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml
@@ -55,6 +58,11 @@ articles/*
 
 *.log
 *.env
+
+### Local credentials / config ###
+# Local testfly.yml may contain real credentials; the committed example file is
+# src/test/resources/testfly.yml.example
+src/test/resources/testfly.yml
 
 ### Test-generated visual baselines ###
 # VisualAssert tests write throwaway timestamped baseline PNGs here during runs.

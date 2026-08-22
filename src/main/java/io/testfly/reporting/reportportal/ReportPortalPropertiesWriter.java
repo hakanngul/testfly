@@ -1,5 +1,6 @@
 package io.testfly.reporting.reportportal;
 
+import io.testfly.config.DotEnvLoader;
 import io.testfly.config.TestFlyConfig;
 
 import java.io.IOException;
@@ -64,8 +65,8 @@ public final class ReportPortalPropertiesWriter {
         validate(rp);
 
         Properties properties = new Properties();
-        putIfNotBlank(properties, RP_ENDPOINT, rp.getEndpoint());
-        putIfNotBlank(properties, RP_API_KEY, rp.getApiKey());
+        putIfNotBlank(properties, RP_ENDPOINT, DotEnvLoader.resolve(rp.getEndpoint()));
+        putIfNotBlank(properties, RP_API_KEY, DotEnvLoader.resolve(rp.getApiKey()));
         putIfNotBlank(properties, RP_PROJECT, rp.getProject());
         putIfNotBlank(properties, RP_LAUNCH, rp.getLaunch());
         putIfNotBlank(properties, RP_DESCRIPTION, rp.getDescription());
