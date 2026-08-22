@@ -52,7 +52,7 @@ StepLogger.step("After form submission", true);  // screenshot captured here
 ```
 
 ### `StepLogger.step(String name, StepStatus status)`
-Logs a step with an explicit status — `INFO`, `PASS`, or `FAIL`.
+Logs a step with an explicit status — `INFO`, `PASS`, `FAIL`, or `WARN`.
 
 ```java
 StepLogger.step("Verify order total", StepStatus.PASS);
@@ -75,6 +75,7 @@ StepLogger.step("Assert confirmation page", StepStatus.PASS, true);
 | `INFO` | Default — neutral step, no outcome implied |
 | `PASS` | Explicitly marking a verification as passed |
 | `FAIL` | Explicitly marking a step as failed (test continues) |
+| `WARN` | Non-fatal issues or retry notifications |
 
 ---
 
@@ -86,7 +87,7 @@ Each step shows:
 - Step number
 - Step name
 - Time offset from test start (e.g. `+312ms`)
-- Status badge (INFO / PASS / FAIL)
+- Status badge (INFO / PASS / FAIL / WARN)
 - Thumbnail if a screenshot was captured (click to open full-size lightbox)
 
 ---

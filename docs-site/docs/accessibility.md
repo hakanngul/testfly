@@ -8,7 +8,7 @@ sidebar_position: 17
 
 # Accessibility Assertions (axe-core)
 
-TestFly 2.5.0 bundles [axe-core](https://github.com/dequelabs/axe-core) 4.10.2 directly in the JAR. Call `accessibility()` after `open()` to run a WCAG scan with zero extra dependencies.
+TestFly 1.0.0 bundles [axe-core](https://github.com/dequelabs/axe-core) 4.10.2 directly in the JAR. Call `accessibility()` after `open()` to run a WCAG scan with zero extra dependencies.
 
 ---
 

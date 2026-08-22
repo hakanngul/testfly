@@ -60,7 +60,7 @@ api:
 Override per-request with `ApiClient.to(url)`:
 
 ```java
-ApiClient.to("https://other-service.com").get("/health").send();
+ApiClient.to("https://other-service.com").path("/health").get().send();
 ```
 
 ### Request headers and body

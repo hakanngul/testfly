@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.testfly:testfly:2.6.0'
+    testImplementation 'io.testfly:testfly:1.0.0'
 }
 ```
 
@@ -46,7 +46,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation("io.testfly:testfly:2.6.0")
+    testImplementation("io.testfly:testfly:1.0.0")
 }
 ```
 
@@ -69,7 +69,7 @@ test {
         // suites 'src/test/resources/testng.xml'
     }
 
-    // Forward system properties so -Denv=staging works from the CLI
+    // Forward system properties so -Dtestfly.profile=staging works from the CLI
     systemProperties System.properties
 
     // Display test output in the console
@@ -90,7 +90,7 @@ tasks.test {
         // suites("src/test/resources/testng.xml")
     }
 
-    // Forward system properties so -Denv=staging works from the CLI
+    // Forward system properties so -Dtestfly.profile=staging works from the CLI
     systemProperties(System.getProperties().mapKeys { it.key.toString() })
 
     testLogging {
@@ -112,7 +112,7 @@ If you're using `BaseJUnit5Test` or `@EnableTestFly`:
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:2.6.0'
+    testImplementation 'io.testfly:testfly:1.0.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
 }
@@ -128,7 +128,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.testfly:testfly:2.6.0")
+    testImplementation("io.testfly:testfly:1.0.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
 }
@@ -177,7 +177,7 @@ retry:
 ./gradlew test --tests "com.example.LoginTest.validLogin"
 
 # Run with an environment profile
-./gradlew test -Denv=staging
+./gradlew test -Dtestfly.profile=staging
 
 # Pass multiple JVM args
 ./gradlew test -Dbrowser.name=firefox -Dbrowser.headless=true
@@ -245,7 +245,7 @@ These are `compileOnly` / optional in the TestFly JAR — add them only if you u
 |---|---|
 | Excel `@TestData` | `testImplementation 'org.apache.poi:poi-ooxml:5.2.5'` |
 | Email verification (IMAP) | `testImplementation 'com.sun.mail:jakarta.mail:2.0.1'` |
-| Cucumber | `testImplementation 'io.cucumber:cucumber-java:7.15.0'` + `testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.15.0'` |
+| Cucumber | `testImplementation 'io.cucumber:cucumber-java:7.20.1'` + `testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.20.1'` |
 
 ---
 
@@ -274,7 +274,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.testfly:testfly:2.6.0'
+    testImplementation 'io.testfly:testfly:1.0.0'
 }
 
 test {

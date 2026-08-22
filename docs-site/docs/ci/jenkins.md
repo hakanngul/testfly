@@ -68,7 +68,7 @@ Add Chrome to the agent and configure headless mode:
 
 ```yaml title="testfly.yml"
 browser:
-  type: chrome
+  name: chrome
   headless: true
 ```
 
@@ -76,7 +76,7 @@ If Chrome is not in the `PATH` on your agent, set the binary path:
 
 ```yaml
 browser:
-  type: chrome
+  name: chrome
   headless: true
   binaryPath: /usr/bin/google-chrome
 ```
@@ -92,12 +92,12 @@ stage('Test') {
     parallel {
         stage('Chrome') {
             steps {
-                sh 'mvn test -B -Dbrowser.type=chrome'
+                sh 'mvn test -B -Dbrowser.name=chrome'
             }
         }
         stage('Firefox') {
             steps {
-                sh 'mvn test -B -Dbrowser.type=firefox'
+                sh 'mvn test -B -Dbrowser.name=firefox'
             }
         }
     }

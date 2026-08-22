@@ -7,7 +7,7 @@ sidebar_position: 16
 
 # Performance Assertions (Core Web Vitals)
 
-TestFly 2.4.0 lets you assert Google's Core Web Vitals directly in your Selenium tests — no extra tool, no proxy, no external service. Call `assertPerformance()` after `open()` and set thresholds for each metric.
+TestFly 1.0.0 lets you assert Google's Core Web Vitals directly in your Selenium tests — no extra tool, no proxy, no external service. Call `assertPerformance()` after `open()` and set thresholds for each metric.
 
 ---
 

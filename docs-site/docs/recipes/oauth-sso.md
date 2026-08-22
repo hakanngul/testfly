@@ -18,7 +18,7 @@ The practical approach is to **separate authentication from authorization testin
 If your app accepts an access token in `localStorage`, a cookie, or an `Authorization` header, call the token endpoint directly with `ApiClient` and inject the result:
 
 ```java title="OAuthLoginTest.java"
-import io.testfly.api.ApiResponse;
+import io.testfly.client.ApiResponse;
 import io.testfly.client.ApiClient;
 import io.testfly.test.BaseTest;
 import org.testng.annotations.Test;

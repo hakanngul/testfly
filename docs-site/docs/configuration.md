@@ -157,6 +157,117 @@ reporting:
     description: "Automated TestFly test execution"
     attributes: "env:ci;branch:main"
 
+# ── API Testing ─────────────────────────────────────────────────────────────
+api:
+  baseUrl: https://api.example.com  # fallback: execution.baseUrl
+  timeoutSeconds: 30
+  logBody: false               # log request/response body in step timeline
+  logContext: false            # log additional request context
+  truncationLimit: 300         # max body chars logged (when logBody: true)
+
+  # Named auth strategies (use with @UseAuth("name"))
+  auth:
+    adminToken:
+      type: bearer             # bearer | basic | oauth2
+      token: ${ADMIN_TOKEN}
+    basicUser:
+      type: basic
+      username: user
+      password: ${USER_PASSWORD}
+    serviceAccount:
+      type: oauth2
+      tokenUrl: https://auth.example.com/token
+      clientId: ${CLIENT_ID}
+      clientSecret: ${CLIENT_SECRET}
+
+  # API-level retry (for flaky HTTP responses)
+  retry:
+    enabled: false
+    maxAttempts: 3
+    backoffMs: 500
+    retryOnStatus: [502, 503, 504]
+    retryOnException: true
+
+# ── AI Failure Analysis ─────────────────────────────────────────────────────
+ai:
+  failureAnalysis: true        # enable AI-powered failure root-cause analysis
+  provider: openai             # openai | anthropic | ollama | custom
+  baseUrl:                     # optional — override provider endpoint
+  apiKey: ${AI_API_KEY}
+  model: gpt-4o-mini
+  language: en                 # analysis output language
+  timeoutSeconds: 20
+
+# ── Performance (Core Web Vitals) ──────────────────────────────────────────
+performance:
+  captureOnEveryTest: false    # auto-collect CWV on every page load
+  lcpWarnMs: 2500              # Largest Contentful Paint warning threshold
+  fcpWarnMs: 1800              # First Contentful Paint warning threshold
+  ttfbWarnMs: 800              # Time To First Byte warning threshold
+  clsWarn: 0.1                 # Cumulative Layout Shift warning threshold
+
+# ── Visual Regression ──────────────────────────────────────────────────────
+visual:
+  baselineDir: target/visual/baselines
+  diffDir: target/visual/diffs
+  defaultTolerance: 0.01       # pixel-difference threshold (0.0–1.0)
+  updateBaselines: false       # set true to regenerate baselines
+
+# ── Screen Recording ──────────────────────────────────────────────────────
+recording:
+  enabled: false               # record test execution as video
+  fps: 2                       # frames per second
+  maxDurationSeconds: 60       # max recording length per test
+
+# ── Execution Tracing ─────────────────────────────────────────────────────
+tracing:
+  enabled: false               # capture execution trace (DOM snapshots + network)
+  captureOnPass: true          # include passing tests in traces
+
+# ── Quarantine ─────────────────────────────────────────────────────────────
+quarantine:
+  enabled: true                # skip quarantined tests from the run
+  cucumberTag: quarantine      # Cucumber tag that marks quarantined scenarios
+
+# ── Flakiness Tracking ────────────────────────────────────────────────────
+flakiness:
+  historyRuns: 20              # how many past runs to analyse
+  highRiskThreshold: 33.0      # % — flag tests flaky above this rate
+  failOnHighFlakiness: false   # fail the build if high-risk flaky tests exist
+
+# ── Notifications ──────────────────────────────────────────────────────────
+notifications:
+  slack:
+    webhookUrl: ${SLACK_WEBHOOK_URL}
+    notifyOnFailureOnly: false
+  teams:
+    webhookUrl: ${TEAMS_WEBHOOK_URL}
+    notifyOnFailureOnly: false
+
+# ── Test Management ───────────────────────────────────────────────────────
+testmanagement:
+  testrail:
+    enabled: false
+    url: https://yourcompany.testrail.io
+    username: ${TR_USER}
+    apiKey: ${TR_API_KEY}
+    projectId: 1
+    suiteId: 2
+    runName: "TestFly Run"
+    autoCreateRun: true
+    runId:                     # optional — use existing run
+
+  xray:
+    enabled: false
+    mode: cloud                # cloud | server
+    clientId: ${XRAY_CLIENT_ID}
+    clientSecret: ${XRAY_CLIENT_SECRET}
+    projectKey: PROJ
+    testPlanKey: PROJ-1
+    jiraUrl: https://yourcompany.atlassian.net
+    username: ${JIRA_USER}
+    password: ${JIRA_TOKEN}
+
 # ── Clock Mocking ────────────────────────────────────────────────────────────
 clock:
   injectHeader: false      # send X-Mock-Date header to server

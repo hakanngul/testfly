@@ -9,8 +9,8 @@ sidebar_position: 12
 
 TestFly supports running your test suite on **BrowserStack** and **Sauce Labs** with zero test-code changes. Switch from local Chrome to a cloud browser farm by changing one line in `testfly.yml`.
 
-:::caution Requires TestFly 3.2.1+
-Cloud execution (`execution.mode: browserstack` or `saucelabs`) requires **TestFly 3.2.1 or later**. It does not work in any earlier release — config loading rejects any `execution.mode` other than `local` or `remote` at startup — regardless of what the examples on this page show.
+:::caution Requires TestFly 1.0.0
+Cloud execution (`execution.mode: browserstack` or `saucelabs`) requires **TestFly 1.0.0 or later**. It does not work in any earlier release — config loading rejects any `execution.mode` other than `local` or `remote` at startup — regardless of what the examples on this page show.
 :::
 
 ---

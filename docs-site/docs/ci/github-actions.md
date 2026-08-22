@@ -57,7 +57,7 @@ Chrome on CI runners must run headless. Configure this in `testfly.yml`:
 
 ```yaml title="testfly.yml"
 browser:
-  type: chrome
+  name: chrome
   headless: true
 ```
 
@@ -118,7 +118,7 @@ jobs:
         uses: browser-actions/setup-firefox@v1
 
       - name: Run tests
-        run: mvn test -B -Dbrowser.type=${{ matrix.browser }}
+        run: mvn test -B -Dbrowser.name=${{ matrix.browser }}
 
       - name: Upload report
         if: always()

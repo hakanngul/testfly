@@ -84,7 +84,7 @@ public class AppConditions extends BaseConditions {
 Create the SPI file:
 
 ```
-src/main/resources/META-INF/services/io.testfly.precondition.BaseConditions
+src/test/resources/META-INF/services/io.testfly.precondition.BaseConditions
 ```
 
 Contents:

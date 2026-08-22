@@ -46,19 +46,9 @@ Screenshots are encoded as Base64 and embedded directly in the HTML report. This
 
 ## Configuration
 
-```yaml title="testfly.yml"
-screenshots:
-  onFailure: true   # default — capture screenshot on every failure
-```
+Failure screenshots are **always enabled by default** and cannot be disabled via configuration. Every test failure automatically captures a screenshot and embeds it in the HTML report.
 
-To disable automatic failure screenshots:
-
-```yaml
-screenshots:
-  onFailure: false
-```
-
-Step screenshots (via `StepLogger`) are controlled by the `boolean screenshot` argument in the method call, not by this config.
+Step screenshots (via `StepLogger`) are controlled by the `boolean screenshot` argument in the method call.
 
 ---
 

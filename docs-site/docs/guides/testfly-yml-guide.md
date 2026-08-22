@@ -137,7 +137,7 @@ Only the fields present in the profile file are replaced; everything else is inh
 Activate a profile with:
 
 ```bash
-mvn test -Denv=staging
+mvn test -Dtestfly.profile=staging
 ```
 
 Example `testfly-ci.yml`:

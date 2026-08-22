@@ -8,7 +8,11 @@ sidebar_position: 3
 
 # WaitEngine
 
-`WaitEngine` provides fluent explicit waits. It is pre-configured with the timeout from `testfly.yml` (`timeouts.explicit`) and is available in every `BasePage` via `getWait()`.
+`WaitEngine` is a static utility class available via `WaitEngine.waitForXxx(...)` calls. It is pre-configured with the timeout from `testfly.yml` (`timeouts.explicit`).
+
+```java
+import io.testfly.wait.WaitEngine;
+```
 
 ---
 
@@ -17,74 +21,74 @@ sidebar_position: 3
 ### Element visibility
 
 ```java
-getWait().waitForVisible(By.id("modal"));
-getWait().waitForInvisible(By.cssSelector(".spinner"));  // wait for loaders to disappear
+WaitEngine.waitForVisible(By.id("modal"));
+WaitEngine.waitForInvisible(By.cssSelector(".spinner"));  // wait for loaders to disappear
 ```
 
 ### Clickability
 
 ```java
-getWait().waitForClickable(By.id("submit"));
+WaitEngine.waitForClickable(By.id("submit"));
 ```
 
 ### Enabled / disabled
 
 ```java
-getWait().waitForEnabled(By.id("submit"));   // ready to interact
-getWait().waitForDisabled(By.id("submit"));  // button is greyed out
+WaitEngine.waitForEnabled(By.id("submit"));   // ready to interact
+WaitEngine.waitForDisabled(By.id("submit"));  // button is greyed out
 ```
 
 ### Selected
 
 ```java
-getWait().waitForSelected(By.id("terms"));   // checkbox or radio is checked
+WaitEngine.waitForSelected(By.id("terms"));   // checkbox or radio is checked
 ```
 
 ### Text content
 
 ```java
-getWait().waitForText(By.cssSelector("h1"), "Welcome back");
+WaitEngine.waitForText(By.cssSelector("h1"), "Welcome back");
 ```
 
 ### Attribute value
 
 ```java
-getWait().waitForAttributeContains(By.id("status"), "class", "active");  // substring
-getWait().waitForAttribute(By.id("status"), "aria-expanded", "true");    // exact match
+WaitEngine.waitForAttributeContains(By.id("status"), "class", "active");  // substring
+WaitEngine.waitForAttribute(By.id("status"), "aria-expanded", "true");    // exact match
 ```
 
 ### Text matches (regex)
 
 ```java
 // Wait until the element's visible text matches a regular expression
-getWait().waitForTextMatches(By.cssSelector(".total"), "\\$\\d+\\.\\d{2}");
+WaitEngine.waitForTextMatches(By.cssSelector(".total"), "\\$\\d+\\.\\d{2}");
 ```
 
 ### URL matches (regex)
 
 ```java
-getWait().waitForUrlContains("/orders");            // substring
-getWait().waitForUrlMatches(".*/orders/\\d+");      // regular expression
+WaitEngine.waitForUrlContains("/orders");            // substring
+WaitEngine.waitForUrlMatches(".*/orders/\\d+");      // regular expression
 ```
 
 ### DOM staleness
 
 ```java
 WebElement old = driver.findElement(By.id("row-1"));
-getWait().waitForStaleness(old);  // wait for DOM replacement / AJAX reload
+WaitEngine.waitForStaleness(old);  // wait for DOM replacement / AJAX reload
 ```
 
 ### Page load
 
 ```java
-getWait().waitForPageLoad();  // waits until document.readyState === "complete"
+WaitEngine.waitForPageLoad();  // waits until document.readyState === "complete"
 ```
 
 ### Windows and frames
 
 ```java
-getWait().waitForNumberOfWindowsToBe(2);   // new tab opened
-getWait().waitForFrameAvailableAndSwitchToIt(By.id("payment-iframe"));
+WaitEngine.waitForNumberOfWindowsToBe(2);   // new tab opened
+WaitEngine.waitForFrameAvailableAndSwitchToIt(By.id("payment-iframe"));
 ```
 
 ### Minimum element count
@@ -92,24 +96,26 @@ getWait().waitForFrameAvailableAndSwitchToIt(By.id("payment-iframe"));
 Useful for lists and infinite-scroll feeds that grow asynchronously:
 
 ```java
-getWait().waitForMinimumElementCount(By.cssSelector(".product-card"), 10);
+WaitEngine.waitForMinimumElementCount(By.cssSelector(".product-card"), 10);
 ```
 
 ### Custom condition
 
 ```java
 // Escape hatch — pass any ExpectedCondition
-getWait().wait(ExpectedConditions.numberOfWindowsToBe(2));
+WaitEngine.wait(ExpectedConditions.numberOfWindowsToBe(2));
 ```
 
 ---
 
-## Timeout override
+## Custom timeout
 
-Use a custom timeout for a single wait without changing the global config:
+`WaitEngine` always uses the global timeout from `testfly.yml`. If you need a one-off custom timeout, create a `WebDriverWait` directly:
 
 ```java
-getWait(30).waitForVisible(By.id("slow-element"));  // 30-second timeout
+// Custom timeout — create a WebDriverWait directly
+new WebDriverWait(getDriver(), Duration.ofSeconds(30))
+    .until(ExpectedConditions.visibilityOfElementLocated(By.id("slow-element")));
 ```
 
 ---
@@ -131,7 +137,7 @@ timeouts:
 Thread.sleep(3000);
 
 // ✅ do this instead
-getWait().waitForVisible(By.id("result"));
+WaitEngine.waitForVisible(By.id("result"));
 ```
 
 ```java
@@ -139,6 +145,6 @@ getWait().waitForVisible(By.id("result"));
 new WebDriverWait(driver, Duration.ofSeconds(10))
     .until(ExpectedConditions.visibilityOf(...));
 
-// ✅ use getWait() — reads timeout from config
-getWait().waitForVisible(By.id("result"));
+// ✅ use WaitEngine — reads timeout from config
+WaitEngine.waitForVisible(By.id("result"));
 ```

@@ -19,7 +19,7 @@ Add Cucumber to your project alongside TestFly:
 <dependency>
     <groupId>io.testfly</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.11.0</version>
+    <version>1.0.0</version>
 </dependency>
 
 <dependency>
@@ -78,7 +78,7 @@ public class CucumberRunner extends BaseCucumberTest {}
 
 ## Step definitions
 
-Extend `BaseCucumberSteps` to get `getDriver()`, `open()`, `$()`, `assertThat()`:
+Extend `BaseCucumberSteps` to get `getDriver()`, `open()`, `find()`, `assertThat()`:
 
 ```java
 public class LoginSteps extends BaseCucumberSteps {
@@ -111,8 +111,8 @@ public class LoginSteps extends BaseCucumberSteps {
 | `getWait()` | `WebDriverWait` using `timeouts.explicit` from `testfly.yml` |
 | `open()` | Navigate to `execution.baseUrl` |
 | `open(path)` | Navigate to `baseUrl + path` |
-| `$(css)` | Chainable fluent locator |
-| `$(By)` | Chainable fluent locator |
+| `find(css)` | Chainable fluent locator |
+| `find(By)` | Chainable fluent locator |
 | `assertThat(By)` | Auto-retrying assertion |
 | `assertThat(Locator)` | Auto-retrying assertion on a locator chain |
 | `getScenario()` | The current Cucumber `Scenario` object |

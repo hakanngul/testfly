@@ -156,7 +156,7 @@ mvn test -Dtest=ConfigurationLoaderTest
 mvn test -Dtest=ConfigurationLoaderTest#testMethodName
 
 # Run with an environment profile (uses testfly-{profile}.yml)
-mvn test -Denv=staging
+mvn test -Dtestfly.profile=staging
 
 # Skip GPG signing during local install
 mvn clean install -DskipTests -Dgpg.skip=true
@@ -210,7 +210,7 @@ Key config blocks (all in `TestFlyConfig`):
 - `ai`: failure-analysis model/key settings
 - `flakiness`: history runs and risk thresholds
 
-Profiles are activated with `-Denv=<profile>` and load `testfly-<profile>.yml`.
+Profiles are activated with `-Dtestfly.profile=<name>` and load `testfly-<name>.yml`.
 
 ---
 
