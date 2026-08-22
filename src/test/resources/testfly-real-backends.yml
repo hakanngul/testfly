@@ -41,7 +41,7 @@ reporting:
     apiKey: ${REPORTPORTAL_API_KEY}
     project: demo-web
     launch: "Demo Web - Dev"
-    description: "Automated TestFly test execution"
+    description: "Automated test execution powered by TestFly"
     attributes: "env:dev"
     type: auto
     mode: default

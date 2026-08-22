@@ -166,7 +166,7 @@ public class ReportPortalPropertiesWriterTest {
     @Test
     public void enrichLaunchName_nullBaseName_usesDefault() {
         String launch = ReportPortalPropertiesWriter.enrichLaunchName(null, "API");
-        assertTrue(launch.startsWith("TestFly Launch — API"),
+        assertTrue(launch.startsWith("TestFly Suite — API"),
                 "Null base name should use default, got: " + launch);
     }
 
@@ -180,6 +180,39 @@ public class ReportPortalPropertiesWriterTest {
     }
 
     @Test
+    public void enrichDescription_webRunType_showsExecutionBaseUrl() {
+        // Set both execution and API base URLs
+        TestFlyConfig.Execution exec = new TestFlyConfig.Execution();
+        exec.setBaseUrl("https://www.saucedemo.com/");
+        config.setExecution(exec);
+        TestFlyConfig.Api api = new TestFlyConfig.Api();
+        api.setBaseUrl("https://fakeapi.net");
+        config.setApi(api);
+
+        String desc = ReportPortalPropertiesWriter.enrichDescription("Test", "Web", config);
+        assertTrue(desc.contains("Base URL: https://www.saucedemo.com/"),
+                "Web run should show execution.baseUrl, got: " + desc);
+        assertFalse(desc.contains("fakeapi.net"),
+                "Web run should NOT show api.baseUrl, got: " + desc);
+    }
+
+    @Test
+    public void enrichDescription_apiRunType_showsApiBaseUrl() {
+        TestFlyConfig.Execution exec = new TestFlyConfig.Execution();
+        exec.setBaseUrl("https://www.saucedemo.com/");
+        config.setExecution(exec);
+        TestFlyConfig.Api api = new TestFlyConfig.Api();
+        api.setBaseUrl("https://fakeapi.net");
+        config.setApi(api);
+
+        String desc = ReportPortalPropertiesWriter.enrichDescription("Test", "API", config);
+        assertTrue(desc.contains("Base URL: https://fakeapi.net"),
+                "API run should show api.baseUrl, got: " + desc);
+        assertFalse(desc.contains("saucedemo"),
+                "API run should NOT show execution.baseUrl, got: " + desc);
+    }
+
+    @Test
     public void enrichDescription_containsTriggeredBy() {
         String desc = ReportPortalPropertiesWriter.enrichDescription("Base", "Web", config);
         assertTrue(desc.contains("Triggered by:"),
@@ -189,7 +222,7 @@ public class ReportPortalPropertiesWriterTest {
     @Test
     public void enrichDescription_nullBase_usesDefault() {
         String desc = ReportPortalPropertiesWriter.enrichDescription(null, "API", config);
-        assertTrue(desc.startsWith("Automated TestFly test execution"),
+        assertTrue(desc.startsWith("Automated test execution powered by TestFly"),
                 "Null base should use default, got: " + desc);
     }
 

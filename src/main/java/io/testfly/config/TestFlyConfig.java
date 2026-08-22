@@ -422,8 +422,8 @@ public final class TestFlyConfig {
             private String  endpoint;
             private String  apiKey;
             private String  project = "superadmin_personal";
-            private String  launch = "TestFly Launch";
-            private String  description = "Automated TestFly test execution";
+            private String  launch = "TestFly Suite";
+            private String  description = "Automated test execution powered by TestFly";
             private String  attributes = "";
             /**
              * Run type for launch name enrichment:

@@ -201,7 +201,7 @@ public final class ReportPortalPropertiesWriter {
      * <p>Example: {@code Demo Web - Dev — API | dev | 2026-08-22 15:30}
      */
     public static String enrichLaunchName(String baseName, String runType) {
-        StringBuilder sb = new StringBuilder(baseName != null ? baseName : "TestFly Launch");
+        StringBuilder sb = new StringBuilder(baseName != null ? baseName : "TestFly Suite");
         sb.append(" — ").append(runType);
 
         String env = resolveEnv();
@@ -230,24 +230,42 @@ public final class ReportPortalPropertiesWriter {
      */
     public static String enrichDescription(String baseDescription, String runType, TestFlyConfig config) {
         StringBuilder sb = new StringBuilder();
-        sb.append(baseDescription != null ? baseDescription : "Automated TestFly test execution");
+        sb.append(baseDescription != null ? baseDescription : "Automated test execution powered by TestFly");
         sb.append("\n\n");
 
         sb.append("Run type: ").append(runType).append('\n');
 
-        // Base URL — prefer api.baseUrl, fall back to execution.baseUrl
-        String baseUrl = null;
+        // Base URL — choose based on run type
         try {
-            TestFlyConfig.Api api = config.getApi();
-            if (api != null && api.getBaseUrl() != null) {
-                baseUrl = api.getBaseUrl();
-            } else if (config.getExecution() != null) {
-                baseUrl = config.getExecution().getBaseUrl();
+            String webUrl = config.getExecution() != null
+                    ? config.getExecution().getBaseUrl() : null;
+            String apiUrl = config.getApi() != null
+                    ? config.getApi().getBaseUrl() : null;
+
+            if ("API".equals(runType)) {
+                // API run → show api.baseUrl, fall back to execution.baseUrl
+                if (apiUrl != null) {
+                    sb.append("Base URL: ").append(apiUrl).append('\n');
+                } else if (webUrl != null) {
+                    sb.append("Base URL: ").append(webUrl).append('\n');
+                }
+            } else if ("Web".equals(runType)) {
+                // Web run → show execution.baseUrl, fall back to api.baseUrl
+                if (webUrl != null) {
+                    sb.append("Base URL: ").append(webUrl).append('\n');
+                } else if (apiUrl != null) {
+                    sb.append("Base URL: ").append(apiUrl).append('\n');
+                }
+            } else {
+                // Mixed or other → show both if different
+                if (webUrl != null) {
+                    sb.append("Web URL: ").append(webUrl).append('\n');
+                }
+                if (apiUrl != null && !apiUrl.equals(webUrl)) {
+                    sb.append("API URL: ").append(apiUrl).append('\n');
+                }
             }
         } catch (Exception ignored) {}
-        if (baseUrl != null) {
-            sb.append("Base URL: ").append(baseUrl).append('\n');
-        }
 
         // Environment
         String env = resolveEnv();
