@@ -23,7 +23,7 @@ import io.testfly.api.TestFlyApi;
  *
  * @since 3.1.0
  */
-@TestFlyApi(since = "3.1.0")
+@TestFlyApi(since = "1.0.0")
 public enum Role {
 
     BUTTON("button",

@@ -2,6 +2,7 @@ package io.testfly.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.testfly.api.TestFlyApi;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -27,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * ApiClient.setGlobalAuth(ApiAuth.oauth2(tokenUrl, clientId, clientSecret));
  * </pre>
  */
+@TestFlyApi(since = "1.0.0")
 @FunctionalInterface
 public interface ApiAuth {
 

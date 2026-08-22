@@ -80,11 +80,19 @@ public class TestFlyExtension
                    BeforeEachCallback, AfterEachCallback,
                    ParameterResolver, InvocationInterceptor {
 
+    private final ReportPortalJUnit5Bridge rpBridge = new ReportPortalJUnit5Bridge();
+
     @Override
     public void beforeAll(ExtensionContext context) {
         FrameworkBootstrap.initialize();
         PreConditionRegistry.loadAll();
         TestManagementReporter.getInstance().onSuiteStart();
+
+        // Delegate to ReportPortal extension — it reads rp.* system properties
+        // (set by FrameworkBootstrap) and creates the launch.
+        if (rpBridge.isAvailable()) {
+            rpBridge.beforeAll(context);
+        }
     }
 
     @Override
@@ -120,6 +128,11 @@ public class TestFlyExtension
 
         autoClearEmailIfEnabled();
         HookRegistry.onTestStart(testId);
+
+        // ReportPortal: start test item
+        if (rpBridge.isAvailable()) {
+            rpBridge.beforeEach(context);
+        }
     }
 
     @Override
@@ -154,6 +167,11 @@ public class TestFlyExtension
                         context.getRequiredTestMethod(), "FAILED",
                         cause.getMessage());
 
+                // ReportPortal: report test failure
+                if (rpBridge.isAvailable()) {
+                    rpBridge.testFailed(context, cause);
+                }
+
             } else {
                 if (!noBrowser && ConsoleErrorCollector.isEnabled()) {
                     List<String> errors = ConsoleErrorCollector.collect();
@@ -181,6 +199,16 @@ public class TestFlyExtension
                 HookRegistry.onTestEnd(testId, "PASSED");
                 TestManagementReporter.getInstance().onTestResult(
                         context.getRequiredTestMethod(), "PASSED", null);
+
+                // ReportPortal: report test success
+                if (rpBridge.isAvailable()) {
+                    rpBridge.testSuccessful(context);
+                }
+            }
+
+            // ReportPortal: finish test item
+            if (rpBridge.isAvailable()) {
+                rpBridge.afterTestExecution(context);
             }
         } finally {
             MultiSessionManager.clearAll();
@@ -197,6 +225,11 @@ public class TestFlyExtension
 
     @Override
     public void afterAll(ExtensionContext context) {
+        // ReportPortal: finish the launch
+        if (rpBridge.isAvailable()) {
+            rpBridge.afterAll(context);
+        }
+
         DriverManager.quitAllSuiteDrivers();
         DriverManager.quitDriver();
         HealLog.export();

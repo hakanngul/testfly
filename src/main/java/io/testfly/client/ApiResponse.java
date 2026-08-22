@@ -2,6 +2,7 @@ package io.testfly.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.testfly.api.TestFlyApi;
 import io.testfly.steps.StepLogger;
 
 import java.net.http.HttpResponse;
@@ -16,6 +17,7 @@ import java.net.http.HttpResponse;
  * User user   = res.asObject(User.class);
  * </pre>
  */
+@TestFlyApi(since = "1.0.0")
 public class ApiResponse {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

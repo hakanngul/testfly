@@ -1,6 +1,7 @@
 package io.testfly.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.testfly.api.TestFlyApi;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.steps.StepLogger;
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
  *         .send();
  * </pre>
  */
+@TestFlyApi(since = "1.0.0")
 public class ApiClient {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

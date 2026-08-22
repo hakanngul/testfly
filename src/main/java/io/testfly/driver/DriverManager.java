@@ -1,5 +1,6 @@
 package io.testfly.driver;
 
+import io.testfly.api.TestFlyApi;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
@@ -18,6 +19,7 @@ import java.util.concurrent.TimeUnit;
  * <li>Session limit is enforced with a blocking Semaphore — tests wait for a slot
  *     rather than failing fast, preventing spurious failures under parallel load</li>
  */
+@TestFlyApi(since = "1.0.0")
 public final class DriverManager {
 
     private static final ThreadLocal<WebDriver> DRIVER = ThreadLocal.withInitial(() -> null);

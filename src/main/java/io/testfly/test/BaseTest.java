@@ -101,6 +101,22 @@ public abstract class BaseTest {
     }
 
     /**
+     * Typed test data retrieval.
+     *
+     * <pre>
+     * String username = getTestData("username", String.class);
+     * int    age      = getTestData("age", Integer.class);
+     * </pre>
+     */
+    @SuppressWarnings("unchecked")
+    protected <T> T getTestData(String key, Class<T> type) {
+        Object value = TestDataStore.get().get(key);
+        if (value == null) throw new IllegalStateException(
+            "[TestData] Key not found: '" + key + "'");
+        return (T) value;
+    }
+
+    /**
      * Returns the soft assertion collector for this test.
      * Failures collected here are reported all-at-once at test end
      * without interrupting test execution.
