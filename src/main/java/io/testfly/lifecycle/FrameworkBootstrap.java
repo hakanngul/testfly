@@ -4,6 +4,7 @@ import io.testfly.ci.CiEnvironmentDetector;
 import io.testfly.config.ConfigurationLoader;
 import io.testfly.config.DotEnvLoader;
 import io.testfly.config.TestFlyConfig;
+import io.testfly.healing.HealingCache;
 import io.testfly.config.TestFlyDefaults;
 import io.testfly.driver.DriverProviderRegistry;
 import io.testfly.execution.ExecutionValidator;
@@ -36,6 +37,8 @@ public final class FrameworkBootstrap {
         }
         // Load .env BEFORE config so ${VAR} placeholders can resolve
         DotEnvLoader.load();
+        // Load persistent healing cache so known-good locators are tried first
+        HealingCache.load();
         TestFlyConfig config = ConfigurationLoader.load();
         TestFlyDefaults.applyMissing(config);
         applyCiOverrides(config);

@@ -1,0 +1,9 @@
+{
+  "totalCached" : 4,
+  "entries" : {
+    "By.cssSelector: nav.topbar > div.header-container .shopping_cart_link" : "By.className: shopping_cart_link",
+    "By.cssSelector: div#password" : "By.id: password",
+    "By.cssSelector: span#user-name" : "By.id: user-name",
+    "By.cssSelector: button#login-button" : "By.id: login-button"
+  }
+}

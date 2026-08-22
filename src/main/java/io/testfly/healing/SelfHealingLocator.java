@@ -56,6 +56,10 @@ public final class SelfHealingLocator {
     /**
      * Attempts to find an element using alternative strategies derived from {@code original}.
      *
+     * <p>Checks the {@link HealingCache} first — if this locator was healed in a
+     * previous run, the cached result is tried directly (fast path, no fallback chain).
+     * On cache miss, the full fallback strategy chain is executed.
+     *
      * @param driver   current WebDriver session
      * @param original the failing {@link By} locator
      * @param testId   current test identifier (for heal logging)
@@ -63,23 +67,69 @@ public final class SelfHealingLocator {
      */
     public static WebElement tryHeal(WebDriver driver, By original, String testId) {
         String desc = original.toString();
+
+        // Fast path: check persistent cache first
+        String cachedHeal = HealingCache.get(desc);
+        if (cachedHeal != null) {
+            By cachedBy = parseBy(cachedHeal);
+            if (cachedBy != null) {
+                WebElement visible = tryFind(driver, cachedBy);
+                if (visible != null) {
+                    HealEvent event = new HealEvent(testId, desc, cachedHeal, "cache");
+                    HealLog.record(event);
+                    HealingCache.put(desc, cachedHeal);
+                    return visible;
+                }
+            }
+        }
+
+        // Slow path: run fallback strategy chain
         List<FallbackEntry> fallbacks = buildFallbacks(desc);
 
         for (FallbackEntry fb : fallbacks) {
-            try {
-                List<WebElement> found = driver.findElements(fb.by);
-                WebElement visible = found.stream()
-                        .filter(e -> { try { return e.isDisplayed(); } catch (Exception x) { return false; } })
-                        .findFirst()
-                        .orElse(null);
-                if (visible != null) {
-                    HealEvent event = new HealEvent(testId, desc, fb.by.toString(), fb.strategy);
-                    HealLog.record(event);
-                    return visible;
-                }
-            } catch (Exception ignored) {}
+            WebElement visible = tryFind(driver, fb.by);
+            if (visible != null) {
+                HealEvent event = new HealEvent(testId, desc, fb.by.toString(), fb.strategy);
+                HealLog.record(event);
+                HealingCache.put(desc, fb.by.toString());
+                return visible;
+            }
         }
         return null;
+    }
+
+    private static WebElement tryFind(WebDriver driver, By by) {
+        try {
+            List<WebElement> found = driver.findElements(by);
+            return found.stream()
+                    .filter(e -> { try { return e.isDisplayed(); } catch (Exception x) { return false; } })
+                    .findFirst()
+                    .orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Parses a {@code By.toString()} output back into a {@link By} instance.
+     * Handles the common formats: {@code By.id: foo}, {@code By.name: foo},
+     * {@code By.className: foo}, {@code By.cssSelector: foo}, {@code By.xpath: foo}.
+     */
+    private static By parseBy(String desc) {
+        if (desc == null || !desc.contains(":")) return null;
+        String type = desc.substring(0, desc.indexOf(':')).trim();
+        String value = desc.substring(desc.indexOf(':') + 1).trim();
+        return switch (type) {
+            case "By.id" -> By.id(value);
+            case "By.name" -> By.name(value);
+            case "By.className" -> By.className(value);
+            case "By.cssSelector" -> By.cssSelector(value);
+            case "By.xpath" -> By.xpath(value);
+            case "By.tagName" -> By.tagName(value);
+            case "By.linkText" -> By.linkText(value);
+            case "By.partialLinkText" -> By.partialLinkText(value);
+            default -> null;
+        };
     }
 
     // ------------------------------------------------------------------

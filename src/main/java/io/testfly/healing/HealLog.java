@@ -44,6 +44,11 @@ public final class HealLog {
 
     public static void export() {
         if (EVENTS.isEmpty()) return;
+
+        // 1. Persist to cache (.testfly/healed-locators.json) — survives mvn clean
+        HealingCache.save();
+
+        // 2. Export session report (target/healed-locators.json) — for HTML report
         try {
             File dir = new File("target");
             dir.mkdirs();
@@ -62,12 +67,14 @@ public final class HealLog {
 
             Map<String, Object> root = new LinkedHashMap<>();
             root.put("totalHeals", EVENTS.size());
+            root.put("cachedTotal", HealingCache.size());
             root.put("events",     entries);
 
             ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
             mapper.writeValue(out, root);
             System.out.println("[TestFly] Healed locators report → " + out.getPath()
-                    + " (" + EVENTS.size() + " heals)");
+                    + " (" + EVENTS.size() + " heals this run, "
+                    + HealingCache.size() + " cached)");
         } catch (IOException e) {
             LOG.warning("[HealLog] Failed to export healed-locators.json: " + e.getMessage());
         }
