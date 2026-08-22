@@ -82,9 +82,15 @@ public interface ApiAuth {
             CachedToken cached = CACHE.get(key);
             if (cached != null && !cached.isExpired()) return cached.token;
 
-            CachedToken fresh = fetchToken(tokenUrl, clientId, clientSecret);
-            CACHE.put(key, fresh);
-            return fresh.token;
+            // Synchronized to prevent thundering herd — only one thread fetches,
+            // others wait and use the cached result (double-checked locking).
+            synchronized (CACHE) {
+                cached = CACHE.get(key);
+                if (cached != null && !cached.isExpired()) return cached.token;
+                CachedToken fresh = fetchToken(tokenUrl, clientId, clientSecret);
+                CACHE.put(key, fresh);
+                return fresh.token;
+            }
         }
 
         private static CachedToken fetchToken(String tokenUrl, String clientId, String clientSecret) {

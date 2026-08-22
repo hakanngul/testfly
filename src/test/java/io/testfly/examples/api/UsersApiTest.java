@@ -14,13 +14,16 @@ public class UsersApiTest extends BaseApiTest {
 
     @Test
     public void listUsersReturnsPaginatedData() {
-        ApiResponse res = apiClient().get("/users?page=1&limit=5").send();
+        ApiResponse res = apiClient().get("/users")
+                .queryParam("page", 1)
+                .queryParam("limit", 5)
+                .send();
 
         res.assertStatus(200)
            .assertJson("$.pagination.page", 1)
-           .assertJson("$.pagination.limit", 5);
-
-        assert res.json("$.data[0].id") != null : "First user should have an id";
+           .assertJson("$.pagination.limit", 5)
+           .assertJsonExists("$.data")
+           .assertJsonArraySize("$.data", 5);
     }
 
     @Test
@@ -29,8 +32,9 @@ public class UsersApiTest extends BaseApiTest {
 
         res.assertStatus(200)
            .assertJson("$.id", 1)
-           .assertBodyContains("email")
-           .assertBodyContains("username");
+           .assertJsonExists("$.email")
+           .assertJsonExists("$.username")
+           .assertBodyContains("email");
     }
 
     @Test

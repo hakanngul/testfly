@@ -14,13 +14,16 @@ public class ProductsApiTest extends BaseApiTest {
 
     @Test
     public void listProductsReturnsPaginatedData() {
-        ApiResponse res = apiClient().get("/products?page=1&limit=5").send();
+        ApiResponse res = apiClient().get("/products")
+                .queryParam("page", 1)
+                .queryParam("limit", 5)
+                .send();
 
         res.assertStatus(200)
            .assertJson("$.pagination.page", 1)
-           .assertJson("$.pagination.limit", 5);
-
-        assert res.json("$.data[0].id") != null : "First product should have an id";
+           .assertJson("$.pagination.limit", 5)
+           .assertJsonExists("$.data")
+           .assertJsonArraySize("$.data", 5);
     }
 
     @Test
@@ -29,13 +32,17 @@ public class ProductsApiTest extends BaseApiTest {
 
         res.assertStatus(200)
            .assertJson("$.id", 1)
-           .assertBodyContains("title")
-           .assertBodyContains("price");
+           .assertJsonExists("$.title")
+           .assertJsonExists("$.price")
+           .assertBodyContains("title");
     }
 
     @Test
     public void filterProductsByCategory() {
-        ApiResponse res = apiClient().get("/products?category=electronics&limit=1").send();
+        ApiResponse res = apiClient().get("/products")
+                .queryParam("category", "electronics")
+                .queryParam("limit", 1)
+                .send();
 
         res.assertStatus(200);
         assert "electronics".equals(res.json("$.data[0].category"))

@@ -784,7 +784,9 @@ public final class TestFlyConfig {
         private int     timeoutSeconds = 30;
         private boolean logBody        = false;
         private boolean logContext     = true;
+        private int     truncationLimit = 300;
         private java.util.Map<String, AuthStrategy> auth = new java.util.LinkedHashMap<>();
+        private RetryConfig retry = new RetryConfig();
 
         public String  getBaseUrl()          { return baseUrl; }
         public void    setBaseUrl(String v)  { this.baseUrl = v; }
@@ -798,8 +800,37 @@ public final class TestFlyConfig {
         public boolean isLogContext()              { return logContext; }
         public void    setLogContext(boolean v)    { this.logContext = v; }
 
+        public int     getTruncationLimit()              { return truncationLimit; }
+        public void    setTruncationLimit(int v)         { this.truncationLimit = v; }
+
         public java.util.Map<String, AuthStrategy> getAuth() { return auth; }
         public void setAuth(java.util.Map<String, AuthStrategy> auth) { this.auth = auth; }
+
+        public RetryConfig getRetry()             { return retry; }
+        public void        setRetry(RetryConfig v){ this.retry = v; }
+
+        public static final class RetryConfig {
+            private boolean enabled          = false;
+            private int     maxAttempts      = 3;
+            private long    backoffMs        = 500;
+            private java.util.List<Integer> retryOnStatus = java.util.List.of(502, 503, 504);
+            private boolean retryOnException = true;
+
+            public boolean isEnabled()                    { return enabled; }
+            public void    setEnabled(boolean v)          { this.enabled = v; }
+
+            public int     getMaxAttempts()               { return maxAttempts; }
+            public void    setMaxAttempts(int v)          { this.maxAttempts = v; }
+
+            public long    getBackoffMs()                 { return backoffMs; }
+            public void    setBackoffMs(long v)           { this.backoffMs = v; }
+
+            public java.util.List<Integer> getRetryOnStatus()          { return retryOnStatus; }
+            public void setRetryOnStatus(java.util.List<Integer> v)    { this.retryOnStatus = v; }
+
+            public boolean isRetryOnException()            { return retryOnException; }
+            public void    setRetryOnException(boolean v)  { this.retryOnException = v; }
+        }
 
         public static final class AuthStrategy {
             private String type;          // bearer | basic | oauth2

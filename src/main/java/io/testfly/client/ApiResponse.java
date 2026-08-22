@@ -133,6 +133,100 @@ public class ApiResponse {
         return this;
     }
 
+    // ── Duration assertions ────────────────────────────────────────────────────
+
+    /** Fails the test if the request took longer than {@code maxMs} milliseconds. */
+    public ApiResponse assertDurationLessThan(long maxMs) {
+        StepLogger.step("Assert API duration < " + maxMs + "ms");
+        if (durationMs > maxMs) {
+            throw new AssertionError(
+                "[ApiResponse] Request took " + durationMs + "ms, expected < " + maxMs + "ms");
+        }
+        return this;
+    }
+
+    /** Fails the test if the request took longer than the given duration. */
+    public ApiResponse assertDurationLessThan(long max, java.util.concurrent.TimeUnit unit) {
+        return assertDurationLessThan(unit.toMillis(max));
+    }
+
+    // ── Header assertions ──────────────────────────────────────────────────────
+
+    /** Fails the test if the response header does not match the expected value. */
+    public ApiResponse assertHeader(String name, String expectedValue) {
+        StepLogger.step("Assert API header '" + name + "' = '" + expectedValue + "'");
+        String actual = header(name);
+        if (!expectedValue.equals(actual)) {
+            throw new AssertionError(
+                "[ApiResponse] Header '" + name + "': expected '" + expectedValue
+                + "' but got '" + actual + "'");
+        }
+        return this;
+    }
+
+    /** Fails the test if the response header is not present. */
+    public ApiResponse assertHeaderPresent(String name) {
+        StepLogger.step("Assert API header '" + name + "' is present");
+        if (header(name) == null) {
+            throw new AssertionError(
+                "[ApiResponse] Expected header '" + name + "' to be present");
+        }
+        return this;
+    }
+
+    // ── Body regex assertion ───────────────────────────────────────────────────
+
+    /** Fails the test if the response body does not match the given regex (dotall mode). */
+    public ApiResponse assertBodyMatches(String regex) {
+        StepLogger.step("Assert API body matches regex '" + regex + "'");
+        if (response.body() == null || !response.body().matches("(?s).*" + regex + ".*")) {
+            throw new AssertionError(
+                "[ApiResponse] Body does not match regex: '" + regex + "'. "
+                + "Body: " + truncate(response.body(), 300));
+        }
+        return this;
+    }
+
+    // ── JSON structure assertions ──────────────────────────────────────────────
+
+    /** Fails the test if the JSON array at the given path does not have the expected size. */
+    public ApiResponse assertJsonArraySize(String path, int expectedSize) {
+        StepLogger.step("Assert API JSON array '" + path + "' size = " + expectedSize);
+        JsonNode node = jsonNode(path);
+        if (node == null || !node.isArray()) {
+            throw new AssertionError(
+                "[ApiResponse] '" + path + "' is not an array or does not exist");
+        }
+        if (node.size() != expectedSize) {
+            throw new AssertionError(
+                "[ApiResponse] Array '" + path + "': expected size " + expectedSize
+                + " but got " + node.size());
+        }
+        return this;
+    }
+
+    /** Fails the test if the JSON path does not exist in the response. */
+    public ApiResponse assertJsonExists(String path) {
+        StepLogger.step("Assert API JSON path '" + path + "' exists");
+        JsonNode node = jsonNode(path);
+        if (node == null || node.isMissingNode()) {
+            throw new AssertionError(
+                "[ApiResponse] JSON path '" + path + "' does not exist in response body");
+        }
+        return this;
+    }
+
+    /** Fails the test if the JSON path exists but is not null. */
+    public ApiResponse assertJsonNull(String path) {
+        StepLogger.step("Assert API JSON path '" + path + "' is null");
+        JsonNode node = jsonNode(path);
+        if (node != null && !node.isNull() && !node.isMissingNode()) {
+            throw new AssertionError(
+                "[ApiResponse] JSON path '" + path + "': expected null but got '" + node.asText() + "'");
+        }
+        return this;
+    }
+
     // ── Internal ─────────────────────────────────────────────────────────────
 
     private JsonNode jsonNode(String path) {
