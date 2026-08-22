@@ -253,10 +253,10 @@ export default function Home() {
                 <p className={styles.heroSubtitle}>{siteConfig.tagline}</p>
                 <div className={styles.heroActions}>
                   <Link className={styles.buttonPrimary} to="/docs/getting-started">
-                    Get Started
+                    Başlayın
                   </Link>
                   <Link className={styles.buttonSecondary} to="https://github.com/testfly/testfly">
-                    View on GitHub
+                    GitHub'da Görüntüle
                   </Link>
                 </div>
                 <CodeWindow
@@ -316,8 +316,8 @@ export default function Home() {
               <span className={styles.sectionEyebrow}>Önce / Sonra</span>
               <h2 className={styles.sectionTitle}>Aynı test.<br />Hiçbir tesisat yok.</h2>
               <p className={styles.sectionSubtitle}>
-                TestFly lets your team focus on testing, not framework engineering.
-                The waits, the driver setup, the boilerplate — handled.
+                TestFly, ekibinizin çerçeve mühendisliğine değil, teste odaklanmasını sağlar.
+                Beklemeler, driver kurulumu, boilerplate — hepsi halledilir.
               </p>
             </div>
 
@@ -425,7 +425,7 @@ assertThat(find("h1"))
                   Bağımlılığı ekleyin, bir YAML config oluşturun, BaseTest’i extend edin — ilk testiniz, tam raporlama, retry ve akıllı bekleme ile birlikte zaten yapılandırılmış olarak çalışır.
                 </p>
                 <Link className={styles.buttonPrimary} to="/docs/getting-started">
-                  Read the guide
+                  Kılavuzu Oku
                 </Link>
               </div>
 
@@ -494,10 +494,10 @@ clock:
               </p>
               <div className={styles.ctaActions}>
                 <Link className={styles.buttonPrimary} to="/docs/getting-started">
-                  Get Started
+                  Başlayın
                 </Link>
                 <Link className={styles.buttonSecondary} to="https://github.com/testfly/testfly">
-                  View on GitHub
+                  GitHub'da Görüntüle
                 </Link>
               </div>
             </div>
