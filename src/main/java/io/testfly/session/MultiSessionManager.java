@@ -50,7 +50,27 @@ public final class MultiSessionManager {
      * on first access. Subsequent calls with the same name return the same driver.
      */
     public static WebDriver getSession(String name) {
-        return NAMED.get().computeIfAbsent(name, k -> createNewDriver(k));
+        Map<String, WebDriver> sessions = NAMED.get();
+        if (!sessions.containsKey(name)) {
+            int maxPerTest = getMaxPerTest();
+            if (sessions.size() >= maxPerTest) {
+                throw new IllegalStateException(
+                    "[MultiSession] Cannot create session '" + name + "': " +
+                    "maximum of " + maxPerTest + " named sessions per test exceeded " +
+                    "(configure sessions.maxPerTest in testfly.yml to increase). " +
+                    "Active sessions: " + sessions.keySet());
+            }
+        }
+        return sessions.computeIfAbsent(name, k -> createNewDriver(k));
+    }
+
+    private static int getMaxPerTest() {
+        try {
+            return io.testfly.internal.TestFlyContext.getConfig()
+                    .getSessions().getMaxPerTest();
+        } catch (Exception e) {
+            return 2;
+        }
     }
 
     /**

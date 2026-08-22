@@ -4,6 +4,7 @@ import io.testfly.browser.BrowserContext;
 import io.testfly.quarantine.QuarantineLoader;
 import io.testfly.browser.ConsoleErrorCollector;
 import io.testfly.client.ApiClient;
+import io.testfly.clock.TestClock;
 import io.testfly.context.ScenarioContext;
 import io.testfly.driver.DriverManager;
 import io.testfly.hooks.HookRegistry;
@@ -146,6 +147,7 @@ public class CucumberHooks {
             ApiClient.clearGlobalAuth();
             BrowserContext.clear();
             NetworkMock.cleanup();
+            TestClock.autoReset();
             CucumberContext.clear();
             TestFlyContext.clearCurrentTestId();
         }

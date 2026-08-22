@@ -7,6 +7,7 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.browser.BrowserContext;
 import io.testfly.browser.ConsoleErrorCollector;
 import io.testfly.client.ApiClient;
+import io.testfly.clock.TestClock;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.context.ScenarioContext;
 import io.testfly.db.DbConnectionFactory;
@@ -218,6 +219,7 @@ public class TestFlyExtension
             ApiClient.clearGlobalAuth();
             BrowserContext.clear();
             NetworkMock.cleanup();
+            TestClock.autoReset();
             if (!noBrowser && DriverManager.shouldQuitAfterTest()) DriverManager.quitDriver();
             TestFlyContext.clearCurrentTestId();
         }

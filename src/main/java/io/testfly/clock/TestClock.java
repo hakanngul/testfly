@@ -1,12 +1,19 @@
 package io.testfly.clock;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.config.TestFlyConfig;
 import io.testfly.driver.DriverManager;
+import io.testfly.internal.TestFlyContext;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chromium.ChromiumDriver;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controls the browser's perception of time for the current test.
@@ -29,6 +36,8 @@ import java.time.Instant;
  */
 @TestFlyApi(since = "2.2.0")
 public final class TestClock {
+
+    private static final Logger LOG = Logger.getLogger(TestClock.class.getName());
 
     private static final ThreadLocal<Long> MOCK_TIME_MS = new ThreadLocal<>();
 
@@ -138,6 +147,7 @@ public final class TestClock {
             );
         }
         ((JavascriptExecutor) driver).executeScript(INJECT_JS, timeMs);
+        injectHeaderIfNeeded(driver, timeMs);
     }
 
     private static void executeReset() {
@@ -147,5 +157,53 @@ public final class TestClock {
                 ((JavascriptExecutor) driver).executeScript(RESET_JS);
             }
         } catch (Exception ignored) {}
+    }
+
+    /**
+     * When clock-header injection is enabled in config, uses CDP
+     * ({@code Network.setExtraHTTPHeaders}) to attach the mocked time as an
+     * extra HTTP header on every outgoing browser request.  Silently skips
+     * non-Chromium browsers and any CDP failure so that tests are never
+     * broken by header injection.
+     */
+    private static void injectHeaderIfNeeded(WebDriver driver, long timeMs) {
+        try {
+            if (!TestFlyContext.isInitialized()) {
+                return;
+            }
+            TestFlyConfig.Clock clockConfig = TestFlyContext.getConfig().getClock();
+            if (clockConfig == null || !clockConfig.isInjectHeader()) {
+                return;
+            }
+
+            if (!(driver instanceof ChromiumDriver)) {
+                LOG.warning(
+                    "[TestClock] Header injection requires a Chromium-based browser; skipping."
+                );
+                return;
+            }
+
+            String headerName = clockConfig.getHeaderName();
+            if (headerName == null || headerName.isEmpty()) {
+                headerName = "X-Mock-Date";
+            }
+            String isoValue = Instant.ofEpochMilli(timeMs).toString();
+
+            ChromiumDriver chromiumDriver = (ChromiumDriver) driver;
+
+            // Enable the Network domain so header overrides take effect.
+            chromiumDriver.executeCdpCommand("Network.enable", new HashMap<>());
+
+            // Set the extra HTTP header for all subsequent requests.
+            Map<String, Object> headers = new HashMap<>();
+            headers.put(headerName, isoValue);
+            Map<String, Object> params = new HashMap<>();
+            params.put("headers", headers);
+            chromiumDriver.executeCdpCommand("Network.setExtraHTTPHeaders", params);
+        } catch (Exception e) {
+            LOG.log(Level.WARNING,
+                "[TestClock] Failed to inject mock-date header via CDP; continuing without it.",
+                e);
+        }
     }
 }

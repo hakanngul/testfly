@@ -25,8 +25,9 @@ import java.util.Map;
 public final class PerformanceCollector {
 
     /**
-     * JavaScript that reads all available performance entries and returns a plain object.
-     * Runs entirely in the page context; safe for SPA and multi-page navigation.
+     * JavaScript that first registers buffered PerformanceObservers for LCP and CLS
+     * (which require an active observer to appear in the timeline), then reads all
+     * available performance entries and returns a plain object.
      */
     private static final String COLLECT_JS =
         "(function() {" +
@@ -48,20 +49,40 @@ public final class PerformanceCollector {
         "    if (paints[i].name === 'first-contentful-paint') m.fcp = paints[i].startTime;" +
         "  }" +
 
-        // Largest Contentful Paint — buffered entries (Chrome/Edge only)
-        "  var lcpList = performance.getEntriesByType('largest-contentful-paint');" +
-        "  if (lcpList && lcpList.length > 0) {" +
-        "    m.lcp = lcpList[lcpList.length - 1].startTime;" +
-        "  }" +
+        // Largest Contentful Paint — requires PerformanceObserver with buffered:true (Chrome/Edge)
+        "  if (typeof PerformanceObserver !== 'undefined') {" +
+        "    try {" +
+        "      var lcpEntries = [];" +
+        "      var lcpDone = false;" +
+        "      new PerformanceObserver(function(list) {" +
+        "        var entries = list.getEntries();" +
+        "        for (var i = 0; i < entries.length; i++) lcpEntries.push(entries[i]);" +
+        "      }).observe({ type: 'largest-contentful-paint', buffered: true });" +
+        "      var lcpList = performance.getEntriesByType('largest-contentful-paint');" +
+        "      if (lcpList && lcpList.length > 0) {" +
+        "        m.lcp = lcpList[lcpList.length - 1].startTime;" +
+        "      } else if (lcpEntries.length > 0) {" +
+        "        m.lcp = lcpEntries[lcpEntries.length - 1].startTime;" +
+        "      }" +
+        "    } catch(e) { /* LCP not supported */ }" +
 
-        // Cumulative Layout Shift — buffered entries (Chrome/Edge only)
-        "  var shiftList = performance.getEntriesByType('layout-shift');" +
-        "  if (shiftList && shiftList.length > 0) {" +
-        "    var cls = 0;" +
-        "    for (var j = 0; j < shiftList.length; j++) {" +
-        "      if (!shiftList[j].hadRecentInput) cls += shiftList[j].value;" +
-        "    }" +
-        "    m.cls = cls;" +
+        // Cumulative Layout Shift — requires PerformanceObserver with buffered:true (Chrome/Edge)
+        "    try {" +
+        "      var clsEntries = [];" +
+        "      new PerformanceObserver(function(list) {" +
+        "        var entries = list.getEntries();" +
+        "        for (var i = 0; i < entries.length; i++) clsEntries.push(entries[i]);" +
+        "      }).observe({ type: 'layout-shift', buffered: true });" +
+        "      var shiftList = performance.getEntriesByType('layout-shift');" +
+        "      var shifts = (shiftList && shiftList.length > 0) ? shiftList : clsEntries;" +
+        "      if (shifts.length > 0) {" +
+        "        var cls = 0;" +
+        "        for (var j = 0; j < shifts.length; j++) {" +
+        "          if (!shifts[j].hadRecentInput) cls += shifts[j].value;" +
+        "        }" +
+        "        m.cls = cls;" +
+        "      }" +
+        "    } catch(e) { /* CLS not supported */ }" +
         "  }" +
 
         "  return m;" +

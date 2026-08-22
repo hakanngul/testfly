@@ -24,7 +24,7 @@ import java.util.Map;
  */
 public final class AccessibilityChecker {
 
-    private static final String AXE_RESOURCE = "/com/testfly/accessibility/axe.min.js";
+    private static final String AXE_RESOURCE = "/io/testfly/accessibility/axe.min.js";
 
     private static volatile String axeSource;
 

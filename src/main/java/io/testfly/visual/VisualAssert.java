@@ -49,9 +49,27 @@ public final class VisualAssert {
 
     private static final Logger LOG = Logger.getLogger(VisualAssert.class.getName());
 
-    /** System property that forces baseline regeneration. */
-    private static final boolean UPDATE_BASELINES =
-            Boolean.parseBoolean(System.getProperty("updateBaselines", "false"));
+    /**
+     * Returns {@code true} when baselines should be overwritten instead of compared.
+     * <ol>
+     *   <li>System property {@code -DupdateBaselines=true|false} takes precedence.</li>
+     *   <li>Otherwise the YAML config value {@code visual.updateBaselines} is used.</li>
+     *   <li>If neither is set, defaults to {@code false}.</li>
+     * </ol>
+     */
+    private static boolean isUpdateBaselines() {
+        String sysProp = System.getProperty("updateBaselines");
+        if (sysProp != null) {
+            return Boolean.parseBoolean(sysProp);
+        }
+        try {
+            io.testfly.config.TestFlyConfig config = TestFlyContext.getConfig();
+            if (config.getVisual() != null) {
+                return config.getVisual().isUpdateBaselines();
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
 
     private VisualAssert() {
     }
@@ -90,7 +108,7 @@ public final class VisualAssert {
         File baseline = baselineFile(name);
 
         // Update mode — force overwrite baseline
-        if (UPDATE_BASELINES) {
+        if (isUpdateBaselines()) {
             saveBaseline(baseline, current);
             LOG.info("[VisualAssert] Baseline updated: " + baseline.getAbsolutePath());
             return;
