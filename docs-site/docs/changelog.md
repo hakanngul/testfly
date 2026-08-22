@@ -15,24 +15,15 @@ All notable changes to TestFly are documented here.
 
 ### Added — API Testing Improvements
 
-- **HTTP-level retry** (`api.retry.*`) — config-driven retry for transient network failures and configurable status codes (502/503/504 by default); exponential backoff; `retryOnException` toggle; retry attempts are step-logged with `WARN` status
-- **Per-request timeout override** — `apiClient().get("/slow-report").timeout(120).send()` overrides the default 30s timeout for a single request
-- **Query parameter builder** — `apiClient().get("/users").queryParam("page", 1).queryParam("limit", 10).send()` with automatic URL encoding; replaces manual string concatenation
-- **Request/Response interceptors** — `ApiClient.addRequestInterceptor(builder -> builder.header("X-Correlation-Id", uuid))` and `ApiClient.addResponseInterceptor(response -> metrics.record(...))`; global, thread-safe, `clearInterceptors()` to reset
-- **Cookie jar** — `apiClient().post("/login").withCookies().send()` captures `Set-Cookie` headers; subsequent `withCookies()` requests auto-send them; thread-local, `clearCookies()` to reset
-- **Response time assertion** — `res.assertDurationLessThan(500)` and `res.assertDurationLessThan(2, TimeUnit.SECONDS)`
-- **Header assertions** — `res.assertHeader("Content-Type", "application/json")` and `res.assertHeaderPresent("X-Request-Id")`
-- **Body regex assertion** — `res.assertBodyMatches("\\d{4}-\\d{2}-\\d{2}")` with dotall mode
-- **JSON structure assertions** — `assertJsonExists("$.path")`, `assertJsonNull("$.field")`, `assertJsonArraySize("$.items", 3)`
-- **Configurable truncation limit** — `api.truncationLimit: 1000` controls body truncation in assertion error messages (default 300)
-
-#### Config
+- **HTTP-level retry** (`api.retry.*`) — config-driven retry for transient network failures and configurable status codes (502/503/504 by default); exponential backoff; `retryOnException` toggle
+- **Per-request timeout override** — `apiClient().get("/slow-report").timeout(120).send()`
+- **Query parameter builder** — `.queryParam("page", 1).queryParam("limit", 10)` with automatic URL encoding
+- **Request/Response interceptors** — `ApiClient.addRequestInterceptor()` and `addResponseInterceptor()`; global, thread-safe
+- **Cookie jar** — `.withCookies()` captures and auto-sends cookies across requests
+- **New assertions** — `assertDurationLessThan`, `assertHeader`, `assertHeaderPresent`, `assertBodyMatches`, `assertJsonExists`, `assertJsonNull`, `assertJsonArraySize`
 
 ```yaml
 api:
-  baseUrl: https://api.example.com
-  timeoutSeconds: 30
-  truncationLimit: 300
   retry:
     enabled: true
     maxAttempts: 3
@@ -41,111 +32,274 @@ api:
     retryOnException: true
 ```
 
-#### Usage
-
-```java
-// Query params + timeout + assertions
-apiClient().get("/users")
-    .queryParam("page", 1)
-    .queryParam("limit", 10)
-    .timeout(60)
-    .send()
-    .assertStatus(200)
-    .assertDurationLessThan(500)
-    .assertHeaderPresent("Content-Type")
-    .assertJsonExists("$.data")
-    .assertJsonArraySize("$.data", 10);
-
-// Cookie jar
-apiClient().post("/login").body(creds).withCookies().send().assertStatus(200);
-apiClient().get("/profile").withCookies().send().assertStatus(200);
-
-// Interceptors
-ApiClient.addRequestInterceptor(builder ->
-    builder.header("X-Correlation-Id", UUID.randomUUID().toString()));
-```
-
----
-
 ### Added — Report Portal Launch Enrichment
 
-- **Auto run type detection** — `SuiteExecutionListener` scans suite test classes; `BaseApiTest` subclasses → "API", otherwise → "Web"; overridable via `reporting.reportportal.type: api|web|auto`
-- **Enriched launch name** — format: `<configured-name> — <API|Web> | <env> | <timestamp>`
-- **Enriched description** — multi-line with run type, base URL (context-aware), environment, triggered-by user@hostname, CI platform and build info
+- **Auto run type detection** — suite test classes scanned; `BaseApiTest` → "API", otherwise → "Web"
+- **Enriched launch name** — `<name> — <API|Web> | <env> | <timestamp>`
+- **Enriched description** — run type, context-aware base URL, environment, user@hostname, CI info
 - **New config field** — `reporting.reportportal.type` (auto/api/web)
-- **CI platform detection** — GitHub Actions, Jenkins, GitLab CI, CircleCI, Travis CI, Bitbucket Pipelines, Azure Pipelines
-
-#### Example Output
-
-**Launch name:** `Demo Web - Dev — API | dev | 2026-08-22 15:30`
-
-**Description:**
-```
-Automated test execution powered by TestFly
-
-Run type: API
-Base URL: https://fakeapi.net
-Environment: dev
-Triggered by: hagul@MacBook-Pro.local
-CI: Jenkins #42
-Build URL: https://jenkins.example.com/job/demo/42
-```
-
-#### Config
 
 ```yaml
 reporting:
   reportPortal:
     enabled: true
-    endpoint: ${REPORTPORTAL_ENDPOINT}
-    apiKey: ${REPORTPORTAL_API_KEY}
-    project: demo-web
     launch: "Demo Web - Dev"
-    description: "Automated test execution powered by TestFly"
-    attributes: "env:dev"
-    type: auto    # auto | api | web
-    mode: default
+    type: auto
 ```
 
----
+### Added — JUnit 5 → Report Portal
 
-### Added — JUnit 5 → Report Portal Integration
-
-- **`agent-java-junit5` dependency** — optional; Report Portal's JUnit 5 agent for pushing test results
-- **`ReportPortalJUnit5Bridge`** — reflection-based bridge that loads `ReportPortalExtension` when on classpath
-- **`TestFlyExtension` RP integration** — automatically pushes JUnit 5 test results to Report Portal; same replay pattern as TestNG's `SuiteExecutionListener`
-
----
-
-### Changed
-
-- **Default launch name** — `"TestFly Launch"` → `"TestFly Suite"`
-- **Default description** — `"Automated TestFly test execution"` → `"Automated test execution powered by TestFly"`
-- **Base URL in description** — now context-aware: Web runs show `execution.baseUrl`, API runs show `api.baseUrl`
+- **`agent-java-junit5`** dependency + `ReportPortalJUnit5Bridge` reflection bridge
+- JUnit 5 tests now push results to Report Portal automatically
 
 ### Fixed
 
-- **OAuth2 token cache race condition** — double-checked locking prevents thundering herd on expired tokens
-- **Dark theme text visibility** — CSS safety nets for all Prism token types; fixed invisible code block text; dark mode overrides for search dropdown, tabs, collapsible content, badges, admonitions, footer
-- **`footer.style: 'light'`** — CSS override for Infima's `.footer--light` in dark mode
+- OAuth2 token cache race condition (double-checked locking)
+- Dark theme code block text visibility (Prism token CSS safety nets)
+- Dark theme component overrides (search, tabs, badges, footer)
 
 ---
 
 ## [1.0.0] — 2026-08-20
 
 ### Changed
-- **Project rebrand to TestFly** — complete identity migration from Selenium Boot:
-  - Maven coordinates changed to `io.testfly:testfly:1.0.0`
-  - Java namespace changed to `io.testfly`
-  - Configuration file renamed to `testfly.yml`
-  - Public API annotation renamed to `@TestFlyApi`
-  - Report artifacts renamed to `testfly-report.html` and `testfly-metrics.json`
-  - Documentation, CI workflows, and MCP tooling rebranded under TestFly
-  - No functional breaking changes; the same Selenium-based ecosystem continues under the new identity.
+- **Project rebrand to TestFly** — complete identity migration:
+  - Maven coordinates: `io.testfly:testfly:1.0.0`
+  - Java namespace: `io.testfly`
+  - Config file: `testfly.yml`
+  - Public API annotation: `@TestFlyApi`
+  - Report artifacts: `testfly-report.html` and `testfly-metrics.json`
 
 ### Security
-- Moved API credentials out of committed YAML. `testfly.yml` now uses `${DEEPSEEK_API_KEY}` and `${REPORTPORTAL_API_KEY}` placeholders.
+- API credentials moved to `${ENV_VAR}` placeholders sourced from environment or `.env` file.
 
 ### Build
-- Split integration tests from the unit-test suite. Tests that need real backends moved to `src/test/java/io/testfly/integration/` and run via `maven-failsafe-plugin` with `mvn verify -Preal-backends`.
-- Added `quality` Maven profile enabling JaCoCo, SpotBugs, Checkstyle, and PMD.
+- Integration tests split into `src/test/java/io/testfly/integration/` with `maven-failsafe-plugin`
+- `quality` Maven profile: JaCoCo, SpotBugs, Checkstyle, PMD
+
+---
+
+## [0.24.0] — 2026-08-15
+
+### Fixed
+- **`execution.parallel` validation** — now delegates to TestNG's `XmlSuite.ParallelMode`; `tests` and `instances` modes accepted
+
+---
+
+## [0.23.0] — 2026-07-18
+
+### Added
+- **`waitForAttribute(By, attribute, value)`** — exact attribute match
+- **`waitForUrlMatches(String regex)`** — URL regex match
+- **`waitForTextMatches(By, String regex)`** — element text regex match
+
+---
+
+## [0.22.0] — 2026-06-26
+
+### Fixed
+- **Report overwrite with multiple test engines** — `testfly.reports.dir` system property honored by all report outputs
+
+---
+
+## [0.21.0] — 2026-06-25
+
+### Added
+- **Accessibility-first locators** — `getByRole`, `getByText`, `getByLabel`, `getByPlaceholder`, `getByTestId`, `getByAltText`, `getByTitle`
+- **`getByRole(Role)`** — 38 WAI-ARIA roles with implicit + explicit matching; `.withName()`, `.withLevel()`
+- **`toBy()` escape hatch** — returns synthesized Selenium `By`
+
+```java
+getByRole(Role.BUTTON).withName("Submit").click();
+getByText("Welcome").isVisible();
+getByTestId("checkout-btn").click();
+```
+
+---
+
+## [0.20.0] — 2026-06-21
+
+### Added
+- **TestRail** — `@TestRailCase("C1234")` auto-pushes results; multiple IDs; auto-creates runs
+- **Xray** — `@XrayTest("PROJ-123")` for Cloud (OAuth2) and Server/DC (Basic auth)
+- Zero extra dependencies — both use `java.net.http.HttpClient`
+
+---
+
+## [0.19.0] — 2026-06-20
+
+### Added
+- **Gradle build support** — `testImplementation 'io.testfly:testfly'` + `test { useTestNG() }`
+- JUnit XML auto-detects Maven vs Gradle directory layout
+- `FrameworkVersion.get()` reads `MANIFEST.MF` (works with both build tools)
+
+---
+
+## [0.18.0] — 2026-06-20
+
+### Added
+- **Accessibility assertions (axe-core)** — `accessibility().withTags("wcag2a","wcag21aa").withLevel(Impact.SERIOUS).run()`
+- axe-core 4.10.2 bundled in JAR — no CDN dependency
+
+---
+
+## [0.17.0] — 2026-05-19
+
+### Added
+- **Performance assertions (Core Web Vitals)** — `assertPerformance().lcp().isBelow(2500).cls().isBelow(0.1)`
+- `performance.captureOnEveryTest: true` — ⚡ metrics strip in HTML report
+
+---
+
+## [0.16.0] — 2026-05-17
+
+### Added
+- **Test quarantine** — `testfly-quarantine.yml` for permanent test skipping; TestNG, JUnit 5, Cucumber support
+
+---
+
+## [0.15.0] — 2026-05-12
+
+### Added
+- **External `@TestData` sources** — `csv:`, `excel:` (Apache POI), `db:` (JDBC) prefixes
+- **`TestClock`** — `clock().set("2030-01-01T00:00:00Z")` freezes browser time; `clock().advance()` fast-forwards
+
+---
+
+## [0.14.0] — 2026-05-04
+
+### Added
+- **BrowserStack** — `execution.mode: browserstack`; W3C capabilities; mobile devices; session URL in report
+- **Sauce Labs** — `execution.mode: saucelabs`; three regions
+
+---
+
+## [0.13.0] — 2026-05-04
+
+### Added
+- **Email verification** — `mailbox().waitForEmail(to("user@example.com"))`; Mailhog, Mailtrap, Outlook, IMAP
+- `email.assertSubject()`, `email.assertBodyContains()`, `email.extractLink()`
+
+---
+
+## [0.12.0] — 2026-05-03
+
+### Added
+- **`@NoBrowser`** — skip WebDriver creation; ideal for DB/API-only tests
+
+---
+
+## [0.11.0] — 2026-05-03
+
+### Added
+- **Multi-session testing** — `withSession("alice", () -> { ... })`; named browser sessions
+- **Database assertions** — `db().assertRowExists()`, `db().query()`, `db().scalar()`; plain JDBC
+
+---
+
+## [0.10.0] — 2026-05-03
+
+### Added
+- **`@Retryable` for JUnit 5** — `InvocationInterceptor` with driver recreation
+- **`@Retryable` for Cucumber** — full scenario rerun from step 1
+
+---
+
+## [0.9.0] — 2026-05-02
+
+### Added
+- **JUnit 5 support** — `TestFlyExtension` (`@ExtendWith`); full lifecycle management
+- `WebDriver` injectable as test method parameter
+- `BaseJUnit5Test` base class; `TestFlyLauncherListener` via ServiceLoader
+
+---
+
+## [0.8.0] — 2026-05-02
+
+### Added
+- **Cucumber integration** — `BaseCucumberTest` + `BaseCucumberSteps`; auto driver lifecycle per scenario
+- `CucumberStepLogger` pipes Gherkin steps into HTML report
+
+---
+
+## [0.7.0] — 2026-04-16
+
+### Added
+- **Self-healing locators** — fallback through `id`, `name`, `text`, `class`, `data-testid`; `⚠ healed` badge
+- **AI failure analysis** — root-cause + fix suggestion in HTML report via AI model
+- **Flakiness prediction** — STABLE/WATCH/HIGH classification; Flakiness Radar card
+
+---
+
+## [0.6.0] — 2026-04-16
+
+### Added
+- **Trace viewer** — self-contained HTML trace per failed test; step timeline with screenshots
+- **Visual regression** — `VisualAssert.assertScreenshot()` pixel comparison; auto-baseline
+- **Device emulation** — `DeviceEmulator.emulate("iPhone 14")`; 6 built-in profiles
+- **Network interception** — `NetworkMock.stub(pattern)` via CDP
+- **Fluent Locator API** — `find(css)` chainable; `filter()`, `withText()`, `nth()`
+- **Web-first assertions** — `assertThat(By)` with `isVisible`, `hasText`, `count`
+
+---
+
+## [0.5.0] — 2026-04-07
+
+### Added
+- **Shadow DOM helpers** — `shadowFind`, `shadowClick`, `shadowPierce`
+- **Angular/React waits** — `waitForAngular()`, `waitForReactHydration()`
+- **Enhanced HTML report** — pass rate gauge, donut chart, dark mode, search
+- **Allure adapter** — opt-in Allure 2 JSON results
+- **Slack / Teams notifications** — webhook-based post-suite summary
+- **`@DependsOnApi`** — skip test if endpoint unreachable
+
+---
+
+## [0.4.0] — 2026-03-28
+
+### Added
+- **Schema validation** — `res.assertSchema("schemas/user.json")`
+- **`@UseAuth` annotation** — apply named auth strategy from config
+- **OAuth2 client credentials** — `ApiAuth.oauth2()` with token caching
+
+---
+
+## [0.3.0] — 2026-03-25
+
+### Added
+- **`BaseApiTest`** — pure API testing without browser
+- **`ApiClient`** — fluent HTTP client (JDK `HttpClient`)
+- **`ApiResponse`** — JSONPath extraction, fluent assertions
+- **`ApiAuth`** — Bearer token and Basic auth strategies
+- **`ScenarioContext`** / **`SuiteContext`** — thread-local and global state stores
+
+---
+
+## [0.2.0] — 2026-03-22
+
+### Added
+- **`@TestData`** — annotation-driven test data from JSON/YAML; env overrides
+- **Browser matrix** — run every test on every browser in one `mvn test`
+- **`SessionCache`** — cross-thread session reuse
+- **Soft assertions** — collect failures, flush at test end
+
+---
+
+## [0.1.0] — 2026-03-16
+
+### Added
+- **`BaseTest`** — test base class with framework lifecycle
+- **`BasePage`** — page object base: `click`, `type`, `getText`, `withinFrame`
+- **`WaitEngine`** — centralized explicit waits
+- **`Locator`** — fluent auto-waiting locator chain
+- **`StepLogger`** — named steps with timestamps and screenshots
+- **`DriverManager`** — thread-local WebDriver lifecycle
+- **`testfly.yml`** — convention-over-configuration YAML
+- **HTML report** — tabbed dashboard, pass rate gauge, retry badges
+- **JUnit XML** + **CI auto-detection** (GitHub Actions, Jenkins, CircleCI, GitLab CI)
+- **Build quality gates** — pass-rate and flaky-test thresholds
+- **Plugin system** — SPI-based `TestFlyPlugin`, custom driver providers, report adapters
+- **`@PreCondition`** — session-aware pre-conditions with cookie caching
+- **`@Retryable`** — per-method retry with config
+- Chrome + Firefox providers with auto download directory
+- Console error collector, download manager, iFrame helpers, alert handling
