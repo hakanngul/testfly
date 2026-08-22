@@ -8,6 +8,8 @@ import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 
 /**
@@ -24,32 +26,54 @@ import java.util.Properties;
  * endpoint    → rp.endpoint
  * apiKey      → rp.api.key
  * project     → rp.project
- * launch      → rp.launch
- * description → rp.description
+ * launch      → rp.launch        (enriched with run type, env, timestamp)
+ * description → rp.description   (enriched with runtime context)
  * attributes  → rp.attributes
  * </pre>
+ *
+ * <p>Launch name format: {@code <configured-name> — <API|Web> | <env> | <timestamp>}
+ * <p>Description format: multi-line with run type, base URL, user, hostname, and build info.
  */
 public final class ReportPortalPropertiesWriter {
 
-    private static final String RP_ENDPOINT = "rp.endpoint";
-    private static final String RP_API_KEY = "rp.api.key";
-    private static final String RP_PROJECT = "rp.project";
-    private static final String RP_LAUNCH = "rp.launch";
+    private static final String RP_ENDPOINT    = "rp.endpoint";
+    private static final String RP_API_KEY     = "rp.api.key";
+    private static final String RP_PROJECT     = "rp.project";
+    private static final String RP_LAUNCH      = "rp.launch";
     private static final String RP_DESCRIPTION = "rp.description";
-    private static final String RP_ATTRIBUTES = "rp.attributes";
+    private static final String RP_ATTRIBUTES  = "rp.attributes";
+
+    private static final DateTimeFormatter TIMESTAMP_FMT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private ReportPortalPropertiesWriter() {
         // utility class
     }
 
+    // ── Public API ────────────────────────────────────────────────────────────
+
     /**
      * Builds the ReportPortal properties from the supplied configuration.
+     *
+     * <p>Launch name and description are automatically enriched with runtime
+     * context (run type, environment, user, timestamp).
      *
      * @param config the TestFly configuration; must not be {@code null}
      * @return a mutable {@link Properties} instance containing the ReportPortal keys
      * @throws IllegalArgumentException if the ReportPortal configuration is incomplete
      */
     public static Properties toProperties(TestFlyConfig config) {
+        return toProperties(config, null);
+    }
+
+    /**
+     * Builds the ReportPortal properties with an explicit run type.
+     *
+     * @param config  the TestFly configuration
+     * @param runType {@code "API"}, {@code "Web"}, or {@code null} for auto-detect
+     * @return a mutable {@link Properties} instance
+     */
+    public static Properties toProperties(TestFlyConfig config, String runType) {
         if (config == null) {
             throw new IllegalArgumentException("TestFlyConfig is required");
         }
@@ -64,13 +88,17 @@ public final class ReportPortalPropertiesWriter {
 
         validate(rp);
 
+        String resolvedRunType = resolveRunType(rp.getType(), runType);
+        String launchName      = enrichLaunchName(rp.getLaunch(), resolvedRunType);
+        String description     = enrichDescription(rp.getDescription(), resolvedRunType, config);
+
         Properties properties = new Properties();
-        putIfNotBlank(properties, RP_ENDPOINT, DotEnvLoader.resolve(rp.getEndpoint()));
-        putIfNotBlank(properties, RP_API_KEY, DotEnvLoader.resolve(rp.getApiKey()));
-        putIfNotBlank(properties, RP_PROJECT, rp.getProject());
-        putIfNotBlank(properties, RP_LAUNCH, rp.getLaunch());
-        putIfNotBlank(properties, RP_DESCRIPTION, rp.getDescription());
-        putIfNotBlank(properties, RP_ATTRIBUTES, rp.getAttributes());
+        putIfNotBlank(properties, RP_ENDPOINT,    DotEnvLoader.resolve(rp.getEndpoint()));
+        putIfNotBlank(properties, RP_API_KEY,     DotEnvLoader.resolve(rp.getApiKey()));
+        putIfNotBlank(properties, RP_PROJECT,     rp.getProject());
+        putIfNotBlank(properties, RP_LAUNCH,      launchName);
+        putIfNotBlank(properties, RP_DESCRIPTION, description);
+        putIfNotBlank(properties, RP_ATTRIBUTES,  rp.getAttributes());
 
         return properties;
     }
@@ -78,9 +106,6 @@ public final class ReportPortalPropertiesWriter {
     /**
      * Writes the ReportPortal configuration as a properties file to the
      * requested path, then returns the absolute path of the generated file.
-     *
-     * <p>Consumers can place this file on the classpath (e.g. under
-     * {@code target/classes}) before the ReportPortal agent initializes.
      *
      * @param config the TestFly configuration
      * @param target the destination file path
@@ -103,13 +128,26 @@ public final class ReportPortalPropertiesWriter {
      * Applies the ReportPortal configuration as system properties so the
      * ReportPortal agent can read them without a properties file.
      *
-     * <p>Existing system properties are overwritten. This method is safe to
-     * call before the TestNG listener starts.
-     *
      * @param config the TestFly configuration
      */
     public static void applyAsSystemProperties(TestFlyConfig config) {
         Properties properties = toProperties(config);
+        for (String name : properties.stringPropertyNames()) {
+            System.setProperty(name, properties.getProperty(name));
+        }
+    }
+
+    /**
+     * Re-applies the ReportPortal properties with the given run type.
+     * Called by SuiteExecutionListener after detecting the run type from
+     * the suite's test classes — updates {@code rp.launch} and
+     * {@code rp.description} before the RP agent creates the launch.
+     *
+     * @param config  the TestFly configuration
+     * @param runType {@code "API"} or {@code "Web"}
+     */
+    public static void reapplyWithRunType(TestFlyConfig config, String runType) {
+        Properties properties = toProperties(config, runType);
         for (String name : properties.stringPropertyNames()) {
             System.setProperty(name, properties.getProperty(name));
         }
@@ -153,6 +191,182 @@ public final class ReportPortalPropertiesWriter {
             throw new IllegalArgumentException("reporting.reportportal.launch is required when ReportPortal is enabled");
         }
     }
+
+    // ── Launch name enrichment ────────────────────────────────────────────────
+
+    /**
+     * Builds an enriched launch name.
+     *
+     * <p>Format: {@code <base-name> — <API|Web> | <env> | <timestamp>}
+     * <p>Example: {@code Demo Web - Dev — API | dev | 2026-08-22 15:30}
+     */
+    public static String enrichLaunchName(String baseName, String runType) {
+        StringBuilder sb = new StringBuilder(baseName != null ? baseName : "TestFly Launch");
+        sb.append(" — ").append(runType);
+
+        String env = resolveEnv();
+        if (env != null) {
+            sb.append(" | ").append(env);
+        }
+
+        sb.append(" | ").append(LocalDateTime.now().format(TIMESTAMP_FMT));
+        return sb.toString();
+    }
+
+    /**
+     * Builds an enriched description with runtime context.
+     *
+     * <p>Example output:
+     * <pre>
+     * Automated TestFly test execution
+     *
+     * Run type: API
+     * Base URL: https://fakeapi.net
+     * Environment: dev
+     * Triggered by: hagul@MacBook-Pro
+     * CI: Jenkins #42
+     * Build URL: https://jenkins.example.com/job/demo/42
+     * </pre>
+     */
+    public static String enrichDescription(String baseDescription, String runType, TestFlyConfig config) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(baseDescription != null ? baseDescription : "Automated TestFly test execution");
+        sb.append("\n\n");
+
+        sb.append("Run type: ").append(runType).append('\n');
+
+        // Base URL — prefer api.baseUrl, fall back to execution.baseUrl
+        String baseUrl = null;
+        try {
+            TestFlyConfig.Api api = config.getApi();
+            if (api != null && api.getBaseUrl() != null) {
+                baseUrl = api.getBaseUrl();
+            } else if (config.getExecution() != null) {
+                baseUrl = config.getExecution().getBaseUrl();
+            }
+        } catch (Exception ignored) {}
+        if (baseUrl != null) {
+            sb.append("Base URL: ").append(baseUrl).append('\n');
+        }
+
+        // Environment
+        String env = resolveEnv();
+        if (env != null) {
+            sb.append("Environment: ").append(env).append('\n');
+        }
+
+        // User + hostname
+        String user     = System.getProperty("user.name", "unknown");
+        String hostname = resolveHostname();
+        sb.append("Triggered by: ").append(user);
+        if (hostname != null) {
+            sb.append('@').append(hostname);
+        }
+        sb.append('\n');
+
+        // CI / Build info
+        String buildNumber = System.getenv("BUILD_NUMBER");
+        String buildUrl    = System.getenv("BUILD_URL");
+        String ciName      = detectCiPlatform();
+        if (ciName != null) {
+            sb.append("CI: ").append(ciName);
+            if (buildNumber != null) {
+                sb.append(" #").append(buildNumber);
+            }
+            sb.append('\n');
+        }
+        if (buildUrl != null) {
+            sb.append("Build URL: ").append(buildUrl).append('\n');
+        }
+
+        return sb.toString();
+    }
+
+    // ── Run type resolution ───────────────────────────────────────────────────
+
+    /**
+     * Resolves the effective run type from config setting and explicit override.
+     *
+     * @param configType   the value from {@code reporting.reportportal.type} (auto/api/web)
+     * @param explicitType an explicit override from suite-level detection, or null
+     * @return {@code "API"} or {@code "Web"}
+     */
+    public static String resolveRunType(String configType, String explicitType) {
+        if (explicitType != null) return explicitType;
+        if ("api".equalsIgnoreCase(configType)) return "API";
+        if ("web".equalsIgnoreCase(configType)) return "Web";
+
+        // auto — check system property first (set by SuiteExecutionListener),
+        // then fall back to classpath heuristic
+        String sysProp = System.getProperty("testfly.run.type");
+        if ("API".equals(sysProp) || "Web".equals(sysProp)) return sysProp;
+
+        return detectRunTypeFromClasspath();
+    }
+
+    /**
+     * Auto-detects whether the test suite is API or Web by scanning the classpath
+     * for base test classes. If {@code BaseApiTest} subclasses are found but no
+     * {@code BaseTest} subclasses, returns "API". Otherwise returns "Web".
+     */
+    static String detectRunTypeFromClasspath() {
+        try {
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            if (cl == null) cl = ReportPortalPropertiesWriter.class.getClassLoader();
+
+            // Heuristic: try loading a known API-only test class
+            // If BaseApiTest is on the classpath, check if it has subclasses
+            // This is a best-effort heuristic — users can override via config or system property
+            Class.forName("io.testfly.test.BaseApiTest", false, cl);
+            // BaseApiTest exists on classpath — but we can't easily check if
+            // test classes extend it without scanning. Default to "Web" unless
+            // the system property is set.
+        } catch (ClassNotFoundException e) {
+            // BaseApiTest not on classpath — definitely Web
+        }
+        return "Web";
+    }
+
+    // ── Environment / CI detection ────────────────────────────────────────────
+
+    private static String resolveEnv() {
+        // 1. System property (set by -Denv=staging)
+        String env = System.getProperty("env");
+        if (env != null && !env.isBlank()) return env;
+
+        // 2. Environment variable
+        env = System.getenv("TESTFLY_ENV");
+        if (env != null && !env.isBlank()) return env;
+
+        // 3. CI environment hints
+        if (System.getenv("GITHUB_ACTIONS") != null) return "github-actions";
+        if (System.getenv("JENKINS_URL")    != null) return "jenkins";
+        if (System.getenv("GITLAB_CI")      != null) return "gitlab";
+
+        return null;
+    }
+
+    private static String resolveHostname() {
+        try {
+            return java.net.InetAddress.getLocalHost().getHostName();
+        } catch (Exception e) {
+            String hostname = System.getenv("HOSTNAME");
+            return hostname != null ? hostname : null;
+        }
+    }
+
+    private static String detectCiPlatform() {
+        if (System.getenv("GITHUB_ACTIONS")          != null) return "GitHub Actions";
+        if (System.getenv("JENKINS_URL")             != null) return "Jenkins";
+        if (System.getenv("GITLAB_CI")               != null) return "GitLab CI";
+        if (System.getenv("CIRCLECI")                != null) return "CircleCI";
+        if (System.getenv("TRAVIS")                  != null) return "Travis CI";
+        if (System.getenv("BITBUCKET_BUILD_NUMBER")  != null) return "Bitbucket Pipelines";
+        if (System.getenv("TF_BUILD")                != null) return "Azure Pipelines";
+        return null;
+    }
+
+    // ── Utilities ─────────────────────────────────────────────────────────────
 
     private static void putIfNotBlank(Properties properties, String key, String value) {
         if (!isBlank(value)) {

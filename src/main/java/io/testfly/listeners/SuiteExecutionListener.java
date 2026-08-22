@@ -15,6 +15,8 @@ import io.testfly.precondition.PreConditionRegistry;
 import io.testfly.precondition.PreConditionRunner;
 import io.testfly.reporting.JUnitXmlReporter;
 import io.testfly.reporting.ReportAdapterRegistry;
+import io.testfly.reporting.reportportal.ReportPortalPropertiesWriter;
+import io.testfly.test.BaseApiTest;
 import io.testfly.testmanagement.TestManagementReporter;
 import org.testng.ISuite;
 import org.testng.ISuiteListener;
@@ -69,6 +71,7 @@ public final class SuiteExecutionListener implements ISuiteListener {
             PreConditionRegistry.loadAll();
             HookRegistry.onSuiteStart();
             TestManagementReporter.getInstance().onSuiteStart();
+            enrichReportPortalLaunchInfo(suite);
             registerReportPortalListenerIfEnabled(suite);
 
         } catch (Exception e) {
@@ -76,6 +79,74 @@ public final class SuiteExecutionListener implements ISuiteListener {
             throw new IllegalStateException(
                 "TestFly failed to initialize. Aborting test suite execution.", e);
         }
+    }
+
+    // ── ReportPortal launch enrichment ────────────────────────────────────────
+
+    /**
+     * Detects the run type (API / Web) from the suite's test classes and
+     * re-applies the ReportPortal system properties with an enriched launch
+     * name and description. Must be called before the RP listener is registered
+     * so the agent picks up the enriched values when it creates the launch.
+     */
+    private void enrichReportPortalLaunchInfo(ISuite suite) {
+        if (!TestFlyContext.isInitialized()) return;
+        TestFlyConfig config = TestFlyContext.getConfig();
+        TestFlyConfig.Reporting reporting = config.getReporting();
+        if (reporting == null
+                || reporting.getReportPortal() == null
+                || !reporting.getReportPortal().isEnabled()) {
+            return;
+        }
+
+        String runType = detectRunType(suite);
+        ReportPortalPropertiesWriter.reapplyWithRunType(config, runType);
+        System.out.println("[TestFly] ReportPortal launch enriched → run type: " + runType);
+    }
+
+    /**
+     * Scans the suite's test classes to determine whether this is an API or Web run.
+     *
+     * <p>If any test class extends {@link BaseApiTest} and none extend
+     * {@code io.testfly.test.BaseTest}, the run type is "API".
+     * Otherwise it is "Web".
+     *
+     * <p>When the config has {@code type: api} or {@code type: web}, that value
+     * wins over auto-detection.
+     */
+    private String detectRunType(ISuite suite) {
+        // Config override takes precedence
+        String configType = "auto";
+        try {
+            configType = TestFlyContext.getConfig()
+                    .getReporting().getReportPortal().getType();
+        } catch (Exception ignored) {}
+        if ("api".equalsIgnoreCase(configType)) return "API";
+        if ("web".equalsIgnoreCase(configType)) return "Web";
+
+        // Auto-detect from suite test classes
+        boolean hasApi  = false;
+        boolean hasWeb  = false;
+
+        try {
+            for (var entry : suite.getXmlSuite().getTests()) {
+                for (var cls : entry.getXmlClasses()) {
+                    try {
+                        Class<?> testClass = Class.forName(cls.getName());
+                        if (BaseApiTest.class.isAssignableFrom(testClass)) {
+                            hasApi = true;
+                        } else {
+                            hasWeb = true;
+                        }
+                    } catch (ClassNotFoundException ignored) {}
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[TestFly] Failed to detect run type from suite: " + e.getMessage());
+        }
+
+        if (hasApi && !hasWeb) return "API";
+        return "Web";
     }
 
     private static final String REPORTPORTAL_TESTNG_LISTENER =

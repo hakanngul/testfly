@@ -41,9 +41,10 @@ reporting:
     endpoint: ${REPORTPORTAL_ENDPOINT:-https://reportportal.example.com}
     apiKey: ${REPORTPORTAL_API_KEY}
     project: demo-web
-    launch: "Demo Web- DEV"
-    description: "My awesome launch"
+    launch: "Demo Web - Dev"
+    description: "Automated TestFly test execution"
     attributes: "env:dev"
+    type: auto
     mode: default
 
 ai:

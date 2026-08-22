@@ -38,7 +38,7 @@ reporting:
     endpoint: ${REPORTPORTAL_ENDPOINT:-https://reportportal.example.com}
     apiKey: ${REPORTPORTAL_API_KEY}
     project: demo-web
-    launch: "Demo Web- DEV"
+    launch: "TestAutomation"
     description: "My awesome launch"
     attributes: "env:dev"
     mode: default

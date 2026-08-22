@@ -426,6 +426,15 @@ public final class TestFlyConfig {
             private String  description = "Automated TestFly test execution";
             private String  attributes = "";
             /**
+             * Run type for launch name enrichment:
+             * <ul>
+             *   <li>{@code auto} — auto-detect from test classes (default)</li>
+             *   <li>{@code api} — force API label</li>
+             *   <li>{@code web} — force Web label</li>
+             * </ul>
+             */
+            private String  type = "auto";
+            /**
              * ReportPortal listener mode:
              * <ul>
              *   <li>{@code default} — standard TestNG listener</li>
@@ -454,6 +463,9 @@ public final class TestFlyConfig {
 
             public String  getAttributes()              { return attributes; }
             public void    setAttributes(String v)      { this.attributes = v; }
+
+            public String  getType()                    { return type; }
+            public void    setType(String v)            { this.type = v; }
 
             public String  getMode()                    { return mode; }
             public void    setMode(String v)            { this.mode = v; }
