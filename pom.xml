@@ -11,7 +11,7 @@
 
     <name>TestFly</name>
     <description>Java Test Automation SDK for scalable web, API, mobile, and AI/MCP-powered test automation</description>
-    <url>https://testfly.github.io/testfly</url>
+    <url>https://hakanngul.github.io/TestFly/</url>
 
     <licenses>
         <license>
@@ -23,16 +23,17 @@
 
     <developers>
         <developer>
-            <id>testfly</id>
-            <name>TestFly</name>
-            <url>https://github.com/testfly</url>
+            <id>hakanngul</id>
+            <name>Hakan Gül</name>
+            <email>hakanngul@icloud.com</email>
+            <url>https://github.com/hakanngul</url>
         </developer>
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/testfly/testfly.git</connection>
-        <developerConnection>scm:git:ssh://github.com/testfly/testfly.git</developerConnection>
-        <url>https://github.com/hakanngul/testfly/tree/master</url>
+        <connection>scm:git:git://github.com/hakanngul/TestFly.git</connection>
+        <developerConnection>scm:git:ssh://github.com/hakanngul/TestFly.git</developerConnection>
+        <url>https://github.com/hakanngul/TestFly/tree/main</url>
     </scm>
 
     <properties>
