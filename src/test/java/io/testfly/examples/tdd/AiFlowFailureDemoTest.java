@@ -71,7 +71,8 @@ public class AiFlowFailureDemoTest extends BaseTest {
         new LoginPage(getDriver()).login("standard_user", "secret_sauce");
 
         // Bug: logout is inside the sidebar menu, not a direct button
-        getDriver().findElement(By.id("logout_sidebar_link")).click();
+        find(By.id("react-burger-menu-btn")).click();
+        find(By.id("logout_sidebar_link")).click();
 
         assertTrue(getDriver().getCurrentUrl().contains("index"),
                 "Should be back on the login page after logout");

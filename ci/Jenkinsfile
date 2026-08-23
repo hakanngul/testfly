@@ -58,7 +58,7 @@ pipeline {
         stage('Integration Tests') {
             when {
                 // Only run when the DeepSeek API key is available.
-                expression { env.DEEPSEEK_API_KEY != null && env.DEEPSEEK_API_KEY != '' }
+                expression { env.AI_API_KEY != null && env.AI_API_KEY != '' }
             }
             steps {
                 sh 'mvn verify -Preal-backends --no-transfer-progress'

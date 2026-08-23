@@ -17,7 +17,7 @@ import java.util.logging.Logger;
  *   provider: openai-compatible
  *   baseUrl: https://api.deepseek.com        # DeepSeek
  *   model: deepseek-chat                      # ~$0.14/1M tokens
- *   apiKey: ${DEEPSEEK_API_KEY}
+ *   apiKey: ${AI_API_KEY}
  *
  *   # Google Gemini:
  *   baseUrl: https://generativelanguage.googleapis.com/v1beta/openai
