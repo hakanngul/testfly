@@ -1,12 +1,9 @@
 package io.testfly.precondition;
 
 import io.testfly.api.TestFlyApi;
-import io.testfly.driver.DriverManager;
-import io.testfly.internal.TestFlyContext;
-import io.testfly.test.BasePage;
+import io.testfly.test.support.NavigationSupport;
 import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 
 /**
  * Base class for condition provider classes.
@@ -42,31 +39,10 @@ import org.openqa.selenium.WebDriver;
  * @since 0.8.0
  */
 @TestFlyApi(since = "0.8.0")
-public abstract class BaseConditions {
+public abstract class BaseConditions implements NavigationSupport {
 
-    /** Returns the framework-managed WebDriver for the calling thread. */
-    protected WebDriver getDriver() {
-        return DriverManager.getDriver();
-    }
-
-    /** Navigates to the configured {@code baseUrl}. */
-    protected void open() {
-        String baseUrl = TestFlyContext.getConfig().getExecution().getBaseUrl();
-        if (baseUrl == null || baseUrl.isEmpty()) {
-            throw new IllegalStateException("baseUrl is not configured in testfly.yml");
-        }
-        getDriver().get(baseUrl);
-    }
-
-    /** Navigates to {@code baseUrl + path}. */
-    protected void open(String path) {
-        String baseUrl = TestFlyContext.getConfig().getExecution().getBaseUrl();
-        if (baseUrl == null || baseUrl.isEmpty()) {
-            throw new IllegalStateException("baseUrl is not configured in testfly.yml");
-        }
-        String normalized = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-        getDriver().get(normalized + path);
-    }
+    // open(), open(String), getDriver(), getWait() — via NavigationSupport
+    // (single source for baseUrl resolution, StepLogger, ConsoleErrorCollector shim)
 
     /** Waits for the element to be clickable and clicks it. */
     protected void click(By locator) {
