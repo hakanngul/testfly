@@ -1,25 +1,28 @@
 package io.testfly.locator;
 
-import io.testfly.api.TestFlyApi;
-import io.testfly.driver.DriverManager;
-import io.testfly.steps.StepLogger;
-import io.testfly.wait.WaitEngine;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import io.testfly.api.TestFlyApi;
+import io.testfly.driver.DriverManager;
+import io.testfly.steps.StepLogger;
+import io.testfly.wait.WaitEngine;
 
 /**
  * Chainable, auto-waiting element locator.
  *
- * <p>Inspired by Playwright's {@code page.locator()} API. All terminal actions
+ * <p>
+ * Inspired by Playwright's {@code page.locator()} API. All terminal actions
  * (click, type, getText, …) automatically wait for the element to be in the
- * required state before interacting — no explicit {@code WaitEngine} calls needed.
+ * required state before interacting — no explicit {@code WaitEngine} calls
+ * needed.
  *
  * <pre>
  * // In BasePage or BaseTest:
@@ -33,30 +36,31 @@ import java.util.stream.Collectors;
 public final class Locator {
 
     /** How the base set of candidate elements is derived. */
-    private enum Kind { CSS_OR_BY, ROLE, TEXT, LABEL, PLACEHOLDER, TESTID, ALT_TEXT, TITLE }
+    private enum Kind {
+        CSS_OR_BY, ROLE, TEXT, LABEL, PLACEHOLDER, TESTID, ALT_TEXT, TITLE
+    }
 
     /** Default attribute used by {@link #byTestId(String)} — overridable. */
     private static volatile String testIdAttribute = "data-testid";
 
     /** Form controls that can carry an accessible name from an associated label. */
-    private static final String FORM_CONTROL_CSS =
-            "input:not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']), "
+    private static final String FORM_CONTROL_CSS = "input:not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']), "
             + "textarea, select, [contenteditable='true'], "
             + "[role='textbox'], [role='searchbox'], [role='combobox'], [role='checkbox'], "
             + "[role='radio'], [role='switch'], [role='slider'], [role='spinbutton']";
 
     private final Kind kind;
-    private final By root;            // set only for Kind.CSS_OR_BY
-    private Role semanticRole;        // set only for Kind.ROLE
-    private String semanticValue;     // raw text/attr value for the semantic kinds
-    private Integer headingLevel;     // optional heading level filter
-    private String accessibleName;    // withName(...) filter for role/label kinds
-    private boolean exact;            // exact (case-sensitive) vs substring (case-insensitive)
+    private final By root; // set only for Kind.CSS_OR_BY
+    private Role semanticRole; // set only for Kind.ROLE
+    private String semanticValue; // raw text/attr value for the semantic kinds
+    private Integer headingLevel; // optional heading level filter
+    private String accessibleName; // withName(...) filter for role/label kinds
+    private boolean exact; // exact (case-sensitive) vs substring (case-insensitive)
 
     private String filterCss;
     private String withText;
     private By withinContainer;
-    private int nthIndex = -1;   // -1 = no nth filter
+    private int nthIndex = -1; // -1 = no nth filter
 
     // ------------------------------------------------------------------
     // Factory — called from BasePage / BaseTest via $() and getBy*()
@@ -94,7 +98,9 @@ public final class Locator {
         return semantic(Kind.PLACEHOLDER, placeholder);
     }
 
-    /** Locates an element by its test-id attribute (default {@code data-testid}). */
+    /**
+     * Locates an element by its test-id attribute (default {@code data-testid}).
+     */
     public static Locator byTestId(String testId) {
         return semantic(Kind.TESTID, testId);
     }
@@ -138,7 +144,10 @@ public final class Locator {
 
     /**
      * Narrow results to elements that also match the given CSS selector.
-     * <pre>$(".row").filter(".active")</pre>
+     * 
+     * <pre>
+     * $(".row").filter(".active")
+     * </pre>
      */
     public Locator filter(String css) {
         this.filterCss = css;
@@ -146,8 +155,12 @@ public final class Locator {
     }
 
     /**
-     * Narrow results to elements whose visible text equals the given string (trimmed).
-     * <pre>$("button").withText("Save")</pre>
+     * Narrow results to elements whose visible text equals the given string
+     * (trimmed).
+     * 
+     * <pre>
+     * $("button").withText("Save")
+     * </pre>
      */
     public Locator withText(String text) {
         this.withText = text;
@@ -156,7 +169,10 @@ public final class Locator {
 
     /**
      * Scope the search inside a parent container.
-     * <pre>$(By.cssSelector("input")).within(By.id("login-form"))</pre>
+     * 
+     * <pre>
+     * $(By.cssSelector("input")).within(By.id("login-form"))
+     * </pre>
      */
     public Locator within(By container) {
         this.withinContainer = container;
@@ -165,7 +181,10 @@ public final class Locator {
 
     /**
      * Pick a single element by zero-based index from the matched list.
-     * <pre>$(".item").nth(2).getText()</pre>
+     * 
+     * <pre>
+     * $(".item").nth(2).getText()
+     * </pre>
      */
     public Locator nth(int index) {
         this.nthIndex = index;
@@ -174,8 +193,12 @@ public final class Locator {
 
     /**
      * Narrow a role-based locator to elements whose accessible name matches.
-     * Case-insensitive substring by default; call {@link #exact()} for an exact match.
-     * <pre>getByRole(Role.BUTTON).withName("Submit")</pre>
+     * Case-insensitive substring by default; call {@link #exact()} for an exact
+     * match.
+     * 
+     * <pre>
+     * getByRole(Role.BUTTON).withName("Submit")
+     * </pre>
      */
     public Locator withName(String name) {
         this.accessibleName = name;
@@ -184,7 +207,10 @@ public final class Locator {
 
     /**
      * Narrow a {@link Role#HEADING} locator to a specific heading level (1–6).
-     * <pre>getByRole(Role.HEADING).withLevel(1)</pre>
+     * 
+     * <pre>
+     * getByRole(Role.HEADING).withLevel(1)
+     * </pre>
      */
     public Locator withLevel(int level) {
         this.headingLevel = level;
@@ -194,7 +220,10 @@ public final class Locator {
     /**
      * Switch text / name / attribute matching to exact (case-sensitive) instead of
      * the default case-insensitive substring match.
-     * <pre>getByText("Submit").exact()</pre>
+     * 
+     * <pre>
+     * getByText("Submit").exact()
+     * </pre>
      */
     public Locator exact() {
         this.exact = true;
@@ -205,7 +234,8 @@ public final class Locator {
      * Returns the synthesized Selenium {@link By} for the base selector of this
      * locator — handy as an escape hatch into raw Selenium or {@code SmartLocator}.
      *
-     * <p>Chain refinements that cannot be expressed as a {@code By}
+     * <p>
+     * Chain refinements that cannot be expressed as a {@code By}
      * (e.g. {@link #withName(String)}, {@link #filter(String)}) are not included;
      * use the terminal actions for the fully-resolved element.
      */
@@ -223,7 +253,9 @@ public final class Locator {
         waitForClickable(resolve()).click();
     }
 
-    /** Waits for the element to be visible, clears it, then types the given text. */
+    /**
+     * Waits for the element to be visible, clears it, then types the given text.
+     */
     public void type(String text) {
         StepLogger.step("Type into " + this);
         WebElement el = waitForVisible(resolve());
@@ -293,7 +325,10 @@ public final class Locator {
         ((JavascriptExecutor) driver()).executeScript("arguments[0].click();", el);
     }
 
-    /** Returns the number of elements currently matching the locator chain (no wait). */
+    /**
+     * Returns the number of elements currently matching the locator chain (no
+     * wait).
+     */
     public int count() {
         return resolveAll().size();
     }
@@ -364,9 +399,12 @@ public final class Locator {
             String css = filterCss;
             candidates = candidates.stream()
                     .filter(el -> {
-                        try { return !el.findElements(By.cssSelector("*")).isEmpty()
-                                    || matchesCss(el, css); }
-                        catch (Exception ignored) { return false; }
+                        try {
+                            return !el.findElements(By.cssSelector("*")).isEmpty()
+                                    || matchesCss(el, css);
+                        } catch (Exception ignored) {
+                            return false;
+                        }
                     })
                     .collect(Collectors.toList());
 
@@ -380,8 +418,11 @@ public final class Locator {
             String target = withText;
             candidates = candidates.stream()
                     .filter(el -> {
-                        try { return el.getText().trim().equals(target); }
-                        catch (Exception ignored) { return false; }
+                        try {
+                            return el.getText().trim().equals(target);
+                        } catch (Exception ignored) {
+                            return false;
+                        }
                     })
                     .collect(Collectors.toList());
         }
@@ -391,7 +432,7 @@ public final class Locator {
             if (nthIndex >= candidates.size()) {
                 throw new LocatorException(
                         "nth(" + nthIndex + ") requested but only " + candidates.size()
-                        + " element(s) matched: " + describe());
+                                + " element(s) matched: " + describe());
             }
             List<WebElement> single = new ArrayList<>();
             single.add(candidates.get(nthIndex));
@@ -401,7 +442,10 @@ public final class Locator {
         return candidates;
     }
 
-    /** Filter a candidate list to those whose outerHTML matches a CSS selector via JS. */
+    /**
+     * Filter a candidate list to those whose outerHTML matches a CSS selector via
+     * JS.
+     */
     private List<WebElement> filterByCss(WebDriver d, List<WebElement> candidates, String css) {
         JavascriptExecutor js = (JavascriptExecutor) d;
         return candidates.stream().filter(el -> {
@@ -460,7 +504,10 @@ public final class Locator {
         }
     }
 
-    /** CSS attribute selector — exact match, or case-insensitive substring by default. */
+    /**
+     * CSS attribute selector — exact match, or case-insensitive substring by
+     * default.
+     */
     private static String attrCss(String attr, String value, boolean exact) {
         return exact
                 ? "[" + attr + "='" + cssEscape(value) + "']"
@@ -470,14 +517,18 @@ public final class Locator {
     private static final String UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static final String LOWER = "abcdefghijklmnopqrstuvwxyz";
 
-    /** XPath matching visible text — normalized; exact equality or case-insensitive contains. */
+    /**
+     * XPath matching visible text — normalized; exact equality or case-insensitive
+     * contains.
+     */
     private static String textXPath(String value, boolean exact) {
         if (exact) {
             return ".//*[normalize-space(.)=" + xpathLiteral(value) + "]";
         }
+
         return ".//*[contains(translate(normalize-space(.),"
                 + " '" + UPPER + "', '" + LOWER + "'),"
-                + " " + xpathLiteral(value.toLowerCase()) + ")]";
+                + " " + xpathLiteral(value.toLowerCase(java.util.Locale.ROOT)) + ")]";
     }
 
     /** Escapes a value for use inside a single-quoted CSS attribute selector. */
@@ -485,7 +536,10 @@ public final class Locator {
         return value.replace("\\", "\\\\").replace("'", "\\'");
     }
 
-    /** Produces a safe XPath string literal, using concat() when both quote types appear. */
+    /**
+     * Produces a safe XPath string literal, using concat() when both quote types
+     * appear.
+     */
     private static String xpathLiteral(String value) {
         if (!value.contains("'")) {
             return "'" + value + "'";
@@ -496,7 +550,8 @@ public final class Locator {
         StringBuilder sb = new StringBuilder("concat(");
         String[] parts = value.split("'", -1);
         for (int i = 0; i < parts.length; i++) {
-            if (i > 0) sb.append(", \"'\", ");
+            if (i > 0)
+                sb.append(", \"'\", ");
             sb.append("'").append(parts[i]).append("'");
         }
         return sb.append(")").toString();
@@ -510,7 +565,8 @@ public final class Locator {
         } catch (Exception e) {
             return false;
         }
-        if (actual == null) return false;
+        if (actual == null)
+            return false;
         actual = actual.trim();
         if (exact) {
             return actual.equals(expected);
@@ -518,9 +574,10 @@ public final class Locator {
         return actual.toLowerCase().contains(expected.toLowerCase());
     }
 
-    /** Computes an element's accessible name, following the common ARIA precedence. */
-    private static final String ACCESSIBLE_NAME_JS =
-            "const e = arguments[0];"
+    /**
+     * Computes an element's accessible name, following the common ARIA precedence.
+     */
+    private static final String ACCESSIBLE_NAME_JS = "const e = arguments[0];"
             + "if(!e) return '';"
             + "const al = e.getAttribute && e.getAttribute('aria-label');"
             + "if(al && al.trim()) return al.trim();"
@@ -559,31 +616,46 @@ public final class Locator {
 
     private String describe() {
         StringBuilder sb = new StringBuilder(baseDescription());
-        if (accessibleName  != null && kind == Kind.ROLE) {
+        if (accessibleName != null && kind == Kind.ROLE) {
             sb.append(".withName(\"").append(accessibleName).append("\")");
         }
-        if (exact)                   sb.append(".exact()");
-        if (withinContainer != null) sb.append(" within(").append(withinContainer).append(")");
-        if (filterCss       != null) sb.append(".filter(\"").append(filterCss).append("\")");
-        if (withText        != null) sb.append(".withText(\"").append(withText).append("\")");
-        if (nthIndex        >= 0)    sb.append(".nth(").append(nthIndex).append(")");
+        if (exact)
+            sb.append(".exact()");
+        if (withinContainer != null)
+            sb.append(" within(").append(withinContainer).append(")");
+        if (filterCss != null)
+            sb.append(".filter(\"").append(filterCss).append("\")");
+        if (withText != null)
+            sb.append(".withText(\"").append(withText).append("\")");
+        if (nthIndex >= 0)
+            sb.append(".nth(").append(nthIndex).append(")");
         return sb.toString();
     }
 
-    /** Friendly description of the base selector, mirroring the factory that built it. */
+    /**
+     * Friendly description of the base selector, mirroring the factory that built
+     * it.
+     */
     private String baseDescription() {
         switch (kind) {
             case ROLE:
                 String r = "getByRole(" + semanticRole.ariaName() + ")";
                 return headingLevel != null ? r + ".withLevel(" + headingLevel + ")" : r;
-            case TEXT:        return "getByText(\"" + semanticValue + "\")";
-            case LABEL:       return "getByLabel(\"" + accessibleName + "\")";
-            case PLACEHOLDER: return "getByPlaceholder(\"" + semanticValue + "\")";
-            case TESTID:      return "getByTestId(\"" + semanticValue + "\")";
-            case ALT_TEXT:    return "getByAltText(\"" + semanticValue + "\")";
-            case TITLE:       return "getByTitle(\"" + semanticValue + "\")";
+            case TEXT:
+                return "getByText(\"" + semanticValue + "\")";
+            case LABEL:
+                return "getByLabel(\"" + accessibleName + "\")";
+            case PLACEHOLDER:
+                return "getByPlaceholder(\"" + semanticValue + "\")";
+            case TESTID:
+                return "getByTestId(\"" + semanticValue + "\")";
+            case ALT_TEXT:
+                return "getByAltText(\"" + semanticValue + "\")";
+            case TITLE:
+                return "getByTitle(\"" + semanticValue + "\")";
             case CSS_OR_BY:
-            default:          return root.toString();
+            default:
+                return root.toString();
         }
     }
 

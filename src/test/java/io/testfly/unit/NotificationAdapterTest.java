@@ -1,19 +1,21 @@
 package io.testfly.unit;
 
-import io.testfly.config.TestFlyConfig.Notifications;
-import io.testfly.config.TestFlyConfig.Notifications.Slack;
-import io.testfly.config.TestFlyConfig.Notifications.Teams;
-import io.testfly.reporting.NotificationAdapter;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import io.testfly.config.TestFlyConfig.Notifications;
+import io.testfly.config.TestFlyConfig.Notifications.Slack;
+import io.testfly.config.TestFlyConfig.Notifications.Teams;
+import io.testfly.reporting.NotificationAdapter;
 
 /**
  * Unit tests for {@link NotificationAdapter}.
@@ -183,6 +185,7 @@ public class NotificationAdapterTest {
         spyAdapter(slackOnly("https://hooks.slack.com/TEST", false)).generate(metricsFile);
 
         String payload = webhookCalls.get(0)[1];
+        System.out.println(payload);
         assertTrue(payload.contains("90.0%"), "Slack payload must contain pass rate");
     }
 

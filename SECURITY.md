@@ -20,7 +20,7 @@ Please give us a reasonable window to release a fix before any public disclosure
 ## Supported versions
 
 TestFly is pre-1.0 and moving quickly. Security fixes are applied to the **latest
-released version** on [Maven Central](https://central.sonatype.com/artifact/io.testfly/testfly).
+released version** on [Maven Central](https://central.sonatype.com/artifact/io.github.hakanngul/testfly).
 Please make sure you're on the latest release before reporting.
 
 ## Scope

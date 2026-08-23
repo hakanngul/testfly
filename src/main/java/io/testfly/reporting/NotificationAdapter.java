@@ -1,11 +1,5 @@
 package io.testfly.reporting;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.testfly.config.TestFlyConfig.Notifications;
-
 import java.io.File;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -14,6 +8,14 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import io.testfly.config.TestFlyConfig.Notifications;
 
 /**
  * {@link ReportAdapter} that posts a suite summary to Slack and/or Microsoft Teams
@@ -110,7 +112,8 @@ public class NotificationAdapter implements ReportAdapter {
         section.put("type", "section");
         ArrayNode fields = section.putArray("fields");
         addSlackField(fields, "*Status*",    ok ? "✅ PASSED" : "❌ FAILED");
-        addSlackField(fields, "*Pass Rate*", String.format("%.1f%%", rate));
+        //addSlackField(fields, "*Pass Rate*", String.format("%.1f%%", rate));
+        addSlackField(fields, "*Pass Rate*", String.format(Locale.ROOT, "%.1f%%", rate));
         addSlackField(fields, "*Tests*",
                 passed + " passed  " + failed + " failed  " + skipped + " skipped");
         addSlackField(fields, "*Duration*",  formatDuration(totalMs));

@@ -41,7 +41,7 @@
   },
   "link.item.label.Maven Central": {
     "message": "Maven Central",
-    "description": "The label of footer link with label=Maven Central linking to https://central.sonatype.com/artifact/io.testfly/testfly"
+    "description": "The label of footer link with label=Maven Central linking to https://central.sonatype.com/artifact/io.github.hakanngul/testfly"
   },
   "link.item.label.Changelog": {
     "message": "Değişiklik Günlüğü",
