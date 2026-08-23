@@ -1,10 +1,6 @@
 // @ts-check
 const { themes } = require('prism-react-renderer');
 
-// Docusaurus does not translate site-level title/tagline via i18n JSON files,
-// so we switch them here based on the locale being built. Wrapping the config
-// in a function ensures `process.env.DOCUSAURUS_CURRENT_LOCALE` is read fresh
-// for each locale build.
 module.exports = function createConfig() {
   const currentLocale = process.env.DOCUSAURUS_CURRENT_LOCALE || 'en';
 
@@ -24,30 +20,27 @@ module.exports = function createConfig() {
     tagline: siteTagline,
     favicon: 'img/favicon.svg',
 
-    url: 'https://testfly.github.io',
-    baseUrl: '/testfly/',
+    // 👇 DEĞİŞTİRİLDİ: Kişisel GitHub Pages URL'i
+    url: 'https://hakanngul.github.io',
+    // 👇 DEĞİŞTİRİLDİ: Repo adı büyük T ile "TestFly"
+    baseUrl: '/TestFly/',
 
-    organizationName: 'testfly',
-    projectName: 'testfly',
+    // 👇 DEĞİŞTİRİLDİ: Kullanıcı adı ve repo adı
+    organizationName: 'hakanngul',
+    projectName: 'TestFly',
     deploymentBranch: 'gh-pages',
     trailingSlash: false,
 
     onBrokenLinks: 'throw',
     onBrokenMarkdownLinks: 'warn',
 
-    // GoatCounter — cookieless, no personal data, no consent banner (same account as
-    // testfly.github.io/testfly, see the site's /privacy page).
-    //
-    // Docs and the marketing site report into ONE GoatCounter site, so raw paths would
-    // collide: the apex homepage and the docs homepage both count as "/". The first
-    // script namespaces every docs hit under "/docs-site/..." so the two hostnames stay
-    // separable in the dashboard. Order matters — settings must run before count.js.
+    // 👇 GÜNCELLENDİ: Path namespace'i yeni baseUrl ile uyumlu
     headTags: [
       {
         tagName: 'script',
         attributes: { type: 'text/javascript' },
         innerHTML:
-          "window.goatcounter={path:function(p){return '/docs-site'+p;}};",
+          "window.goatcounter={path:function(p){return '/TestFly/docs-site'+p;}};",
       },
       {
         tagName: 'script',
@@ -84,14 +77,13 @@ module.exports = function createConfig() {
         ({
           docs: {
             sidebarPath: require.resolve('./sidebars.js'),
-            editUrl: 'https://github.com/testfly/testfly/edit/master/docs-site/',
+            // 👇 DEĞİŞTİRİLDİ: Doğru repo edit linki
+            editUrl: 'https://github.com/hakanngul/TestFly/edit/main/docs-site/',
           },
           blog: false,
           theme: {
             customCss: require.resolve('./src/css/custom.css'),
           },
-          // Explicit so sitemap generation can't be silently disabled.
-          // Ships with preset-classic; emits build/sitemap.xml listing all pages.
           sitemap: {
             changefreq: 'weekly',
             priority: 0.5,
@@ -101,7 +93,6 @@ module.exports = function createConfig() {
       ],
     ],
 
-    // Offline, self-hosted search (no external service / account needed).
     themes: [
       [
         require.resolve('@easyops-cn/docusaurus-search-local'),
@@ -145,8 +136,9 @@ module.exports = function createConfig() {
               label: 'Maven Central',
               position: 'right',
             },
+            // 👇 İsteğe bağlı: Kendi reponuza yönlendirebilirsiniz
             {
-              href: 'https://github.com/testfly/testfly',
+              href: 'https://github.com/hakanngul/TestFly',
               label: 'GitHub',
               position: 'right',
             },
@@ -167,14 +159,14 @@ module.exports = function createConfig() {
             {
               title: 'Community',
               items: [
-                { label: 'GitHub Issues', href: 'https://github.com/testfly/testfly/issues' },
-                { label: 'GitHub Discussions', href: 'https://github.com/testfly/testfly/discussions' },
+                { label: 'GitHub Issues', href: 'https://github.com/hakanngul/TestFly/issues' },
+                { label: 'GitHub Discussions', href: 'https://github.com/hakanngul/TestFly/discussions' },
               ],
             },
             {
               title: 'More',
               items: [
-                { label: 'GitHub', href: 'https://github.com/testfly/testfly' },
+                { label: 'GitHub', href: 'https://github.com/hakanngul/TestFly' },
                 { label: 'Maven Central', href: 'https://central.sonatype.com/artifact/io.testfly/testfly' },
                 { label: 'Changelog', to: '/docs/changelog' },
               ],

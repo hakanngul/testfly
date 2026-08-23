@@ -15,3 +15,4 @@ Feature: Sauce Demo login and shopping cart
     Given the user is logged in as "standard_user" with password "secret_sauce"
     When the user adds the first product to the cart
     Then the cart badge shows "1"
+
