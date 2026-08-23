@@ -7,7 +7,7 @@
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Good first issues](https://img.shields.io/github/issues/testfly/testfly/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
-**[Documentation](https://testfly.github.io/testfly) · [Sample Project](https://github.com/hakanngul/testfly-test) · [Changelog](#project-status)**
+**[Documentation](https://hakanngul.github.io/TestFly) · [Sample Project](https://github.com/testfly/testfly-test) · [Changelog](#project-status)**
 
 ---
 
@@ -767,7 +767,7 @@ A working demo project covering all framework features is available at:
 
 ## Documentation
 
-Full documentation at **[testfly.github.io/testfly](https://testfly.github.io/testfly)**
+Full documentation at **[testfly.github.io/testfly](https://hakanngul.github.io/TestFly)**
 
 ---
 

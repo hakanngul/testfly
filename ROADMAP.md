@@ -143,8 +143,8 @@ Most users find a framework by searching, not by browsing GitHub.
 **Goal:** Establish TestFly as a stable ecosystem
 
 ### Features
-- ✅ Official documentation website — live at https://testfly.github.io/testfly/
-- ~~Sample reference projects~~ — replaced by the consumer test project at https://github.com/hakanngul/testfly-test
+- ✅ Official documentation website — live at https://hakanngul.github.io/TestFly/
+- ~~Sample reference projects~~ — replaced by the consumer test project at https://github.com/testfly/testfly-test
 - ✅ Community contribution guidelines — see CONTRIBUTING.md
 - ✅ Versioned plugin ecosystem — `FrameworkVersion`, `minFrameworkVersion()`, `IncompatiblePluginException`
 - ✅ Backward compatibility guarantees — `@TestFlyApi` annotation, policy in CONTRIBUTING.md

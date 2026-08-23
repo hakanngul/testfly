@@ -4,7 +4,7 @@ contact_links:
     url: https://github.com/hakanngul/testfly/discussions
     about: Ask how-to questions or float an idea before opening a feature request.
   - name: 📖 Documentation
-    url: https://testfly.github.io/testfly
+    url: https://hakanngul.github.io/TestFly
     about: Guides, configuration reference, and recipes.
   - name: 🙌 Good first issues
     url: https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22
