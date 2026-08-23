@@ -38,7 +38,7 @@ Features that significantly increase complexity without clear user value may be 
 ### Clone and build
 
 ```bash
-git clone https://github.com/testfly/testfly.git
+git clone https://github.com/hakanngul/testfly.git
 cd testfly
 mvn test
 ```
@@ -67,7 +67,7 @@ mvn verify -Preal-backends
 ### Test against the consumer project
 
 A working consumer project is available at:
-**https://github.com/testfly/testfly-test**
+**https://github.com/hakanngul/testfly-test**
 
 Clone it alongside this repo and update its `pom.xml` to use your local snapshot:
 
@@ -117,7 +117,7 @@ And run the consumer project tests to verify end-to-end behaviour.
 
 ## Reporting bugs
 
-Open an Issue at: https://github.com/testfly/testfly/issues
+Open an Issue at: https://github.com/hakanngul/testfly/issues
 
 Include:
 - TestFly version
@@ -131,7 +131,7 @@ Include:
 ## Suggesting features
 
 Open a GitHub Discussion before writing any code:
-https://github.com/testfly/testfly/discussions
+https://github.com/hakanngul/testfly/discussions
 
 Describe:
 - The problem you're solving (not just the solution)

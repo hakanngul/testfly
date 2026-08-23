@@ -20,7 +20,7 @@ import java.lang.annotation.Target;
  * </pre>
  * <p>
  * See <a href="https://pypi.org/project/testfly-mcp/">pypi.org/project/testfly-mcp</a>
- * and <a href="https://github.com/testfly/testfly-mcp">github.com/testfly/testfly-mcp</a>.
+ * and <a href="https://github.com/hakanngul/testfly-mcp">github.com/testfly/testfly-mcp</a>.
  * </p>
  *
  * <h2>Stability contract</h2>

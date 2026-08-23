@@ -204,7 +204,7 @@ your-project/
 ## Çalışan Örnek Proje
 
 Tam çalışan proje şu adreste:
-**https://github.com/testfly/testfly-test**
+**https://github.com/hakanngul/testfly-test**
 
 Klonlayın, `mvn test` (veya `./gradlew test`) çalıştırın; page object'leri, adım loglama ve retry yapılandırılmış tam çalışan bir suite'iniz olacak.
 

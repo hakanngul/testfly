@@ -171,7 +171,7 @@ Items from [`ROADMAP.md`](ROADMAP.md) that are actively open for contribution:
 ## How to Request a Feature
 
 1. Check this catalog and [`ROADMAP.md`](ROADMAP.md) to see if it is already planned.
-2. Open a [Discussion](https://github.com/testfly/testfly/discussions) for early feedback.
+2. Open a [Discussion](https://github.com/hakanngul/testfly/discussions) for early feedback.
 3. Open an issue using the feature request template.
 4. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) for the backward-compatibility policy before proposing API changes.
 

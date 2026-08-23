@@ -1,13 +1,5 @@
 package io.testfly.unit;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.testfly.config.TestFlyConfig;
-import io.testfly.internal.TestFlyContext;
-import io.testfly.reporting.HtmlReportGenerator;
-import io.testfly.reporting.ReportPaths;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.Test;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -16,7 +8,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.Test;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.testfly.config.TestFlyConfig;
+import io.testfly.internal.TestFlyContext;
+import io.testfly.reporting.HtmlReportGenerator;
+import io.testfly.reporting.ReportPaths;
 
 /**
  * Unit tests for {@link HtmlReportGenerator}.
@@ -86,7 +88,7 @@ public class HtmlReportGeneratorTest {
         ci.put("repository", "testfly/testfly");
         ci.put("actor", "hagul");
         ci.put("jobName", "unit-tests");
-        ci.put("buildUrl", "https://github.com/testfly/testfly/actions/runs/123");
+        ci.put("buildUrl", "https://github.com/hakanngul/testfly/actions/runs/123");
         root.put("ci", ci);
 
         ObjectMapper mapper = new ObjectMapper();
@@ -129,7 +131,7 @@ public class HtmlReportGeneratorTest {
         HtmlReportGenerator.generate();
 
         String html = Files.readString(ReportPaths.htmlReport().toPath());
-        assertTrue(html.contains("https://github.com/testfly/testfly/actions/runs/123"),
+        assertTrue(html.contains("https://github.com/hakanngul/testfly/actions/runs/123"),
                 "Build URL must be rendered as a link");
     }
 

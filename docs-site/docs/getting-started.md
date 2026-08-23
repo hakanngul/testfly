@@ -204,7 +204,7 @@ your-project/
 ## Working example project
 
 A complete working project is available at:
-**https://github.com/testfly/testfly-test**
+**https://github.com/hakanngul/testfly-test**
 
 Clone it, run `mvn test` (or `./gradlew test`), and you'll have a full working suite with page objects, step logging, and retry configured.
 

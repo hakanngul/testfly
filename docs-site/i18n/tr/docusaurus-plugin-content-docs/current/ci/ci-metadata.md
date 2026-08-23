@@ -192,7 +192,7 @@ ci:
     "buildNumber": "42",
     "branch": "main",
     "commitSha": "abc123",
-    "buildUrl": "https://github.com/testfly/testfly/actions/runs/123"
+    "buildUrl": "https://github.com/hakanngul/testfly/actions/runs/123"
   }
 }
 ```
