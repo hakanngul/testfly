@@ -136,7 +136,7 @@ jobs:
           FRAMEWORK_VERSION: ${{ steps.version.outputs.value }}
         run: |
           mvn versions:use-dep-version \
-            -Dincludes=io.testfly:testfly \
+            -Dincludes=io.github.hakanngul:testfly \
             -DdepVersion="$FRAMEWORK_VERSION" \
             -DforceVersion=true \
             -DgenerateBackupPoms=false
