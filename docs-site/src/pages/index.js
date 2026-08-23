@@ -273,7 +273,7 @@ export default function Home() {
           <div className="container">
             <div className={styles.heroInner}>
               <div className={styles.heroText}>
-                <span className={styles.heroEyebrow}>Java · Selenium · TestNG · JUnit 5</span>
+                <span className={styles.heroEyebrow}>Java · Selenium · TestNG · JUnit 5 · Cucumber</span>
                 <h1 className={styles.heroTitle}>
                   Test automation
                   <br />
@@ -290,6 +290,7 @@ export default function Home() {
                 </div>
                 <CodeWindow
                   filename="pom.xml"
+                  language='xml'
                   className={styles.heroSnippet}
                   code={`<dependency>
   <groupId>io.testfly</groupId>
@@ -411,7 +412,14 @@ assertThat(find("h1"))
                   <div className={styles.featureIconWrap}>{f.icon}</div>
                   <h3 className={styles.bentoTitle}>{f.title}</h3>
                   <p className={styles.bentoDesc}>{f.description}</p>
-                  {f.code && <pre className={styles.bentoCode}>{f.code}</pre>}
+                  {f.code && (
+  <CodeWindow
+    filename=""
+    language="java"
+    code={f.code}
+    className={styles.bentoCode}
+  />
+)}
                   {f.visual === 'report' && <ReportPreview />}
                 </div>
               ))}
@@ -461,6 +469,7 @@ assertThat(find("h1"))
               <div className={styles.quickCode} data-reveal style={{ '--i': 1 }}>
                 <CodeWindow
                   filename="testfly.yml"
+                  language='yaml'
                   code={`browser:
   name: chrome
   headless: false
