@@ -56,13 +56,18 @@ jobs:
     name: Framework Integration Tests
     runs-on: ubuntu-latest
     needs: unit-tests
-    if: env.DEEPSEEK_API_KEY != ''
 
     steps:
+      - name: Skip if DeepSeek key is unavailable
+        if: ${{ secrets.DEEPSEEK_API_KEY == '' }}
+        run: echo "DEEPSEEK_API_KEY is not configured. Skipping integration tests."
+
       - name: Checkout framework
+        if: ${{ secrets.DEEPSEEK_API_KEY != '' }}
         uses: actions/checkout@v4
 
       - name: Set up Java 17
+        if: ${{ secrets.DEEPSEEK_API_KEY != '' }}
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -70,21 +75,12 @@ jobs:
           cache: maven
 
       - name: Run integration tests with real backends
+        if: ${{ secrets.DEEPSEEK_API_KEY != '' }}
         run: mvn verify -Preal-backends --no-transfer-progress
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           REPORTPORTAL_API_KEY: ${{ secrets.REPORTPORTAL_API_KEY }}
           REPORTPORTAL_ENDPOINT: ${{ secrets.REPORTPORTAL_ENDPOINT }}
-
-      - name: Upload failsafe reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: framework-integration-test-results
-          path: target/failsafe-reports/
-          if-no-files-found: ignore
-          retention-days: 14
-
   # ── Job 3: Consumer integration tests ────────────────────────────────────────
   integration-tests:
     name: Consumer Integration Tests
