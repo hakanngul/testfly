@@ -1,22 +1,15 @@
 package io.testfly.test;
 
 import io.testfly.api.TestFlyApi;
-import io.testfly.assertion.LocatorAssert;
-import io.testfly.assertion.SeleniumAssert;
-import io.testfly.assertion.SoftAssertionCollector;
-import io.testfly.assertion.SoftAssertions;
-import io.testfly.browser.ClipboardHelper;
-import io.testfly.browser.DeviceEmulator;
-import io.testfly.browser.GeoLocation;
-import io.testfly.browser.StorageHelper;
-import io.testfly.visual.VisualAssert;
-import io.testfly.visual.VisualTolerance;
 import io.testfly.internal.TestFlyContext;
-import io.testfly.locator.Locator;
-import io.testfly.locator.Role;
-import io.testfly.network.NetworkMock;
 import io.testfly.shadow.ShadowDom;
 import io.testfly.steps.StepLogger;
+import io.testfly.test.support.AssertionSupport;
+import io.testfly.test.support.BrowserSupport;
+import io.testfly.test.support.LocatorSupport;
+import io.testfly.test.support.SoftAssertSupport;
+import io.testfly.test.support.StepSupport;
+import io.testfly.test.support.VisualSupport;
 import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
@@ -56,7 +49,8 @@ import java.time.Duration;
  * </pre>
  */
 @TestFlyApi(since = "0.8.0")
-public abstract class BasePage {
+public abstract class BasePage implements LocatorSupport, AssertionSupport, StepSupport,
+        SoftAssertSupport, BrowserSupport, VisualSupport {
 
     protected final WebDriver driver;
 
@@ -97,34 +91,28 @@ public abstract class BasePage {
      * Waits for the element to be clickable, then clicks it.
      */
     protected void click(By locator) {
-        StepLogger.step("Click " + locator);
-        WaitEngine.waitForClickable(locator).click();
+        find(locator).click();
     }
 
     /**
      * Waits for the element to be visible, clears it, then types the given text.
      */
     protected void type(By locator, String text) {
-        StepLogger.step("Type into " + locator);
-        WebElement el = WaitEngine.waitForVisible(locator);
-        el.clear();
-        el.sendKeys(text);
+        find(locator).type(text);
     }
 
     /**
      * Waits for the element to be visible and returns its visible text.
      */
     protected String getText(By locator) {
-        StepLogger.step("Get text from " + locator);
-        return WaitEngine.waitForVisible(locator).getText();
+        return find(locator).getText();
     }
 
     /**
      * Waits for the element to be visible and returns the value of the given attribute.
      */
     protected String getAttribute(By locator, String attribute) {
-        StepLogger.step("Get attribute '" + attribute + "' from " + locator);
-        return WaitEngine.waitForVisible(locator).getAttribute(attribute);
+        return find(locator).getAttribute(attribute);
     }
 
     /**
@@ -132,11 +120,7 @@ public abstract class BasePage {
      * Does not throw — returns {@code false} for missing or hidden elements.
      */
     protected boolean isDisplayed(By locator) {
-        try {
-            return driver.findElement(locator).isDisplayed();
-        } catch (Exception e) {
-            return false;
-        }
+        return find(locator).isVisible();
     }
 
     // ----------------------------------------------------------
@@ -149,7 +133,7 @@ public abstract class BasePage {
      * <pre>selectByText(By.id("country"), "United Kingdom");</pre>
      */
     protected void selectByText(By locator, String text) {
-        StepLogger.step("Select by text in " + locator);
+        step("Select by text in " + locator);
         new Select(WaitEngine.waitForVisible(locator)).selectByVisibleText(text);
     }
 
@@ -159,7 +143,7 @@ public abstract class BasePage {
      * <pre>selectByValue(By.id("status"), "active");</pre>
      */
     protected void selectByValue(By locator, String value) {
-        StepLogger.step("Select by value in " + locator);
+        step("Select by value in " + locator);
         new Select(WaitEngine.waitForVisible(locator)).selectByValue(value);
     }
 
@@ -169,7 +153,7 @@ public abstract class BasePage {
      * <pre>selectByIndex(By.id("month"), 2);</pre>
      */
     protected void selectByIndex(By locator, int index) {
-        StepLogger.step("Select by index in " + locator);
+        step("Select by index in " + locator);
         new Select(WaitEngine.waitForVisible(locator)).selectByIndex(index);
     }
 
@@ -177,7 +161,7 @@ public abstract class BasePage {
      * Returns the visible text of the currently selected option in a {@code <select>} element.
      */
     protected String getSelectedOption(By locator) {
-        StepLogger.step("Get selected option from " + locator);
+        step("Get selected option from " + locator);
         return new Select(WaitEngine.waitForVisible(locator)).getFirstSelectedOption().getText();
     }
 
@@ -189,7 +173,7 @@ public abstract class BasePage {
      * Waits for a browser alert to be present, then accepts it (clicks OK).
      */
     protected void acceptAlert() {
-        StepLogger.step("Accept alert");
+        step("Accept alert");
         waitForAlert().accept();
     }
 
@@ -197,7 +181,7 @@ public abstract class BasePage {
      * Waits for a browser alert to be present, then dismisses it (clicks Cancel).
      */
     protected void dismissAlert() {
-        StepLogger.step("Dismiss alert");
+        step("Dismiss alert");
         waitForAlert().dismiss();
     }
 
@@ -205,7 +189,7 @@ public abstract class BasePage {
      * Waits for a browser alert to be present and returns its text.
      */
     protected String getAlertText() {
-        StepLogger.step("Get alert text");
+        step("Get alert text");
         return waitForAlert().getText();
     }
 
@@ -216,7 +200,7 @@ public abstract class BasePage {
      * <pre>String msg = getAndAcceptAlert();</pre>
      */
     protected String getAndAcceptAlert() {
-        StepLogger.step("Get and accept alert");
+        step("Get and accept alert");
         Alert alert = waitForAlert();
         String text = alert.getText();
         alert.accept();
@@ -229,7 +213,7 @@ public abstract class BasePage {
      * <pre>typeInAlert("my input");</pre>
      */
     protected void typeInAlert(String text) {
-        StepLogger.step("Type in alert");
+        step("Type in alert");
         Alert alert = waitForAlert();
         alert.sendKeys(text);
         alert.accept();
@@ -251,16 +235,14 @@ public abstract class BasePage {
      * <pre>hover(By.id("menu-item"));</pre>
      */
     protected void hover(By locator) {
-        StepLogger.step("Hover " + locator);
-        WebElement el = WaitEngine.waitForVisible(locator);
-        new Actions(driver).moveToElement(el).perform();
+        find(locator).hover();
     }
 
     /**
      * Double-clicks the element.
      */
     protected void doubleClick(By locator) {
-        StepLogger.step("Double-click " + locator);
+        step("Double-click " + locator);
         WebElement el = WaitEngine.waitForClickable(locator);
         new Actions(driver).doubleClick(el).perform();
     }
@@ -269,7 +251,7 @@ public abstract class BasePage {
      * Right-clicks (context menu) the element.
      */
     protected void rightClick(By locator) {
-        StepLogger.step("Right-click " + locator);
+        step("Right-click " + locator);
         WebElement el = WaitEngine.waitForVisible(locator);
         new Actions(driver).contextClick(el).perform();
     }
@@ -284,16 +266,14 @@ public abstract class BasePage {
      * <pre>scrollTo(By.id("footer"));</pre>
      */
     protected void scrollTo(By locator) {
-        StepLogger.step("Scroll to " + locator);
-        WebElement el = driver.findElement(locator);
-        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", el);
+        find(locator).scrollIntoView();
     }
 
     /**
      * Scrolls the page to the very top.
      */
     protected void scrollToTop() {
-        StepLogger.step("Scroll to top");
+        step("Scroll to top");
         ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, 0);");
     }
 
@@ -301,7 +281,7 @@ public abstract class BasePage {
      * Scrolls the page to the very bottom.
      */
     protected void scrollToBottom() {
-        StepLogger.step("Scroll to bottom");
+        step("Scroll to bottom");
         ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, document.body.scrollHeight);");
     }
 
@@ -315,9 +295,7 @@ public abstract class BasePage {
      * <pre>jsClick(By.id("hidden-trigger"));</pre>
      */
     protected void jsClick(By locator) {
-        StepLogger.step("JS click " + locator);
-        WebElement el = driver.findElement(locator);
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
+        find(locator).jsClick();
     }
 
     /**
@@ -327,7 +305,7 @@ public abstract class BasePage {
      * <pre>jsType(By.id("date-picker"), "2025-01-01");</pre>
      */
     protected void jsType(By locator, String text) {
-        StepLogger.step("JS type into " + locator);
+        step("JS type into " + locator);
         WebElement el = driver.findElement(locator);
         ((JavascriptExecutor) driver).executeScript("arguments[0].value = arguments[1];", el, text);
     }
@@ -336,19 +314,7 @@ public abstract class BasePage {
     // Soft assertions
     // ----------------------------------------------------------
 
-    /**
-     * Returns the soft assertion collector for this test.
-     * Failures collected here are reported all-at-once at test end
-     * without interrupting test execution.
-     *
-     * <pre>
-     * softAssert().that(getText(TITLE).equals("Dashboard"), "Title mismatch");
-     * softAssert().that(isDisplayed(MENU), "Menu should be visible");
-     * </pre>
-     */
-    protected SoftAssertionCollector softAssert() {
-        return SoftAssertions.get();
-    }
+
 
     // ----------------------------------------------------------
     // SmartLocator helper
@@ -371,7 +337,7 @@ public abstract class BasePage {
      * @return the first matching visible element
      */
     protected WebElement smartFind(By primary, By... fallbacks) {
-        StepLogger.step("Smart find " + primary);
+        step("Smart find " + primary);
         By[] all = new By[1 + fallbacks.length];
         all[0] = primary;
         System.arraycopy(fallbacks, 0, all, 1, fallbacks.length);
@@ -396,7 +362,7 @@ public abstract class BasePage {
      * </pre>
      */
     protected void withinFrame(By frameLocator, Runnable action) {
-        StepLogger.step("Switch to frame " + frameLocator);
+        step("Switch to frame " + frameLocator);
         WebElement frame = WaitEngine.waitForVisible(frameLocator);
         driver.switchTo().frame(frame);
         FRAME_DEPTH.set(FRAME_DEPTH.get() + 1);
@@ -412,7 +378,7 @@ public abstract class BasePage {
      * then restores the previous context. Safe to nest.
      */
     protected void withinFrameIndex(int index, Runnable action) {
-        StepLogger.step("Switch to frame index " + index);
+        step("Switch to frame index " + index);
         driver.switchTo().frame(index);
         FRAME_DEPTH.set(FRAME_DEPTH.get() + 1);
         try {
@@ -427,7 +393,7 @@ public abstract class BasePage {
      * then restores the previous context. Safe to nest.
      */
     protected void withinFrameName(String nameOrId, Runnable action) {
-        StepLogger.step("Switch to frame \"" + nameOrId + "\"");
+        step("Switch to frame \"" + nameOrId + "\"");
         driver.switchTo().frame(nameOrId);
         FRAME_DEPTH.set(FRAME_DEPTH.get() + 1);
         try {
@@ -462,7 +428,7 @@ public abstract class BasePage {
      * @param innerCss    CSS selector scoped to the shadow root (XPath not supported)
      */
     protected WebElement shadowFind(By hostLocator, String innerCss) {
-        StepLogger.step("Shadow find " + hostLocator + " / " + innerCss);
+        step("Shadow find " + hostLocator + " / " + innerCss);
         return ShadowDom.find(hostLocator, innerCss);
     }
 
@@ -472,7 +438,7 @@ public abstract class BasePage {
      * @return unmodifiable list; empty if nothing matches
      */
     protected java.util.List<WebElement> shadowFindAll(By hostLocator, String innerCss) {
-        StepLogger.step("Shadow find all " + hostLocator + " / " + innerCss);
+        step("Shadow find all " + hostLocator + " / " + innerCss);
         return ShadowDom.findAll(hostLocator, innerCss);
     }
 
@@ -482,7 +448,7 @@ public abstract class BasePage {
      * <pre>shadowClick(By.cssSelector("my-form"), "#submit-btn");</pre>
      */
     protected void shadowClick(By hostLocator, String innerCss) {
-        StepLogger.step("Shadow click " + hostLocator + " / " + innerCss);
+        step("Shadow click " + hostLocator + " / " + innerCss);
         ShadowDom.find(hostLocator, innerCss).click();
     }
 
@@ -492,7 +458,7 @@ public abstract class BasePage {
      * <pre>shadowType(By.cssSelector("my-form"), "#email", "user@example.com");</pre>
      */
     protected void shadowType(By hostLocator, String innerCss, String text) {
-        StepLogger.step("Shadow type into " + hostLocator + " / " + innerCss);
+        step("Shadow type into " + hostLocator + " / " + innerCss);
         WebElement el = ShadowDom.find(hostLocator, innerCss);
         el.clear();
         el.sendKeys(text);
@@ -502,7 +468,7 @@ public abstract class BasePage {
      * Returns the visible text of an element inside a shadow root.
      */
     protected String shadowGetText(By hostLocator, String innerCss) {
-        StepLogger.step("Shadow get text " + hostLocator + " / " + innerCss);
+        step("Shadow get text " + hostLocator + " / " + innerCss);
         return ShadowDom.find(hostLocator, innerCss).getText();
     }
 
@@ -511,12 +477,12 @@ public abstract class BasePage {
      * Pass CSS selectors from outermost host down to the target element.
      *
      * <pre>
-     * // &lt;checkout-flow&gt; → shadow → &lt;payment-widget&gt; → shadow → #pay-btn
+     * // <checkout-flow> → shadow → <payment-widget> → shadow → #pay-btn
      * WebElement btn = shadowPierce("checkout-flow", "payment-widget", "#pay-btn");
      * </pre>
      */
     protected WebElement shadowPierce(String... cssSelectors) {
-        StepLogger.step("Shadow pierce " + String.join(" -> ", cssSelectors));
+        step("Shadow pierce " + String.join(" -> ", cssSelectors));
         return ShadowDom.pierce(cssSelectors);
     }
 
@@ -548,7 +514,7 @@ public abstract class BasePage {
      * </pre>
      */
     protected void upload(By inputLocator, String filePath) {
-        StepLogger.step("Upload file to " + inputLocator);
+        step("Upload file to " + inputLocator);
         String absolutePath = resolveFilePath(filePath);
         WebElement input = WaitEngine.waitForVisible(inputLocator);
         input.sendKeys(absolutePath);
@@ -558,226 +524,21 @@ public abstract class BasePage {
     // Phase 14 — Network, Storage, GeoLocation, Clipboard
     // ----------------------------------------------------------
 
-    /** Network interception — stub API responses via CDP. */
-    protected NetworkMock networkMock() {
-        return NetworkMock.get();
-    }
-
-    /** localStorage read/write helpers. */
-    protected StorageHelper.LocalStorage localStorage() {
-        return StorageHelper.localStorage();
-    }
-
-    /** sessionStorage read/write helpers. */
-    protected StorageHelper.SessionStorage sessionStorage() {
-        return StorageHelper.sessionStorage();
-    }
-
-    /** Cookie read/write helpers. */
-    protected StorageHelper.Cookies cookies() {
-        return StorageHelper.cookies();
-    }
-
-    /** Geolocation mock — override browser location via CDP or JS. */
-    protected GeoLocation mockLocation() {
-        return GeoLocation.instance();
-    }
-
-    /** Clipboard read/write helpers. */
-    protected ClipboardHelper clipboard() {
-        return ClipboardHelper.instance();
-    }
+    // networkMock(), localStorage(), sessionStorage(), cookies(), mockLocation(), clipboard() — via BrowserSupport
 
     // ----------------------------------------------------------
-    // Fluent Locator API  ($)
+    // Fluent Locator API (find / $), Accessibility locators (getBy*),
+    // Web-First Assertions (assertThat) — via support interfaces
     // ----------------------------------------------------------
-
-    /**
-     * Creates a chainable {@link Locator} from a CSS selector.
-     *
-     * <pre>
-     * find(".row").filter(".active").nth(0).click();
-     * find("button").withText("Save").click();
-     * </pre>
-     */
-    protected Locator find(String css) {
-        return Locator.ofCss(css);
-    }
-
-    /**
-     * Creates a chainable {@link Locator} from a Selenium {@link By} locator.
-     *
-     * <pre>
-     * find(By.id("submit")).click();
-     * find(By.name("email")).type("user@example.com");
-     * </pre>
-     */
-    protected Locator find(By by) {
-        return Locator.of(by);
-    }
-
-    /**
-     * Creates a chainable {@link Locator} from a CSS selector.
-     *
-     * @deprecated Use {@link #find(String)} instead. Scheduled for removal in 2.0.0.
-     */
-    @Deprecated(since = "1.1.0", forRemoval = true)
-    protected Locator $(String css) {
-        return find(css);
-    }
-
-    /**
-     * Creates a chainable {@link Locator} from a Selenium {@link By} locator.
-     *
-     * @deprecated Use {@link #find(By)} instead. Scheduled for removal in 2.0.0.
-     */
-    @Deprecated(since = "1.1.0", forRemoval = true)
-    protected Locator $(By by) {
-        return find(by);
-    }
-
-    // ----------------------------------------------------------
-    // Accessibility-first locators  (getBy*)
-    // ----------------------------------------------------------
-
-    /**
-     * Locates elements by their ARIA role — the most resilient strategy, since it
-     * targets the accessibility tree the user perceives rather than DOM structure.
-     *
-     * <pre>
-     * getByRole(Role.BUTTON).withName("Submit").click();
-     * getByRole(Role.HEADING).withLevel(1).getText();
-     * </pre>
-     */
-    protected Locator getByRole(Role role) {
-        return Locator.byRole(role);
-    }
-
-    /** Locates an element by its ARIA role and accessible name in one call. */
-    protected Locator getByRole(Role role, String name) {
-        return Locator.byRole(role).withName(name);
-    }
-
-    /** Locates an element by visible text — case-insensitive substring by default. */
-    protected Locator getByText(String text) {
-        return Locator.byText(text);
-    }
-
-    /** Locates a form control by its associated label text. */
-    protected Locator getByLabel(String label) {
-        return Locator.byLabel(label);
-    }
-
-    /** Locates an element by its {@code placeholder} attribute. */
-    protected Locator getByPlaceholder(String placeholder) {
-        return Locator.byPlaceholder(placeholder);
-    }
-
-    /** Locates an element by its test-id attribute (default {@code data-testid}). */
-    protected Locator getByTestId(String testId) {
-        return Locator.byTestId(testId);
-    }
-
-    /** Locates an element (typically {@code <img>}) by its {@code alt} text. */
-    protected Locator getByAltText(String altText) {
-        return Locator.byAltText(altText);
-    }
-
-    /** Locates an element by its {@code title} attribute. */
-    protected Locator getByTitle(String title) {
-        return Locator.byTitle(title);
-    }
-
-    // ----------------------------------------------------------
-    // Web-First Assertions  (assertThat)
-    // ----------------------------------------------------------
-
-    /**
-     * Begins a fluent, auto-retrying assertion on the given locator.
-     *
-     * <pre>
-     * assertThat(By.id("banner")).isVisible();
-     * assertThat(By.id("title")).hasText("Welcome");
-     * assertThat(By.cssSelector(".error")).isHidden();
-     * </pre>
-     */
-    protected LocatorAssert assertThat(By locator) {
-        return SeleniumAssert.assertThat(locator);
-    }
-
-    /**
-     * Begins a fluent, auto-retrying assertion on the given {@link Locator} chain.
-     *
-     * <pre>
-     * assertThat($(".items").nth(0)).hasText("First item");
-     * </pre>
-     */
-    protected LocatorAssert assertThat(Locator locator) {
-        return SeleniumAssert.assertThat(locator);
-    }
+    // find(String/By), $(String/By), getByRole/Text/Label/Placeholder/TestId/AltText/Title
+    // and assertThat(By/Locator) are provided as default methods in
+    // io.testfly.test.support.LocatorSupport and AssertionSupport.
 
     // ----------------------------------------------------------
     // Phase 15 — Visual Regression + Device Emulation
     // ----------------------------------------------------------
 
-    /**
-     * Takes a full-page screenshot and compares it against the stored baseline.
-     * On first run the screenshot is saved as the baseline.
-     *
-     * <pre>assertScreenshot("homepage");</pre>
-     */
-    protected void assertScreenshot(String name) {
-        StepLogger.step("Assert screenshot: " + name);
-        VisualAssert.assertScreenshot(name);
-    }
-
-    /**
-     * Full-page screenshot comparison with a custom pixel-difference tolerance.
-     *
-     * <pre>assertScreenshot("homepage", VisualTolerance.of(2));</pre>
-     */
-    protected void assertScreenshot(String name, VisualTolerance tolerance) {
-        StepLogger.step("Assert screenshot: " + name);
-        VisualAssert.assertScreenshot(name, tolerance);
-    }
-
-    /**
-     * Screenshot comparison scoped to a specific element.
-     *
-     * <pre>assertScreenshot("login-form", By.id("login-form"));</pre>
-     */
-    protected void assertScreenshot(String name, By region) {
-        StepLogger.step("Assert screenshot: " + name + " (" + region + ")");
-        VisualAssert.assertScreenshot(name, region);
-    }
-
-    /**
-     * Element-scoped screenshot comparison with a custom tolerance.
-     *
-     * <pre>assertScreenshot("login-form", By.id("login-form"), VisualTolerance.of(1));</pre>
-     */
-    protected void assertScreenshot(String name, By region, VisualTolerance tolerance) {
-        StepLogger.step("Assert screenshot: " + name + " (" + region + ")");
-        VisualAssert.assertScreenshot(name, region, tolerance);
-    }
-
-    /**
-     * Applies a named device profile (e.g. {@code "iPhone 14"}) to the current browser session.
-     *
-     * <pre>emulateDevice("Pixel 7");</pre>
-     */
-    protected void emulateDevice(String deviceName) {
-        StepLogger.step("Emulate device: " + deviceName);
-        DeviceEmulator.emulate(deviceName);
-    }
-
-    /**
-     * Resets device emulation (restores desktop viewport and default user-agent).
-     */
-    protected void resetDevice() {
-        StepLogger.step("Reset device emulation");
-        DeviceEmulator.reset();
-    }
+    // assertScreenshot() ×4, emulateDevice(), resetDevice() — via VisualSupport
 
     private String resolveFilePath(String filePath) {
         // 1. Absolute path

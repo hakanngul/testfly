@@ -1,25 +1,15 @@
 package io.testfly.junit5;
 
-import io.testfly.accessibility.AccessibilityAssert;
 import io.testfly.api.TestFlyApi;
-import io.testfly.assertion.LocatorAssert;
-import io.testfly.assertion.SeleniumAssert;
-import io.testfly.browser.ConsoleErrorCollector;
-import io.testfly.db.DbClient;
-import io.testfly.driver.DriverManager;
-import io.testfly.email.EmailCriteria;
-import io.testfly.email.MailboxClient;
-import io.testfly.internal.TestFlyContext;
-import io.testfly.locator.Locator;
-import io.testfly.session.MultiSessionManager;
-import io.testfly.steps.StepLogger;
-import io.testfly.steps.StepStatus;
+import io.testfly.test.support.AccessibilitySupport;
+import io.testfly.test.support.AssertionSupport;
+import io.testfly.test.support.DbSupport;
+import io.testfly.test.support.EmailSupport;
+import io.testfly.test.support.LocatorSupport;
+import io.testfly.test.support.NavigationSupport;
+import io.testfly.test.support.SessionSupport;
+import io.testfly.test.support.StepSupport;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.support.ui.WebDriverWait;
-
-import java.time.Duration;
 
 /**
  * Optional base class for JUnit 5 tests — the JUnit 5 equivalent of {@code BaseTest}.
@@ -31,9 +21,9 @@ import java.time.Duration;
  *     {@literal @}Test
  *     void validLogin() {
  *         open();
- *         $("input#username").type("admin");
- *         $("input#password").type("secret");
- *         $("button[type='submit']").click();
+ *         find("input#username").type("admin");
+ *         find("input#password").type("secret");
+ *         find("button[type='submit']").click();
  *         assertThat(By.id("dashboard")).isVisible();
  *     }
  * }
@@ -44,162 +34,19 @@ import java.time.Duration;
  */
 @TestFlyApi(since = "1.9.0")
 @ExtendWith(TestFlyExtension.class)
-public abstract class BaseJUnit5Test {
-
-    /** Returns the WebDriver for the current thread. Valid inside test methods only. */
-    protected WebDriver getDriver() {
-        return DriverManager.getDriver();
-    }
-
-    /** Returns a {@link WebDriverWait} using the explicit timeout from {@code testfly.yml}. */
-    protected WebDriverWait getWait() {
-        int timeout = TestFlyContext.getConfig().getTimeouts().getExplicit();
-        return new WebDriverWait(getDriver(), Duration.ofSeconds(timeout));
-    }
-
-    /** Navigates to {@code execution.baseUrl} from {@code testfly.yml}. */
-    protected void open() {
-        String url = TestFlyContext.getConfig().getExecution().getBaseUrl();
-        getDriver().get(url);
-        if (ConsoleErrorCollector.isEnabled()) ConsoleErrorCollector.injectShim();
-    }
-
-    /** Navigates to {@code baseUrl + path}. */
-    protected void open(String path) {
-        String base = TestFlyContext.getConfig().getExecution().getBaseUrl();
-        String sep  = base.endsWith("/") || path.startsWith("/") ? "" : "/";
-        getDriver().get(base + sep + path);
-        if (ConsoleErrorCollector.isEnabled()) ConsoleErrorCollector.injectShim();
-    }
-
-    /** Fluent chainable locator from a CSS selector. */
-    protected Locator find(String css) {
-        return Locator.ofCss(css);
-    }
-
-    /** Fluent chainable locator from a Selenium {@link By}. */
-    protected Locator find(By by) {
-        return Locator.of(by);
-    }
-
-    /**
-     * Fluent chainable locator from a CSS selector.
-     *
-     * @deprecated Use {@link #find(String)} instead. Scheduled for removal in 2.0.0.
-     */
-    @Deprecated(since = "1.1.0", forRemoval = true)
-    protected Locator $(String css) {
-        return find(css);
-    }
-
-    /**
-     * Fluent chainable locator from a Selenium {@link By}.
-     *
-     * @deprecated Use {@link #find(By)} instead. Scheduled for removal in 2.0.0.
-     */
-    @Deprecated(since = "1.1.0", forRemoval = true)
-    protected Locator $(By by) {
-        return find(by);
-    }
-
-    /** Auto-retrying assertion on a {@link By} locator. */
-    protected LocatorAssert assertThat(By locator) {
-        return SeleniumAssert.assertThat(locator);
-    }
-
-    /** Auto-retrying assertion on a {@link Locator} chain. */
-    protected LocatorAssert assertThat(Locator locator) {
-        return SeleniumAssert.assertThat(locator);
-    }
-
-    /** Logs a named step into the HTML report step timeline. */
-    protected void step(String name) {
-        StepLogger.step(name);
-    }
-
-    /** Logs a named step with a screenshot into the HTML report step timeline. */
-    protected void step(String name, boolean screenshot) {
-        StepLogger.step(name, screenshot);
-    }
-
-    /** Logs a named step with an explicit status. */
-    protected void step(String name, StepStatus status) {
-        StepLogger.step(name, status);
-    }
+public abstract class BaseJUnit5Test implements LocatorSupport, AssertionSupport, SessionSupport, StepSupport,
+        NavigationSupport, DbSupport, EmailSupport, AccessibilitySupport {
 
     // ----------------------------------------------------------
-    // Phase 18 — Multi-Session Testing
+    // Navigation (open / getDriver / getWait) — via NavigationSupport
+    // Fluent Locator API (find / $), Accessibility locators (getBy*),
+    // Web-First Assertions (assertThat) — via support interfaces
+    // Multi-session helpers session()/withSession() — via SessionSupport
+    // Step logging — via StepSupport
     // ----------------------------------------------------------
+    // All locator/assertion/session/step/navigation methods are provided as default methods
+    // in io.testfly.test.support.*. This gives BaseJUnit5Test full parity with
+    // BaseTest (getByRole, getByText, etc.) while keeping the delegation in a single place.
 
-    /**
-     * Returns the named session's {@link WebDriver}, creating it on first access.
-     * All named sessions are closed automatically at test end.
-     */
-    protected WebDriver session(String name) {
-        return MultiSessionManager.getSession(name);
-    }
-
-    /**
-     * Switches the active driver to the named session for the duration of the action,
-     * then restores the previous driver.
-     *
-     * <pre>
-     * withSession("admin", () -&gt; {
-     *     open("/admin");
-     *     $(By.id("approve")).click();
-     * });
-     * </pre>
-     */
-    protected void withSession(String name, MultiSessionManager.SessionAction action) {
-        MultiSessionManager.withSession(name, action);
-    }
-
-    // ----------------------------------------------------------
-    // Phase 18 — Database Assertions
-    // ----------------------------------------------------------
-
-    /** Database assertions against the default {@code database} config block. */
-    protected DbClient db() {
-        return DbClient.forDefault();
-    }
-
-    /** Database assertions against a named datasource under {@code database.datasources}. */
-    protected DbClient db(String datasource) {
-        return DbClient.forNamed(datasource);
-    }
-
-    // ----------------------------------------------------------
-    // Phase 19 — Email Verification
-    // ----------------------------------------------------------
-
-    /** Inbox client configured from {@code email.*} in {@code testfly.yml}. */
-    protected MailboxClient mailbox() {
-        return MailboxClient.create();
-    }
-
-    /** Shorthand for {@link EmailCriteria#to(String)} — use inside {@code mailbox().waitForEmail(...)}. */
-    protected EmailCriteria to(String address) {
-        return EmailCriteria.to(address);
-    }
-
-    // ----------------------------------------------------------
-    // Phase 24 — Accessibility Assertions (axe-core)
-    // ----------------------------------------------------------
-
-    /**
-     * Returns a fluent accessibility assertion builder backed by axe-core.
-     * Call after {@link #open()} so the page is fully loaded before scanning.
-     *
-     * <pre>
-     * open("/checkout");
-     * accessibility()
-     *     .withTags("wcag2a", "wcag21aa")
-     *     .withLevel(Impact.SERIOUS)
-     *     .excluding("#cookie-banner")
-     *     .run();
-     * </pre>
-     */
-    protected AccessibilityAssert accessibility() {
-        return AccessibilityAssert.create();
-    }
+    // db(), mailbox()/to(), accessibility() — via DbSupport, EmailSupport, AccessibilitySupport
 }

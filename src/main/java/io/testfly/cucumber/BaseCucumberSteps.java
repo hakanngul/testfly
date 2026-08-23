@@ -1,18 +1,11 @@
 package io.testfly.cucumber;
 
 import io.testfly.api.TestFlyApi;
-import io.testfly.assertion.LocatorAssert;
-import io.testfly.assertion.SeleniumAssert;
-import io.testfly.browser.ConsoleErrorCollector;
-import io.testfly.driver.DriverManager;
-import io.testfly.internal.TestFlyContext;
-import io.testfly.locator.Locator;
+import io.testfly.test.support.AssertionSupport;
+import io.testfly.test.support.LocatorSupport;
+import io.testfly.test.support.NavigationSupport;
+import io.testfly.test.support.StepSupport;
 import io.cucumber.java.Scenario;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.support.ui.WebDriverWait;
-
-import java.time.Duration;
 
 /**
  * Abstract base class for Cucumber step definition classes.
@@ -36,76 +29,20 @@ import java.time.Duration;
  * }
  * </pre>
  *
- * <p>Thread-safe: all state access goes through {@link DriverManager} and
- * {@link CucumberContext} ThreadLocals.
+ * <p>Thread-safe: all state access goes through {@code DriverManager} and
+ * {@code CucumberContext} ThreadLocals.
  */
 @TestFlyApi(since = "1.9.0")
-public abstract class BaseCucumberSteps {
+public abstract class BaseCucumberSteps implements LocatorSupport, AssertionSupport, StepSupport, NavigationSupport {
 
-    /** Returns the WebDriver for the current thread. */
-    protected WebDriver getDriver() {
-        return DriverManager.getDriver();
-    }
-
-    /** Returns a {@link WebDriverWait} using the explicit timeout from {@code testfly.yml}. */
-    protected WebDriverWait getWait() {
-        int timeout = TestFlyContext.getConfig().getTimeouts().getExplicit();
-        return new WebDriverWait(getDriver(), Duration.ofSeconds(timeout));
-    }
-
-    /** Navigates to {@code execution.baseUrl} from {@code testfly.yml}. */
-    protected void open() {
-        getDriver().get(baseUrl());
-        if (ConsoleErrorCollector.isEnabled()) ConsoleErrorCollector.injectShim();
-    }
-
-    /** Navigates to {@code baseUrl + path}. */
-    protected void open(String path) {
-        String base = baseUrl();
-        String normalized = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
-        getDriver().get(normalized + path);
-        if (ConsoleErrorCollector.isEnabled()) ConsoleErrorCollector.injectShim();
-    }
-
-    /** Fluent chainable locator from a CSS selector. */
-    protected Locator find(String css) {
-        return Locator.ofCss(css);
-    }
-
-    /** Fluent chainable locator from a Selenium {@link By}. */
-    protected Locator find(By by) {
-        return Locator.of(by);
-    }
-
-    /**
-     * Fluent chainable locator from a CSS selector.
-     *
-     * @deprecated Use {@link #find(String)} instead. Scheduled for removal in 2.0.0.
-     */
-    @Deprecated(since = "1.1.0", forRemoval = true)
-    protected Locator $(String css) {
-        return find(css);
-    }
-
-    /**
-     * Fluent chainable locator from a Selenium {@link By}.
-     *
-     * @deprecated Use {@link #find(By)} instead. Scheduled for removal in 2.0.0.
-     */
-    @Deprecated(since = "1.1.0", forRemoval = true)
-    protected Locator $(By by) {
-        return find(by);
-    }
-
-    /** Auto-retrying assertion on a {@link By} locator. */
-    protected LocatorAssert assertThat(By locator) {
-        return SeleniumAssert.assertThat(locator);
-    }
-
-    /** Auto-retrying assertion on a {@link Locator} chain. */
-    protected LocatorAssert assertThat(Locator locator) {
-        return SeleniumAssert.assertThat(locator);
-    }
+    // ----------------------------------------------------------
+    // Navigation (open / getDriver / getWait) — via NavigationSupport
+    // Fluent Locator API (find / $), Accessibility locators (getBy*),
+    // Web-First Assertions (assertThat) — via support interfaces
+    // ----------------------------------------------------------
+    // find(String/By), $(String/By), getByRole/Text/Label/Placeholder/TestId/AltText/Title
+    // assertThat(By/Locator), step(), open(), open(String), getDriver(), getWait()
+    // are provided as default methods in io.testfly.test.support.*.
 
     /**
      * Returns the current Cucumber {@link Scenario} — useful for attaching
@@ -119,14 +56,5 @@ public abstract class BaseCucumberSteps {
                 "Ensure 'io.testfly.cucumber' is in the @CucumberOptions glue.");
         }
         return scenario;
-    }
-
-    private String baseUrl() {
-        String url = TestFlyContext.getConfig().getExecution().getBaseUrl();
-        if (url == null || url.isEmpty()) {
-            throw new IllegalStateException(
-                "[BaseCucumberSteps] execution.baseUrl is not set in testfly.yml");
-        }
-        return url;
     }
 }

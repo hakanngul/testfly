@@ -1,6 +1,5 @@
 package io.testfly.integration.ai;
 
-import io.github.cdimascio.dotenv.Dotenv;
 import io.testfly.ai.AiFailureAnalyzer;
 import io.testfly.config.ConfigurationLoader;
 import io.testfly.config.TestFlyConfig;
