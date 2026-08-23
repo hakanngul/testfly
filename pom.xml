@@ -244,6 +244,14 @@
             <version>1.18.12</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Source: https://mvnrepository.com/artifact/io.github.cdimascio/dotenv-java -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.2.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -270,11 +278,14 @@
                 </dependencies>
                 <configuration>
                     <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+
+                    <!-- Paralellik için ekle -->
+                    <parallel>methods</parallel>
+                    <threadCount>4</threadCount>
+                    <perCoreThreadCount>true</perCoreThreadCount>
+
                     <excludes>
-                        <!-- Example tests need real browsers/APIs; run explicitly via -Pexamples or
-                        IDE. -->
                         <exclude>**/examples/**/*.java</exclude>
-                        <!-- Integration tests are owned by maven-failsafe-plugin. -->
                         <exclude>**/integration/**/*.java</exclude>
                         <exclude>**/*IntegrationTest.java</exclude>
                     </excludes>
@@ -376,7 +387,7 @@
             Runs tests that need real external backends (DeepSeek, ReportPortal,
             live APIs, real browsers). Activate with:
                 mvn verify -Preal-backends
-            Requires DEEPSEEK_API_KEY and optionally REPORTPORTAL_API_KEY env vars.
+            Requires AI_API_KEY and optionally REPORTPORTAL_API_KEY env vars.
         -->
         <profile>
             <id>real-backends</id>

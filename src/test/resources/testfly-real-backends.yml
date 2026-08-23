@@ -50,7 +50,7 @@ ai:
   failureAnalysis: true
   provider: openai-compatible
   baseUrl: https://api.deepseek.com
-  apiKey: ${DEEPSEEK_API_KEY}
+  apiKey: ${AI_API_KEY}
   model: deepseek-v4-flash
   language: tr
   timeoutSeconds: 20

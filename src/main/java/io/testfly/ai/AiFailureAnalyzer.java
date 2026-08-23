@@ -1,5 +1,6 @@
 package io.testfly.ai;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import io.testfly.api.TestFlyApi;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
@@ -12,11 +13,15 @@ import java.util.logging.Logger;
 /**
  * Calls an LLM to generate a plain-English failure analysis for a failed test.
  *
- * <p>Activated when {@code ai.failureAnalysis: true} and {@code ai.apiKey} are set in
- * {@code testfly.yml}. The analysis is stored in the test metrics and surfaced in the
+ * <p>
+ * Activated when {@code ai.failureAnalysis: true} and {@code ai.apiKey} are set
+ * in
+ * {@code testfly.yml}. The analysis is stored in the test metrics and surfaced
+ * in the
  * HTML report below the stack trace.
  *
  * <h3>Supported providers</h3>
+ * 
  * <pre>
  * # Claude (default)
  * ai:
@@ -30,7 +35,7 @@ import java.util.logging.Logger;
  *   failureAnalysis: true
  *   provider: openai-compatible
  *   baseUrl: https://api.deepseek.com
- *   apiKey: ${DEEPSEEK_API_KEY}
+ *   apiKey: ${AI_API_KEY}
  *   model: deepseek-chat
  *
  * # Google Gemini Flash
@@ -50,16 +55,22 @@ import java.util.logging.Logger;
  *   model: llama3.2
  * </pre>
  *
- * <p>The API call is bounded by {@code ai.timeoutSeconds} (default 20s).
- * Any failure (network error, API error, timeout) is silently suppressed — the test suite
+ * <p>
+ * The API call is bounded by {@code ai.timeoutSeconds} (default 20s).
+ * Any failure (network error, API error, timeout) is silently suppressed — the
+ * test suite
  * result is never affected by the AI analysis step.
  */
 @TestFlyApi(since = "1.8.0")
 public final class AiFailureAnalyzer {
 
     private static final Logger LOG = Logger.getLogger(AiFailureAnalyzer.class.getName());
-
-    private AiFailureAnalyzer() {}
+    Dotenv dotenv;
+    private AiFailureAnalyzer() {
+        dotenv = Dotenv.configure()
+        .ignoreIfMissing()
+        .load();
+    }
 
     // ------------------------------------------------------------------
     // Public API — called by TestExecutionListener, TestFlyExtension, CucumberHooks
@@ -76,7 +87,8 @@ public final class AiFailureAnalyzer {
     public static void analyze(String testId, String pageUrl, String pageTitle) {
         try {
             TestFlyConfig.Ai aiCfg = config();
-            if (aiCfg == null || !aiCfg.isFailureAnalysis()) return;
+            if (aiCfg == null || !aiCfg.isFailureAnalysis())
+                return;
 
             String apiKey = resolveApiKey(aiCfg.getApiKey());
             if (apiKey == null || apiKey.isEmpty()) {
@@ -92,7 +104,8 @@ public final class AiFailureAnalyzer {
             }
 
             TestTiming timing = ExecutionMetrics.getTiming(testId);
-            if (timing == null) return;
+            if (timing == null)
+                return;
 
             String prompt = buildPrompt(timing, pageUrl, pageTitle);
             String analysis = provider.call(apiKey, aiCfg.getModel(), prompt, aiCfg.getTimeoutSeconds());
@@ -120,19 +133,22 @@ public final class AiFailureAnalyzer {
         sb.append("- Class:    ").append(nvl(timing.getTestClassName(), "unknown")).append("\n");
         sb.append("- Browser:  ").append(nvl(timing.getBrowser(), "unknown")).append("\n");
         sb.append("- Duration: ").append(timing.getTotalTime()).append("ms\n");
-        if (pageUrl   != null) sb.append("- URL:      ").append(pageUrl).append("\n");
-        if (pageTitle != null) sb.append("- Title:    ").append(pageTitle).append("\n");
+        if (pageUrl != null)
+            sb.append("- URL:      ").append(pageUrl).append("\n");
+        if (pageTitle != null)
+            sb.append("- Title:    ").append(pageTitle).append("\n");
 
         if (timing.getErrorMessage() != null) {
             sb.append("\n## Error Message\n```\n")
-              .append(timing.getErrorMessage()).append("\n```\n");
+                    .append(timing.getErrorMessage()).append("\n```\n");
         }
 
         if (timing.getStackTrace() != null) {
             String[] lines = timing.getStackTrace().split("\n");
             int limit = Math.min(lines.length, 30);
             sb.append("\n## Stack Trace (first ").append(limit).append(" lines)\n```\n");
-            for (int i = 0; i < limit; i++) sb.append(lines[i]).append("\n");
+            for (int i = 0; i < limit; i++)
+                sb.append(lines[i]).append("\n");
             sb.append("```\n");
         }
 
@@ -141,7 +157,7 @@ public final class AiFailureAnalyzer {
             sb.append("\n## Steps Executed\n");
             for (StepRecord s : steps) {
                 sb.append("- [+").append(s.getOffsetMs()).append("ms] ")
-                  .append(s.getStatus()).append(": ").append(s.getName()).append("\n");
+                        .append(s.getStatus()).append(": ").append(s.getName()).append("\n");
             }
         }
 
@@ -155,7 +171,7 @@ public final class AiFailureAnalyzer {
         String lang = config() != null ? config().getLanguage() : "en";
         if (lang != null && !lang.isBlank() && !"en".equalsIgnoreCase(lang)) {
             sb.append("\n\n**IMPORTANT:** Write your entire response in ")
-              .append(resolveLanguageName(lang)).append(".");
+                    .append(resolveLanguageName(lang)).append(".");
         }
 
         return sb.toString();
@@ -186,16 +202,42 @@ public final class AiFailureAnalyzer {
     // ------------------------------------------------------------------
 
     private static TestFlyConfig.Ai config() {
-        try { return TestFlyContext.getConfig().getAi(); } catch (Exception e) { return null; }
+        try {
+            return TestFlyContext.getConfig().getAi();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static String resolveApiKey(String raw) {
-        if (raw == null) return null;
+        if (raw == null)
+            return null;
+
         if (raw.startsWith("${") && raw.endsWith("}")) {
             String var = raw.substring(2, raw.length() - 1);
-            String val = System.getenv(var);
-            return val != null ? val : System.getProperty(var);
+
+            Dotenv dotenv = Dotenv.configure()
+                    .ignoreIfMissing()
+                    .load();
+
+            String val = dotenv.get(var);
+            if (val != null && !val.isBlank()) {
+                return val;
+            }
+
+            val = System.getenv(var);
+            if (val != null && !val.isBlank()) {
+                return val;
+            }
+
+            val = System.getProperty(var);
+            if (val != null && !val.isBlank()) {
+                return val;
+            }
+
+            return null;
         }
+
         return raw;
     }
 

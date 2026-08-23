@@ -1,11 +1,14 @@
 package io.testfly.integration.ai;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import io.testfly.ai.AiFailureAnalyzer;
 import io.testfly.config.ConfigurationLoader;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.metrics.TestTiming;
+import io.testfly.test.BaseTest;
+
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -15,11 +18,15 @@ import static org.testng.Assert.*;
  * Integration test that calls the real DeepSeek API (deepseek-v4-flash)
  * through {@link AiFailureAnalyzer} and verifies the analysis is recorded.
  *
- * <p>Requires a valid API key exported as {@code DEEPSEEK_API_KEY}.
+ * <p>
+ * Requires a valid API key exported as {@code AI_API_KEY}.
  * Run with the real-backends profile:
- * <pre>mvn verify -Preal-backends -Dit.test=AiFailureAnalyzerIntegrationTest</pre>
+ * 
+ * <pre>
+ * mvn verify -Preal-backends -Dit.test=AiFailureAnalyzerIntegrationTest
+ * </pre>
  */
-public class AiFailureAnalyzerIntegrationTest {
+public class AiFailureAnalyzerIntegrationTest extends BaseTest {
 
     private static final String TEST_ID = "ai-integration-test#simulatedFailure[L1]";
 
@@ -51,8 +58,6 @@ public class AiFailureAnalyzerIntegrationTest {
         assertNotNull(analysis, "AI analysis should not be null — API call may have failed");
         assertFalse(analysis.isBlank(), "AI analysis should not be empty");
 
-        // The analysis should contain a root cause section. The AI response follows the
-        // configured framework language (e.g. English "Root Cause" or Turkish "Kök Neden").
         String normalized = analysis.toLowerCase(java.util.Locale.ROOT);
         assertTrue(normalized.contains("root cause") || normalized.contains("kök neden"),
                 "Analysis should contain a root cause section. Got: " + analysis);
