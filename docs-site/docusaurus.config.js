@@ -23,7 +23,7 @@ module.exports = function createConfig() {
     // GitHub Pages URL
     url: 'https://hakanngul.github.io',
     // 👇 DÜZELTİLDİ: Repo adı küçük harf "testfly" ile eşleşmeli
-    baseUrl: '/',
+    baseUrl: '/testfly/',
 
     // GitHub bilgileri
     organizationName: 'hakanngul',
