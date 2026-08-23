@@ -32,7 +32,7 @@
     <scm>
         <connection>scm:git:git://github.com/testfly/testfly.git</connection>
         <developerConnection>scm:git:ssh://github.com/testfly/testfly.git</developerConnection>
-        <url>https://github.com/testfly/testfly/tree/master</url>
+        <url>https://github.com/hakanngul/testfly/tree/master</url>
     </scm>
 
     <properties>

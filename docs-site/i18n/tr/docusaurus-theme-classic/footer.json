@@ -29,15 +29,15 @@
   },
   "link.item.label.GitHub Issues": {
     "message": "GitHub Issues",
-    "description": "The label of footer link with label=GitHub Issues linking to https://github.com/testfly/testfly/issues"
+    "description": "The label of footer link with label=GitHub Issues linking to https://github.com/hakanngul/testfly/issues"
   },
   "link.item.label.GitHub Discussions": {
     "message": "GitHub Tartışmalar",
-    "description": "The label of footer link with label=GitHub Discussions linking to https://github.com/testfly/testfly/discussions"
+    "description": "The label of footer link with label=GitHub Discussions linking to https://github.com/hakanngul/testfly/discussions"
   },
   "link.item.label.GitHub": {
     "message": "GitHub",
-    "description": "The label of footer link with label=GitHub linking to https://github.com/testfly/testfly"
+    "description": "The label of footer link with label=GitHub linking to https://github.com/hakanngul/testfly"
   },
   "link.item.label.Maven Central": {
     "message": "Maven Central",

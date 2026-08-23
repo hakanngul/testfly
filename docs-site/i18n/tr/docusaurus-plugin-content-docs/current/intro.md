@@ -11,7 +11,7 @@ slug: /
 **Fikir sahibi, Spring Boot'tan esinlenilmiş bir Java test otomasyon çerçevesi.**
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.testfly/testfly)](https://central.sonatype.com/artifact/io.github.hakanngul/testfly)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/testfly/testfly/blob/master/LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/hakanngul/testfly/blob/master/LICENSE)
 
 ---
 
@@ -86,7 +86,7 @@ pip install testfly-mcp
 
 84 araç · self-healing locator'lar · mobil emülasyon · Java / Python / C# / Playwright codegen
 
-[PyPI](https://pypi.org/project/testfly-mcp/) · [GitHub](https://github.com/testfly/testfly-mcp)
+[PyPI](https://pypi.org/project/testfly-mcp/) · [GitHub](https://github.com/hakanngul/testfly-mcp)
 :::
 
 ---

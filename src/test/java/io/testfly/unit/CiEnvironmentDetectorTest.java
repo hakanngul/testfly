@@ -1,13 +1,17 @@
 package io.testfly.unit;
 
-import io.testfly.ci.CiEnvironmentDetector;
-import io.testfly.ci.CiMetadata;
-import org.testng.annotations.Test;
-
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertTrue;
+import org.testng.annotations.Test;
+
+import io.testfly.ci.CiEnvironmentDetector;
+import io.testfly.ci.CiMetadata;
 
 /**
  * Unit tests for {@link CiEnvironmentDetector}.
@@ -212,7 +216,7 @@ public class CiEnvironmentDetectorTest {
         env.put("CIRCLE_BUILD_URL", "https://circleci.com/gh/testfly/testfly/88");
         env.put("CIRCLE_JOB", "build");
         env.put("CIRCLE_PR_NUMBER", "7");
-        env.put("CIRCLE_REPOSITORY_URL", "https://github.com/testfly/testfly");
+        env.put("CIRCLE_REPOSITORY_URL", "https://github.com/hakanngul/testfly");
         env.put("CIRCLE_USERNAME", "hagul");
 
         CiMetadata meta = CiEnvironmentDetector.captureMetadata(env);
@@ -224,7 +228,7 @@ public class CiEnvironmentDetectorTest {
         assertEquals(meta.getBuildUrl(), "https://circleci.com/gh/testfly/testfly/88");
         assertEquals(meta.getJobName(), "build");
         assertEquals(meta.getPullRequest(), "7");
-        assertEquals(meta.getRepository(), "https://github.com/testfly/testfly");
+        assertEquals(meta.getRepository(), "https://github.com/hakanngul/testfly");
         assertEquals(meta.getActor(), "hagul");
     }
 

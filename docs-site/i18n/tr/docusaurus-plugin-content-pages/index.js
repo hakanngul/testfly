@@ -284,7 +284,7 @@ export default function Home() {
                   <Link className={styles.buttonPrimary} to="/docs/getting-started">
                     Başlayın
                   </Link>
-                  <Link className={styles.buttonSecondary} to="https://github.com/testfly/testfly">
+                  <Link className={styles.buttonSecondary} to="https://github.com/hakanngul/testfly">
                     GitHub'da Görüntüle
                   </Link>
                 </div>
@@ -525,7 +525,7 @@ clock:
                 <Link className={styles.buttonPrimary} to="/docs/getting-started">
                   Başlayın
                 </Link>
-                <Link className={styles.buttonSecondary} to="https://github.com/testfly/testfly">
+                <Link className={styles.buttonSecondary} to="https://github.com/hakanngul/testfly">
                   GitHub'da Görüntüle
                 </Link>
               </div>

@@ -6,7 +6,7 @@ The roadmap is intentionally opinionated and incremental. Each phase focuses on 
 
 > **Contributors, start here.** Phases 0–5 below are complete (the framework is past v1.0). The list
 > immediately below is where active work and **open contribution opportunities** live today. The
-> [issue tracker](https://github.com/testfly/testfly/issues) is the source of truth for what's
+> [issue tracker](https://github.com/hakanngul/testfly/issues) is the source of truth for what's
 > actionable right now — this document is the higher-level picture.
 
 ---
@@ -32,7 +32,7 @@ Most users find a framework by searching, not by browsing GitHub.
 - ✅ More built-in `WaitEngine` conditions requested by users.
 - ✅ Additional first-class browser providers (Edge, Safari) via the existing SPI.
 - ✅ CI metadata capture — provider, build, branch, commit, and build URL auto-detected from major CI/CD platforms and surfaced in HTML/JUnit reports and metrics JSON.
-- **testfly-mcp** — keep MCP codegen output framework-native and accessibility-first as the API evolves. (See the [MCP repo](https://github.com/testfly/testfly-mcp).)
+- **testfly-mcp** — keep MCP codegen output framework-native and accessibility-first as the API evolves. (See the [MCP repo](https://github.com/hakanngul/testfly-mcp).)
 
 ### Ongoing quality
 
@@ -41,7 +41,7 @@ Most users find a framework by searching, not by browsing GitHub.
 - Keep the consumer sample project (`testfly-test`) in step with new features.
 
 > Don't see what you want to work on? Open a
-> [Discussion](https://github.com/testfly/testfly/discussions) — ideas that fit the
+> [Discussion](https://github.com/hakanngul/testfly/discussions) — ideas that fit the
 > philosophy are welcome, and we'll turn agreed ones into issues.
 
 ---
@@ -144,7 +144,7 @@ Most users find a framework by searching, not by browsing GitHub.
 
 ### Features
 - ✅ Official documentation website — live at https://testfly.github.io/testfly/
-- ~~Sample reference projects~~ — replaced by the consumer test project at https://github.com/testfly/testfly-test
+- ~~Sample reference projects~~ — replaced by the consumer test project at https://github.com/hakanngul/testfly-test
 - ✅ Community contribution guidelines — see CONTRIBUTING.md
 - ✅ Versioned plugin ecosystem — `FrameworkVersion`, `minFrameworkVersion()`, `IncompatiblePluginException`
 - ✅ Backward compatibility guarantees — `@TestFlyApi` annotation, policy in CONTRIBUTING.md

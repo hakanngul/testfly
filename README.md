@@ -5,9 +5,9 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.testfly/testfly)](https://central.sonatype.com/artifact/io.github.hakanngul/testfly)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Good first issues](https://img.shields.io/github/issues/testfly/testfly/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/testfly/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+[![Good first issues](https://img.shields.io/github/issues/testfly/testfly/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
-**[Documentation](https://testfly.github.io/testfly) · [Sample Project](https://github.com/testfly/testfly-test) · [Changelog](#project-status)**
+**[Documentation](https://testfly.github.io/testfly) · [Sample Project](https://github.com/hakanngul/testfly-test) · [Changelog](#project-status)**
 
 ---
 
@@ -100,7 +100,7 @@ Next: [the full Getting Started walkthrough](#getting-started) adds page objects
 > ```
 > pip install testfly-mcp
 > ```
-> [PyPI](https://pypi.org/project/testfly-mcp/) · [GitHub](https://github.com/testfly/testfly-mcp) · 84 tools · self-healing locators · codegen for Java / Python / C# / Playwright
+> [PyPI](https://pypi.org/project/testfly-mcp/) · [GitHub](https://github.com/hakanngul/testfly-mcp) · 84 tools · self-healing locators · codegen for Java / Python / C# / Playwright
 
 ---
 
@@ -761,7 +761,7 @@ See the full version history in **[CHANGELOG.md](CHANGELOG.md)**.
 ## Sample Project
 
 A working demo project covering all framework features is available at:
-**[github.com/testfly/testfly-test](https://github.com/testfly/testfly-test)**
+**[github.com/testfly/testfly-test](https://github.com/hakanngul/testfly-test)**
 
 ---
 
@@ -783,12 +783,12 @@ Contributions are warmly welcome — TestFly is opinionated, and contributions t
 
 **New here?** The best place to start:
 
-- 🙌 [**Good first issues**](https://github.com/testfly/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — scoped, self-contained tasks
-- 🤝 [**Help wanted**](https://github.com/testfly/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) — larger pieces we'd love a hand with
+- 🙌 [**Good first issues**](https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — scoped, self-contained tasks
+- 🤝 [**Help wanted**](https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) — larger pieces we'd love a hand with
 - 🗺️ [**Roadmap**](ROADMAP.md) — where the project is heading and where help fits
-- 💬 [**Discussions**](https://github.com/testfly/testfly/discussions) — questions and feature ideas
+- 💬 [**Discussions**](https://github.com/hakanngul/testfly/discussions) — questions and feature ideas
 
-Then read [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, the PR checklist, and the backward-compatibility policy. Bug reports and feature requests both have [issue templates](https://github.com/testfly/testfly/issues/new/choose) to guide you.
+Then read [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, the PR checklist, and the backward-compatibility policy. Bug reports and feature requests both have [issue templates](https://github.com/hakanngul/testfly/issues/new/choose) to guide you.
 
 ---
 

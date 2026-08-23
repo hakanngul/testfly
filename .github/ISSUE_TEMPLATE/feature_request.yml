@@ -8,7 +8,7 @@ body:
       value: |
         TestFly is deliberately opinionated — **simplicity is its main feature.** Features that
         add significant complexity without clear user value may be declined. For open-ended ideas,
-        please start a [Discussion](https://github.com/testfly/testfly/discussions) first.
+        please start a [Discussion](https://github.com/hakanngul/testfly/discussions) first.
   - type: textarea
     id: problem
     attributes:

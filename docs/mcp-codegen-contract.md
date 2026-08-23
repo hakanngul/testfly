@@ -1,7 +1,7 @@
 # MCP Codegen Contract
 
 This document is the **contract between the TestFly framework and the
-[TestFly MCP server](https://github.com/testfly/testfly-mcp)**.
+[TestFly MCP server](https://github.com/hakanngul/testfly-mcp)**.
 
 The MCP server generates framework-native Java from a recorded browser session
 (`framework="testfly"`). To do that it hard-codes a mirror of parts of this
