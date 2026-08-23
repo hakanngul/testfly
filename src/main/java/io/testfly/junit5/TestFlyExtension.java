@@ -81,13 +81,17 @@ public class TestFlyExtension
                    BeforeEachCallback, AfterEachCallback,
                    ParameterResolver, InvocationInterceptor {
 
-    private final ReportPortalJUnit5Bridge rpBridge = new ReportPortalJUnit5Bridge();
+    private ReportPortalJUnit5Bridge rpBridge;
 
     @Override
     public void beforeAll(ExtensionContext context) {
         FrameworkBootstrap.initialize();
         PreConditionRegistry.loadAll();
         TestManagementReporter.getInstance().onSuiteStart();
+
+        // Create RP bridge AFTER FrameworkBootstrap.initialize() so that
+        // rp.* system properties are set before the RP agent is constructed.
+        rpBridge = new ReportPortalJUnit5Bridge();
 
         // Delegate to ReportPortal extension — it reads rp.* system properties
         // (set by FrameworkBootstrap) and creates the launch.
@@ -131,7 +135,7 @@ public class TestFlyExtension
         HookRegistry.onTestStart(testId);
 
         // ReportPortal: start test item
-        if (rpBridge.isAvailable()) {
+        if (isRpAvailable()) {
             rpBridge.beforeEach(context);
         }
     }
@@ -169,7 +173,7 @@ public class TestFlyExtension
                         cause.getMessage());
 
                 // ReportPortal: report test failure
-                if (rpBridge.isAvailable()) {
+                if (isRpAvailable()) {
                     rpBridge.testFailed(context, cause);
                 }
 
@@ -202,13 +206,13 @@ public class TestFlyExtension
                         context.getRequiredTestMethod(), "PASSED", null);
 
                 // ReportPortal: report test success
-                if (rpBridge.isAvailable()) {
+                if (isRpAvailable()) {
                     rpBridge.testSuccessful(context);
                 }
             }
 
             // ReportPortal: finish test item
-            if (rpBridge.isAvailable()) {
+            if (isRpAvailable()) {
                 rpBridge.afterTestExecution(context);
             }
         } finally {
@@ -228,7 +232,7 @@ public class TestFlyExtension
     @Override
     public void afterAll(ExtensionContext context) {
         // ReportPortal: finish the launch
-        if (rpBridge.isAvailable()) {
+        if (isRpAvailable()) {
             rpBridge.afterAll(context);
         }
 
@@ -327,6 +331,10 @@ public class TestFlyExtension
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
+
+    private boolean isRpAvailable() {
+        return rpBridge != null && rpBridge.isAvailable();
+    }
 
     static String testId(ExtensionContext context) {
         return context.getRequiredTestClass().getName()
