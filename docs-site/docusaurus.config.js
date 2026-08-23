@@ -20,27 +20,28 @@ module.exports = function createConfig() {
     tagline: siteTagline,
     favicon: 'img/favicon.svg',
 
-    // 👇 DEĞİŞTİRİLDİ: Kişisel GitHub Pages URL'i
+    // GitHub Pages URL
     url: 'https://hakanngul.github.io',
-    // 👇 DEĞİŞTİRİLDİ: Repo adı büyük T ile "TestFly"
-    baseUrl: '/TestFly/',
+    // 👇 DÜZELTİLDİ: Repo adı küçük harf "testfly" ile eşleşmeli
+    baseUrl: '/testfly/',
 
-    // 👇 DEĞİŞTİRİLDİ: Kullanıcı adı ve repo adı
+    // GitHub bilgileri
     organizationName: 'hakanngul',
-    projectName: 'TestFly',
-    deploymentBranch: 'gh-pages',
+    projectName: 'testfly',
+    // 👇 KALDIRILDI: GitHub Actions kullanıyorsun, bu sadece CLI deploy içindir
+    // deploymentBranch: 'gh-pages',
     trailingSlash: false,
 
     onBrokenLinks: 'throw',
     onBrokenMarkdownLinks: 'warn',
 
-    // 👇 GÜNCELLENDİ: Path namespace'i yeni baseUrl ile uyumlu
+    // Goatcounter path'i baseUrl ile uyumlu
     headTags: [
       {
         tagName: 'script',
         attributes: { type: 'text/javascript' },
         innerHTML:
-          "window.goatcounter={path:function(p){return '/TestFly/docs-site'+p;}};",
+          "window.goatcounter={path:function(p){return '/testfly/docs-site'+p;}};",
       },
       {
         tagName: 'script',
@@ -77,8 +78,7 @@ module.exports = function createConfig() {
         ({
           docs: {
             sidebarPath: require.resolve('./sidebars.js'),
-            // 👇 DEĞİŞTİRİLDİ: Doğru repo edit linki
-            editUrl: 'https://github.com/hakanngul/TestFly/edit/main/docs-site/',
+            editUrl: 'https://github.com/hakanngul/testfly/edit/main/docs-site/',
           },
           blog: false,
           theme: {
@@ -136,9 +136,8 @@ module.exports = function createConfig() {
               label: 'Maven Central',
               position: 'right',
             },
-            // 👇 İsteğe bağlı: Kendi reponuza yönlendirebilirsiniz
             {
-              href: 'https://github.com/hakanngul/TestFly',
+              href: 'https://github.com/hakanngul/testfly',
               label: 'GitHub',
               position: 'right',
             },
@@ -159,14 +158,14 @@ module.exports = function createConfig() {
             {
               title: 'Community',
               items: [
-                { label: 'GitHub Issues', href: 'https://github.com/hakanngul/TestFly/issues' },
-                { label: 'GitHub Discussions', href: 'https://github.com/hakanngul/TestFly/discussions' },
+                { label: 'GitHub Issues', href: 'https://github.com/hakanngul/testfly/issues' },
+                { label: 'GitHub Discussions', href: 'https://github.com/hakanngul/testfly/discussions' },
               ],
             },
             {
               title: 'More',
               items: [
-                { label: 'GitHub', href: 'https://github.com/hakanngul/TestFly' },
+                { label: 'GitHub', href: 'https://github.com/hakanngul/testfly' },
                 { label: 'Maven Central', href: 'https://central.sonatype.com/artifact/io.testfly/testfly' },
                 { label: 'Changelog', to: '/docs/changelog' },
               ],
