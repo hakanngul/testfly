@@ -132,7 +132,7 @@ module.exports = function createConfig() {
               position: 'right',
             },
             {
-              href: 'https://central.sonatype.com/artifact/io.testfly/testfly',
+              href: 'https://central.sonatype.com/artifact/io.github.hakanngul/testfly',
               label: 'Maven Central',
               position: 'right',
             },
@@ -166,7 +166,7 @@ module.exports = function createConfig() {
               title: 'More',
               items: [
                 { label: 'GitHub', href: 'https://github.com/hakanngul/testfly' },
-                { label: 'Maven Central', href: 'https://central.sonatype.com/artifact/io.testfly/testfly' },
+                { label: 'Maven Central', href: 'https://central.sonatype.com/artifact/io.github.hakanngul/testfly' },
                 { label: 'Changelog', to: '/docs/changelog' },
               ],
             },

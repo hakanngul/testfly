@@ -1,9 +1,10 @@
 package io.testfly.unit;
 
-import io.testfly.browser.DeviceProfile;
-import io.testfly.browser.DeviceProfiles;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import io.testfly.browser.DeviceProfile;
+import io.testfly.browser.DeviceProfiles;
 
 /**
  * Unit tests for {@link DeviceProfiles} registry.

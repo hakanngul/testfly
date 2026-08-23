@@ -2,7 +2,7 @@
 
 **Java Test Automation SDK — web, API, mobile, and AI/MCP-powered test automation without hiding Selenium**
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.testfly/testfly)](https://central.sonatype.com/artifact/io.testfly/testfly)
+[![Maven Central](https://img.shields.io/maven-central/v/io.testfly/testfly)](https://central.sonatype.com/artifact/io.github.hakanngul/testfly)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Good first issues](https://img.shields.io/github/issues/testfly/testfly/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/testfly/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
