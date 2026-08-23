@@ -1,4 +1,3 @@
-```yaml
 name: TestFly CI
 
 on:
@@ -6,10 +5,12 @@ on:
     branches:
       - main
       - master
+
   pull_request:
     branches:
       - main
       - master
+
   workflow_dispatch:
 
 permissions:
@@ -29,8 +30,8 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
+          distribution: temurin
+          cache: maven
 
       - name: Run unit tests
         run: mvn test --no-transfer-progress
@@ -67,8 +68,8 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
+          distribution: temurin
+          cache: maven
 
       - name: Run real backend tests
         env:
@@ -116,15 +117,14 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
+          distribution: temurin
+          cache: maven
 
       - name: Install framework
         run: mvn install -DskipTests -Dgpg.skip=true --no-transfer-progress
 
       - name: Get framework version
         id: version
-        shell: bash
         run: |
           VERSION=$(mvn help:evaluate \
             -Dexpression=project.version \
@@ -141,13 +141,15 @@ jobs:
           path: testfly-test
 
       - name: Update consumer project version
-        shell: bash
+        working-directory: testfly-test
+        env:
+          FRAMEWORK_VERSION: ${{ steps.version.outputs.value }}
         run: |
-          VERSION="${{ steps.version.outputs.value }}"
-
-          sed -i \
-            -E 's#(<artifactId>testfly</artifactId>)[[:space:]]*<version>[^<]+</version>#\1 <version>'"$VERSION"'</version>#' \
-            testfly-test/pom.xml
+          mvn versions:use-dep-version \
+            -Dincludes=io.testfly:testfly \
+            -DdepVersion="$FRAMEWORK_VERSION" \
+            -DforceVersion=true \
+            -DgenerateBackupPoms=false
 
       - name: Run consumer API tests
         working-directory: testfly-test
@@ -177,4 +179,3 @@ jobs:
           reporter: java-junit
           fail-on-error: false
           fail-on-empty: false
-```
