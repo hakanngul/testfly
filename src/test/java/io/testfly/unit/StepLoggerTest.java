@@ -19,11 +19,9 @@ import static org.testng.Assert.*;
 
 /**
  * Unit tests for {@link StepLogger}.
- *
- * <p>All collaborators ({@link TestFlyContext}, {@link ExecutionMetrics},
- * {@link ScreenshotManager}) are static, so they are mocked with
- * {@code mockStatic} — no real browser or test run required.
+ * Thread-safe for parallel=methods via singleThreaded.
  */
+@Test(singleThreaded = true)
 public class StepLoggerTest {
 
     private static final String TEST_ID = "com.example.LoginTest.login";
@@ -41,9 +39,9 @@ public class StepLoggerTest {
 
     @AfterMethod
     public void teardown() {
-        contextMock.close();
-        metricsMock.close();
-        screenshotMock.close();
+        if (contextMock != null) contextMock.close();
+        if (metricsMock != null) metricsMock.close();
+        if (screenshotMock != null) screenshotMock.close();
     }
 
     // ── No active test context → step is ignored ───────────────────────────────
@@ -51,10 +49,7 @@ public class StepLoggerTest {
     @Test
     public void step_isIgnored_whenNoActiveTestContext() {
         contextMock.when(TestFlyContext::getCurrentTestId).thenReturn(null);
-
         StepLogger.step("orphan step");
-
-        // Nothing recorded, no screenshot attempted
         metricsMock.verify(() -> ExecutionMetrics.recordStep(any(), any()), never());
         screenshotMock.verify(ScreenshotManager::captureAsBase64, never());
     }
@@ -66,9 +61,7 @@ public class StepLoggerTest {
         contextMock.when(TestFlyContext::getCurrentTestId).thenReturn(TEST_ID);
         metricsMock.when(() -> ExecutionMetrics.getTestStartTime(TEST_ID))
                 .thenReturn(System.currentTimeMillis() - 1000);
-
         StepLogger.step("Navigate to login page");
-
         StepRecord record = captureRecordedStep();
         assertEquals(record.getName(), "Navigate to login page");
         assertEquals(record.getStatus(), StepStatus.INFO.name());
@@ -84,9 +77,7 @@ public class StepLoggerTest {
         contextMock.when(TestFlyContext::getCurrentTestId).thenReturn(TEST_ID);
         metricsMock.when(() -> ExecutionMetrics.getTestStartTime(TEST_ID)).thenReturn(0L);
         screenshotMock.when(ScreenshotManager::captureAsBase64).thenReturn("BASE64DATA");
-
         StepLogger.step("After credentials entered", true);
-
         StepRecord record = captureRecordedStep();
         assertEquals(record.getScreenshotBase64(), "BASE64DATA");
         screenshotMock.verify(ScreenshotManager::captureAsBase64, times(1));
@@ -99,9 +90,7 @@ public class StepLoggerTest {
         contextMock.when(TestFlyContext::getCurrentTestId).thenReturn(TEST_ID);
         metricsMock.when(() -> ExecutionMetrics.getTestStartTime(TEST_ID))
                 .thenReturn(System.currentTimeMillis());
-
         StepLogger.step("Verify dashboard visible", StepStatus.PASS);
-
         assertEquals(captureRecordedStep().getStatus(), StepStatus.PASS.name());
     }
 
@@ -111,9 +100,7 @@ public class StepLoggerTest {
     public void step_offsetIsZero_whenStartTimeUnknown() {
         contextMock.when(TestFlyContext::getCurrentTestId).thenReturn(TEST_ID);
         metricsMock.when(() -> ExecutionMetrics.getTestStartTime(TEST_ID)).thenReturn(0L);
-
         StepLogger.step("no start time");
-
         assertEquals(captureRecordedStep().getOffsetMs(), 0L);
     }
 
@@ -124,22 +111,17 @@ public class StepLoggerTest {
         contextMock.when(TestFlyContext::getCurrentTestId).thenReturn(TEST_ID);
         metricsMock.when(() -> ExecutionMetrics.getTestStartTime(TEST_ID))
                 .thenReturn(System.currentTimeMillis());
-
         StepLogger.stepWithScreenshot("Visual diff", StepStatus.FAIL, "DIFFIMG");
-
         StepRecord record = captureRecordedStep();
         assertEquals(record.getScreenshotBase64(), "DIFFIMG");
         assertEquals(record.getStatus(), StepStatus.FAIL.name());
-        // stepWithScreenshot never triggers a live capture
         screenshotMock.verify(ScreenshotManager::captureAsBase64, never());
     }
 
     @Test
     public void stepWithScreenshot_isIgnored_whenNoActiveTestContext() {
         contextMock.when(TestFlyContext::getCurrentTestId).thenReturn(null);
-
         StepLogger.stepWithScreenshot("orphan", StepStatus.INFO, "IMG");
-
         metricsMock.verify(() -> ExecutionMetrics.recordStep(any(), any()), never());
     }
 

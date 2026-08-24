@@ -4,10 +4,10 @@ import io.testfly.driver.DriverManager;
 import io.testfly.session.MultiSessionManager;
 import org.openqa.selenium.WebDriver;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Field;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.mockito.Mockito.*;
@@ -16,16 +16,36 @@ import static org.testng.Assert.*;
 /**
  * Unit tests for {@link MultiSessionManager} and the session-override stack in
  * {@link DriverManager}.
- * Named-session driver creation requires a real browser and is covered by
- * integration tests in the consumer project.
+ * Thread-safe for parallel=methods via singleThreaded.
  */
+@Test(singleThreaded = true)
 public class MultiSessionTest {
+
+    @BeforeMethod
+    public void setup() {
+        MultiSessionManager.clearAll();
+        try { DriverManager.popSessionOverride(); } catch (Exception ignored) {}
+        // clear ThreadLocal NAMED map
+        try {
+            Field namedField = MultiSessionManager.class.getDeclaredField("NAMED");
+            namedField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            ThreadLocal<Map<String, WebDriver>> named = (ThreadLocal<Map<String, WebDriver>>) namedField.get(null);
+            named.remove();
+        } catch (Exception ignored) {}
+    }
 
     @AfterMethod
     public void cleanup() {
         MultiSessionManager.clearAll();
-        // Pop any stray override left by a test (defensive)
         try { DriverManager.popSessionOverride(); } catch (Exception ignored) {}
+        try {
+            Field namedField = MultiSessionManager.class.getDeclaredField("NAMED");
+            namedField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            ThreadLocal<Map<String, WebDriver>> named = (ThreadLocal<Map<String, WebDriver>>) namedField.get(null);
+            named.remove();
+        } catch (Exception ignored) {}
     }
 
     // ── DriverManager session-override stack ──────────────────────────
@@ -47,13 +67,9 @@ public class MultiSessionTest {
         WebDriver mock = mock(WebDriver.class);
         DriverManager.pushSessionOverride(mock);
         DriverManager.popSessionOverride();
-        // After pop, the override stack is empty — any exception here
-        // means the primary-driver path is reached (no override present)
         try {
             DriverManager.getDriver();
-            // Reaching here without exception means the stack was cleared
         } catch (IllegalStateException e) {
-            // Expected: primary driver is null in unit-test JVM — that is fine
             assertTrue(e.getMessage().contains("WebDriver not initialized"),
                 "Should fail because primary driver is null, not because override remained");
         }
@@ -78,7 +94,6 @@ public class MultiSessionTest {
 
     @Test
     public void popSessionOverride_emptyStack_noException() {
-        // Should be a no-op, not throw
         DriverManager.popSessionOverride();
     }
 
@@ -86,18 +101,15 @@ public class MultiSessionTest {
 
     @Test
     public void clearAll_emptyState_noException() {
-        MultiSessionManager.clearAll(); // no-op on empty map — must not throw
+        MultiSessionManager.clearAll();
     }
 
     @Test
     public void clearAll_quitsAllInjectedSessions() throws Exception {
         WebDriver alice = mock(WebDriver.class);
         WebDriver bob   = mock(WebDriver.class);
-
         injectSessions(Map.of("alice", alice, "bob", bob));
-
         MultiSessionManager.clearAll();
-
         verify(alice).quit();
         verify(bob).quit();
     }
@@ -106,22 +118,18 @@ public class MultiSessionTest {
     public void clearAll_quitException_doesNotPropagate() throws Exception {
         WebDriver broken = mock(WebDriver.class);
         doThrow(new RuntimeException("browser crashed")).when(broken).quit();
-
         injectSessions(Map.of("broken", broken));
-
-        MultiSessionManager.clearAll(); // must not propagate the quit() exception
+        MultiSessionManager.clearAll();
     }
 
     @Test
     public void withSession_usesInjectedDriverDuringAction() throws Exception {
         WebDriver sessionDriver = mock(WebDriver.class);
         injectSessions(Map.of("mySession", sessionDriver));
-
         WebDriver[] captured = new WebDriver[1];
         MultiSessionManager.withSession("mySession", () -> {
             captured[0] = DriverManager.getDriver();
         });
-
         assertSame(captured[0], sessionDriver,
             "withSession() should make the session driver visible via getDriver()");
     }
@@ -130,10 +138,7 @@ public class MultiSessionTest {
     public void withSession_restoresDriverAfterAction() throws Exception {
         WebDriver sessionDriver = mock(WebDriver.class);
         injectSessions(Map.of("s1", sessionDriver));
-
         MultiSessionManager.withSession("s1", () -> { /* no-op */ });
-
-        // After withSession, the override stack should be empty
         try {
             DriverManager.getDriver();
         } catch (IllegalStateException e) {
@@ -146,7 +151,6 @@ public class MultiSessionTest {
     public void withSession_exceptionInAction_driverStillRestored() throws Exception {
         WebDriver sessionDriver = mock(WebDriver.class);
         injectSessions(Map.of("err", sessionDriver));
-
         try {
             MultiSessionManager.withSession("err", () -> {
                 throw new RuntimeException("intentional failure");
@@ -156,8 +160,6 @@ public class MultiSessionTest {
             assertTrue(e.getMessage().contains("intentional failure") ||
                        e.getCause() != null && e.getCause().getMessage().contains("intentional failure"));
         }
-
-        // Stack must be clean after exception
         try {
             DriverManager.getDriver();
         } catch (IllegalStateException e) {
@@ -181,6 +183,10 @@ public class MultiSessionTest {
         namedField.setAccessible(true);
         ThreadLocal<Map<String, WebDriver>> named =
             (ThreadLocal<Map<String, WebDriver>>) namedField.get(null);
+        // ensure ThreadLocal is initialized
+        if (named.get() == null) {
+            named.set(new java.util.LinkedHashMap<>());
+        }
         named.get().putAll(sessions);
     }
 }

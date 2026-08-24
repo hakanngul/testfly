@@ -12,18 +12,25 @@ import static org.testng.Assert.*;
  * Unit tests for {@link ConfigurationLoader}.
  * Relies on testfly.yml present in src/test/resources (classpath).
  */
+@Test(singleThreaded = true)
 public class ConfigurationLoaderTest {
+
+    private static final Object LOCK = new Object();
 
     @BeforeMethod
     public void clearSystemProperties() {
-        System.clearProperty("testfly.config");
-        System.clearProperty("testfly.profile");
+        synchronized (LOCK) {
+            System.clearProperty("testfly.config");
+            System.clearProperty("testfly.profile");
+        }
     }
 
     @AfterMethod
     public void restoreSystemProperties() {
-        System.clearProperty("testfly.config");
-        System.clearProperty("testfly.profile");
+        synchronized (LOCK) {
+            System.clearProperty("testfly.config");
+            System.clearProperty("testfly.profile");
+        }
     }
 
     // ----------------------------------------------------------
@@ -32,27 +39,39 @@ public class ConfigurationLoaderTest {
 
     @Test
     public void load_defaultProfile_loadsFromClasspath() {
-        TestFlyConfig config = ConfigurationLoader.load();
+        synchronized (LOCK) {
+            System.clearProperty("testfly.config");
+            System.clearProperty("testfly.profile");
+            TestFlyConfig config = ConfigurationLoader.load();
 
-        assertNotNull(config);
-        assertNotNull(config.getBrowser());
-        assertEquals("chrome", config.getBrowser().getName());
-        assertEquals("local", config.getExecution().getMode());
-        assertTrue(config.getTimeouts().getExplicit() > 0);
-        assertTrue(config.getTimeouts().getPageLoad() > 0);
+            assertNotNull(config);
+            assertNotNull(config.getBrowser());
+            assertEquals("chrome", config.getBrowser().getName());
+            assertEquals("local", config.getExecution().getMode());
+            assertTrue(config.getTimeouts().getExplicit() > 0);
+            assertTrue(config.getTimeouts().getPageLoad() > 0);
+        }
     }
 
     @Test
     public void load_returnsRetryConfig() {
-        TestFlyConfig config = ConfigurationLoader.load();
-        assertNotNull(config.getRetry());
+        synchronized (LOCK) {
+            System.clearProperty("testfly.config");
+            System.clearProperty("testfly.profile");
+            TestFlyConfig config = ConfigurationLoader.load();
+            assertNotNull(config.getRetry());
+        }
     }
 
     @Test
     public void load_returnsExecutionBaseUrl() {
-        TestFlyConfig config = ConfigurationLoader.load();
-        assertNotNull(config.getExecution().getBaseUrl());
-        assertFalse(config.getExecution().getBaseUrl().isBlank());
+        synchronized (LOCK) {
+            System.clearProperty("testfly.config");
+            System.clearProperty("testfly.profile");
+            TestFlyConfig config = ConfigurationLoader.load();
+            assertNotNull(config.getExecution().getBaseUrl());
+            assertFalse(config.getExecution().getBaseUrl().isBlank());
+        }
     }
 
     // ----------------------------------------------------------
@@ -61,15 +80,29 @@ public class ConfigurationLoaderTest {
 
     @Test
     public void load_withProfile_loadsProfileFile() {
-        System.setProperty("testfly.profile", "prod");
-        TestFlyConfig config = ConfigurationLoader.load();
-        assertNotNull(config);
+        synchronized (LOCK) {
+            System.clearProperty("testfly.config");
+            System.setProperty("testfly.profile", "prod");
+            try {
+                TestFlyConfig config = ConfigurationLoader.load();
+                assertNotNull(config);
+            } finally {
+                System.clearProperty("testfly.profile");
+            }
+        }
     }
 
     @Test(expectedExceptions = IllegalStateException.class)
     public void load_withNonExistentProfile_throwsIllegalState() {
-        System.setProperty("testfly.profile", "does-not-exist-xyz");
-        ConfigurationLoader.load(); // should throw
+        synchronized (LOCK) {
+            System.clearProperty("testfly.config");
+            System.setProperty("testfly.profile", "does-not-exist-xyz");
+            try {
+                ConfigurationLoader.load(); // should throw
+            } finally {
+                System.clearProperty("testfly.profile");
+            }
+        }
     }
 
     // ----------------------------------------------------------
@@ -78,8 +111,15 @@ public class ConfigurationLoaderTest {
 
     @Test(expectedExceptions = IllegalStateException.class)
     public void load_withExplicitPathThatDoesNotExist_throwsIllegalState() {
-        System.setProperty("testfly.config", "/nonexistent/path/config.yml");
-        ConfigurationLoader.load();
+        synchronized (LOCK) {
+            System.clearProperty("testfly.profile");
+            System.setProperty("testfly.config", "/nonexistent/path/config.yml");
+            try {
+                ConfigurationLoader.load();
+            } finally {
+                System.clearProperty("testfly.config");
+            }
+        }
     }
 
     // ----------------------------------------------------------
@@ -88,7 +128,11 @@ public class ConfigurationLoaderTest {
 
     @Test
     public void load_configHasPositiveThreadCount() {
-        TestFlyConfig config = ConfigurationLoader.load();
-        assertTrue(config.getExecution().getMaxActiveSessions() > 0);
+        synchronized (LOCK) {
+            System.clearProperty("testfly.config");
+            System.clearProperty("testfly.profile");
+            TestFlyConfig config = ConfigurationLoader.load();
+            assertTrue(config.getExecution().getMaxActiveSessions() > 0);
+        }
     }
 }

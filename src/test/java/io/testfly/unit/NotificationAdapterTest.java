@@ -9,6 +9,7 @@ import java.util.List;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -19,12 +20,12 @@ import io.testfly.reporting.NotificationAdapter;
 
 /**
  * Unit tests for {@link NotificationAdapter}.
- *
- * {@code sendWebhook()} is overridden to capture calls without making real HTTP requests.
+ * Thread-safe for parallel=methods via singleThreaded.
  */
+@Test(singleThreaded = true)
 public class NotificationAdapterTest {
 
-    private List<String[]> webhookCalls; // [url, payload]
+    private List<String[]> webhookCalls;
     private File metricsFile;
 
     @BeforeMethod
@@ -33,11 +34,15 @@ public class NotificationAdapterTest {
         metricsFile  = File.createTempFile("metrics", ".json");
     }
 
+    @AfterMethod
+    public void cleanup() {
+        if (metricsFile != null) metricsFile.delete();
+    }
+
     // ----------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------
 
-    /** Creates a spy adapter that records sendWebhook calls instead of making real requests. */
     private NotificationAdapter spyAdapter(Notifications config) {
         return new NotificationAdapter(config) {
             @Override
@@ -116,7 +121,6 @@ public class NotificationAdapterTest {
         writeMetrics(5, 1, 0);
         spyAdapter(slackOnly("https://hooks.slack.com/services/TEST", false))
                 .generate(metricsFile);
-
         assertEquals(webhookCalls.size(), 1);
         assertEquals(webhookCalls.get(0)[0], "https://hooks.slack.com/services/TEST");
     }
@@ -126,7 +130,6 @@ public class NotificationAdapterTest {
         writeMetrics(5, 0, 0);
         spyAdapter(slackOnly("https://hooks.slack.com/services/TEST", true))
                 .generate(metricsFile);
-
         assertTrue(webhookCalls.isEmpty(), "No notification expected when all tests pass");
     }
 
@@ -135,7 +138,6 @@ public class NotificationAdapterTest {
         writeMetrics(4, 1, 0);
         spyAdapter(slackOnly("https://hooks.slack.com/services/TEST", true))
                 .generate(metricsFile);
-
         assertEquals(webhookCalls.size(), 1);
     }
 
@@ -148,7 +150,6 @@ public class NotificationAdapterTest {
         writeMetrics(3, 2, 0);
         spyAdapter(teamsOnly("https://example.webhook.office.com/TEST", false))
                 .generate(metricsFile);
-
         assertEquals(webhookCalls.size(), 1);
         assertEquals(webhookCalls.get(0)[0], "https://example.webhook.office.com/TEST");
     }
@@ -158,7 +159,6 @@ public class NotificationAdapterTest {
         writeMetrics(10, 0, 0);
         spyAdapter(teamsOnly("https://example.webhook.office.com/TEST", true))
                 .generate(metricsFile);
-
         assertTrue(webhookCalls.isEmpty());
     }
 
@@ -171,7 +171,6 @@ public class NotificationAdapterTest {
         writeMetrics(2, 1, 0);
         spyAdapter(both("https://hooks.slack.com/TEST", "https://example.webhook.office.com/TEST"))
                 .generate(metricsFile);
-
         assertEquals(webhookCalls.size(), 2);
     }
 
@@ -183,17 +182,14 @@ public class NotificationAdapterTest {
     public void slackPayload_containsPassRate() throws IOException {
         writeMetrics(9, 1, 0);
         spyAdapter(slackOnly("https://hooks.slack.com/TEST", false)).generate(metricsFile);
-
         String payload = webhookCalls.get(0)[1];
-        System.out.println(payload);
-        assertTrue(payload.contains("90.0%"), "Slack payload must contain pass rate");
+        assertTrue(payload.contains("90.0%"), "Slack payload must contain pass rate, got: " + payload);
     }
 
     @Test
     public void slackPayload_containsFailedTestName() throws IOException {
         writeMetrics(0, 1, 0);
         spyAdapter(slackOnly("https://hooks.slack.com/TEST", false)).generate(metricsFile);
-
         String payload = webhookCalls.get(0)[1];
         assertTrue(payload.contains("failTest1"), "Slack payload must list the failed test name");
     }
@@ -202,7 +198,6 @@ public class NotificationAdapterTest {
     public void slackPayload_passedSuiteShowsPassedStatus() throws IOException {
         writeMetrics(5, 0, 0);
         spyAdapter(slackOnly("https://hooks.slack.com/TEST", false)).generate(metricsFile);
-
         String payload = webhookCalls.get(0)[1];
         assertTrue(payload.contains("PASSED"), "Slack payload must say PASSED");
         assertFalse(payload.contains("FAILED"), "Slack payload must not say FAILED");
@@ -217,7 +212,6 @@ public class NotificationAdapterTest {
         writeMetrics(3, 0, 0);
         spyAdapter(teamsOnly("https://example.webhook.office.com/TEST", false))
                 .generate(metricsFile);
-
         String payload = webhookCalls.get(0)[1];
         assertTrue(payload.contains("\"@type\""), "Teams payload must be MessageCard format");
         assertTrue(payload.contains("MessageCard"));
@@ -228,7 +222,6 @@ public class NotificationAdapterTest {
         writeMetrics(0, 2, 0);
         spyAdapter(teamsOnly("https://example.webhook.office.com/TEST", false))
                 .generate(metricsFile);
-
         String payload = webhookCalls.get(0)[1];
         assertTrue(payload.contains("failTest1"), "Teams payload must list failed test names");
     }
@@ -241,7 +234,6 @@ public class NotificationAdapterTest {
     public void generate_missingMetricsFile_isNoOp() {
         spyAdapter(slackOnly("https://hooks.slack.com/TEST", false))
                 .generate(new File("target/nonexistent.json"));
-
         assertTrue(webhookCalls.isEmpty(), "No call expected when metrics file does not exist");
     }
 

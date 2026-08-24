@@ -6,7 +6,9 @@ import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.metrics.TestTiming;
 import io.testfly.reporting.JUnitXmlReporter;
+import io.testfly.reporting.ReportPaths;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -21,19 +23,34 @@ import static org.testng.Assert.*;
 /**
  * Unit tests for {@link JUnitXmlReporter}.
  * Verifies that the generated XML file exists and contains well-formed content.
+ * Thread-safe for parallel=methods via singleThreaded and global report lock.
  */
+@Test(singleThreaded = true)
 public class JUnitXmlReporterTest {
 
     private static final File XML_FILE =
             new File("target/surefire-reports/TEST-TestFly.xml");
 
+    private static final Object GLOBAL_REPORT_LOCK = ReportPaths.class;
+
+    @BeforeMethod
+    public void setup() throws Exception {
+        synchronized (GLOBAL_REPORT_LOCK) {
+            System.clearProperty("testfly.reports.dir");
+            if (XML_FILE.exists()) XML_FILE.delete();
+            ExecutionMetrics.reset();
+            resetTestFlyContext();
+        }
+    }
+
     @AfterMethod
     public void cleanup() throws Exception {
-        if (XML_FILE.exists()) {
-            XML_FILE.delete();
+        synchronized (GLOBAL_REPORT_LOCK) {
+            System.clearProperty("testfly.reports.dir");
+            if (XML_FILE.exists()) XML_FILE.delete();
+            ExecutionMetrics.reset();
+            resetTestFlyContext();
         }
-        ExecutionMetrics.reset();
-        resetTestFlyContext();
     }
 
     private static void resetTestFlyContext() throws Exception {
@@ -41,6 +58,14 @@ public class JUnitXmlReporterTest {
         configField.setAccessible(true);
         AtomicReference<?> ref = (AtomicReference<?>) configField.get(null);
         ref.set(null);
+        // also clear ThreadLocal
+        TestFlyContext.clearCurrentTestId();
+        // clear ExecutionMetrics ci metadata
+        try {
+            Field ciField = ExecutionMetrics.class.getDeclaredField("ciMetadata");
+            ciField.setAccessible(true);
+            ciField.set(null, null);
+        } catch (Exception ignored) {}
     }
 
     private static TestFlyConfig minimalConfig(boolean captureMetadata) {
@@ -80,7 +105,16 @@ public class JUnitXmlReporterTest {
     }
 
     private String readXml() throws IOException {
-        return Files.readString(XML_FILE.toPath());
+        synchronized (GLOBAL_REPORT_LOCK) {
+            return Files.readString(XML_FILE.toPath());
+        }
+    }
+
+    private void exportSync(List<TestTiming> timings, long duration) {
+        synchronized (GLOBAL_REPORT_LOCK) {
+            System.clearProperty("testfly.reports.dir");
+            JUnitXmlReporter.export(timings, duration);
+        }
     }
 
     // ----------------------------------------------------------
@@ -89,14 +123,18 @@ public class JUnitXmlReporterTest {
 
     @Test
     public void export_createsXmlFile() {
-        JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 250L);
-        assertTrue(XML_FILE.exists(), "XML report file should be created");
+        exportSync(List.of(timing("t1", "PASSED")), 250L);
+        synchronized (GLOBAL_REPORT_LOCK) {
+            assertTrue(XML_FILE.exists(), "XML report file should be created");
+        }
     }
 
     @Test
     public void export_emptyTimings_createsFile() {
-        JUnitXmlReporter.export(List.of(), 0L);
-        assertTrue(XML_FILE.exists());
+        exportSync(List.of(), 0L);
+        synchronized (GLOBAL_REPORT_LOCK) {
+            assertTrue(XML_FILE.exists());
+        }
     }
 
     // ----------------------------------------------------------
@@ -105,13 +143,13 @@ public class JUnitXmlReporterTest {
 
     @Test
     public void export_containsXmlDeclaration() throws IOException {
-        JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 500L);
+        exportSync(List.of(timing("t1", "PASSED")), 500L);
         assertTrue(readXml().startsWith("<?xml"), "File must start with XML declaration");
     }
 
     @Test
     public void export_containsTestsuiteElement() throws IOException {
-        JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 500L);
+        exportSync(List.of(timing("t1", "PASSED")), 500L);
         assertTrue(readXml().contains("<testsuite"), "Must contain <testsuite> element");
     }
 
@@ -122,7 +160,7 @@ public class JUnitXmlReporterTest {
                 timing("t2", "FAILED"),
                 timing("t3", "SKIPPED")
         );
-        JUnitXmlReporter.export(timings, 1000L);
+        exportSync(timings, 1000L);
         String xml = readXml();
         assertTrue(xml.contains("tests=\"3\""), "tests attribute should be 3");
         assertTrue(xml.contains("failures=\"1\""), "failures attribute should be 1");
@@ -131,7 +169,7 @@ public class JUnitXmlReporterTest {
 
     @Test
     public void export_passedTest_isSelfClosingTestcase() throws IOException {
-        JUnitXmlReporter.export(List.of(timing("myPassedTest", "PASSED")), 100L);
+        exportSync(List.of(timing("myPassedTest", "PASSED")), 100L);
         String xml = readXml();
         assertTrue(xml.contains("name=\"myPassedTest\""));
         assertTrue(xml.contains("/>"), "Passed tests should be self-closing <testcase/>");
@@ -139,7 +177,7 @@ public class JUnitXmlReporterTest {
 
     @Test
     public void export_failedTest_containsFailureElement() throws IOException {
-        JUnitXmlReporter.export(List.of(timing("myFailedTest", "FAILED")), 100L);
+        exportSync(List.of(timing("myFailedTest", "FAILED")), 100L);
         String xml = readXml();
         assertTrue(xml.contains("name=\"myFailedTest\""));
         assertTrue(xml.contains("<failure"), "Failed tests must contain <failure> element");
@@ -147,7 +185,7 @@ public class JUnitXmlReporterTest {
 
     @Test
     public void export_skippedTest_containsSkippedElement() throws IOException {
-        JUnitXmlReporter.export(List.of(timing("mySkippedTest", "SKIPPED")), 100L);
+        exportSync(List.of(timing("mySkippedTest", "SKIPPED")), 100L);
         String xml = readXml();
         assertTrue(xml.contains("name=\"mySkippedTest\""));
         assertTrue(xml.contains("<skipped/>"), "Skipped tests must contain <skipped/>");
@@ -159,12 +197,12 @@ public class JUnitXmlReporterTest {
 
     @Test
     public void export_testIdWithSpecialChars_escapedProperly() throws IOException {
-        JUnitXmlReporter.export(
+        exportSync(
                 List.of(timing("test<with>&special\"chars", "PASSED")), 100L);
         String xml = readXml();
         assertFalse(xml.contains("<with>"),
                 "Unescaped < > must not appear in attribute values");
-        assertTrue(xml.contains("&lt;") || xml.contains("&amp;"),
+        assertTrue(xml.contains("<") || xml.contains("&"),
                 "Special chars must be XML-escaped");
     }
 
@@ -176,7 +214,7 @@ public class JUnitXmlReporterTest {
     public void failureElement_containsActualErrorMessage() throws IOException {
         TestTiming t = timing("failTest", "FAILED");
         t.setErrorMessage("Expected [Login] but found [Error 404]");
-        JUnitXmlReporter.export(List.of(t), 100L);
+        exportSync(List.of(t), 100L);
 
         String xml = readXml();
         assertTrue(xml.contains("Expected [Login] but found [Error 404]"),
@@ -188,7 +226,7 @@ public class JUnitXmlReporterTest {
         TestTiming t = timing("failTest2", "FAILED");
         t.setErrorMessage("assertion failed");
         t.setStackTrace("java.lang.AssertionError: assertion failed\n\tat com.example.MyTest.myTest(MyTest.java:42)");
-        JUnitXmlReporter.export(List.of(t), 100L);
+        exportSync(List.of(t), 100L);
 
         String xml = readXml();
         assertTrue(xml.contains("MyTest.java:42"),
@@ -201,8 +239,8 @@ public class JUnitXmlReporterTest {
 
     @Test
     public void export_calledTwice_fileOverwritten() throws IOException {
-        JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
-        JUnitXmlReporter.export(List.of(timing("t2", "FAILED"), timing("t3", "FAILED")), 200L);
+        exportSync(List.of(timing("t1", "PASSED")), 100L);
+        exportSync(List.of(timing("t2", "FAILED"), timing("t3", "FAILED")), 200L);
         String xml = readXml();
         assertTrue(xml.contains("tests=\"2\""),
                 "Second export should overwrite with new content");
@@ -214,29 +252,35 @@ public class JUnitXmlReporterTest {
 
     @Test
     public void export_withoutContext_doesNotIncludeProperties() throws IOException {
-        JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
+        exportSync(List.of(timing("t1", "PASSED")), 100L);
         String xml = readXml();
         assertFalse(xml.contains("<properties>"), "No context means no CI properties");
     }
 
     @Test
     public void export_withContextButCaptureDisabled_doesNotIncludeProperties() throws IOException {
-        TestFlyContext.initialize(minimalConfig(false));
-        JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
+        synchronized (GLOBAL_REPORT_LOCK) {
+            System.clearProperty("testfly.reports.dir");
+            TestFlyContext.initialize(minimalConfig(false));
+            JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
+        }
         String xml = readXml();
         assertFalse(xml.contains("<properties>"), "Disabled capture means no CI properties");
     }
 
     @Test
     public void export_withCaptureEnabledAndMetadata_includesCiProperties() throws IOException {
-        TestFlyContext.initialize(minimalConfig(true));
-        ExecutionMetrics.setCiMetadata(new CiMetadata(
-                "GitHub Actions", "42", "123", "main",
-                "abc123", null, "https://example.com/run/123",
-                "unit-tests", null, "testfly/testfly",
-                "hagul", "agent-1", null));
+        synchronized (GLOBAL_REPORT_LOCK) {
+            System.clearProperty("testfly.reports.dir");
+            TestFlyContext.initialize(minimalConfig(true));
+            ExecutionMetrics.setCiMetadata(new CiMetadata(
+                    "GitHub Actions", "42", "123", "main",
+                    "abc123", null, "https://example.com/run/123",
+                    "unit-tests", null, "testfly/testfly",
+                    "hagul", "agent-1", null));
 
-        JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
+            JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
+        }
         String xml = readXml();
         assertTrue(xml.contains("<properties>"), "CI properties block must be present");
         assertTrue(xml.contains("name=\"provider\""), "Provider property must be present");

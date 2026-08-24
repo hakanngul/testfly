@@ -26,6 +26,7 @@ import static org.testng.Assert.*;
  * Uses a mocked {@link JavascriptExecutor} WebDriver to simulate axe-core responses
  * without a real browser.
  */
+@Test(singleThreaded = true)
 public class AccessibilityCheckerTest {
 
     private WebDriver mockDriver;
@@ -33,6 +34,10 @@ public class AccessibilityCheckerTest {
 
     @BeforeMethod
     public void setup() {
+        if (driverManagerMock != null) {
+            try { driverManagerMock.close(); } catch (Exception ignored) {}
+            driverManagerMock = null;
+        }
         mockDriver = mock(WebDriver.class, withSettings().extraInterfaces(JavascriptExecutor.class));
         driverManagerMock = mockStatic(DriverManager.class);
         driverManagerMock.when(DriverManager::getDriver).thenReturn(mockDriver);
@@ -45,7 +50,10 @@ public class AccessibilityCheckerTest {
 
     @AfterMethod
     public void teardown() {
-        driverManagerMock.close();
+        if (driverManagerMock != null) {
+            try { driverManagerMock.close(); } catch (Exception ignored) {}
+            driverManagerMock = null;
+        }
     }
 
     // ── Impact enum tests ─────────────────────────────────────────────────────
@@ -261,7 +269,7 @@ public class AccessibilityCheckerTest {
     }
 
     private Map<String, Object> axeResponse(List<Map<String, Object>> violations,
-                                             int passes, int incomplete) {
+                                              int passes, int incomplete) {
         return Map.of(
                 "violations", violations,
                 "passes",     buildPlaceholderList(passes),
