@@ -793,15 +793,27 @@ public final class TestFlyConfig {
 
     public static final class Api {
         private String  baseUrl;
+        private java.util.Map<String, String> baseUrls = new java.util.LinkedHashMap<>();
         private int     timeoutSeconds = 30;
         private boolean logBody        = false;
         private boolean logContext     = true;
+        private boolean prettyLog      = false;
+        private boolean logCurl        = false;
         private int     truncationLimit = 300;
+        private java.util.List<String> maskedHeaders = new java.util.ArrayList<>(java.util.List.of("Authorization", "Cookie", "X-Api-Key"));
         private java.util.Map<String, AuthStrategy> auth = new java.util.LinkedHashMap<>();
         private RetryConfig retry = new RetryConfig();
 
         public String  getBaseUrl()          { return baseUrl; }
         public void    setBaseUrl(String v)  { this.baseUrl = v; }
+
+        public java.util.Map<String, String> getBaseUrls() { return baseUrls; }
+        public void setBaseUrls(java.util.Map<String, String> v) { this.baseUrls = v != null ? v : new java.util.LinkedHashMap<>(); }
+
+        public String baseUrlFor(String service) {
+            if (baseUrls != null && baseUrls.containsKey(service)) return baseUrls.get(service);
+            return baseUrl;
+        }
 
         public int     getTimeoutSeconds()         { return timeoutSeconds; }
         public void    setTimeoutSeconds(int v)    { this.timeoutSeconds = v; }
@@ -812,8 +824,17 @@ public final class TestFlyConfig {
         public boolean isLogContext()              { return logContext; }
         public void    setLogContext(boolean v)    { this.logContext = v; }
 
+        public boolean isPrettyLog()               { return prettyLog; }
+        public void    setPrettyLog(boolean v)     { this.prettyLog = v; }
+
+        public boolean isLogCurl()                 { return logCurl; }
+        public void    setLogCurl(boolean v)       { this.logCurl = v; }
+
         public int     getTruncationLimit()              { return truncationLimit; }
         public void    setTruncationLimit(int v)         { this.truncationLimit = v; }
+
+        public java.util.List<String> getMaskedHeaders() { return maskedHeaders; }
+        public void setMaskedHeaders(java.util.List<String> v) { this.maskedHeaders = v != null ? v : new java.util.ArrayList<>(); }
 
         public java.util.Map<String, AuthStrategy> getAuth() { return auth; }
         public void setAuth(java.util.Map<String, AuthStrategy> auth) { this.auth = auth; }
@@ -845,13 +866,17 @@ public final class TestFlyConfig {
         }
 
         public static final class AuthStrategy {
-            private String type;          // bearer | basic | oauth2
+            private String type;          // bearer | basic | oauth2 | apiKey | hmac | digest
             private String token;         // bearer
-            private String username;      // basic
-            private String password;      // basic
+            private String username;      // basic / digest
+            private String password;      // basic / digest
             private String tokenUrl;      // oauth2
             private String clientId;      // oauth2
             private String clientSecret;  // oauth2
+            private String headerName;    // apiKey
+            private String apiKey;        // apiKey / hmac
+            private String secret;        // hmac
+            private String algorithm;     // hmac
 
             public String getType()            { return type; }
             public void   setType(String v)    { this.type = v; }
@@ -873,6 +898,18 @@ public final class TestFlyConfig {
 
             public String getClientSecret()        { return clientSecret; }
             public void   setClientSecret(String v){ this.clientSecret = v; }
+
+            public String getHeaderName()          { return headerName; }
+            public void   setHeaderName(String v)  { this.headerName = v; }
+
+            public String getApiKey()              { return apiKey; }
+            public void   setApiKey(String v)      { this.apiKey = v; }
+
+            public String getSecret()              { return secret; }
+            public void   setSecret(String v)      { this.secret = v; }
+
+            public String getAlgorithm()           { return algorithm; }
+            public void   setAlgorithm(String v)   { this.algorithm = v; }
         }
     }
 

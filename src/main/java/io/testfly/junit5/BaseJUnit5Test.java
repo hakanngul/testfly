@@ -2,6 +2,7 @@ package io.testfly.junit5;
 
 import io.testfly.api.TestFlyApi;
 import io.testfly.test.support.AccessibilitySupport;
+import io.testfly.test.support.ApiSupport;
 import io.testfly.test.support.AssertionSupport;
 import io.testfly.test.support.DbSupport;
 import io.testfly.test.support.EmailSupport;
@@ -35,7 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @TestFlyApi(since = "1.9.0")
 @ExtendWith(TestFlyExtension.class)
 public abstract class BaseJUnit5Test implements LocatorSupport, AssertionSupport, SessionSupport, StepSupport,
-        NavigationSupport, DbSupport, EmailSupport, AccessibilitySupport {
+        NavigationSupport, DbSupport, EmailSupport, AccessibilitySupport, ApiSupport {
 
     // ----------------------------------------------------------
     // Navigation (open / getDriver / getWait) — via NavigationSupport
@@ -49,4 +50,5 @@ public abstract class BaseJUnit5Test implements LocatorSupport, AssertionSupport
     // BaseTest (getByRole, getByText, etc.) while keeping the delegation in a single place.
 
     // db(), mailbox()/to(), accessibility() — via DbSupport, EmailSupport, AccessibilitySupport
+    // apiClient(), apiGet/Post/Put/Patch/Delete() — via ApiSupport
 }

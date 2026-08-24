@@ -1,11 +1,14 @@
 package io.testfly.client;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.testfly.api.TestFlyApi;
 import io.testfly.steps.StepLogger;
 
 import java.net.http.HttpResponse;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Rich wrapper around an HTTP response.
@@ -24,11 +27,19 @@ public class ApiResponse {
 
     private final HttpResponse<String> response;
     private final long durationMs;
+    private final String requestMethod;
+    private final String requestUrl;
     private JsonNode parsedBody;
 
     ApiResponse(HttpResponse<String> response, long durationMs) {
-        this.response   = response;
-        this.durationMs = durationMs;
+        this(response, durationMs, null, null);
+    }
+
+    ApiResponse(HttpResponse<String> response, long durationMs, String requestMethod, String requestUrl) {
+        this.response      = response;
+        this.durationMs    = durationMs;
+        this.requestMethod = requestMethod;
+        this.requestUrl    = requestUrl;
     }
 
     /** HTTP status code. */
@@ -72,6 +83,29 @@ public class ApiResponse {
         }
     }
 
+    /** JSONPath extraction with TypeReference (generic types). */
+    public <T> T json(String path, TypeReference<T> typeRef) {
+        JsonNode node = jsonNode(path);
+        if (node == null || node.isMissingNode()) return null;
+        try {
+            return MAPPER.convertValue(node, typeRef);
+        } catch (Exception e) {
+            throw new RuntimeException("[ApiResponse] Cannot convert '" + path + "' to " + typeRef.getType(), e);
+        }
+    }
+
+    /** Extract JSON array at path as List. */
+    public <T> List<T> jsonList(String path, Class<T> elementType) {
+        JsonNode node = jsonNode(path);
+        if (node == null || !node.isArray()) return List.of();
+        try {
+            return MAPPER.convertValue(node,
+                    MAPPER.getTypeFactory().constructCollectionType(List.class, elementType));
+        } catch (Exception e) {
+            throw new RuntimeException("[ApiResponse] Cannot convert array '" + path + "' to List<" + elementType.getSimpleName() + ">", e);
+        }
+    }
+
     /** Deserialise entire response body to a POJO. */
     public <T> T asObject(Class<T> type) {
         try {
@@ -81,16 +115,33 @@ public class ApiResponse {
         }
     }
 
+    /** Deserialise entire response body using TypeReference (generic types). */
+    public <T> T asObject(TypeReference<T> typeRef) {
+        try {
+            return MAPPER.readValue(response.body(), typeRef);
+        } catch (Exception e) {
+            throw new RuntimeException("[ApiResponse] Cannot deserialise body to " + typeRef.getType(), e);
+        }
+    }
+
+    /** Deserialise entire response body to List. */
+    public <T> List<T> asList(Class<T> elementType) {
+        try {
+            return MAPPER.readValue(response.body(),
+                    MAPPER.getTypeFactory().constructCollectionType(List.class, elementType));
+        } catch (Exception e) {
+            throw new RuntimeException("[ApiResponse] Cannot deserialise body to List<" + elementType.getSimpleName() + ">", e);
+        }
+    }
+
     // ── Fluent assertions ────────────────────────────────────────────────────
 
     /** Fails the test if status does not match. */
     public ApiResponse assertStatus(int expected) {
         StepLogger.step("Assert API status " + expected);
         if (response.statusCode() != expected) {
-            throw new AssertionError(
-                "[ApiResponse] Expected status " + expected +
-                " but got " + response.statusCode() +
-                ". Body: " + truncate(response.body(), 300));
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] Expected status " + expected + " but got " + response.statusCode());
         }
         return this;
     }
@@ -98,10 +149,9 @@ public class ApiResponse {
     /** Fails the test if the response body does not contain the given substring. */
     public ApiResponse assertBodyContains(String substring) {
         StepLogger.step("Assert API body contains '" + substring + "'");
-        if (!response.body().contains(substring)) {
-            throw new AssertionError(
-                "[ApiResponse] Body does not contain: '" + substring + "'. " +
-                "Body: " + truncate(response.body(), 300));
+        if (response.body() == null || !response.body().contains(substring)) {
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] Body does not contain: '" + substring + "'");
         }
         return this;
     }
@@ -112,9 +162,8 @@ public class ApiResponse {
         String actual = json(path);
         String expectedStr = String.valueOf(expected);
         if (!expectedStr.equals(actual)) {
-            throw new AssertionError(
-                "[ApiResponse] JSON path '" + path + "': expected '" + expectedStr +
-                "' but got '" + actual + "'");
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] JSON path '" + path + "': expected '" + expectedStr + "' but got '" + actual + "'");
         }
         return this;
     }
@@ -141,14 +190,14 @@ public class ApiResponse {
     public ApiResponse assertDurationLessThan(long maxMs) {
         StepLogger.step("Assert API duration < " + maxMs + "ms");
         if (durationMs > maxMs) {
-            throw new AssertionError(
-                "[ApiResponse] Request took " + durationMs + "ms, expected < " + maxMs + "ms");
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] Request took " + durationMs + "ms, expected < " + maxMs + "ms");
         }
         return this;
     }
 
     /** Fails the test if the request took longer than the given duration. */
-    public ApiResponse assertDurationLessThan(long max, java.util.concurrent.TimeUnit unit) {
+    public ApiResponse assertDurationLessThan(long max, TimeUnit unit) {
         return assertDurationLessThan(unit.toMillis(max));
     }
 
@@ -159,9 +208,8 @@ public class ApiResponse {
         StepLogger.step("Assert API header '" + name + "' = '" + expectedValue + "'");
         String actual = header(name);
         if (!expectedValue.equals(actual)) {
-            throw new AssertionError(
-                "[ApiResponse] Header '" + name + "': expected '" + expectedValue
-                + "' but got '" + actual + "'");
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] Header '" + name + "': expected '" + expectedValue + "' but got '" + actual + "'");
         }
         return this;
     }
@@ -170,8 +218,8 @@ public class ApiResponse {
     public ApiResponse assertHeaderPresent(String name) {
         StepLogger.step("Assert API header '" + name + "' is present");
         if (header(name) == null) {
-            throw new AssertionError(
-                "[ApiResponse] Expected header '" + name + "' to be present");
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] Expected header '" + name + "' to be present");
         }
         return this;
     }
@@ -182,9 +230,8 @@ public class ApiResponse {
     public ApiResponse assertBodyMatches(String regex) {
         StepLogger.step("Assert API body matches regex '" + regex + "'");
         if (response.body() == null || !response.body().matches("(?s).*" + regex + ".*")) {
-            throw new AssertionError(
-                "[ApiResponse] Body does not match regex: '" + regex + "'. "
-                + "Body: " + truncate(response.body(), 300));
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] Body does not match regex: '" + regex + "'");
         }
         return this;
     }
@@ -196,13 +243,12 @@ public class ApiResponse {
         StepLogger.step("Assert API JSON array '" + path + "' size = " + expectedSize);
         JsonNode node = jsonNode(path);
         if (node == null || !node.isArray()) {
-            throw new AssertionError(
-                "[ApiResponse] '" + path + "' is not an array or does not exist");
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] '" + path + "' is not an array or does not exist");
         }
         if (node.size() != expectedSize) {
-            throw new AssertionError(
-                "[ApiResponse] Array '" + path + "': expected size " + expectedSize
-                + " but got " + node.size());
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] Array '" + path + "': expected size " + expectedSize + " but got " + node.size());
         }
         return this;
     }
@@ -212,8 +258,8 @@ public class ApiResponse {
         StepLogger.step("Assert API JSON path '" + path + "' exists");
         JsonNode node = jsonNode(path);
         if (node == null || node.isMissingNode()) {
-            throw new AssertionError(
-                "[ApiResponse] JSON path '" + path + "' does not exist in response body");
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] JSON path '" + path + "' does not exist in response body");
         }
         return this;
     }
@@ -223,9 +269,47 @@ public class ApiResponse {
         StepLogger.step("Assert API JSON path '" + path + "' is null");
         JsonNode node = jsonNode(path);
         if (node != null && !node.isNull() && !node.isMissingNode()) {
-            throw new AssertionError(
-                "[ApiResponse] JSON path '" + path + "': expected null but got '" + node.asText() + "'");
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] JSON path '" + path + "': expected null but got '" + node.asText() + "'");
         }
+        return this;
+    }
+
+    // ── Soft assertions (collect, don't throw immediately) ─────────────────────
+
+    private void softCollect(boolean condition, String message) {
+        if (!condition) {
+            try {
+                Class<?> cls = Class.forName("io.testfly.assertion.SoftAssertions");
+                Object collector = cls.getMethod("get").invoke(null);
+                collector.getClass().getMethod("that", boolean.class, String.class).invoke(collector, false, message);
+            } catch (Exception e) {
+                throw new ApiException(requestMethod, requestUrl, status(), body(), message);
+            }
+        }
+    }
+
+    public ApiResponse assertStatusSoft(int expected) {
+        softCollect(status() == expected, "[ApiResponse] Expected status " + expected + " but got " + status());
+        return this;
+    }
+    public ApiResponse assertJsonSoft(String path, Object expected) {
+        String actual = json(path);
+        softCollect(String.valueOf(expected).equals(actual),
+                "[ApiResponse] JSON path '" + path + "': expected '" + expected + "' but got '" + actual + "'");
+        return this;
+    }
+    public ApiResponse assertHeaderSoft(String name, String expectedValue) {
+        softCollect(expectedValue.equals(header(name)),
+                "[ApiResponse] Header '" + name + "': expected '" + expectedValue + "' but got '" + header(name) + "'");
+        return this;
+    }
+
+    // ── ResponseSpec ───────────────────────────────────────────────────────────
+
+    /** Validate against a reusable response spec. */
+    public ApiResponse expect(ApiResponseSpec spec) {
+        spec.validate(this);
         return this;
     }
 
