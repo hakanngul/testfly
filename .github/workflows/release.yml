@@ -1,0 +1,57 @@
+name: Release to Maven Central
+
+on:
+  # Önerilen: tag push ile release (örn: git tag v1.0.1 && git push origin v1.0.1)
+  push:
+    tags: ['v*']
+  # Manuel tetikleme: Actions sekmesinden "Run workflow" ile
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (örn: 1.0.1) — boş bırakılırsa pom.xml versiyonu kullanılır'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+          server-id: central
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: GPG_PASSPHRASE
+
+      - name: Set version from tag or input
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.version != ''
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "Setting version to $VERSION"
+          mvn versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false --no-transfer-progress
+          cat pom.xml | grep -A1 "<version>"
+
+      - name: Verify
+        run: mvn -B verify -Dgpg.skip=true --no-transfer-progress
+
+      - name: Deploy to Maven Central
+        run: mvn -B deploy -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}" --no-transfer-progress
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
