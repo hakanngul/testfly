@@ -14,11 +14,12 @@ import static org.testng.Assert.*;
 /**
  * Unit tests for {@link TestFlyContext}.
  * Uses reflection to reset the static AtomicReference between tests.
+ * Thread-safe for parallel=methods via singleThreaded + global lock on TestFlyContext.class.
  */
 @Test(singleThreaded = true)
 public class TestFlyContextTest {
 
-    private static final Object LOCK = new Object();
+    private static final Object LOCK = TestFlyContext.class;
 
     @BeforeMethod
     public void setupContext() throws Exception {
@@ -49,6 +50,7 @@ public class TestFlyContextTest {
     @Test
     public void isInitialized_beforeInit_returnsFalse() {
         synchronized (LOCK) {
+            resetContextInternalQuietly();
             assertFalse(TestFlyContext.isInitialized());
         }
     }
@@ -56,6 +58,7 @@ public class TestFlyContextTest {
     @Test
     public void initialize_setsConfigAndMarkInitialized() {
         synchronized (LOCK) {
+            resetContextInternalQuietly();
             TestFlyConfig config = minimalConfig();
             TestFlyContext.initialize(config);
 
@@ -67,6 +70,7 @@ public class TestFlyContextTest {
     @Test
     public void initialize_calledTwice_firstConfigWins() {
         synchronized (LOCK) {
+            resetContextInternalQuietly();
             TestFlyConfig first = minimalConfig();
             TestFlyConfig second = minimalConfig();
             second.getBrowser().setName("firefox");
@@ -81,6 +85,7 @@ public class TestFlyContextTest {
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void initialize_withNull_throwsIllegalArgument() {
         synchronized (LOCK) {
+            resetContextInternalQuietly();
             TestFlyContext.initialize(null);
         }
     }
@@ -92,6 +97,7 @@ public class TestFlyContextTest {
     @Test(expectedExceptions = IllegalStateException.class)
     public void getConfig_whenNotInitialized_throwsIllegalState() {
         synchronized (LOCK) {
+            resetContextInternalQuietly();
             TestFlyContext.getConfig();
         }
     }
@@ -104,7 +110,11 @@ public class TestFlyContextTest {
     public void setAndGetCurrentTestId_returnsSameValue() {
         synchronized (LOCK) {
             TestFlyContext.setCurrentTestId("my.test.Method");
-            assertEquals("my.test.Method", TestFlyContext.getCurrentTestId());
+            try {
+                assertEquals("my.test.Method", TestFlyContext.getCurrentTestId());
+            } finally {
+                TestFlyContext.clearCurrentTestId();
+            }
         }
     }
 
@@ -120,7 +130,16 @@ public class TestFlyContextTest {
     @Test
     public void getCurrentTestId_whenNotSet_returnsNull() {
         synchronized (LOCK) {
+            TestFlyContext.clearCurrentTestId();
             assertNull(TestFlyContext.getCurrentTestId());
+        }
+    }
+
+    private static void resetContextInternalQuietly() {
+        try {
+            resetContextInternal();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

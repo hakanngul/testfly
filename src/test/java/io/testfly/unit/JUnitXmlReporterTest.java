@@ -23,7 +23,7 @@ import static org.testng.Assert.*;
 /**
  * Unit tests for {@link JUnitXmlReporter}.
  * Verifies that the generated XML file exists and contains well-formed content.
- * Thread-safe for parallel=methods via singleThreaded and global report lock.
+ * Thread-safe for parallel=methods via singleThreaded and global report + context locks.
  */
 @Test(singleThreaded = true)
 public class JUnitXmlReporterTest {
@@ -32,24 +32,29 @@ public class JUnitXmlReporterTest {
             new File("target/surefire-reports/TEST-TestFly.xml");
 
     private static final Object GLOBAL_REPORT_LOCK = ReportPaths.class;
+    private static final Object CONTEXT_LOCK = TestFlyContext.class;
 
     @BeforeMethod
     public void setup() throws Exception {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            if (XML_FILE.exists()) XML_FILE.delete();
-            ExecutionMetrics.reset();
-            resetTestFlyContext();
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                if (XML_FILE.exists()) XML_FILE.delete();
+                ExecutionMetrics.reset();
+                resetTestFlyContext();
+            }
         }
     }
 
     @AfterMethod
     public void cleanup() throws Exception {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            if (XML_FILE.exists()) XML_FILE.delete();
-            ExecutionMetrics.reset();
-            resetTestFlyContext();
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                if (XML_FILE.exists()) XML_FILE.delete();
+                ExecutionMetrics.reset();
+                resetTestFlyContext();
+            }
         }
     }
 
@@ -106,14 +111,18 @@ public class JUnitXmlReporterTest {
 
     private String readXml() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
-            return Files.readString(XML_FILE.toPath());
+            synchronized (CONTEXT_LOCK) {
+                return Files.readString(XML_FILE.toPath());
+            }
         }
     }
 
     private void exportSync(List<TestTiming> timings, long duration) {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            JUnitXmlReporter.export(timings, duration);
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                JUnitXmlReporter.export(timings, duration);
+            }
         }
     }
 
@@ -125,7 +134,9 @@ public class JUnitXmlReporterTest {
     public void export_createsXmlFile() {
         exportSync(List.of(timing("t1", "PASSED")), 250L);
         synchronized (GLOBAL_REPORT_LOCK) {
-            assertTrue(XML_FILE.exists(), "XML report file should be created");
+            synchronized (CONTEXT_LOCK) {
+                assertTrue(XML_FILE.exists(), "XML report file should be created");
+            }
         }
     }
 
@@ -133,7 +144,9 @@ public class JUnitXmlReporterTest {
     public void export_emptyTimings_createsFile() {
         exportSync(List.of(), 0L);
         synchronized (GLOBAL_REPORT_LOCK) {
-            assertTrue(XML_FILE.exists());
+            synchronized (CONTEXT_LOCK) {
+                assertTrue(XML_FILE.exists());
+            }
         }
     }
 
@@ -260,9 +273,11 @@ public class JUnitXmlReporterTest {
     @Test
     public void export_withContextButCaptureDisabled_doesNotIncludeProperties() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            TestFlyContext.initialize(minimalConfig(false));
-            JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                TestFlyContext.initialize(minimalConfig(false));
+                JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
+            }
         }
         String xml = readXml();
         assertFalse(xml.contains("<properties>"), "Disabled capture means no CI properties");
@@ -271,15 +286,17 @@ public class JUnitXmlReporterTest {
     @Test
     public void export_withCaptureEnabledAndMetadata_includesCiProperties() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            TestFlyContext.initialize(minimalConfig(true));
-            ExecutionMetrics.setCiMetadata(new CiMetadata(
-                    "GitHub Actions", "42", "123", "main",
-                    "abc123", null, "https://example.com/run/123",
-                    "unit-tests", null, "testfly/testfly",
-                    "hagul", "agent-1", null));
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                TestFlyContext.initialize(minimalConfig(true));
+                ExecutionMetrics.setCiMetadata(new CiMetadata(
+                        "GitHub Actions", "42", "123", "main",
+                        "abc123", null, "https://example.com/run/123",
+                        "unit-tests", null, "testfly/testfly",
+                        "hagul", "agent-1", null));
 
-            JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
+                JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
+            }
         }
         String xml = readXml();
         assertTrue(xml.contains("<properties>"), "CI properties block must be present");
