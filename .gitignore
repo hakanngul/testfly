@@ -4,9 +4,6 @@ target/
 !**/src/test/**/target/
 .kotlin
 
-
-.qwen
-
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml
@@ -68,3 +65,6 @@ src/test/resources/testfly.yml
 # VisualAssert tests write throwaway timestamped baseline PNGs here during runs.
 # Guard against a failed cleanup dirtying the tree or committing throwaway images.
 src/test/resources/baselines/*.png
+
+.qwen
+ai-docs
