@@ -22,26 +22,29 @@ import static org.testng.Assert.*;
 
 /**
  * Unit tests for {@link ExecutionMetrics}.
- * Thread-safe for parallel=methods via singleThreaded + global file lock.
+ * Thread-safe for parallel=methods via singleThreaded + global file + context locks.
  */
 @Test(singleThreaded = true)
 public class ExecutionMetricsTest {
 
-    // Global lock shared across all report-related tests (ExecutionMetrics, HtmlReportGenerator, JUnitXmlReporter, ReportPaths)
+    // Global locks shared across all report-related tests
     private static final Object GLOBAL_REPORT_LOCK = ReportPaths.class;
+    private static final Object CONTEXT_LOCK = TestFlyContext.class;
 
     @BeforeMethod
     public void resetMetrics() throws Exception {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            ExecutionMetrics.reset();
-            resetTestFlyContext();
-            File json = ReportPaths.metricsJson();
-            if (json.exists()) json.delete();
-            File history = ReportPaths.metricsHistoryDir();
-            if (history.exists()) {
-                File[] files = history.listFiles();
-                if (files != null) for (File f : files) f.delete();
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                ExecutionMetrics.reset();
+                resetTestFlyContext();
+                File json = ReportPaths.metricsJson();
+                if (json.exists()) json.delete();
+                File history = ReportPaths.metricsHistoryDir();
+                if (history.exists()) {
+                    File[] files = history.listFiles();
+                    if (files != null) for (File f : files) f.delete();
+                }
             }
         }
     }
@@ -49,11 +52,13 @@ public class ExecutionMetricsTest {
     @AfterMethod
     public void cleanUp() throws Exception {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            ExecutionMetrics.reset();
-            resetTestFlyContext();
-            File json = ReportPaths.metricsJson();
-            if (json.exists()) json.delete();
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                ExecutionMetrics.reset();
+                resetTestFlyContext();
+                File json = ReportPaths.metricsJson();
+                if (json.exists()) json.delete();
+            }
         }
     }
 
@@ -227,47 +232,53 @@ public class ExecutionMetricsTest {
     @Test
     public void exportToJson_includesRetryCount() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            ExecutionMetrics.markStart("retry-test");
-            ExecutionMetrics.markEnd("retry-test");
-            ExecutionMetrics.recordStatus("retry-test", "PASSED");
-            ExecutionMetrics.recordRetry("retry-test");
-            ExecutionMetrics.exportToJson();
-            File jsonFile = ReportPaths.metricsJson();
-            assertTrue(jsonFile.exists(), "metrics JSON should exist at " + jsonFile.getPath());
-            String json = Files.readString(jsonFile.toPath());
-            assertTrue(json.contains("\"retryCount\""), "JSON must include retryCount per test");
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                ExecutionMetrics.markStart("retry-test");
+                ExecutionMetrics.markEnd("retry-test");
+                ExecutionMetrics.recordStatus("retry-test", "PASSED");
+                ExecutionMetrics.recordRetry("retry-test");
+                ExecutionMetrics.exportToJson();
+                File jsonFile = ReportPaths.metricsJson();
+                assertTrue(jsonFile.exists(), "metrics JSON should exist at " + jsonFile.getPath());
+                String json = Files.readString(jsonFile.toPath());
+                assertTrue(json.contains("\"retryCount\""), "JSON must include retryCount per test");
+            }
         }
     }
 
     @Test
     public void exportToJson_includesPassRate() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            ExecutionMetrics.markStart("pass-test");
-            ExecutionMetrics.markEnd("pass-test");
-            ExecutionMetrics.recordStatus("pass-test", "PASSED");
-            ExecutionMetrics.exportToJson();
-            File jsonFile = ReportPaths.metricsJson();
-            assertTrue(jsonFile.exists(), "metrics JSON should exist");
-            String json = Files.readString(jsonFile.toPath());
-            assertTrue(json.contains("\"passRate\""), "JSON must include top-level passRate");
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                ExecutionMetrics.markStart("pass-test");
+                ExecutionMetrics.markEnd("pass-test");
+                ExecutionMetrics.recordStatus("pass-test", "PASSED");
+                ExecutionMetrics.exportToJson();
+                File jsonFile = ReportPaths.metricsJson();
+                assertTrue(jsonFile.exists(), "metrics JSON should exist");
+                String json = Files.readString(jsonFile.toPath());
+                assertTrue(json.contains("\"passRate\""), "JSON must include top-level passRate");
+            }
         }
     }
 
     @Test
     public void exportToJson_includesFlakyCount() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            ExecutionMetrics.markStart("flaky-test");
-            ExecutionMetrics.markEnd("flaky-test");
-            ExecutionMetrics.recordStatus("flaky-test", "PASSED");
-            ExecutionMetrics.recordRetry("flaky-test");
-            ExecutionMetrics.exportToJson();
-            File jsonFile = ReportPaths.metricsJson();
-            String json = Files.readString(jsonFile.toPath());
-            assertTrue(json.contains("\"flakyTests\""),     "JSON must include top-level flakyTests");
-            assertTrue(json.contains("\"recoveredTests\""), "JSON must include top-level recoveredTests");
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                ExecutionMetrics.markStart("flaky-test");
+                ExecutionMetrics.markEnd("flaky-test");
+                ExecutionMetrics.recordStatus("flaky-test", "PASSED");
+                ExecutionMetrics.recordRetry("flaky-test");
+                ExecutionMetrics.exportToJson();
+                File jsonFile = ReportPaths.metricsJson();
+                String json = Files.readString(jsonFile.toPath());
+                assertTrue(json.contains("\"flakyTests\""),     "JSON must include top-level flakyTests");
+                assertTrue(json.contains("\"recoveredTests\""), "JSON must include top-level recoveredTests");
+            }
         }
     }
 
@@ -278,50 +289,56 @@ public class ExecutionMetricsTest {
     @Test
     public void exportToJson_withoutContext_doesNotIncludeCiBlock() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            ExecutionMetrics.markStart("ci-test-1");
-            ExecutionMetrics.markEnd("ci-test-1");
-            ExecutionMetrics.recordStatus("ci-test-1", "PASSED");
-            ExecutionMetrics.exportToJson();
-            String json = Files.readString(ReportPaths.metricsJson().toPath());
-            assertFalse(json.contains("\"ci\""), "CI block should not appear when context is uninitialized");
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                ExecutionMetrics.markStart("ci-test-1");
+                ExecutionMetrics.markEnd("ci-test-1");
+                ExecutionMetrics.recordStatus("ci-test-1", "PASSED");
+                ExecutionMetrics.exportToJson();
+                String json = Files.readString(ReportPaths.metricsJson().toPath());
+                assertFalse(json.contains("\"ci\""), "CI block should not appear when context is uninitialized");
+            }
         }
     }
 
     @Test
     public void exportToJson_withContextButCaptureDisabled_doesNotIncludeCiBlock() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            TestFlyContext.initialize(minimalConfig(false));
-            ExecutionMetrics.markStart("ci-test-2");
-            ExecutionMetrics.markEnd("ci-test-2");
-            ExecutionMetrics.recordStatus("ci-test-2", "PASSED");
-            ExecutionMetrics.exportToJson();
-            String json = Files.readString(ReportPaths.metricsJson().toPath());
-            assertFalse(json.contains("\"ci\""), "CI block should not appear when captureMetadata is disabled");
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                TestFlyContext.initialize(minimalConfig(false));
+                ExecutionMetrics.markStart("ci-test-2");
+                ExecutionMetrics.markEnd("ci-test-2");
+                ExecutionMetrics.recordStatus("ci-test-2", "PASSED");
+                ExecutionMetrics.exportToJson();
+                String json = Files.readString(ReportPaths.metricsJson().toPath());
+                assertFalse(json.contains("\"ci\""), "CI block should not appear when captureMetadata is disabled");
+            }
         }
     }
 
     @Test
     public void exportToJson_withCaptureEnabledAndMetadata_includesCiBlock() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            TestFlyContext.initialize(minimalConfig(true));
-            ExecutionMetrics.setCiMetadata(new CiMetadata(
-                    "GitHub Actions", "42", "123", "main",
-                    "abc123", null, "https://example.com/run/123",
-                    "unit-tests", null, "testfly/testfly",
-                    "hagul", "agent-1", null));
-            ExecutionMetrics.markStart("ci-test-3");
-            ExecutionMetrics.markEnd("ci-test-3");
-            ExecutionMetrics.recordStatus("ci-test-3", "PASSED");
-            ExecutionMetrics.exportToJson();
-            String json = Files.readString(ReportPaths.metricsJson().toPath());
-            assertTrue(json.contains("\"ci\""), "CI block must be present");
-            assertTrue(json.contains("\"provider\""), "CI block must include provider");
-            assertTrue(json.contains("GitHub Actions"), "CI provider value must be written");
-            assertTrue(json.contains("\"buildNumber\""), "CI build number key must be written");
-            assertTrue(json.contains("\"42\""), "CI build number value must be written");
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                TestFlyContext.initialize(minimalConfig(true));
+                ExecutionMetrics.setCiMetadata(new CiMetadata(
+                        "GitHub Actions", "42", "123", "main",
+                        "abc123", null, "https://example.com/run/123",
+                        "unit-tests", null, "testfly/testfly",
+                        "hagul", "agent-1", null));
+                ExecutionMetrics.markStart("ci-test-3");
+                ExecutionMetrics.markEnd("ci-test-3");
+                ExecutionMetrics.recordStatus("ci-test-3", "PASSED");
+                ExecutionMetrics.exportToJson();
+                String json = Files.readString(ReportPaths.metricsJson().toPath());
+                assertTrue(json.contains("\"ci\""), "CI block must be present");
+                assertTrue(json.contains("\"provider\""), "CI block must include provider");
+                assertTrue(json.contains("GitHub Actions"), "CI provider value must be written");
+                assertTrue(json.contains("\"buildNumber\""), "CI build number key must be written");
+                assertTrue(json.contains("\"42\""), "CI build number value must be written");
+            }
         }
     }
 

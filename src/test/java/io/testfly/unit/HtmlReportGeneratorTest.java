@@ -24,36 +24,41 @@ import io.testfly.reporting.ReportPaths;
 
 /**
  * Unit tests for {@link HtmlReportGenerator}.
- * Thread-safe for parallel=methods via singleThreaded + global report lock.
+ * Thread-safe for parallel=methods via singleThreaded + global report + context locks.
  */
 @Test(singleThreaded = true)
 public class HtmlReportGeneratorTest {
 
     private static final Object GLOBAL_REPORT_LOCK = ReportPaths.class;
+    private static final Object CONTEXT_LOCK = TestFlyContext.class;
 
     @BeforeMethod
     public void setup() throws Exception {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            File html = ReportPaths.htmlReport();
-            File json = ReportPaths.metricsJson();
-            if (html.exists()) html.delete();
-            if (json.exists()) json.delete();
-            resetTestFlyContext();
-            ExecutionMetrics.reset();
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                File html = ReportPaths.htmlReport();
+                File json = ReportPaths.metricsJson();
+                if (html.exists()) html.delete();
+                if (json.exists()) json.delete();
+                resetTestFlyContext();
+                ExecutionMetrics.reset();
+            }
         }
     }
 
     @AfterMethod
     public void cleanup() throws Exception {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            File html = ReportPaths.htmlReport();
-            File json = ReportPaths.metricsJson();
-            if (html.exists()) html.delete();
-            if (json.exists()) json.delete();
-            resetTestFlyContext();
-            ExecutionMetrics.reset();
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                File html = ReportPaths.htmlReport();
+                File json = ReportPaths.metricsJson();
+                if (html.exists()) html.delete();
+                if (json.exists()) json.delete();
+                resetTestFlyContext();
+                ExecutionMetrics.reset();
+            }
         }
     }
 
@@ -128,54 +133,64 @@ public class HtmlReportGeneratorTest {
     @Test
     public void generate_createsHtmlReport() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            TestFlyContext.initialize(minimalConfig());
-            writeMetricsWithCi();
-            HtmlReportGenerator.generate();
-            File html = ReportPaths.htmlReport();
-            assertTrue(html.exists(), "HTML report file should be created");
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                TestFlyContext.initialize(minimalConfig());
+                writeMetricsWithCi();
+                HtmlReportGenerator.generate();
+                File html = ReportPaths.htmlReport();
+                assertTrue(html.exists(), "HTML report file should be created");
+            }
         }
     }
 
     @Test
     public void generate_includesBuildMetadata() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            TestFlyContext.initialize(minimalConfig());
-            writeMetricsWithCi();
-            HtmlReportGenerator.generate();
-            String html = Files.readString(ReportPaths.htmlReport().toPath());
-            assertTrue(html.contains("Build Metadata"), "Report must contain build metadata section");
-            assertTrue(html.contains("GitHub Actions"), "CI provider must be rendered");
-            assertTrue(html.contains("42"), "Build number must be rendered");
-            assertTrue(html.contains("main"), "Branch must be rendered");
-            assertTrue(html.contains("testfly/testfly"), "Repository must be rendered");
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                TestFlyContext.initialize(minimalConfig());
+                writeMetricsWithCi();
+                HtmlReportGenerator.generate();
+                File htmlFile = ReportPaths.htmlReport();
+                assertTrue(htmlFile.exists(), "HTML report file should be created — generate() may have failed due to concurrent TestFlyContext clear: " + htmlFile.getPath());
+                String html = Files.readString(htmlFile.toPath());
+                assertTrue(html.contains("Build Metadata"), "Report must contain build metadata section");
+                assertTrue(html.contains("GitHub Actions"), "CI provider must be rendered");
+                assertTrue(html.contains("42"), "Build number must be rendered");
+                assertTrue(html.contains("main"), "Branch must be rendered");
+                assertTrue(html.contains("testfly/testfly"), "Repository must be rendered");
+            }
         }
     }
 
     @Test
     public void generate_buildUrlIsLinked() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            TestFlyContext.initialize(minimalConfig());
-            writeMetricsWithCi();
-            HtmlReportGenerator.generate();
-            String html = Files.readString(ReportPaths.htmlReport().toPath());
-            assertTrue(html.contains("https://github.com/hakanngul/testfly/actions/runs/123"),
-                    "Build URL must be rendered as a link");
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                TestFlyContext.initialize(minimalConfig());
+                writeMetricsWithCi();
+                HtmlReportGenerator.generate();
+                String html = Files.readString(ReportPaths.htmlReport().toPath());
+                assertTrue(html.contains("https://github.com/hakanngul/testfly/actions/runs/123"),
+                        "Build URL must be rendered as a link");
+            }
         }
     }
 
     @Test
     public void generate_noMetricsJson_isNoOp() {
         synchronized (GLOBAL_REPORT_LOCK) {
-            System.clearProperty("testfly.reports.dir");
-            TestFlyContext.initialize(minimalConfig());
-            File json = ReportPaths.metricsJson();
-            if (json.exists()) json.delete();
-            HtmlReportGenerator.generate();
-            assertFalse(ReportPaths.htmlReport().exists(),
-                    "HTML report should not be created when metrics JSON is missing");
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                TestFlyContext.initialize(minimalConfig());
+                File json = ReportPaths.metricsJson();
+                if (json.exists()) json.delete();
+                HtmlReportGenerator.generate();
+                assertFalse(ReportPaths.htmlReport().exists(),
+                        "HTML report should not be created when metrics JSON is missing");
+            }
         }
     }
 }
