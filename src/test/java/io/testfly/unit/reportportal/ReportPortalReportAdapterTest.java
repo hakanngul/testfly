@@ -17,31 +17,42 @@ import static org.testng.Assert.*;
 
 /**
  * Unit tests for {@link ReportPortalReportAdapter}.
+ * Thread-safe for parallel=methods via singleThreaded + global lock on TestFlyContext.class.
  */
+@Test(singleThreaded = true)
 public class ReportPortalReportAdapterTest {
+
+    private static final Object LOCK = TestFlyContext.class;
 
     private File metricsFile;
 
     @BeforeMethod
-    public void setup() throws IOException {
-        metricsFile = File.createTempFile("metrics", ".json");
-        clearRpSystemProperties();
+    public void setup() throws Exception {
+        synchronized (LOCK) {
+            metricsFile = File.createTempFile("metrics", ".json");
+            clearRpSystemProperties();
+            resetContextInternal();
+        }
     }
 
     @AfterMethod
     public void cleanup() throws Exception {
-        resetContext();
-        if (metricsFile != null) {
-            metricsFile.delete();
+        synchronized (LOCK) {
+            resetContextInternal();
+            if (metricsFile != null) {
+                metricsFile.delete();
+            }
+            clearRpSystemProperties();
         }
-        clearRpSystemProperties();
     }
 
-    private static void resetContext() throws Exception {
-        Field configField = TestFlyContext.class.getDeclaredField("CONFIG");
-        configField.setAccessible(true);
-        AtomicReference<?> ref = (AtomicReference<?>) configField.get(null);
-        ref.set(null);
+    private static void resetContextInternal() throws Exception {
+        try {
+            Field configField = TestFlyContext.class.getDeclaredField("CONFIG");
+            configField.setAccessible(true);
+            AtomicReference<?> ref = (AtomicReference<?>) configField.get(null);
+            ref.set(null);
+        } catch (Exception ignored) {}
         TestFlyContext.clearCurrentTestId();
     }
 
@@ -56,53 +67,61 @@ public class ReportPortalReportAdapterTest {
 
     @Test
     public void generate_whenContextNotInitialized_doesNothing() {
-        ReportPortalReportAdapter adapter = new ReportPortalReportAdapter();
-        adapter.generate(metricsFile);
-        // Should return early without throwing.
+        synchronized (LOCK) {
+            ReportPortalReportAdapter adapter = new ReportPortalReportAdapter();
+            adapter.generate(metricsFile);
+            // Should return early without throwing.
+        }
     }
 
     @Test
     public void generate_whenReportPortalDisabled_doesNothing() {
-        TestFlyConfig config = minimalConfig();
-        config.getReporting().getReportPortal().setEnabled(false);
-        TestFlyContext.initialize(config);
+        synchronized (LOCK) {
+            TestFlyConfig config = minimalConfig();
+            config.getReporting().getReportPortal().setEnabled(false);
+            TestFlyContext.initialize(config);
 
-        ReportPortalReportAdapter adapter = new ReportPortalReportAdapter();
-        adapter.generate(metricsFile);
+            ReportPortalReportAdapter adapter = new ReportPortalReportAdapter();
+            adapter.generate(metricsFile);
+        }
     }
 
     @Test
     public void generate_withInvalidConfig_doesNothing() {
-        TestFlyConfig config = minimalConfig();
-        config.getReporting().getReportPortal().setEnabled(true);
-        config.getReporting().getReportPortal().setEndpoint(null);
-        TestFlyContext.initialize(config);
+        synchronized (LOCK) {
+            TestFlyConfig config = minimalConfig();
+            config.getReporting().getReportPortal().setEnabled(true);
+            config.getReporting().getReportPortal().setEndpoint(null);
+            TestFlyContext.initialize(config);
 
-        ReportPortalReportAdapter adapter = new ReportPortalReportAdapter();
-        adapter.generate(metricsFile);
+            ReportPortalReportAdapter adapter = new ReportPortalReportAdapter();
+            adapter.generate(metricsFile);
+        }
     }
 
     @Test
     public void generate_withValidConfigAndMetrics_logsSummary() throws IOException {
-        TestFlyConfig config = minimalConfig();
-        config.getReporting().getReportPortal().setEnabled(true);
-        config.getReporting().getReportPortal().setEndpoint("http://localhost:8080");
-        config.getReporting().getReportPortal().setApiKey("test-api-key");
-        config.getReporting().getReportPortal().setProject("superadmin_personal");
-        TestFlyContext.initialize(config);
+        synchronized (LOCK) {
+            TestFlyConfig config = minimalConfig();
+            config.getReporting().getReportPortal().setEnabled(true);
+            config.getReporting().getReportPortal().setEndpoint("http://localhost:8080");
+            config.getReporting().getReportPortal().setApiKey("test-api-key");
+            config.getReporting().getReportPortal().setProject("superadmin_personal");
+            TestFlyContext.initialize(config);
 
-        String json = "{"
-                + "\"totalTests\": 3, \"passedTests\": 2, \"failedTests\": 1, \"skippedTests\": 0,"
-                + "\"tests\": ["
-                + "  {\"testId\": \"t1\", \"status\": \"PASSED\"},"
-                + "  {\"testId\": \"t2\", \"status\": \"FAILED\"},"
-                + "  {\"testId\": \"t3\", \"status\": \"SKIPPED\"}"
-                + "]}"
-                + "}";
-        Files.writeString(metricsFile.toPath(), json);
+            String json = "{"
+                    + "\"totalTests\": 3, \"passedTests\": 2, \"failedTests\": 1, \"skippedTests\": 0,"
+                    + "\"tests\": ["
+                    + "  {\"testId\": \"t1\", \"status\": \"PASSED\"},"
+                    + "  {\"testId\": \"t2\", \"status\": \"FAILED\"},"
+                    + "  {\"testId\": \"t3\", \"status\": \"SKIPPED\"}"
+                    + "]}"
+                    + "}";
+            Files.writeString(metricsFile.toPath(), json);
 
-        ReportPortalReportAdapter adapter = new ReportPortalReportAdapter();
-        adapter.generate(metricsFile);
+            ReportPortalReportAdapter adapter = new ReportPortalReportAdapter();
+            adapter.generate(metricsFile);
+        }
     }
 
     @Test
