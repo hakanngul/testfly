@@ -7,17 +7,22 @@ import io.testfly.internal.TestFlyContext;
 import io.testfly.steps.StepLogger;
 import io.testfly.steps.StepStatus;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
@@ -32,10 +37,18 @@ import java.util.stream.Collectors;
  * res.assertStatus(200);
  * String token = res.json("$.token");
  *
- * // Different base URL
- * ApiResponse health = ApiClient.to("https://other-service.com")
- *         .get("/health")
+ * // Path params (URL-encoded, fail-fast on unresolved placeholders)
+ * ApiResponse user = apiClient().get("/api/users/{id}")
+ *         .pathParam("id", 42)
  *         .send();
+ *
+ * // Form + multipart
+ * apiClient().post("/login").formParam("username", "admin").formParam("password", "secret").send();
+ * apiClient().post("/upload").multipart("file", Path.of("avatar.png")).send();
+ *
+ * // Different base URL / service
+ * ApiResponse health = ApiClient.to("https://other-service.com").get("/health").send();
+ * ApiResponse pay = ApiClient.toService("payment").get("/charges").send();
  * </pre>
  */
 @TestFlyApi(since = "1.0.0")
@@ -59,6 +72,9 @@ public class ApiClient {
 
     /** Global response interceptors — applied to every response. */
     private static final List<ResponseInterceptor> RESPONSE_INTERCEPTORS = new CopyOnWriteArrayList<>();
+
+    /** Global request spec — applied to every request on any thread. */
+    private static volatile ApiRequestSpec GLOBAL_SPEC;
 
     /** Set once (e.g. in {@code @BeforeSuite}) — all requests on this thread use it automatically. */
     public static void setGlobalAuth(ApiAuth auth)  { GLOBAL_AUTH.set(auth); }
@@ -85,11 +101,21 @@ public class ApiClient {
         RESPONSE_INTERCEPTORS.clear();
     }
 
+    /** Set a global request spec applied to every request. */
+    public static void setGlobalSpec(ApiRequestSpec spec) { GLOBAL_SPEC = spec; }
+
+    /** Remove global request spec. */
+    public static void clearGlobalSpec() { GLOBAL_SPEC = null; }
+
     private String              baseUrl;
     private String              method;
     private String              path;
     private final Map<String, String> headers = new LinkedHashMap<>();
     private final Map<String, String> queryParams = new LinkedHashMap<>();
+    private final Map<String, String> pathParams = new LinkedHashMap<>();
+    private final Map<String, String> formParams = new LinkedHashMap<>();
+    private final Map<String, Path>   fileParams = new LinkedHashMap<>();
+    private final Map<String, String> fieldParams = new LinkedHashMap<>();
     private Object              body;
     private ApiAuth             auth;
     private Integer             timeoutOverride;
@@ -115,6 +141,25 @@ public class ApiClient {
         return c;
     }
 
+    /** Resolve base URL from multi-service map: api.baseUrls[service] or api.baseUrl. */
+    public static ApiClient toService(String service) {
+        try {
+            TestFlyConfig.Api api = TestFlyContext.getConfig().getApi();
+            String url = null;
+            if (api != null) {
+                url = api.baseUrlFor(service);
+            }
+            if (url == null) {
+                throw new IllegalStateException("[ApiClient] No baseUrl for service '" + service + "'. Set api.baseUrls." + service + " or api.baseUrl in testfly.yml");
+            }
+            return to(url);
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("[ApiClient] No baseUrl for service '" + service + "'", e);
+        }
+    }
+
     public ApiClient get()    { this.method = "GET";    return this; }
     public ApiClient post()   { this.method = "POST";   return this; }
     public ApiClient put()    { this.method = "PUT";    return this; }
@@ -126,6 +171,11 @@ public class ApiClient {
 
     public ApiClient header(String name, String value) {
         headers.put(name, value);
+        return this;
+    }
+
+    public ApiClient headers(Map<String, String> map) {
+        headers.putAll(map);
         return this;
     }
 
@@ -161,6 +211,59 @@ public class ApiClient {
         return this;
     }
 
+    /** Set a path template placeholder — {@code {name}} is replaced with URL-encoded value. */
+    public ApiClient pathParam(String name, Object value) {
+        pathParams.put(name, URLEncoder.encode(String.valueOf(value), StandardCharsets.UTF_8));
+        return this;
+    }
+
+    /** Set multiple path params at once. */
+    public ApiClient pathParams(Map<String, ?> params) {
+        params.forEach((k, v) -> pathParam(k, v));
+        return this;
+    }
+
+    /** Add a form field (application/x-www-form-urlencoded). */
+    public ApiClient formParam(String name, Object value) {
+        formParams.put(name, String.valueOf(value));
+        return this;
+    }
+
+    /** Add multiple form fields at once. */
+    public ApiClient formParams(Map<String, ?> params) {
+        params.forEach((k, v) -> formParams.put(k, String.valueOf(v)));
+        return this;
+    }
+
+    /** Add a multipart file part. */
+    public ApiClient multipart(String name, Path file) {
+        fileParams.put(name, file);
+        return this;
+    }
+
+    /** Add a multipart text field. */
+    public ApiClient field(String name, String value) {
+        fieldParams.put(name, value);
+        return this;
+    }
+
+    /** Apply a reusable request spec to this client. */
+    public ApiClient spec(ApiRequestSpec spec) {
+        spec.applyTo(this);
+        return this;
+    }
+
+    /** Package-private — used by ApiRequestSpec to set baseUrl. */
+    ApiClient baseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
+        return this;
+    }
+
+    boolean hasBaseUrl() { return baseUrl != null; }
+    boolean hasHeader(String name) { return headers.containsKey(name); }
+    boolean hasQueryParam(String name) { return queryParams.containsKey(name); }
+    boolean hasAuth() { return auth != null; }
+
     /** Enable cookie jar for this request — captures Set-Cookie and sends them on subsequent requests. */
     public ApiClient withCookies() {
         this.cookiesEnabled = true;
@@ -170,6 +273,14 @@ public class ApiClient {
     // ── Execute ───────────────────────────────────────────────────────────────
 
     public ApiResponse send() {
+        // Apply global spec first (if any) — per-request values win
+        if (GLOBAL_SPEC != null) {
+            GLOBAL_SPEC.applyToIfAbsent(this);
+        }
+        // Allow auth to modify client (e.g. apiKeyQuery adds query param) before URL is built
+        if (auth != null) auth.applyToClient(this);
+        else if (GLOBAL_AUTH.get() != null) GLOBAL_AUTH.get().applyToClient(this);
+
         String url = buildUrl();
         int timeout = resolveTimeout();
 
@@ -196,7 +307,7 @@ public class ApiClient {
             return executeRequest(url, timeout);
         }
 
-        RuntimeException lastException = null;
+        ApiException lastException = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
                 ApiResponse response = executeRequest(url, timeout);
@@ -208,12 +319,25 @@ public class ApiClient {
                     continue;
                 }
                 return response;
-            } catch (RuntimeException e) {
+            } catch (ApiException e) {
                 lastException = e;
                 if (attempt < maxAttempts && retryOnException) {
                     StepLogger.step("[API] Retry " + attempt + "/" + maxAttempts
                             + " — " + e.getMessage(), StepStatus.WARN);
                     sleep(backoffMs * attempt);
+                } else if (attempt >= maxAttempts) {
+                    throw e;
+                }
+            } catch (RuntimeException e) {
+                // Wrap non-ApiException runtime as ApiException for retry classification
+                ApiException wrapped = new ApiException(method, url, e);
+                lastException = wrapped;
+                if (attempt < maxAttempts && retryOnException) {
+                    StepLogger.step("[API] Retry " + attempt + "/" + maxAttempts
+                            + " — " + e.getMessage(), StepStatus.WARN);
+                    sleep(backoffMs * attempt);
+                } else if (attempt >= maxAttempts) {
+                    throw wrapped;
                 }
             }
         }
@@ -224,15 +348,35 @@ public class ApiClient {
 
     private ApiResponse executeRequest(String url, int timeout) {
         try {
-            String bodyStr = serializeBody();
+            byte[] bodyBytes = null;
+            String bodyStr = null;
+            String contentTypeOverride = null;
+
+            if (!fileParams.isEmpty() || !fieldParams.isEmpty()) {
+                MultipartBody mp = buildMultipartBody();
+                bodyBytes = mp.bytes;
+                contentTypeOverride = mp.contentType;
+            } else if (!formParams.isEmpty()) {
+                bodyStr = formParams.entrySet().stream()
+                        .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8)
+                                + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
+                        .collect(Collectors.joining("&"));
+                contentTypeOverride = "application/x-www-form-urlencoded";
+            } else {
+                bodyStr = serializeBody();
+            }
 
             HttpRequest.Builder builder = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(Duration.ofSeconds(timeout));
 
-            // Default content type for body requests
-            if (bodyStr != null && !headers.containsKey("Content-Type")) {
+            // Content-Type handling
+            if (contentTypeOverride != null && !headers.containsKey("Content-Type")) {
+                builder.header("Content-Type", contentTypeOverride);
+            } else if (bodyStr != null && !headers.containsKey("Content-Type")) {
                 builder.header("Content-Type", "application/json");
+            } else if (bodyBytes != null && contentTypeOverride != null && !headers.containsKey("Content-Type")) {
+                builder.header("Content-Type", contentTypeOverride);
             }
             headers.forEach(builder::header);
             ApiAuth effectiveAuth = this.auth != null ? this.auth : GLOBAL_AUTH.get();
@@ -246,9 +390,14 @@ public class ApiClient {
                 interceptor.intercept(builder);
             }
 
-            HttpRequest.BodyPublisher publisher = bodyStr != null
-                    ? HttpRequest.BodyPublishers.ofString(bodyStr)
-                    : HttpRequest.BodyPublishers.noBody();
+            HttpRequest.BodyPublisher publisher;
+            if (bodyBytes != null) {
+                publisher = HttpRequest.BodyPublishers.ofByteArray(bodyBytes);
+            } else if (bodyStr != null) {
+                publisher = HttpRequest.BodyPublishers.ofString(bodyStr);
+            } else {
+                publisher = HttpRequest.BodyPublishers.noBody();
+            }
 
             builder.method(method, publisher);
 
@@ -259,7 +408,7 @@ public class ApiClient {
             // Capture cookies
             if (cookiesEnabled) captureCookies(raw);
 
-            ApiResponse response = new ApiResponse(raw, duration);
+            ApiResponse response = new ApiResponse(raw, duration, method, url);
 
             // Apply response interceptors
             for (ResponseInterceptor interceptor : RESPONSE_INTERCEPTORS) {
@@ -269,17 +418,29 @@ public class ApiClient {
             logStep(response);
             return response;
 
+        } catch (ApiException e) {
+            throw e;
         } catch (Exception e) {
             StepLogger.step("[API] " + method + " " + url + " → ERROR: " + e.getMessage(), StepStatus.FAIL);
-            throw new RuntimeException("[ApiClient] Request failed: " + method + " " + url, e);
+            throw new ApiException(method, url, e);
         }
     }
 
     // ── Internal: URL building ────────────────────────────────────────────────
 
     private String buildUrl() {
-        String base = isAbsolute(path) ? path
-                : resolveBaseUrl() + (path.startsWith("/") ? path : "/" + path);
+        String resolvedPath = path;
+        if (resolvedPath != null && !pathParams.isEmpty()) {
+            for (Map.Entry<String, String> e : pathParams.entrySet()) {
+                resolvedPath = resolvedPath.replace("{" + e.getKey() + "}", e.getValue());
+            }
+        }
+        if (resolvedPath != null && resolvedPath.contains("{") && resolvedPath.contains("}")) {
+            throw new IllegalStateException("[ApiClient] Unresolved path params in: " + resolvedPath + " — missing pathParam() for placeholder");
+        }
+
+        String base = isAbsolute(resolvedPath) ? resolvedPath
+                : resolveBaseUrl() + (resolvedPath != null && resolvedPath.startsWith("/") ? resolvedPath : "/" + resolvedPath);
 
         if (!queryParams.isEmpty()) {
             String query = queryParams.entrySet().stream()
@@ -319,6 +480,47 @@ public class ApiClient {
         return MAPPER.writeValueAsString(body);
     }
 
+    // ── Multipart ─────────────────────────────────────────────────────────────
+
+    private static final class MultipartBody {
+        final byte[] bytes;
+        final String contentType;
+        MultipartBody(byte[] bytes, String contentType) { this.bytes = bytes; this.contentType = contentType; }
+    }
+
+    private MultipartBody buildMultipartBody() throws IOException {
+        String boundary = "TestFlyBoundary" + System.currentTimeMillis();
+        String contentType = "multipart/form-data; boundary=" + boundary;
+        List<byte[]> parts = new ArrayList<>();
+        byte[] crlf = "\r\n".getBytes(StandardCharsets.UTF_8);
+        byte[] dashBoundary = ("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8);
+
+        for (Map.Entry<String, String> e : fieldParams.entrySet()) {
+            parts.add(dashBoundary);
+            parts.add(("Content-Disposition: form-data; name=\"" + e.getKey() + "\"\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+            parts.add(e.getValue().getBytes(StandardCharsets.UTF_8));
+            parts.add(crlf);
+        }
+        for (Map.Entry<String, Path> e : fileParams.entrySet()) {
+            Path file = e.getValue();
+            String fileName = file.getFileName().toString();
+            String mime = Files.probeContentType(file);
+            if (mime == null) mime = "application/octet-stream";
+            parts.add(dashBoundary);
+            parts.add(("Content-Disposition: form-data; name=\"" + e.getKey() + "\"; filename=\"" + fileName + "\"\r\n").getBytes(StandardCharsets.UTF_8));
+            parts.add(("Content-Type: " + mime + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+            parts.add(Files.readAllBytes(file));
+            parts.add(crlf);
+        }
+        parts.add(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+
+        int total = parts.stream().mapToInt(b -> b.length).sum();
+        byte[] all = new byte[total];
+        int pos = 0;
+        for (byte[] p : parts) { System.arraycopy(p, 0, all, pos, p.length); pos += p.length; }
+        return new MultipartBody(all, contentType);
+    }
+
     // ── Cookie management ─────────────────────────────────────────────────────
 
     private void applyCookies(HttpRequest.Builder builder) {
@@ -348,19 +550,63 @@ public class ApiClient {
 
     private void logStep(ApiResponse response) {
         boolean logBody = false;
+        boolean prettyLog = false;
+        boolean logCurl = false;
         int truncationLimit = 300;
+        Set<String> maskedHeaders = Set.of("Authorization", "Cookie", "X-Api-Key");
         try {
             TestFlyConfig.Api api = TestFlyContext.getConfig().getApi();
-            logBody = api != null && api.isLogBody();
-            if (api != null) truncationLimit = api.getTruncationLimit();
+            if (api != null) {
+                logBody = api.isLogBody();
+                prettyLog = api.isPrettyLog();
+                logCurl = api.isLogCurl();
+                truncationLimit = api.getTruncationLimit();
+                if (api.getMaskedHeaders() != null && !api.getMaskedHeaders().isEmpty()) {
+                    maskedHeaders = Set.copyOf(api.getMaskedHeaders());
+                }
+            }
         } catch (Exception ignored) {}
 
         StepStatus status = response.status() >= 400 ? StepStatus.FAIL : StepStatus.PASS;
-        String log = "[API] " + method + " " + path + " → " + response.status() + " (" + response.durationMs() + "ms)";
-        if (logBody && response.body() != null && !response.body().isBlank()) {
-            log += "\n  Body: " + truncate(response.body(), truncationLimit);
+        StringBuilder log = new StringBuilder("[API] " + method + " " + path + " → " + response.status() + " (" + response.durationMs() + "ms)");
+
+        if (!headers.isEmpty()) {
+            log.append("\n  Headers: ");
+            for (Map.Entry<String, String> e : headers.entrySet()) {
+                String val = maskedHeaders.contains(e.getKey()) ? "***" : e.getValue();
+                log.append(e.getKey()).append("=").append(val).append(" ");
+            }
         }
-        StepLogger.step(log, status);
+
+        if (logBody && response.body() != null && !response.body().isBlank()) {
+            String body = response.body();
+            if (prettyLog) {
+                try { body = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(MAPPER.readTree(body)); }
+                catch (Exception ignored) {}
+            }
+            log.append("\n  Body: ").append(truncate(body, truncationLimit));
+        }
+
+        if (logCurl) {
+            log.append("\n  curl: ").append(toCurl());
+        }
+
+        StepLogger.step(log.toString(), status);
+    }
+
+    private String toCurl() {
+        StringBuilder curl = new StringBuilder("curl -X ").append(method).append(" '").append(buildUrl()).append("'");
+        headers.forEach((k, v) -> curl.append(" -H '").append(k).append(": ").append(v).append("'"));
+        if (body != null) {
+            try { curl.append(" -d '").append(serializeBody()).append("'"); }
+            catch (Exception ignored) {}
+        } else if (!formParams.isEmpty()) {
+            String form = formParams.entrySet().stream()
+                    .map(e -> e.getKey() + "=" + e.getValue())
+                    .collect(Collectors.joining("&"));
+            curl.append(" -d '").append(form).append("'");
+        }
+        return curl.toString();
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────

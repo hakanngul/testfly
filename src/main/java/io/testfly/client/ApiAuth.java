@@ -34,6 +34,9 @@ public interface ApiAuth {
 
     void apply(HttpRequest.Builder builder);
 
+    /** Hook to modify ApiClient before URL is built (e.g. add query param). */
+    default void applyToClient(io.testfly.client.ApiClient client) {}
+
     // ── Static factories ──────────────────────────────────────────────────────
 
     /** Sets {@code Authorization: Bearer <token>}. */
@@ -47,6 +50,59 @@ public interface ApiAuth {
             String encoded = Base64.getEncoder()
                     .encodeToString((username + ":" + password).getBytes());
             builder.header("Authorization", "Basic " + encoded);
+        };
+    }
+
+    /** Sets {@code X-Api-Key} or custom header to {@code apiKey}. */
+    public static ApiAuth apiKey(String headerName, String apiKey) {
+        String h = headerName != null ? headerName : "X-Api-Key";
+        return builder -> builder.header(h, apiKey);
+    }
+
+    /** Adds API key as query parameter — applied before URL is built. */
+    public static ApiAuth apiKeyQuery(String paramName, String apiKey) {
+        return new ApiAuth() {
+            @Override public void apply(HttpRequest.Builder builder) {}
+            @Override public void applyToClient(io.testfly.client.ApiClient client) {
+                client.queryParam(paramName, apiKey);
+            }
+        };
+    }
+
+    /** Simple Digest placeholder — sends Basic-like header with Digest prefix. For full RFC 2617 use a custom interceptor. */
+    public static ApiAuth digest(String username, String password) {
+        return builder -> {
+            String encoded = Base64.getEncoder()
+                    .encodeToString((username + ":" + password).getBytes());
+            builder.header("Authorization", "Digest " + encoded);
+        };
+    }
+
+    /** HMAC signature — adds {@code X-Api-Key} and {@code X-Signature} headers. */
+    public static ApiAuth hmac(String apiKey, String secret, String algorithm) {
+        String algo = algorithm != null ? algorithm : "HmacSHA256";
+        return builder -> {
+            try {
+                javax.crypto.Mac mac = javax.crypto.Mac.getInstance(algo);
+                mac.init(new javax.crypto.spec.SecretKeySpec(secret.getBytes(java.nio.charset.StandardCharsets.UTF_8), algo));
+                String sig = Base64.getEncoder().encodeToString(mac.doFinal(apiKey.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+                builder.header("X-Api-Key", apiKey);
+                builder.header("X-Signature", sig);
+            } catch (Exception e) {
+                throw new RuntimeException("[ApiAuth] HMAC failed with algorithm " + algo, e);
+            }
+        };
+    }
+
+    /**
+     * OAuth2 Resource Owner Password Credentials grant.
+     * Fetches token via {@code grant_type=password} and caches it.
+     */
+    public static ApiAuth oauth2Password(String tokenUrl, String clientId, String clientSecret,
+                                         String username, String password) {
+        return builder -> {
+            String token = OAuth2TokenCache.getPasswordToken(tokenUrl, clientId, clientSecret, username, password);
+            builder.header("Authorization", "Bearer " + token);
         };
     }
 
@@ -93,6 +149,47 @@ public interface ApiAuth {
                 CACHE.put(key, fresh);
                 return fresh.token;
             }
+        }
+
+        static String getPasswordToken(String tokenUrl, String clientId, String clientSecret,
+                                         String username, String password) {
+            String key = tokenUrl + "|" + clientId + "|" + username;
+            CachedToken cached = CACHE.get(key);
+            if (cached != null && !cached.isExpired()) return cached.token;
+            synchronized (CACHE) {
+                cached = CACHE.get(key);
+                if (cached != null && !cached.isExpired()) return cached.token;
+                CachedToken fresh = fetchPasswordToken(tokenUrl, clientId, clientSecret, username, password);
+                CACHE.put(key, fresh);
+                return fresh.token;
+            }
+        }
+
+        private static CachedToken fetchPasswordToken(String tokenUrl, String clientId, String clientSecret,
+                                                      String username, String password) {
+            try {
+                String form = "grant_type=password"
+                            + "&client_id=" + clientId
+                            + "&client_secret=" + clientSecret
+                            + "&username=" + username
+                            + "&password=" + password;
+                HttpRequest req = HttpRequest.newBuilder()
+                        .uri(URI.create(tokenUrl))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(form))
+                        .timeout(Duration.ofSeconds(15))
+                        .build();
+                HttpResponse<String> res = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
+                if (res.statusCode() != 200) {
+                    throw new RuntimeException("[ApiAuth] OAuth2 password token request failed: HTTP "
+                            + res.statusCode() + " — " + res.body());
+                }
+                JsonNode json      = MAPPER.readTree(res.body());
+                String   token     = json.path("access_token").asText();
+                int      expiresIn = json.path("expires_in").asInt(3600);
+                return new CachedToken(token, Instant.now().plusSeconds(expiresIn - 60));
+            } catch (RuntimeException e) { throw e; }
+            catch (Exception e) { throw new RuntimeException("[ApiAuth] Failed to fetch OAuth2 password token from: " + tokenUrl, e); }
         }
 
         private static CachedToken fetchToken(String tokenUrl, String clientId, String clientSecret) {

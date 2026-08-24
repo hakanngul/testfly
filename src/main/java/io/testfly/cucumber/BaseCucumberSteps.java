@@ -1,6 +1,7 @@
 package io.testfly.cucumber;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.test.support.ApiSupport;
 import io.testfly.test.support.AssertionSupport;
 import io.testfly.test.support.LocatorSupport;
 import io.testfly.test.support.NavigationSupport;
@@ -33,15 +34,17 @@ import io.cucumber.java.Scenario;
  * {@code CucumberContext} ThreadLocals.
  */
 @TestFlyApi(since = "1.9.0")
-public abstract class BaseCucumberSteps implements LocatorSupport, AssertionSupport, StepSupport, NavigationSupport {
+public abstract class BaseCucumberSteps implements LocatorSupport, AssertionSupport, StepSupport, NavigationSupport, ApiSupport {
 
     // ----------------------------------------------------------
     // Navigation (open / getDriver / getWait) — via NavigationSupport
     // Fluent Locator API (find / $), Accessibility locators (getBy*),
     // Web-First Assertions (assertThat) — via support interfaces
+    // API helpers — via ApiSupport (apiClient, apiGet/Post/Put/Patch/Delete)
     // ----------------------------------------------------------
     // find(String/By), $(String/By), getByRole/Text/Label/Placeholder/TestId/AltText/Title
     // assertThat(By/Locator), step(), open(), open(String), getDriver(), getWait()
+    // apiClient(), apiGet(), apiPost(), apiPut(), apiPatch(), apiDelete()
     // are provided as default methods in io.testfly.test.support.*.
 
     /**

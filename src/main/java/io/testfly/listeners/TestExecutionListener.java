@@ -348,8 +348,19 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
             case "oauth2" -> ApiAuth.oauth2(resolveEnvVar(s.getTokenUrl()),
                                             resolveEnvVar(s.getClientId()),
                                             resolveEnvVar(s.getClientSecret()));
+            case "apikey", "api_key", "apikey-header" -> ApiAuth.apiKey(
+                    s.getHeaderName() != null ? s.getHeaderName() : "X-Api-Key",
+                    resolveEnvVar(s.getApiKey() != null ? s.getApiKey() : s.getToken()));
+            case "apikey-query", "api_key_query" -> ApiAuth.apiKeyQuery(
+                    s.getHeaderName() != null ? s.getHeaderName() : "api_key",
+                    resolveEnvVar(s.getApiKey() != null ? s.getApiKey() : s.getToken()));
+            case "digest" -> ApiAuth.digest(resolveEnvVar(s.getUsername()), resolveEnvVar(s.getPassword()));
+            case "hmac"   -> ApiAuth.hmac(resolveEnvVar(s.getApiKey()), resolveEnvVar(s.getSecret()), s.getAlgorithm());
+            case "oauth2_password", "oauth2-password", "password" -> ApiAuth.oauth2Password(
+                    resolveEnvVar(s.getTokenUrl()), resolveEnvVar(s.getClientId()),
+                    resolveEnvVar(s.getClientSecret()), resolveEnvVar(s.getUsername()), resolveEnvVar(s.getPassword()));
             default       -> throw new IllegalArgumentException(
-                "[UseAuth] Unknown auth type: '" + type + "'. Use bearer, basic, or oauth2");
+                "[UseAuth] Unknown auth type: '" + type + "'. Use bearer, basic, oauth2, apiKey, digest, hmac, oauth2_password");
         };
     }
 

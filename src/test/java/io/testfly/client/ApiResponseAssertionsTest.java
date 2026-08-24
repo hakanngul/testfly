@@ -1,7 +1,6 @@
 package io.testfly.client;
 
 import org.mockito.Mockito;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.net.http.HttpHeaders;
@@ -20,14 +19,9 @@ import static org.testng.Assert.*;
  */
 public class ApiResponseAssertionsTest {
 
-    private HttpResponse<String> mockResponse;
-
-    @BeforeMethod
-    public void setUp() {
-        mockResponse = Mockito.mock(HttpResponse.class);
-    }
-
+    @SuppressWarnings("unchecked")
     private ApiResponse response(int status, String body, long durationMs) {
+        HttpResponse<String> mockResponse = Mockito.mock(HttpResponse.class);
         when(mockResponse.statusCode()).thenReturn(status);
         when(mockResponse.body()).thenReturn(body);
         HttpHeaders headers = HttpHeaders.of(Map.of(), (a, b) -> true);
@@ -35,7 +29,9 @@ public class ApiResponseAssertionsTest {
         return new ApiResponse(mockResponse, durationMs);
     }
 
+    @SuppressWarnings("unchecked")
     private ApiResponse responseWithHeaders(int status, String body, Map<String, List<String>> headerMap) {
+        HttpResponse<String> mockResponse = Mockito.mock(HttpResponse.class);
         when(mockResponse.statusCode()).thenReturn(status);
         when(mockResponse.body()).thenReturn(body);
         HttpHeaders headers = HttpHeaders.of(headerMap, (a, b) -> true);
@@ -55,7 +51,7 @@ public class ApiResponseAssertionsTest {
         response(200, "{}", 200).assertDurationLessThan(200);
     }
 
-    @Test(expectedExceptions = AssertionError.class)
+    @Test(expectedExceptions = ApiException.class)
     public void assertDurationLessThan_exceedsLimit_fails() {
         response(200, "{}", 500).assertDurationLessThan(200);
     }
@@ -65,7 +61,7 @@ public class ApiResponseAssertionsTest {
         response(200, "{}", 800).assertDurationLessThan(1, TimeUnit.SECONDS);
     }
 
-    @Test(expectedExceptions = AssertionError.class)
+    @Test(expectedExceptions = ApiException.class)
     public void assertDurationLessThan_withTimeUnit_fails() {
         response(200, "{}", 2000).assertDurationLessThan(1, TimeUnit.SECONDS);
     }
@@ -79,14 +75,14 @@ public class ApiResponseAssertionsTest {
         res.assertHeader("content-type", "application/json");
     }
 
-    @Test(expectedExceptions = AssertionError.class)
+    @Test(expectedExceptions = ApiException.class)
     public void assertHeader_mismatchedValue_fails() {
         ApiResponse res = responseWithHeaders(200, "{}",
                 Map.of("content-type", List.of("text/html")));
         res.assertHeader("content-type", "application/json");
     }
 
-    @Test(expectedExceptions = AssertionError.class)
+    @Test(expectedExceptions = ApiException.class)
     public void assertHeader_missingHeader_fails() {
         ApiResponse res = responseWithHeaders(200, "{}", Map.of());
         res.assertHeader("x-missing", "value");
@@ -101,7 +97,7 @@ public class ApiResponseAssertionsTest {
         res.assertHeaderPresent("x-request-id");
     }
 
-    @Test(expectedExceptions = AssertionError.class)
+    @Test(expectedExceptions = ApiException.class)
     public void assertHeaderPresent_missingHeader_fails() {
         ApiResponse res = responseWithHeaders(200, "{}", Map.of());
         res.assertHeaderPresent("x-missing");
@@ -115,7 +111,7 @@ public class ApiResponseAssertionsTest {
                 .assertBodyMatches("Order #\\d+ confirmed");
     }
 
-    @Test(expectedExceptions = AssertionError.class)
+    @Test(expectedExceptions = ApiException.class)
     public void assertBodyMatches_nonMatchingRegex_fails() {
         response(200, "Order pending", 50)
                 .assertBodyMatches("Order #\\d+ confirmed");
@@ -135,19 +131,19 @@ public class ApiResponseAssertionsTest {
                 .assertJsonArraySize("$.items", 3);
     }
 
-    @Test(expectedExceptions = AssertionError.class)
+    @Test(expectedExceptions = ApiException.class)
     public void assertJsonArraySize_wrongSize_fails() {
         response(200, "{\"items\": [1, 2, 3]}", 50)
                 .assertJsonArraySize("$.items", 5);
     }
 
-    @Test(expectedExceptions = AssertionError.class)
+    @Test(expectedExceptions = ApiException.class)
     public void assertJsonArraySize_notAnArray_fails() {
         response(200, "{\"name\": \"John\"}", 50)
                 .assertJsonArraySize("$.name", 1);
     }
 
-    @Test(expectedExceptions = AssertionError.class)
+    @Test(expectedExceptions = ApiException.class)
     public void assertJsonArraySize_missingPath_fails() {
         response(200, "{\"items\": [1]}", 50)
                 .assertJsonArraySize("$.nonexistent", 1);
@@ -167,7 +163,7 @@ public class ApiResponseAssertionsTest {
                 .assertJsonExists("$.user");
     }
 
-    @Test(expectedExceptions = AssertionError.class)
+    @Test(expectedExceptions = ApiException.class)
     public void assertJsonExists_missingPath_fails() {
         response(200, "{\"user\": {\"name\": \"John\"}}", 50)
                 .assertJsonExists("$.user.email");
@@ -187,7 +183,7 @@ public class ApiResponseAssertionsTest {
                 .assertJsonNull("$.user.email");
     }
 
-    @Test(expectedExceptions = AssertionError.class)
+    @Test(expectedExceptions = ApiException.class)
     public void assertJsonNull_nonNullValue_fails() {
         response(200, "{\"user\": \"John\"}", 50)
                 .assertJsonNull("$.user");
