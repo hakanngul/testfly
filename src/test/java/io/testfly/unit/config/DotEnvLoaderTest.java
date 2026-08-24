@@ -2,17 +2,27 @@ package io.testfly.unit.config;
 
 import io.testfly.config.DotEnvLoader;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 
+@Test(singleThreaded = true)
 public class DotEnvLoaderTest {
+
+    @BeforeMethod
+    public void setup() {
+        System.clearProperty("TEST_DOTENV_KEY");
+        System.clearProperty("TEST_DOTENV_OTHER");
+        System.clearProperty("TEST_DOTENV_NONEXISTENT");
+    }
 
     @AfterMethod
     public void cleanup() {
         System.clearProperty("TEST_DOTENV_KEY");
         System.clearProperty("TEST_DOTENV_OTHER");
+        System.clearProperty("TEST_DOTENV_NONEXISTENT");
     }
 
     @Test
@@ -33,6 +43,7 @@ public class DotEnvLoaderTest {
 
     @Test
     public void resolve_returnsDefault_whenVarNotSet() {
+        System.clearProperty("TEST_DOTENV_KEY");
         assertEquals(DotEnvLoader.resolve("${TEST_DOTENV_KEY:-fallback}"), "fallback");
     }
 
@@ -44,6 +55,7 @@ public class DotEnvLoaderTest {
 
     @Test
     public void resolve_returnsNull_whenVarNotSetAndNoDefault() {
+        System.clearProperty("TEST_DOTENV_NONEXISTENT");
         assertNull(DotEnvLoader.resolve("${TEST_DOTENV_NONEXISTENT}"));
     }
 

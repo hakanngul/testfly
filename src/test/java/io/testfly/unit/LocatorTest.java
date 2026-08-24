@@ -14,7 +14,6 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.testng.annotations.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,14 +25,13 @@ import static org.testng.Assert.*;
 /**
  * Unit tests for {@link Locator}.
  * All tests use a mocked WebDriver — no real browser required.
+ * Thread-safe for parallel=methods via singleThreaded.
  */
+@Test(singleThreaded = true)
 public class LocatorTest {
 
-    // LocatorException thrown when no elements match
     @Test
     public void resolve_throwsLocatorException_whenNoElementsFound() {
-        // Locator.of(By) requires DriverManager — tested via integration;
-        // here we verify LocatorException message is descriptive.
         LocatorException ex = new LocatorException("No element found for: By.id: missing");
         assertTrue(ex.getMessage().contains("No element found"));
     }
@@ -99,7 +97,6 @@ public class LocatorTest {
     public void locator_chaining_doesNotMutateOriginal() {
         Locator base    = Locator.ofCss(".item");
         Locator filtered = base.filter(".active");
-        // Both should still be valid Locator objects
         assertNotNull(base);
         assertNotNull(filtered);
         assertTrue(filtered.toString().contains(".active"));
@@ -110,18 +107,10 @@ public class LocatorTest {
     // ----------------------------------------------------------
 
     private static class BaseTestFixture extends BaseTest {
-        Locator findCss(String css) {
-            return find(css);
-        }
-
-        Locator findBy(By by) {
-            return find(by);
-        }
-
+        Locator findCss(String css) { return find(css); }
+        Locator findBy(By by) { return find(by); }
         @SuppressWarnings("removal")
-        Locator dollarCss(String css) {
-            return $(css);
-        }
+        Locator dollarCss(String css) { return $(css); }
     }
 
     @Test
@@ -147,16 +136,10 @@ public class LocatorTest {
     }
 
     // ----------------------------------------------------------
-    // Self-healing integration  (Locator → WaitEngine.tryHeal)
+    // Self-healing integration
     // ----------------------------------------------------------
 
-    /**
-     * Sets up static mocks for DriverManager and TestFlyContext so that
-     * {@link Locator} terminal actions can resolve elements without a real browser.
-     */
     private MockedStatic<?>[] setupHealingMocks(boolean selfHealingEnabled) {
-        // Locator's .filter() path casts the driver to JavascriptExecutor, so the mock
-        // must implement both interfaces.
         WebDriver mockDriver = mock(WebDriver.class,
                 Mockito.withSettings().extraInterfaces(JavascriptExecutor.class));
         lastMockDriver = mockDriver;
@@ -192,15 +175,11 @@ public class LocatorTest {
         MockedStatic<?>[] mocks = setupHealingMocks(true);
         try {
             By primary = By.cssSelector("#login-btn");
-            // Primary locator finds nothing…
             when(lastMockDriver.findElements(primary)).thenReturn(Collections.emptyList());
-
-            // …but the self-healing fallback (#login-btn → By.id("login-btn")) succeeds.
             WebElement healed = mock(WebElement.class);
             when(healed.isDisplayed()).thenReturn(true);
             when(healed.getText()).thenReturn("Healed Button");
             when(lastMockDriver.findElements(By.id("login-btn"))).thenReturn(List.of(healed));
-
             assertEquals(Locator.of(primary).getText(), "Healed Button");
         } finally {
             closeMocks(mocks);
@@ -213,7 +192,6 @@ public class LocatorTest {
         try {
             By primary = By.cssSelector("#login-btn");
             when(lastMockDriver.findElements(primary)).thenReturn(Collections.emptyList());
-
             assertThrows(LocatorException.class, () -> Locator.of(primary).getText());
         } finally {
             closeMocks(mocks);
@@ -226,8 +204,6 @@ public class LocatorTest {
         try {
             By primary = By.cssSelector("#login-btn");
             when(lastMockDriver.findElements(primary)).thenReturn(Collections.emptyList());
-
-            // A chain filter (.filter) means healing must NOT replace the base selector.
             assertThrows(LocatorException.class,
                     () -> Locator.of(primary).filter(".active").getText());
         } finally {

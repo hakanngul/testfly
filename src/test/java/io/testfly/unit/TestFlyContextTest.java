@@ -3,6 +3,7 @@ package io.testfly.unit;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Field;
@@ -14,10 +15,26 @@ import static org.testng.Assert.*;
  * Unit tests for {@link TestFlyContext}.
  * Uses reflection to reset the static AtomicReference between tests.
  */
+@Test(singleThreaded = true)
 public class TestFlyContextTest {
+
+    private static final Object LOCK = new Object();
+
+    @BeforeMethod
+    public void setupContext() throws Exception {
+        synchronized (LOCK) {
+            resetContextInternal();
+        }
+    }
 
     @AfterMethod
     public void resetContext() throws Exception {
+        synchronized (LOCK) {
+            resetContextInternal();
+        }
+    }
+
+    private static void resetContextInternal() throws Exception {
         Field configField = TestFlyContext.class.getDeclaredField("CONFIG");
         configField.setAccessible(true);
         AtomicReference<?> ref = (AtomicReference<?>) configField.get(null);
@@ -31,33 +48,41 @@ public class TestFlyContextTest {
 
     @Test
     public void isInitialized_beforeInit_returnsFalse() {
-        assertFalse(TestFlyContext.isInitialized());
+        synchronized (LOCK) {
+            assertFalse(TestFlyContext.isInitialized());
+        }
     }
 
     @Test
     public void initialize_setsConfigAndMarkInitialized() {
-        TestFlyConfig config = minimalConfig();
-        TestFlyContext.initialize(config);
+        synchronized (LOCK) {
+            TestFlyConfig config = minimalConfig();
+            TestFlyContext.initialize(config);
 
-        assertTrue(TestFlyContext.isInitialized());
-        assertSame(config, TestFlyContext.getConfig());
+            assertTrue(TestFlyContext.isInitialized());
+            assertSame(config, TestFlyContext.getConfig());
+        }
     }
 
     @Test
     public void initialize_calledTwice_firstConfigWins() {
-        TestFlyConfig first = minimalConfig();
-        TestFlyConfig second = minimalConfig();
-        second.getBrowser().setName("firefox");
+        synchronized (LOCK) {
+            TestFlyConfig first = minimalConfig();
+            TestFlyConfig second = minimalConfig();
+            second.getBrowser().setName("firefox");
 
-        TestFlyContext.initialize(first);
-        TestFlyContext.initialize(second); // should be ignored
+            TestFlyContext.initialize(first);
+            TestFlyContext.initialize(second); // should be ignored
 
-        assertSame(first, TestFlyContext.getConfig());
+            assertSame(first, TestFlyContext.getConfig());
+        }
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void initialize_withNull_throwsIllegalArgument() {
-        TestFlyContext.initialize(null);
+        synchronized (LOCK) {
+            TestFlyContext.initialize(null);
+        }
     }
 
     // ----------------------------------------------------------
@@ -66,7 +91,9 @@ public class TestFlyContextTest {
 
     @Test(expectedExceptions = IllegalStateException.class)
     public void getConfig_whenNotInitialized_throwsIllegalState() {
-        TestFlyContext.getConfig();
+        synchronized (LOCK) {
+            TestFlyContext.getConfig();
+        }
     }
 
     // ----------------------------------------------------------
@@ -75,20 +102,26 @@ public class TestFlyContextTest {
 
     @Test
     public void setAndGetCurrentTestId_returnsSameValue() {
-        TestFlyContext.setCurrentTestId("my.test.Method");
-        assertEquals("my.test.Method", TestFlyContext.getCurrentTestId());
+        synchronized (LOCK) {
+            TestFlyContext.setCurrentTestId("my.test.Method");
+            assertEquals("my.test.Method", TestFlyContext.getCurrentTestId());
+        }
     }
 
     @Test
     public void clearCurrentTestId_removesValue() {
-        TestFlyContext.setCurrentTestId("to-be-cleared");
-        TestFlyContext.clearCurrentTestId();
-        assertNull(TestFlyContext.getCurrentTestId());
+        synchronized (LOCK) {
+            TestFlyContext.setCurrentTestId("to-be-cleared");
+            TestFlyContext.clearCurrentTestId();
+            assertNull(TestFlyContext.getCurrentTestId());
+        }
     }
 
     @Test
     public void getCurrentTestId_whenNotSet_returnsNull() {
-        assertNull(TestFlyContext.getCurrentTestId());
+        synchronized (LOCK) {
+            assertNull(TestFlyContext.getCurrentTestId());
+        }
     }
 
     // ----------------------------------------------------------

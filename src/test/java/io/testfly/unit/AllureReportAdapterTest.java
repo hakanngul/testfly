@@ -17,34 +17,36 @@ import static org.testng.Assert.*;
 
 /**
  * Unit tests for {@link AllureReportAdapter}.
- *
- * Writes a synthetic metrics JSON to a temp file, runs the adapter,
- * then asserts the generated Allure result files are correct.
+ * Thread-safe for parallel=methods via singleThreaded and synchronized file access.
  */
+@Test(singleThreaded = true)
 public class AllureReportAdapterTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final File ALLURE_RESULTS = new File("target/allure-results");
+    private static final Object FILE_LOCK = new Object();
     private File metricsFile;
 
     @BeforeMethod
     public void setup() throws IOException {
-        // Wipe allure-results so each test starts with an empty directory
-        deleteDir(ALLURE_RESULTS);
+        synchronized (FILE_LOCK) {
+            deleteDir(ALLURE_RESULTS);
+        }
         metricsFile = File.createTempFile("metrics", ".json");
     }
 
     @AfterMethod
     public void cleanup() {
         if (metricsFile != null) metricsFile.delete();
-        deleteDir(ALLURE_RESULTS);
+        synchronized (FILE_LOCK) {
+            deleteDir(ALLURE_RESULTS);
+        }
     }
 
     // ----------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------
 
-    /** Writes a minimal metrics JSON with one test entry. */
     private void writeMetrics(String status, String errorMessage, String stackTrace)
             throws IOException {
         String error = errorMessage != null
@@ -79,27 +81,36 @@ public class AllureReportAdapterTest {
     }
 
     private List<File> resultFiles() {
-        File allureResults = new File("target/allure-results");
-        List<File> files = new ArrayList<>();
-        if (allureResults.exists()) {
-            for (File f : allureResults.listFiles()) {
-                if (f.getName().endsWith("-result.json")) files.add(f);
+        synchronized (FILE_LOCK) {
+            File allureResults = new File("target/allure-results");
+            List<File> files = new ArrayList<>();
+            if (allureResults.exists()) {
+                File[] list = allureResults.listFiles();
+                if (list != null) {
+                    for (File f : list) {
+                        if (f.getName().endsWith("-result.json")) files.add(f);
+                    }
+                }
             }
+            return files;
         }
-        return files;
     }
 
     private JsonNode firstResult() throws IOException {
         List<File> files = resultFiles();
         assertFalse(files.isEmpty(), "No result files generated in target/allure-results");
-        // Pick any one result file (there may be others from other tests)
-        // Find the one for myLoginTest
         for (File f : files) {
             JsonNode node = MAPPER.readTree(f);
             if ("myLoginTest".equals(node.path("name").asText())) return node;
         }
         fail("No result file found for myLoginTest");
         return null;
+    }
+
+    private void generateSync() {
+        synchronized (FILE_LOCK) {
+            new AllureReportAdapter().generate(metricsFile);
+        }
     }
 
     // ----------------------------------------------------------
@@ -109,40 +120,35 @@ public class AllureReportAdapterTest {
     @Test
     public void generate_createsResultFileForEachTest() throws IOException {
         writeMetrics("PASSED", null, null);
-        new AllureReportAdapter().generate(metricsFile);
-
+        generateSync();
         assertFalse(resultFiles().isEmpty(), "At least one result file must be written");
     }
 
     @Test
     public void generate_passedTest_hasPassedStatus() throws IOException {
         writeMetrics("PASSED", null, null);
-        new AllureReportAdapter().generate(metricsFile);
-
+        generateSync();
         assertEquals(firstResult().path("status").asText(), "passed");
     }
 
     @Test
     public void generate_failedTest_hasFailedStatus() throws IOException {
         writeMetrics("FAILED", "Expected [Home] but found [Login]", null);
-        new AllureReportAdapter().generate(metricsFile);
-
+        generateSync();
         assertEquals(firstResult().path("status").asText(), "failed");
     }
 
     @Test
     public void generate_skippedTest_hasSkippedStatus() throws IOException {
         writeMetrics("SKIPPED", null, null);
-        new AllureReportAdapter().generate(metricsFile);
-
+        generateSync();
         assertEquals(firstResult().path("status").asText(), "skipped");
     }
 
     @Test
     public void generate_failedTest_statusDetailsContainMessage() throws IOException {
         writeMetrics("FAILED", "Expected [Home] but found [Login]", null);
-        new AllureReportAdapter().generate(metricsFile);
-
+        generateSync();
         JsonNode details = firstResult().path("statusDetails");
         assertFalse(details.isMissingNode(), "statusDetails must be present for failed tests");
         assertEquals(details.path("message").asText(), "Expected [Home] but found [Login]");
@@ -152,8 +158,7 @@ public class AllureReportAdapterTest {
     public void generate_failedTest_statusDetailsContainTrace() throws IOException {
         writeMetrics("FAILED", "assertion failed",
                 "java.lang.AssertionError: assertion failed\\n\\tat com.example.Test.run(Test.java:42)");
-        new AllureReportAdapter().generate(metricsFile);
-
+        generateSync();
         JsonNode details = firstResult().path("statusDetails");
         assertTrue(details.path("trace").asText().contains("AssertionError"),
                 "trace must contain stack trace content");
@@ -162,8 +167,7 @@ public class AllureReportAdapterTest {
     @Test
     public void generate_passedTest_noStatusDetails() throws IOException {
         writeMetrics("PASSED", null, null);
-        new AllureReportAdapter().generate(metricsFile);
-
+        generateSync();
         assertTrue(firstResult().path("statusDetails").isMissingNode(),
                 "passed tests must not have statusDetails");
     }
@@ -171,8 +175,7 @@ public class AllureReportAdapterTest {
     @Test
     public void generate_resultHasRequiredFields() throws IOException {
         writeMetrics("PASSED", null, null);
-        new AllureReportAdapter().generate(metricsFile);
-
+        generateSync();
         JsonNode result = firstResult();
         assertFalse(result.path("uuid").asText().isEmpty(),     "uuid must be present");
         assertFalse(result.path("name").asText().isEmpty(),     "name must be present");
@@ -184,8 +187,7 @@ public class AllureReportAdapterTest {
     @Test
     public void generate_resultHasSuiteLabel() throws IOException {
         writeMetrics("PASSED", null, null);
-        new AllureReportAdapter().generate(metricsFile);
-
+        generateSync();
         JsonNode labels = firstResult().path("labels");
         boolean hasSuiteLabel = false;
         for (JsonNode label : labels) {
@@ -200,8 +202,7 @@ public class AllureReportAdapterTest {
     @Test
     public void generate_resultHasSteps() throws IOException {
         writeMetrics("PASSED", null, null);
-        new AllureReportAdapter().generate(metricsFile);
-
+        generateSync();
         JsonNode steps = firstResult().path("steps");
         assertEquals(steps.size(), 2, "Two steps from the metrics must appear in result");
         assertEquals(steps.get(0).path("name").asText(), "Open page");
@@ -210,8 +211,9 @@ public class AllureReportAdapterTest {
 
     @Test
     public void generate_nonExistentMetricsFile_isNoOp() {
-        // Must not throw
-        new AllureReportAdapter().generate(new File("target/nonexistent-metrics.json"));
+        synchronized (FILE_LOCK) {
+            new AllureReportAdapter().generate(new File("target/nonexistent-metrics.json"));
+        }
     }
 
     @Test
