@@ -125,12 +125,28 @@ jobs:
           echo "Framework version: $VERSION"
 
       - name: Checkout consumer project
+        id: checkout-consumer
+        continue-on-error: true
         uses: actions/checkout@v4
         with:
           repository: testfly/testfly-test
           path: testfly-test
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check consumer checkout
+        id: consumer-available
+        if: always()
+        run: |
+          if [ -d "testfly-test/.git" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Consumer repo testfly/testfly-test not found or not accessible — skipping consumer tests."
+            echo "Repo may be private, renamed, or not yet created. Create it or make it accessible to GITHUB_TOKEN."
+          fi
 
       - name: Update consumer project version
+        if: steps.consumer-available.outputs.available == 'true'
         working-directory: testfly-test
         env:
           FRAMEWORK_VERSION: ${{ steps.version.outputs.value }}
@@ -142,6 +158,7 @@ jobs:
             -DgenerateBackupPoms=false
 
       - name: Run consumer API tests
+        if: steps.consumer-available.outputs.available == 'true'
         working-directory: testfly-test
         env:
           CI: 'true'
@@ -152,7 +169,7 @@ jobs:
             --no-transfer-progress
 
       - name: Upload consumer test reports
-        if: always()
+        if: always() && steps.consumer-available.outputs.available == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: consumer-test-results
@@ -161,7 +178,7 @@ jobs:
           retention-days: 14
 
       - name: Publish consumer test results
-        if: always()
+        if: always() && steps.consumer-available.outputs.available == 'true'
         uses: dorny/test-reporter@v2
         with:
           name: Consumer Test Results
