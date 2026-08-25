@@ -3,6 +3,8 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 .kotlin
+.agents
+GEMINI.md
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
@@ -13,6 +15,7 @@ target/
 *.iws
 *.iml
 *.ipr
+*.asc
 
 ### Eclipse ###
 .apt_generated
