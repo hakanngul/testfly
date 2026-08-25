@@ -129,7 +129,7 @@ jobs:
         continue-on-error: true
         uses: actions/checkout@v4
         with:
-          repository: testfly/testfly-test
+          repository: ${{ github.repository_owner }}/testfly-test
           path: testfly-test
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -137,11 +137,12 @@ jobs:
         id: consumer-available
         if: always()
         run: |
-          if [ -d "testfly-test/.git" ]; then
+          if [ -f "testfly-test/pom.xml" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Consumer project found with valid pom.xml."
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Consumer repo testfly/testfly-test not found or not accessible — skipping consumer tests."
+            echo "::warning::Consumer repo ${{ github.repository_owner }}/testfly-test not found or has no pom.xml — skipping consumer tests."
             echo "Repo may be private, renamed, or not yet created. Create it or make it accessible to GITHUB_TOKEN."
           fi
 
