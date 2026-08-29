@@ -1,9 +1,14 @@
 # MCP Codegen Contract
 
-This document is the **contract between the TestFly framework and the
-[TestFly MCP server](https://github.com/hakanngul/testfly-mcp)**.
+> **⚠️ The TestFly MCP server is currently under development and not yet publicly released.**
+> This contract document is kept as a forward-looking reference for when the MCP server launches.
+> The API surface described below is already part of the `@TestFlyApi` stable contract and
+> should be respected regardless.
 
-The MCP server generates framework-native Java from a recorded browser session
+This document is the **contract between the TestFly framework and the
+TestFly MCP server** (coming soon).
+
+The MCP server will generate framework-native Java from a recorded browser session
 (`framework="testfly"`). To do that it hard-codes a mirror of parts of this
 framework's public API — the locator factories, the `Role` enum, the base-class
 helpers, and the assertion methods. **If you change any API listed here, update
