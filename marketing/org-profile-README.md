@@ -13,7 +13,7 @@
 Write less. Ship faster. Let an agent draft the test.
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.testfly/testfly?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.hakanngul/testfly)
-[![PyPI](https://img.shields.io/pypi/v/testfly-mcp?label=PyPI%20(MCP))](https://pypi.org/project/testfly-mcp/)
+
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/testfly/testfly/blob/master/LICENSE)
 [![Docs](https://img.shields.io/badge/docs-testfly.github.io-1f6feb)](https://hakanngul.github.io/TestFly)
 
@@ -29,13 +29,13 @@ piece is built to work with the others:
 | | What it is | Where |
 |---|---|---|
 | 🧪 **TestFly** | Zero-boilerplate Java framework — driver lifecycle, smart waits, retries, parallel, HTML reports, API testing, accessibility-first locators | [`testfly`](https://github.com/hakanngul/testfly) · [Maven Central](https://central.sonatype.com/artifact/io.github.hakanngul/testfly) |
-| 🤖 **TestFly MCP** | An MCP server that lets Claude / Copilot drive a real browser and **generate ready-to-run tests** — TestNG, JUnit 5, Page Object, Gherkin, Python, C# | [`testfly-mcp`](https://github.com/hakanngul/testfly-mcp) · [PyPI](https://pypi.org/project/testfly-mcp/) |
-| 🧩 **TestFly MCP VS Code Extension** | One-click install — auto-registers the MCP server with GitHub Copilot & Claude Code, no manual setup | [Marketplace](https://marketplace.visualstudio.com/items?itemName=testfly.testfly-mcp) |
+| 🤖 **TestFly MCP** *(coming soon)* | An MCP server that will let Claude / Copilot drive a real browser and **generate ready-to-run tests** — TestNG, JUnit 5, Page Object, Gherkin, Python, C# | Coming soon |
+| 🧩 **TestFly MCP VS Code Extension** *(coming soon)* | One-click install — will auto-register the MCP server with GitHub Copilot & Claude Code, no manual setup | Coming soon |
 | 📖 **Documentation** | Full guides, configuration reference, deep dives | [testfly.github.io](https://hakanngul.github.io/TestFly) |
 | 🚀 **Example project** | A runnable consumer project covering every feature | [`testfly-test`](https://github.com/testfly/testfly-test) |
 
-Java distribution via **Maven Central**, AI tooling via **PyPI**, docs, and a runnable example —
-all maintained together. That's the part that's hard to copy.
+Java distribution via **Maven Central**, docs, and a runnable example —
+all maintained together. AI-powered tooling (MCP server + VS Code extension) is coming soon.
 
 ---
 
@@ -57,20 +57,11 @@ No `WebDriver` setup. No `@AfterMethod` teardown. No wait helpers. No retry conf
 
 ---
 
-## Describe it. Let AI write it.
+## Describe it. Let AI write it. *(Coming Soon)*
 
-**One-click in VS Code** — install the
-[TestFly MCP extension](https://marketplace.visualstudio.com/items?itemName=testfly.testfly-mcp);
-it auto-registers the MCP server with GitHub Copilot and Claude Code, no config needed.
-
-**Or via pip** for any MCP client:
-
-```bash
-pip install testfly-mcp
-```
-
-Then describe a flow in plain English — the AI drives a real Chrome/Firefox browser and writes the
-TestFly test for you, with self-healing locators and codegen for Java / Python / C# / Gherkin.
+**TestFly MCP** — an MCP server that will let Claude / GitHub Copilot drive a real browser,
+record your session, and generate ready-to-run TestFly test code from a plain-English description —
+is **coming soon**. Stay tuned for the public release.
 
 ---
 

@@ -1,6 +1,6 @@
 # TestFly
 
-**Java Test Automation SDK — web, API, mobile, and AI/MCP-powered test automation without hiding Selenium**
+**Java Test Automation SDK — web, API, mobile, and AI-powered test automation without hiding Selenium**
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.testfly/testfly)](https://central.sonatype.com/artifact/io.github.hakanngul/testfly)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
@@ -95,12 +95,8 @@ Next: [the full Getting Started walkthrough](#getting-started) adds page objects
 
 ---
 
-> **AI-powered test authoring for TestFly users**
-> Use **testfly-mcp** to let Claude / GitHub Copilot control a real browser, record your session, and generate ready-to-run TestFly test code — TestNG, JUnit 5, Page Object, Gherkin, or C# NUnit.
-> ```
-> pip install testfly-mcp
-> ```
-> [PyPI](https://pypi.org/project/testfly-mcp/) · [GitHub](https://github.com/hakanngul/testfly-mcp) · 84 tools · self-healing locators · codegen for Java / Python / C# / Playwright
+> **AI-powered test authoring — Coming Soon**
+> **TestFly MCP** — an MCP server that lets Claude / GitHub Copilot control a real browser, record your session, and generate ready-to-run TestFly test code — is **coming soon**. Stay tuned for the public release.
 
 ---
 
