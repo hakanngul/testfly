@@ -79,8 +79,8 @@ const flagshipFeatures = [
         <path d="m9 9 6 6M15 9l-6 6" />
       </svg>
     ),
-    title: 'Generate Tests From a Prompt',
-    description: 'AI test authoring via testfly-mcp lets Claude or Copilot drive a real browser and generate ready-to-run TestFly tests from a single prompt.',
+    title: 'Generate Tests From a Prompt — Coming Soon',
+    description: 'AI test authoring via TestFly MCP (coming soon) will let Claude or Copilot drive a real browser and generate ready-to-run TestFly tests from a single prompt.',
   },
 ];
 
@@ -141,7 +141,7 @@ const stats = [
 
 function CodeWindow({ filename, code, className, language = 'java' }) {
   const { colorMode } = useColorMode();
-  
+
   // Custom themes with better contrast for readability
   const lightTheme = {
     plain: { color: '#1d1d1f', backgroundColor: '#f5f5f7' },
@@ -156,7 +156,7 @@ function CodeWindow({ filename, code, className, language = 'java' }) {
       { types: ['regexp', 'important', 'variable'], style: { color: '#ff9500' } },
     ],
   };
-  
+
   const darkTheme = {
     plain: { color: '#f5f5f7', backgroundColor: '#1c1c1e' },
     styles: [
@@ -170,7 +170,7 @@ function CodeWindow({ filename, code, className, language = 'java' }) {
       { types: ['regexp', 'important', 'variable'], style: { color: '#ff9f0a' } },
     ],
   };
-  
+
   const prismTheme = colorMode === 'dark' ? darkTheme : lightTheme;
 
   return (
@@ -413,13 +413,13 @@ assertThat(find("h1"))
                   <h3 className={styles.bentoTitle}>{f.title}</h3>
                   <p className={styles.bentoDesc}>{f.description}</p>
                   {f.code && (
-  <CodeWindow
-    filename=""
-    language="java"
-    code={f.code}
-    className={styles.bentoCode}
-  />
-)}
+                    <CodeWindow
+                      filename=""
+                      language="java"
+                      code={f.code}
+                      className={styles.bentoCode}
+                    />
+                  )}
                   {f.visual === 'report' && <ReportPreview />}
                 </div>
               ))}

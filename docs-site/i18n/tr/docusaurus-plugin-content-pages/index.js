@@ -79,8 +79,8 @@ const flagshipFeatures = [
         <path d="m9 9 6 6M15 9l-6 6" />
       </svg>
     ),
-    title: 'Prompt’tan Test Üretin',
-    description: 'testfly-mcp üzerinden AI test yazımı, Claude veya Copilot’un gerçek bir tarayıcıyı sürmesine ve tek bir prompt’tan çalışmaya hazır TestFly testleri üretmesine olanak tanır.',
+    title: 'Prompt'tan Test Üretin — Yakında',
+    description: 'TestFly MCP (yakında) üzerinden AI destekli test yazımı, Claude veya Copilot'un gerçek bir tarayıcıyı sürmesine ve tek bir prompt'tan çalışmaya hazır TestFly testleri üretmesine olanak tanıyacak.',
   },
 ];
 
@@ -141,7 +141,7 @@ const stats = [
 
 function CodeWindow({ filename, code, className, language = 'java' }) {
   const { colorMode } = useColorMode();
-  
+
   // Custom themes with better contrast for readability
   const lightTheme = {
     plain: { color: '#1d1d1f', backgroundColor: '#f5f5f7' },
@@ -156,7 +156,7 @@ function CodeWindow({ filename, code, className, language = 'java' }) {
       { types: ['regexp', 'important', 'variable'], style: { color: '#ff9500' } },
     ],
   };
-  
+
   const darkTheme = {
     plain: { color: '#f5f5f7', backgroundColor: '#1c1c1e' },
     styles: [
@@ -170,7 +170,7 @@ function CodeWindow({ filename, code, className, language = 'java' }) {
       { types: ['regexp', 'important', 'variable'], style: { color: '#ff9f0a' } },
     ],
   };
-  
+
   const prismTheme = colorMode === 'dark' ? darkTheme : lightTheme;
 
   return (

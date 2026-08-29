@@ -11,14 +11,21 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Showcases every new API testing feature added in the TestFly API improvement plan.
+ * Showcases every new API testing feature added in the TestFly API improvement
+ * plan.
  *
- * <p>Covers: query param builder, per-request timeout, response time assertions,
- * header assertions, JSON structure assertions (exists/null/array-size), body regex,
+ * <p>
+ * Covers: query param builder, per-request timeout, response time assertions,
+ * header assertions, JSON structure assertions (exists/null/array-size), body
+ * regex,
  * request/response interceptors, cookie jar, and fluent chaining.
  *
- * <p>Run with the real-backends profile:
- * <pre>mvn verify -Preal-backends -Dtest=io.testfly.examples.api.ApiFeaturesShowcaseTest</pre>
+ * <p>
+ * Run with the real-backends profile:
+ * 
+ * <pre>
+ * mvn verify -Preal-backends -Dtest=io.testfly.examples.api.ApiFeaturesShowcaseTest
+ * </pre>
  */
 public class ApiFeaturesShowcaseTest extends BaseApiTest {
 
@@ -33,8 +40,8 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
                 .send();
 
         res.assertStatus(200)
-           .assertJson("$.pagination.page", 1)
-           .assertJson("$.pagination.limit", 3);
+                .assertJson("$.pagination.page", 1)
+                .assertJson("$.pagination.limit", 3);
     }
 
     @Test
@@ -46,7 +53,7 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
                 .send();
 
         res.assertStatus(200)
-           .assertJsonExists("$.pagination");
+                .assertJsonExists("$.pagination");
     }
 
     @Test
@@ -80,7 +87,7 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
         ApiResponse res = apiClient().get("/users/1").send();
 
         res.assertStatus(200)
-           .assertDurationLessThan(5000); // 5 seconds max
+                .assertDurationLessThan(5000); // 5 seconds max
     }
 
     @Test
@@ -88,7 +95,7 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
         ApiResponse res = apiClient().get("/products/categories").send();
 
         res.assertStatus(200)
-           .assertDurationLessThan(10, TimeUnit.SECONDS);
+                .assertDurationLessThan(10, TimeUnit.SECONDS);
     }
 
     // ── Header assertions ──────────────────────────────────────────────────────
@@ -98,7 +105,7 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
         ApiResponse res = apiClient().get("/users/1").send();
 
         res.assertStatus(200)
-           .assertHeaderPresent("content-type");
+                .assertHeaderPresent("content-type");
     }
 
     // ── JSON structure assertions ──────────────────────────────────────────────
@@ -108,9 +115,9 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
         ApiResponse res = apiClient().get("/users/1").send();
 
         res.assertStatus(200)
-           .assertJsonExists("$.id")
-           .assertJsonExists("$.email")
-           .assertJsonExists("$.username");
+                .assertJsonExists("$.id")
+                .assertJsonExists("$.email")
+                .assertJsonExists("$.username");
     }
 
     @Test
@@ -121,8 +128,8 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
                 .send();
 
         res.assertStatus(200)
-           .assertJsonExists("$.data")
-           .assertJsonArraySize("$.data", 5);
+                .assertJsonExists("$.data")
+                .assertJsonArraySize("$.data", 5);
     }
 
     @Test
@@ -141,7 +148,7 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
         ApiResponse res = apiClient().get("/users/1").send();
 
         res.assertStatus(200)
-           .assertBodyMatches("\"id\"\\s*:\\s*1"); // JSON contains "id": 1
+                .assertBodyMatches("\"id\"\\s*:\\s*1"); // JSON contains "id": 1
     }
 
     @Test
@@ -149,7 +156,7 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
         ApiResponse res = apiClient().get("/users/1").send();
 
         res.assertStatus(200)
-           .assertBodyMatches("[\\w.]+@[\\w.]+\\.[a-z]+"); // email pattern
+                .assertBodyMatches("[\\w.]+@[\\w.]+\\.[a-z]+"); // email pattern
     }
 
     // ── Interceptors ───────────────────────────────────────────────────────────
@@ -157,8 +164,7 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
     @BeforeClass
     public void registerInterceptors() {
         // Add a correlation ID to every request in this test class
-        ApiClient.addRequestInterceptor(builder ->
-                builder.header("X-Test-Class", "ApiFeaturesShowcase"));
+        ApiClient.addRequestInterceptor(builder -> builder.header("X-Test-Class", "ApiFeaturesShowcase"));
     }
 
     @AfterClass
@@ -168,7 +174,8 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
 
     @Test
     public void interceptors_addHeadersAutomatically() {
-        // The X-Test-Class header is added by the interceptor registered in @BeforeClass
+        // The X-Test-Class header is added by the interceptor registered in
+        // @BeforeClass
         ApiResponse res = apiClient().get("/users/1").send();
         res.assertStatus(200);
     }

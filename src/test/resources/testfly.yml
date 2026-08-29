@@ -1,6 +1,6 @@
 browser:
   name: chrome
-  headless: true
+  headless: false
   arguments:
     - --start-maximized
     - --disable-notifications
@@ -13,6 +13,7 @@ execution:
   mode: local
   baseUrl: https://www.saucedemo.com/
   gridUrl: http://localhost:4444/wd/hub
+  #gridUrl: https://selenium-grid.dev34.buckedbet.com
 #  parallel: none/methods/classes
   parallel: methods
   threadCount: 4
