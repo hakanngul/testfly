@@ -1,5 +1,5 @@
 ---
-description: "TestFly is a Java Test Automation SDK for web, API, mobile, and AI/MCP-powered test automation — zero setup, Playwright-inspired locators and auto-waiting, and enterprise features, without hiding Selenium."
+description: "TestFly is a Java Test Automation SDK for web, API, mobile, and AI-powered test automation — zero setup, Playwright-inspired locators and auto-waiting, and enterprise features, without hiding Selenium."
 id: intro
 title: Introduction
 sidebar_position: 1
@@ -77,17 +77,10 @@ TestFly **is** that framework — already built, maintained, tested, thread-safe
 
 ---
 
-:::tip AI-powered test authoring
-**testfly-mcp** lets Claude or GitHub Copilot control a real browser, record your session, and
-generate TestFly test code — TestNG, JUnit 5, Page Object, Gherkin, C# NUnit — in one prompt.
-
-```bash
-pip install testfly-mcp
-```
-
-84 tools · self-healing locators · mobile emulation · codegen for Java / Python / C# / Playwright
-
-[PyPI](https://pypi.org/project/testfly-mcp/) · [GitHub](https://github.com/hakanngul/testfly-mcp)
+:::tip AI-powered test authoring — Coming Soon
+**TestFly MCP** — an MCP server that lets Claude or GitHub Copilot control a real browser,
+record your session, and generate ready-to-run TestFly test code — is **coming soon**.
+Stay tuned for the public release.
 :::
 
 ---

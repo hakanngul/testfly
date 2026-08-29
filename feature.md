@@ -94,10 +94,10 @@ For implementation status details, see [`imlpementation-status.md`](imlpementati
 - **Screen recording** — test session recordings
 - **Quarantine support** — skip known-flaky tests via tag/config
 
-### AI / MCP
+### AI
 
 - **AI failure analysis** — optional `AiFailureAnalyzer`
-- **MCP server contract** — framework-native Java codegen for the TestFly MCP server
+- **MCP server contract** *(coming soon)* — framework-native Java codegen for the TestFly MCP server
 
 ### Bridges
 
@@ -158,7 +158,7 @@ Items from [`ROADMAP.md`](ROADMAP.md) that are actively open for contribution:
 
 - ✅ More built-in `WaitEngine` conditions — `waitForEnabled`, `waitForDisabled`, `waitForSelected`, `waitForNumberOfWindowsToBe`, `waitForFrameAvailableAndSwitchToIt`, `waitForMinimumElementCount`
 - ✅ First-class Edge and Safari driver providers via SPI — `LocalEdgeDriverProvider`, `LocalSafariDriverProvider`
-- Continuous alignment with `testfly-mcp` codegen
+- 🔄 Continuous alignment with `testfly-mcp` codegen *(coming soon)*
 
 ### Quality & Platform
 

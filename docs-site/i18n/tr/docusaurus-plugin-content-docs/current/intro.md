@@ -1,5 +1,5 @@
 ---
-description: "TestFly, web, API, mobil ve AI/MCP destekli test otomasyonu için bir Java Test Otomasyon SDK'sıdır — sıfır kurulum, Playwright tarzı locator'lar ve otomatik bekleme, kurumsal özellikler ve Selenium'u gizlemeden."
+description: "TestFly, web, API, mobil ve AI destekli test otomasyonu için bir Java Test Otomasyon SDK'sıdır — sıfır kurulum, Playwright tarzı locator'lar ve otomatik bekleme, kurumsal özellikler ve Selenium'u gizlemeden."
 id: intro
 title: Giriş
 sidebar_position: 1
@@ -77,16 +77,8 @@ TestFly **tam olarak bu çerçevedir** — çoktan inşa edilmiş, bakılan, tes
 
 ---
 
-:::tip AI destekli test yazımı
-**testfly-mcp**, Claude veya GitHub Copilot'ın gerçek bir tarayıcıyı kontrol etmesine, oturumunuzu kaydetmesine ve TestFly test kodu üretmesine olanak tanır — TestNG, JUnit 5, Page Object, Gherkin, C# NUnit — tek prompt'ta.
-
-```bash
-pip install testfly-mcp
-```
-
-84 araç · self-healing locator'lar · mobil emülasyon · Java / Python / C# / Playwright codegen
-
-[PyPI](https://pypi.org/project/testfly-mcp/) · [GitHub](https://github.com/hakanngul/testfly-mcp)
+:::tip AI destekli test yazımı — Yakında
+**TestFly MCP** — Claude veya GitHub Copilot'ın gerçek bir tarayıcıyı kontrol ederek oturumunuzu kaydedip hazır TestFly test kodu üretmesini sağlayan MCP sunucusu — **yakında** yayında olacak. Takipte kalın.
 :::
 
 ---
