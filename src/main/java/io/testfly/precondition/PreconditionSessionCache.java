@@ -14,7 +14,7 @@ import java.util.Set;
  * <p>Used by {@link PreConditionRunner} to avoid re-running provider methods when
  * a valid session already exists for the calling thread.
  */
-final class SessionCache {
+final class PreconditionSessionCache {
 
     /** Holds cookies and localStorage snapshot for a single condition. */
     static final class SavedSession {
@@ -34,7 +34,7 @@ final class SessionCache {
     private static final ThreadLocal<Map<String, SavedSession>> cache =
             ThreadLocal.withInitial(HashMap::new);
 
-    private SessionCache() {}
+    private PreconditionSessionCache() {}
 
     /** Captures current cookies + localStorage and stores under the given condition name. */
     static void store(String conditionName, WebDriver driver) {

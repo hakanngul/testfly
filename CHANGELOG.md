@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Changed
+- **SessionCache rename** — `browser.SessionCache` → `BrowserSessionCache`, `precondition.SessionCache` → `PreconditionSessionCache` to eliminate naming ambiguity
+
 ### Added — API Testing Improvements
 
 - **HTTP-level retry** (`api.retry.*`) — config-driven retry for transient failures and status codes (502/503/504); exponential backoff; step-logged with `WARN`
