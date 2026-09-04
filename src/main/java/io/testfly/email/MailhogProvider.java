@@ -42,7 +42,11 @@ final class MailhogProvider implements EmailProvider {
             HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + "/api/v2/messages?limit=200"))
                     .GET().build();
-            String body = http.send(req, HttpResponse.BodyHandlers.ofString()).body();
+            HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() >= 400) {
+                throw new IllegalStateException("[Email/Mailhog] HTTP " + resp.statusCode() + ": " + resp.body());
+            }
+            String body = resp.body();
             JsonNode root = JSON.readTree(body);
             JsonNode items = root.path("items");
 
@@ -62,7 +66,10 @@ final class MailhogProvider implements EmailProvider {
             HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + "/api/v1/messages"))
                     .DELETE().build();
-            http.send(req, HttpResponse.BodyHandlers.discarding());
+            HttpResponse<Void> resp = http.send(req, HttpResponse.BodyHandlers.discarding());
+            if (resp.statusCode() >= 400) {
+                throw new IllegalStateException("[Email/Mailhog] HTTP " + resp.statusCode() + " when clearing messages");
+            }
         } catch (Exception e) {
             throw new IllegalStateException("[Email/Mailhog] Failed to clear messages: " + e.getMessage(), e);
         }

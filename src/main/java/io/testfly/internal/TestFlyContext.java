@@ -27,6 +27,20 @@ public final class TestFlyContext {
         CONFIG.compareAndSet(null, testFlyConfig);
     }
 
+    /** Forces or overrides the configuration (used for testing and profile reloads). */
+    public static void setConfig(TestFlyConfig testFlyConfig) {
+        if (testFlyConfig == null) {
+            throw new IllegalArgumentException("TestFlyConfig must not be null");
+        }
+        CONFIG.set(testFlyConfig);
+    }
+
+    /** Resets the context state (used between test suites). */
+    public static void reset() {
+        CONFIG.set(null);
+        CURRENT_TEST.remove();
+    }
+
     // ==========================================================
     // Config
     // ==========================================================

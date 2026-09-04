@@ -194,7 +194,7 @@ ai:
   provider: gemini             # gemini | claude | openai-compatible
   baseUrl:                     # optional — override provider endpoint (for openai-compatible)
   apiKey: ${GEMINI_API_KEY}
-  model: gemini-2.0-flash      # gemini-2.0-flash | claude-haiku-4-5-20251001 | deepseek-chat
+  model:                       # optional — defaults: gemini-2.5-flash (gemini) or claude-haiku-4-5-20251001 (claude)
   language: en                 # analysis output language (en, tr, de, fr, etc.)
   timeoutSeconds: 20
 

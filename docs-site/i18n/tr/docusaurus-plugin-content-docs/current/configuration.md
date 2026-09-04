@@ -167,7 +167,7 @@ ai:
   failureAnalysis: true        # test fail olduğunda AI ile kök neden analizi üret
   provider: gemini             # gemini | claude | openai-compatible
   apiKey: ${GEMINI_API_KEY}
-  model: gemini-2.0-flash      # gemini-2.0-flash | claude-haiku-4-5-20251001 | deepseek-chat
+  model:                       # isteğe bağlı — varsayılanlar: gemini için gemini-2.5-flash, claude için claude-haiku-4-5-20251001
   language: tr                 # analiz dil çıktısı (tr, en, de vb.)
   timeoutSeconds: 20
 ```

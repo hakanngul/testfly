@@ -11,6 +11,7 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.TimeoutException;
 
 import java.time.Duration;
 import java.util.List;
@@ -39,15 +40,25 @@ public final class LocatorAssert {
     private Duration customTimeout;
     private String customMessage;
     private boolean soft;
+    private SoftAssertionCollector collector;
 
     LocatorAssert(By by, String description) {
-        this(by, description, false);
+        this(by, description, false, null);
     }
 
     LocatorAssert(By by, String description, boolean soft) {
+        this(by, description, soft, null);
+    }
+
+    LocatorAssert(By by, String description, SoftAssertionCollector collector) {
+        this(by, description, true, collector);
+    }
+
+    LocatorAssert(By by, String description, boolean soft, SoftAssertionCollector collector) {
         this.by          = by;
         this.description = description;
         this.soft        = soft;
+        this.collector   = collector;
     }
 
     // ------------------------------------------------------------------
@@ -281,15 +292,16 @@ public final class LocatorAssert {
                 : failMessage;
         try {
             new WebDriverWait(driver, timeout).until(condition);
-        } catch (Exception e) {
+        } catch (TimeoutException e) {
             String timeoutStr = timeout.toMillis() >= 1000 && timeout.toMillis() % 1000 == 0
                     ? timeout.toSeconds() + "s"
                     : timeout.toMillis() + "ms";
             String err = fullMessage + " (timeout: " + timeoutStr + ")";
             if (soft) {
-                SoftAssertions.get().that(false, err);
+                SoftAssertionCollector target = collector != null ? collector : SoftAssertions.get();
+                target.that(false, err);
             } else {
-                throw new AssertionError(err);
+                throw new AssertionError(err, e);
             }
         }
     }
