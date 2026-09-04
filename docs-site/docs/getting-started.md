@@ -103,7 +103,6 @@ timeouts:
 
 ```java title="src/test/java/com/example/LoginTest.java"
 import io.testfly.test.BaseTest;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class LoginTest extends BaseTest {
@@ -112,7 +111,7 @@ public class LoginTest extends BaseTest {
     public void loginTest() {
         open();  // navigates to baseUrl
         // your test steps here
-        Assert.assertTrue(getDriver().getTitle().contains("Dashboard"));
+        softAssert().that(getDriver().getTitle().contains("Dashboard"), "Title should contain Dashboard");
     }
 }
 ```

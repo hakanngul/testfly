@@ -14,7 +14,6 @@ import io.testfly.browser.DownloadManager;
 import io.testfly.test.BaseTest;
 import java.io.File;
 import org.openqa.selenium.By;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class InvoiceTest extends BaseTest {
@@ -27,8 +26,8 @@ public class InvoiceTest extends BaseTest {
         // Dynamic filename (timestamped) → wait for any file, up to 15s:
         File pdf = DownloadManager.waitForAnyFile(15);
 
-        Assert.assertTrue(pdf.getName().endsWith(".pdf"));
-        Assert.assertTrue(pdf.length() > 0);   // non-empty
+        softAssert().that(pdf.getName().endsWith(".pdf"), "Downloaded file should be a PDF");
+        softAssert().that(pdf.length() > 0, "Downloaded file should not be empty");
     }
 }
 ```

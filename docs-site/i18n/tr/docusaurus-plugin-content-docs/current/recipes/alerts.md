@@ -46,11 +46,9 @@ dismissAlert();   // clicks Cancel — keeps the order
 ## Uyarı metnini doğrulama
 
 ```java
-import org.testng.Assert;
-
 find("#submit").click();
 String message = getAlertText();
-Assert.assertEquals(message, "Are you sure you want to submit?");
+softAssert().that(message.equals("Are you sure you want to submit?"), "Alert text should match");
 acceptAlert();
 ```
 
@@ -58,7 +56,7 @@ Ya da tek adımda kabul edip metni yakalayın:
 
 ```java
 String message = getAndAcceptAlert();
-Assert.assertEquals(message, "Item added to cart");
+softAssert().that(message.equals("Item added to cart"), "Alert text should match");
 ```
 
 ---

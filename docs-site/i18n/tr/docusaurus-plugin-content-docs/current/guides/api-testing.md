@@ -189,7 +189,7 @@ public class CheckoutTest extends BaseTest {
 
         // Verify in the UI
         open("/orders/" + orderId);
-        Assert.assertEquals(getText(By.id("status")), "Pending");
+        assertThat(By.id("status")).hasText("Pending");
     }
 }
 ```

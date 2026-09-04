@@ -28,7 +28,7 @@ public class LoginTest extends BaseTest {
         loginPage.login("admin", "secret");
 
         StepLogger.step("Assert dashboard visible", StepStatus.PASS);
-        Assert.assertTrue(dashboardPage.isLoaded());
+        softAssert().that(dashboardPage.isLoaded(), "Dashboard should be loaded");
     }
 }
 ```
@@ -131,6 +131,6 @@ public void checkoutTest() {
     checkoutPage.placeOrder();
 
     StepLogger.step("Verify confirmation", StepStatus.PASS, true);  // screenshot of confirmation
-    Assert.assertTrue(confirmationPage.isSuccess());
+    softAssert().that(confirmationPage.isSuccess(), "Order should be successful");
 }
 ```

@@ -50,15 +50,13 @@ public class OrdersPage extends BasePage {
 ```
 
 ```java title="OrdersTest.java"
-import org.testng.Assert;
-
 public class OrdersTest extends BaseTest {
 
     @Test
     public void orderStatusIsShipped() {
         open("/orders");
         OrdersPage page = new OrdersPage();
-        Assert.assertEquals(page.statusOf("ORD-1234"), "Shipped");
+        softAssert().that(page.statusOf("ORD-1234").equals("Shipped"), "Order ORD-1234 should be Shipped");
     }
 }
 ```
@@ -68,10 +66,8 @@ public class OrdersTest extends BaseTest {
 ## Satırları sayma
 
 ```java
-import org.testng.Assert;
-
 int visibleRows = find("#orders tbody tr").count();
-Assert.assertTrue(visibleRows > 0);
+softAssert().that(visibleRows > 0, "Should have at least one visible row");
 ```
 
 ---
