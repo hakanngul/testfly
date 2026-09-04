@@ -30,6 +30,13 @@ import java.util.logging.Logger;
  *   apiKey: ${CLAUDE_API_KEY}
  *   model: claude-haiku-4-5-20251001
  *
+ * # Google Gemini (native)
+ * ai:
+ *   failureAnalysis: true
+ *   provider: gemini
+ *   apiKey: ${GEMINI_API_KEY}
+ *   model: gemini-2.0-flash
+ *
  * # DeepSeek (~$0.14/1M tokens — cheapest option)
  * ai:
  *   failureAnalysis: true
@@ -37,14 +44,6 @@ import java.util.logging.Logger;
  *   baseUrl: https://api.deepseek.com
  *   apiKey: ${AI_API_KEY}
  *   model: deepseek-chat
- *
- * # Google Gemini Flash
- * ai:
- *   failureAnalysis: true
- *   provider: openai-compatible
- *   baseUrl: https://generativelanguage.googleapis.com/v1beta/openai
- *   apiKey: ${GEMINI_API_KEY}
- *   model: gemini-2.0-flash
  *
  * # Local Ollama (free, no API key needed)
  * ai:

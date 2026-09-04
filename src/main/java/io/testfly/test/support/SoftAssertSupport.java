@@ -1,8 +1,12 @@
 package io.testfly.test.support;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.assertion.LocatorAssert;
+import io.testfly.assertion.SeleniumAssert;
 import io.testfly.assertion.SoftAssertionCollector;
 import io.testfly.assertion.SoftAssertions;
+import io.testfly.locator.Locator;
+import org.openqa.selenium.By;
 
 /**
  * Shared soft-assertion helper — single source of truth for {@code softAssert()}.
@@ -16,5 +20,15 @@ public interface SoftAssertSupport {
     /** Returns the soft assertion collector for this test. */
     default SoftAssertionCollector softAssert() {
         return SoftAssertions.get();
+    }
+
+    /** Begins a fluent, auto-retrying soft assertion on the given locator. */
+    default LocatorAssert softAssert(By locator) {
+        return SeleniumAssert.softAssert(locator);
+    }
+
+    /** Begins a fluent, auto-retrying soft assertion on the given {@link Locator} chain. */
+    default LocatorAssert softAssert(Locator locator) {
+        return SeleniumAssert.softAssert(locator);
     }
 }
