@@ -1,6 +1,8 @@
 package io.testfly.assertion;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.locator.Locator;
+import org.openqa.selenium.By;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,6 +39,22 @@ public final class SoftAssertionCollector {
             failures.add(message);
         }
         return this;
+    }
+
+    /**
+     * Begins a fluent, auto-retrying soft assertion for the given {@link By} locator.
+     * Failures are recorded into this collector without throwing immediately.
+     */
+    public LocatorAssert assertThat(By locator) {
+        return SeleniumAssert.softAssert(locator);
+    }
+
+    /**
+     * Begins a fluent, auto-retrying soft assertion for the given {@link Locator} chain.
+     * Failures are recorded into this collector without throwing immediately.
+     */
+    public LocatorAssert assertThat(Locator locator) {
+        return SeleniumAssert.softAssert(locator);
     }
 
     /** Returns {@code true} if at least one {@code that()} call evaluated to {@code false}. */

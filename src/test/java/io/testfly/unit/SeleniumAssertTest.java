@@ -61,4 +61,17 @@ public class SeleniumAssertTest {
         LocatorAssert la = SeleniumAssert.assertThat(By.name("email"));
         assertNotNull(la);
     }
+
+    @Test
+    public void softAssert_byLocator_returnsLocatorAssert() {
+        LocatorAssert la = SeleniumAssert.softAssert(By.id("username"));
+        assertNotNull(la);
+    }
+
+    @Test
+    public void softAssert_locator_returnsLocatorAssert() {
+        Locator loc = Locator.ofCss("button").withText("Submit");
+        LocatorAssert la = SeleniumAssert.softAssert(loc);
+        assertNotNull(la);
+    }
 }

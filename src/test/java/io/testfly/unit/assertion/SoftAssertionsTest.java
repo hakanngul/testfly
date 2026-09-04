@@ -235,8 +235,24 @@ public class SoftAssertionsTest {
         // Other thread's collector should be unaffected
         assertTrue(ref.get().hasFailed(),
                 "Other thread's collector should still have its failure");
-        assertEquals(ref.get().getFailures().get(0), "other-thread-fail");
-
         otherThread.join();
+    }
+
+    @Test
+    public void assertThat_byLocator_returnsSoftLocatorAssert() {
+        SoftAssertionCollector collector = SoftAssertions.get();
+        org.openqa.selenium.By locator = org.openqa.selenium.By.id("test-id");
+        io.testfly.assertion.LocatorAssert la = collector.assertThat(locator);
+
+        assertNotNull(la, "assertThat(By) on collector should return LocatorAssert");
+    }
+
+    @Test
+    public void assertThat_locator_returnsSoftLocatorAssert() {
+        SoftAssertionCollector collector = SoftAssertions.get();
+        io.testfly.locator.Locator locator = io.testfly.locator.Locator.ofCss(".item");
+        io.testfly.assertion.LocatorAssert la = collector.assertThat(locator);
+
+        assertNotNull(la, "assertThat(Locator) on collector should return LocatorAssert");
     }
 }

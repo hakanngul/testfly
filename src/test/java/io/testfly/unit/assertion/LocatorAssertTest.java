@@ -2,6 +2,7 @@ package io.testfly.unit.assertion;
 
 import io.testfly.assertion.LocatorAssert;
 import io.testfly.assertion.SeleniumAssert;
+import io.testfly.assertion.SoftAssertions;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.driver.DriverManager;
 import io.testfly.internal.TestFlyContext;
@@ -14,6 +15,7 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -55,10 +57,12 @@ public class LocatorAssertTest {
         contextMock.when(TestFlyContext::getConfig).thenReturn(config);
 
         stepLoggerMock = mockStatic(StepLogger.class);
+        SoftAssertions.clear();
     }
 
     @AfterMethod
     public void tearDown() {
+        SoftAssertions.clear();
         if (stepLoggerMock != null) stepLoggerMock.close();
         if (contextMock != null) contextMock.close();
         if (driverManagerMock != null) driverManagerMock.close();
@@ -301,5 +305,161 @@ public class LocatorAssertTest {
             assertTrue(msg.contains("timeout"),
                     "Failure message should mention timeout, was: " + msg);
         }
+    }
+
+    // ---------------------------------------------------------------
+    // Custom as() and within()
+    // ---------------------------------------------------------------
+
+    @Test
+    public void as_customMessage_prependsMessageToFailure() {
+        By locator = By.id("missing-btn");
+        when(mockDriver.findElement(locator))
+                .thenThrow(new org.openqa.selenium.NoSuchElementException("not found"));
+
+        try {
+            SeleniumAssert.assertThat(locator).as("Login button missing").isVisible();
+            fail("Expected AssertionError");
+        } catch (AssertionError e) {
+            assertTrue(e.getMessage().contains("[Login button missing]"),
+                    "Failure should contain custom message prefix, was: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void within_customTimeout_appliesTimeout() {
+        By locator = By.id("quick-toast");
+        WebElement el = mockElement(true, "Saved");
+        when(mockDriver.findElement(locator)).thenReturn(el);
+
+        LocatorAssert result = SeleniumAssert.assertThat(locator)
+                .within(Duration.ofMillis(500))
+                .isVisible();
+        assertNotNull(result);
+
+        LocatorAssert resultSec = SeleniumAssert.assertThat(locator)
+                .within(2)
+                .hasText("Saved");
+        assertNotNull(resultSec);
+    }
+
+    // ---------------------------------------------------------------
+    // hasCssValue
+    // ---------------------------------------------------------------
+
+    @Test
+    public void hasCssValue_matches_passes() {
+        By locator = By.id("alert-box");
+        WebElement el = mockElement(true, "");
+        when(el.getCssValue("color")).thenReturn("rgb(255, 0, 0)");
+        when(mockDriver.findElements(locator)).thenReturn(Collections.singletonList(el));
+
+        LocatorAssert la = SeleniumAssert.assertThat(locator).hasCssValue("color", "rgb(255, 0, 0)");
+        assertNotNull(la);
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void hasCssValue_mismatch_fails() {
+        By locator = By.id("alert-box");
+        WebElement el = mockElement(true, "");
+        when(el.getCssValue("color")).thenReturn("rgb(0, 0, 0)");
+        when(mockDriver.findElements(locator)).thenReturn(Collections.singletonList(el));
+
+        SeleniumAssert.assertThat(locator).hasCssValue("color", "rgb(255, 0, 0)");
+    }
+
+    // ---------------------------------------------------------------
+    // hasAttribute (presence check)
+    // ---------------------------------------------------------------
+
+    @Test
+    public void hasAttribute_present_passes() {
+        By locator = By.id("input-field");
+        WebElement el = mockElement(true, "");
+        when(el.getAttribute("disabled")).thenReturn("true");
+        when(mockDriver.findElements(locator)).thenReturn(Collections.singletonList(el));
+
+        LocatorAssert la = SeleniumAssert.assertThat(locator).hasAttribute("disabled");
+        assertNotNull(la);
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void hasAttribute_missing_fails() {
+        By locator = By.id("input-field");
+        WebElement el = mockElement(true, "");
+        when(el.getAttribute("disabled")).thenReturn(null);
+        when(mockDriver.findElements(locator)).thenReturn(Collections.singletonList(el));
+
+        SeleniumAssert.assertThat(locator).hasAttribute("disabled");
+    }
+
+    // ---------------------------------------------------------------
+    // isFocused
+    // ---------------------------------------------------------------
+
+    @Test
+    public void isFocused_activeElementMatches_passes() {
+        By locator = By.id("active-input");
+        WebElement el = mockElement(true, "");
+        WebDriver.TargetLocator targetLocator = mock(WebDriver.TargetLocator.class);
+        when(mockDriver.switchTo()).thenReturn(targetLocator);
+        when(targetLocator.activeElement()).thenReturn(el);
+        when(mockDriver.findElements(locator)).thenReturn(Collections.singletonList(el));
+
+        LocatorAssert la = SeleniumAssert.assertThat(locator).isFocused();
+        assertNotNull(la);
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void isFocused_activeElementDoesNotMatch_fails() {
+        By locator = By.id("inactive-input");
+        WebElement el = mockElement(true, "");
+        WebElement otherEl = mockElement(true, "");
+        WebDriver.TargetLocator targetLocator = mock(WebDriver.TargetLocator.class);
+        when(mockDriver.switchTo()).thenReturn(targetLocator);
+        when(targetLocator.activeElement()).thenReturn(otherEl);
+        when(mockDriver.findElements(locator)).thenReturn(Collections.singletonList(el));
+
+        SeleniumAssert.assertThat(locator).isFocused();
+    }
+
+    // ---------------------------------------------------------------
+    // Soft Assertions
+    // ---------------------------------------------------------------
+
+    @Test
+    public void softly_failureRecordedWithoutThrowing() {
+        By locator = By.id("absent");
+        when(mockDriver.findElement(locator))
+                .thenThrow(new org.openqa.selenium.NoSuchElementException("not found"));
+
+        // Does NOT throw AssertionError
+        SeleniumAssert.assertThat(locator).softly().isVisible();
+
+        assertTrue(SoftAssertions.get().hasFailed(), "Failure should be recorded in SoftAssertions");
+        assertTrue(SoftAssertions.get().getFailures().get(0).contains("Expected element to be visible"));
+    }
+
+    @Test
+    public void softAssert_byLocator_recordsFailureWithoutThrowing() {
+        By locator = By.id("absent");
+        when(mockDriver.findElement(locator))
+                .thenThrow(new org.openqa.selenium.NoSuchElementException("not found"));
+
+        SeleniumAssert.softAssert(locator).as("Custom soft check").isVisible();
+
+        assertTrue(SoftAssertions.get().hasFailed());
+        assertTrue(SoftAssertions.get().getFailures().get(0).contains("[Custom soft check]"));
+    }
+
+    @Test
+    public void softAssertCollector_assertThat_recordsFailureWithoutThrowing() {
+        By locator = By.id("absent");
+        when(mockDriver.findElement(locator))
+                .thenThrow(new org.openqa.selenium.NoSuchElementException("not found"));
+
+        SoftAssertions.get().assertThat(locator).isVisible();
+
+        assertTrue(SoftAssertions.get().hasFailed());
     }
 }
