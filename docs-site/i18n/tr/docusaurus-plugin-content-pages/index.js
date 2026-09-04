@@ -288,6 +288,7 @@ export default function Home() {
                 </div>
                 <CodeWindow
                   filename="pom.xml"
+                  language='xml'
                   className={styles.heroSnippet}
                   code={`<dependency>
   <groupId>io.testfly</groupId>
@@ -458,6 +459,7 @@ assertThat(find("h1"))
               <div className={styles.quickCode} data-reveal style={{ '--i': 1 }}>
                 <CodeWindow
                   filename="testfly.yml"
+                  language='yaml'
                   code={`browser:
   name: chrome
   headless: false
