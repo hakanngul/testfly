@@ -165,6 +165,43 @@ public class PreConditionRunnerTest {
         // No exception — success
     }
 
+    @Test
+    public void run_dataProviderMultipleInvocations_keepsCache() throws Exception {
+        CacheTestProvider provider = new CacheTestProvider();
+        PreConditionRegistry.register(provider);
+
+        ITestResult result1 = mockResult(getMethod("testWithCacheCondition"));
+        PreConditionRunner.run(result1);
+        assertTrue(CacheTestProvider.invoked);
+
+        // Second data provider row (invocation count 1, wasRetried false)
+        CacheTestProvider.invoked = false;
+        ITestResult result2 = mockResult(getMethod("testWithCacheCondition"));
+        when(result2.getMethod().getCurrentInvocationCount()).thenReturn(1);
+        when(result2.wasRetried()).thenReturn(false);
+
+        PreConditionRunner.run(result2);
+        assertFalse(CacheTestProvider.invoked, "Data provider subsequent rows should still use cached session");
+    }
+
+    @Test
+    public void run_onRetry_invalidatesCacheAndRerunsProvider() throws Exception {
+        CacheTestProvider provider = new CacheTestProvider();
+        PreConditionRegistry.register(provider);
+
+        ITestResult result1 = mockResult(getMethod("testWithCacheCondition"));
+        PreConditionRunner.run(result1);
+        assertTrue(CacheTestProvider.invoked);
+
+        // Test fails and is retried: wasRetried = true
+        CacheTestProvider.invoked = false;
+        ITestResult retryResult = mockResult(getMethod("testWithCacheCondition"));
+        when(retryResult.wasRetried()).thenReturn(true);
+
+        PreConditionRunner.run(retryResult);
+        assertTrue(CacheTestProvider.invoked, "Retry should invalidate cache and rerun provider");
+    }
+
     // ── Helper methods and classes ───────────────────────────────────────────
 
     private static ITestResult mockResult(Method method) {

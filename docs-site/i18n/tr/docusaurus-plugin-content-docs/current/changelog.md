@@ -11,6 +11,18 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 
 ---
 
+## Yayımlanmamış
+
+### Düzeltilenler
+
+- **AI model varsayılanları ve girdi doğrulama** — `ai.model` alanı isteğe bağlı hale getirildi ve sağlayıcı bazlı varsayılanlar atandı (`Claude` için `claude-haiku-4-5-20251001`, `Gemini` için `gemini-2.5-flash`); Gemini model adları için regex doğrulaması eklendi.
+- **Oturum önbellek izolasyonu ve komut dosyası güvenliği** — `BrowserSessionCache` ve `PreconditionSessionCache` geri yükleme öncesi `localStorage.clear()` çalıştırır ve verileri `arguments[0]` üzerinden güvenle iletir.
+- **PreCondition retry ve DataProvider ayrımı** — Çok satırlı `@DataProvider` testlerinde oturum önbelleğinin erken geçersiz kılınması düzeltildi; önbellek yalnızca gerçek yeniden denemelerde (`wasRetried()`) temizlenir.
+- **LocatorAssert hata iletimi** — Bekleme sırasında yakalanan genel istisnalar `TimeoutException` ile sınırlandırıldı; böylece sürücü çökmesi gibi altyapı hatalarının gizlenmesi önlendi.
+- **Locator withText eşleştirmesi** — `Locator.withText` varsayılan olarak büyük/küçük harf duyarsız alt dize eşleştirmesi yapar ve tam eşleşme (`exact`) parametresine uyar.
+
+---
+
 ## [1.0.0] — 2026-08-20
 
 ### Changed

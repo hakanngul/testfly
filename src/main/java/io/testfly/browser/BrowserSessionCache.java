@@ -54,6 +54,7 @@ public final class BrowserSessionCache {
      *
      * @param name logical session name, e.g. {@code "adminSession"}
      */
+    @TestFlyApi(since = "1.0.0")
     public static void store(String name) {
         WebDriver driver = DriverManager.getDriver();
         Set<Cookie> cookies = driver.manage().getCookies();
@@ -72,6 +73,7 @@ public final class BrowserSessionCache {
      * @param name logical session name previously passed to {@link #store(String)}
      * @return {@code true} if a stored session was found and applied; {@code false} otherwise
      */
+    @TestFlyApi(since = "1.0.0")
     public static boolean restore(String name) {
         SavedSession session = CACHE.get(name);
         if (session == null) {
@@ -81,18 +83,27 @@ public final class BrowserSessionCache {
 
         WebDriver driver = DriverManager.getDriver();
         driver.manage().deleteAllCookies();
+        int added = 0;
         for (Cookie cookie : session.cookies) {
-            try { driver.manage().addCookie(cookie); } catch (Exception ignored) {}
+            try {
+                driver.manage().addCookie(cookie);
+                added++;
+            } catch (Exception ignored) {}
         }
-        restoreLocalStorage(driver, session.localStorage);
+        boolean storageRestored = restoreLocalStorage(driver, session.localStorage);
+        if (!session.cookies.isEmpty() && added == 0 && !storageRestored) {
+            System.err.println("[BrowserSessionCache] Failed to restore cookies and localStorage for: '" + name + "'");
+            return false;
+        }
         driver.navigate().refresh();
-        System.out.println("[BrowserSessionCache] Restored session: '" + name + "' (" + session.cookies.size() + " cookies)");
+        System.out.println("[BrowserSessionCache] Restored session: '" + name + "' (" + added + "/" + session.cookies.size() + " cookies)");
         return true;
     }
 
     /**
      * Returns {@code true} if a session has been stored under {@code name}.
      */
+    @TestFlyApi(since = "1.0.0")
     public static boolean exists(String name) {
         return CACHE.containsKey(name);
     }
@@ -101,6 +112,7 @@ public final class BrowserSessionCache {
      * Removes the stored session for {@code name}.
      * Subsequent calls to {@link #restore(String)} for this name will return {@code false}.
      */
+    @TestFlyApi(since = "1.0.0")
     public static void invalidate(String name) {
         CACHE.remove(name);
         System.out.println("[BrowserSessionCache] Invalidated session: '" + name + "'");
@@ -109,6 +121,7 @@ public final class BrowserSessionCache {
     /**
      * Removes all stored sessions. Typically called in a {@code @AfterSuite} teardown.
      */
+    @TestFlyApi(since = "1.0.0")
     public static void clear() {
         CACHE.clear();
     }
@@ -144,20 +157,21 @@ public final class BrowserSessionCache {
         return result;
     }
 
-    private static void restoreLocalStorage(WebDriver driver, Map<String, String> items) {
-        if (items.isEmpty()) return;
+    private static boolean restoreLocalStorage(WebDriver driver, Map<String, String> items) {
         try {
-            StringBuilder js = new StringBuilder("localStorage.clear();");
-            items.forEach((k, v) ->
-                js.append("localStorage.setItem(")
-                  .append(jsString(k)).append(",")
-                  .append(jsString(v)).append(");")
+            ((JavascriptExecutor) driver).executeScript(
+                "localStorage.clear(); " +
+                "var items = arguments[0]; " +
+                "if (items) { " +
+                "  for (var k in items) { " +
+                "    localStorage.setItem(k, items[k]); " +
+                "  } " +
+                "}",
+                items != null ? items : java.util.Collections.emptyMap()
             );
-            ((JavascriptExecutor) driver).executeScript(js.toString());
-        } catch (Exception ignored) {}
-    }
-
-    private static String jsString(String value) {
-        return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'";
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

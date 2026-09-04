@@ -43,6 +43,16 @@ public final class ApiHealthChecker {
         CACHE.clear();
     }
 
+    /** Returns {@code true} if {@code url} has a cached probe result. */
+    static boolean isCached(String url) {
+        return CACHE.containsKey(url);
+    }
+
+    /** Returns the number of cached endpoints. */
+    static int getCacheSize() {
+        return CACHE.size();
+    }
+
     /**
      * Probes {@code url} with an HTTP GET request.
      * Returns {@code true} if the response is 2xx, {@code false} for any other

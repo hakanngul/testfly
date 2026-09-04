@@ -18,6 +18,8 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -26,14 +28,16 @@ import static org.testng.Assert.*;
 /**
  * Unit tests for {@link RecordingManager}.
  *
- * <p>All tests use mocked WebDriver — no real browser is required.
+ * <p>
+ * All tests use mocked WebDriver — no real browser is required.
  * Reflection is used to reset the ThreadLocal session between tests.
  */
 @Test(singleThreaded = true)
 public class RecordingManagerTest {
 
     /** Driver that also implements TakesScreenshot — the normal recording path. */
-    interface ScreenshotCapableDriver extends WebDriver, TakesScreenshot {}
+    interface ScreenshotCapableDriver extends WebDriver, TakesScreenshot {
+    }
 
     @Mock
     private ScreenshotCapableDriver driver;
@@ -93,7 +97,7 @@ public class RecordingManagerTest {
     @Test
     public void saveOnFailure_sanitizesTestIdForFileName() throws Exception {
         RecordingManager.start(driver, 5, 10);
-        Thread.sleep(400); // let the background thread capture a few frames
+        waitForCaptures(1); // wait until background thread captures at least one frame
 
         String testId = "com.example.MyTest#testMethod(arg)";
         String path = RecordingManager.saveOnFailure(testId);
@@ -110,7 +114,7 @@ public class RecordingManagerTest {
     @Test
     public void saveOnFailure_outputFileExistsOnDisk() throws Exception {
         RecordingManager.start(driver, 5, 10);
-        Thread.sleep(400);
+        waitForCaptures(1);
 
         String testId = "com.example.SimpleTest#testOne";
         String path = RecordingManager.saveOnFailure(testId);
@@ -157,8 +161,8 @@ public class RecordingManagerTest {
 
         RecordingManager.start(driver, 2, 10);
 
-        // Let the background thread attempt (and fail) a few captures
-        try { Thread.sleep(300); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        // Let the background thread attempt (and fail) a capture
+        waitForAttempts(1);
 
         // Graceful degradation: returns null instead of crashing
         String result = RecordingManager.saveOnFailure("failed.test");
@@ -178,7 +182,7 @@ public class RecordingManagerTest {
     @Test
     public void saveOnFailure_clearsSessionAfterSave() throws Exception {
         RecordingManager.start(driver, 5, 10);
-        Thread.sleep(400);
+        waitForCaptures(1);
 
         String path = RecordingManager.saveOnFailure("some.test");
         assertNotNull(path);
@@ -197,6 +201,41 @@ public class RecordingManagerTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageIO.write(img, "png", baos);
         return baos.toByteArray();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void waitForCaptures(int minCaptures) {
+        long deadline = System.currentTimeMillis() + 2000;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                Field sessionField = RecordingManager.class.getDeclaredField("SESSION");
+                sessionField.setAccessible(true);
+                ThreadLocal<Object> sessionTl = (ThreadLocal<Object>) sessionField.get(null);
+                Object session = sessionTl.get();
+                if (session != null) {
+                    Field framesField = session.getClass().getDeclaredField("frames");
+                    framesField.setAccessible(true);
+                    List<?> frames = (List<?>) framesField.get(session);
+                    if (frames != null && frames.size() >= minCaptures) {
+                        return;
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+            LockSupport.parkNanos(10_000_000L); // 10ms pause
+        }
+    }
+
+    private void waitForAttempts(int minAttempts) {
+        long deadline = System.currentTimeMillis() + 2000;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                verify(driver, atLeast(minAttempts)).getScreenshotAs(any(OutputType.class));
+                return;
+            } catch (Throwable e) {
+                LockSupport.parkNanos(10_000_000L); // 10ms pause
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")

@@ -82,7 +82,7 @@ assertThat(find("#orders tbody tr")).count(3);   // auto-waits until 3 rows exis
 
 ## Assert a row exists
 
-Use `withText(...)` to scope the locator to the matching row, then assert visibility:
+Use `withText(...)` to scope the locator to the row containing the text (substring matching by default), then assert visibility:
 
 ```java
 assertThat(find("#orders tbody tr").withText("ORD-1234")).isVisible();

@@ -56,9 +56,12 @@ public final class ClaudeProvider implements AiProvider {
         }
     }
 
+    private static final String DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+
     private static String buildRequestBody(String model, String prompt) {
+        String selectedModel = (model != null && !model.isBlank()) ? model : DEFAULT_MODEL;
         String escaped = escapeJson(prompt);
-        return "{\"model\":\"" + model + "\","
+        return "{\"model\":\"" + selectedModel + "\","
                 + "\"max_tokens\":512,"
                 + "\"messages\":[{\"role\":\"user\",\"content\":\"" + escaped + "\"}]"
                 + "}";

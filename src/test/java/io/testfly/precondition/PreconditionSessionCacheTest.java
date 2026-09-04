@@ -88,7 +88,8 @@ public class PreconditionSessionCacheTest {
         // Restore should execute script to restore localStorage
         PreconditionSessionCache.restore("login", mockDriver);
 
-        verify((JavascriptExecutor) mockDriver, atLeast(2)).executeScript(anyString());
+        verify((JavascriptExecutor) mockDriver).executeScript(anyString());
+        verify((JavascriptExecutor) mockDriver).executeScript(anyString(), any());
     }
 
     // ── Cache miss → returns null/empty ──────────────────────────────────────

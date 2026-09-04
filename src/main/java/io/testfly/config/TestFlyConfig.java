@@ -519,7 +519,7 @@ public final class TestFlyConfig {
         private String  provider        = "claude";
         private String  baseUrl         = null;
         private String  apiKey          = null;
-        private String  model           = "claude-haiku-4-5-20251001";
+        private String  model           = null;
         private String  language        = "en";
         private int     timeoutSeconds  = 20;
 

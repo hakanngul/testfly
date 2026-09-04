@@ -59,12 +59,7 @@ public class JUnitXmlReporterTest {
     }
 
     private static void resetTestFlyContext() throws Exception {
-        Field configField = TestFlyContext.class.getDeclaredField("CONFIG");
-        configField.setAccessible(true);
-        AtomicReference<?> ref = (AtomicReference<?>) configField.get(null);
-        ref.set(null);
-        // also clear ThreadLocal
-        TestFlyContext.clearCurrentTestId();
+        TestFlyContext.reset();
         // clear ExecutionMetrics ci metadata
         try {
             Field ciField = ExecutionMetrics.class.getDeclaredField("ciMetadata");
@@ -275,7 +270,7 @@ public class JUnitXmlReporterTest {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
                 System.clearProperty("testfly.reports.dir");
-                TestFlyContext.initialize(minimalConfig(false));
+                TestFlyContext.setConfig(minimalConfig(false));
                 JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
             }
         }
@@ -288,7 +283,7 @@ public class JUnitXmlReporterTest {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
                 System.clearProperty("testfly.reports.dir");
-                TestFlyContext.initialize(minimalConfig(true));
+                TestFlyContext.setConfig(minimalConfig(true));
                 ExecutionMetrics.setCiMetadata(new CiMetadata(
                         "GitHub Actions", "42", "123", "main",
                         "abc123", null, "https://example.com/run/123",

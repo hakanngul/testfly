@@ -26,6 +26,10 @@ public final class RetryListener implements IRetryAnalyzer {
 
     private int attempt = 0;
 
+    public int getAttempt() {
+        return attempt;
+    }
+
     @Override
     public boolean retry(ITestResult result) {
 

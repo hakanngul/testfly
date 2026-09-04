@@ -210,4 +210,50 @@ public class LocatorTest {
             closeMocks(mocks);
         }
     }
+
+    @Test
+    public void elements_withText_matchesSubstringByDefault() {
+        MockedStatic<?>[] mocks = setupHealingMocks(false);
+        try {
+            WebElement row1 = mock(WebElement.class);
+            when(row1.getText()).thenReturn("ORD-1234 Shipped");
+            when(row1.isDisplayed()).thenReturn(true);
+
+            WebElement row2 = mock(WebElement.class);
+            when(row2.getText()).thenReturn("ORD-5678 Pending");
+            when(row2.isDisplayed()).thenReturn(true);
+
+            By by = By.cssSelector("tbody tr");
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(row1, row2));
+
+            List<WebElement> matched = Locator.of(by).withText("ORD-1234").elements();
+            assertEquals(matched.size(), 1);
+            assertSame(matched.get(0), row1);
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void elements_withTextExact_requiresExactMatch() {
+        MockedStatic<?>[] mocks = setupHealingMocks(false);
+        try {
+            WebElement row1 = mock(WebElement.class);
+            when(row1.getText()).thenReturn("ORD-1234 Shipped");
+            when(row1.isDisplayed()).thenReturn(true);
+
+            WebElement row2 = mock(WebElement.class);
+            when(row2.getText()).thenReturn("ORD-1234");
+            when(row2.isDisplayed()).thenReturn(true);
+
+            By by = By.cssSelector("tbody tr");
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(row1, row2));
+
+            List<WebElement> matched = Locator.of(by).withText("ORD-1234").exact().elements();
+            assertEquals(matched.size(), 1);
+            assertSame(matched.get(0), row2);
+        } finally {
+            closeMocks(mocks);
+        }
+    }
 }

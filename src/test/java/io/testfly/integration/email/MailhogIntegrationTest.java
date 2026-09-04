@@ -29,6 +29,7 @@ import static org.testng.Assert.*;
  * mvn verify -Preal-backends -Dit.test=MailhogIntegrationTest
  * </pre>
  */
+@Test(singleThreaded = true)
 public class MailhogIntegrationTest {
 
     private HttpServer server;
