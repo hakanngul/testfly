@@ -15,6 +15,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.mockStatic;
 import static org.testng.Assert.assertEquals;
@@ -92,17 +94,13 @@ public class DownloadManagerTest {
 
     @Test
     public void waitForFile_fileAppearsLater_returnsFile() throws Exception {
-        // Create the file after a short delay on a background thread
-        Thread creator = new Thread(() -> {
+        // Create the file after a short delay on a background task
+        CompletableFuture<Void> creator = CompletableFuture.runAsync(() -> {
             try {
-                Thread.sleep(300);
                 File target = new File(tempDir.toFile(), "delayed.csv");
                 Files.writeString(target.toPath(), "data");
-            } catch (Exception e) {
-                // ignore
-            }
-        });
-        creator.start();
+            } catch (Exception ignored) {}
+        }, CompletableFuture.delayedExecutor(100, TimeUnit.MILLISECONDS));
 
         File result = DownloadManager.waitForFile("delayed.csv", 5);
 
@@ -139,19 +137,11 @@ public class DownloadManagerTest {
         // emptyFile.length() == 0, so waitForFile should ignore it
 
         // Write content after a short delay
-        Thread writer = new Thread(() -> {
+        CompletableFuture<Void> writer = CompletableFuture.runAsync(() -> {
             try {
-                Thread.sleep(400);
-                try {
-                    Files.writeString(emptyFile.toPath(), "actual content");
-                } catch (IOException e) {
-                    // ignore
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        });
-        writer.start();
+                Files.writeString(emptyFile.toPath(), "actual content");
+            } catch (IOException ignored) {}
+        }, CompletableFuture.delayedExecutor(100, TimeUnit.MILLISECONDS));
 
         File result = DownloadManager.waitForFile("partial.csv", 5);
         assertNotNull(result);

@@ -69,7 +69,7 @@ public final class SeleniumAssert {
      * chains (filter, nth, withText) use the Locator's own isVisible() / isHidden()
      * terminal methods before asserting on the result.
      */
-    private static By extractBy(Locator locator) {
+    static By extractBy(Locator locator) {
         // Locator.toString() = "Locator[css=.foo]" — parse out the By string.
         // The inner By is the root locator; chain filters are evaluated by Locator itself.
         // For simple cases this works perfectly; for chained cases callers should use

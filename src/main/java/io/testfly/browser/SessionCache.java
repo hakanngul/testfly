@@ -1,10 +1,13 @@
 package io.testfly.browser;
 
+import io.testfly.api.TestFlyApi;
+
 /**
  * @deprecated Use {@link BrowserSessionCache} instead.
  *             This alias will be removed in TestFly 2.0.0.
  */
 @Deprecated(since = "1.1.0")
+@TestFlyApi(since = "1.0.0")
 public final class SessionCache {
 
     private SessionCache() {

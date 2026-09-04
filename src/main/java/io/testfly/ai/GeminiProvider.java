@@ -29,6 +29,8 @@ public final class GeminiProvider implements AiProvider {
     private static final String DEFAULT_MODEL = "gemini-2.0-flash";
     private static final String API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
 
+    private static final java.util.regex.Pattern MODEL_PATTERN = java.util.regex.Pattern.compile("^[a-zA-Z0-9._-]+$");
+
     @Override
     public String name() {
         return "gemini";
@@ -37,7 +39,11 @@ public final class GeminiProvider implements AiProvider {
     @Override
     public String call(String apiKey, String model, String prompt, int timeoutSeconds) {
         try {
-            String selectedModel = (model != null && !model.isBlank()) ? model : DEFAULT_MODEL;
+            String selectedModel = (model != null && !model.isBlank()) ? model.strip() : DEFAULT_MODEL;
+            if (!MODEL_PATTERN.matcher(selectedModel).matches()) {
+                LOG.warning("[GeminiProvider] Invalid model name: " + selectedModel);
+                return null;
+            }
             String url = API_BASE_URL + selectedModel + ":generateContent";
             String body = buildRequestBody(prompt);
 

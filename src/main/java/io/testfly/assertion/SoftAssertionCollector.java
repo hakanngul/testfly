@@ -46,7 +46,7 @@ public final class SoftAssertionCollector {
      * Failures are recorded into this collector without throwing immediately.
      */
     public LocatorAssert assertThat(By locator) {
-        return SeleniumAssert.softAssert(locator);
+        return new LocatorAssert(locator, locator.toString(), this);
     }
 
     /**
@@ -54,7 +54,7 @@ public final class SoftAssertionCollector {
      * Failures are recorded into this collector without throwing immediately.
      */
     public LocatorAssert assertThat(Locator locator) {
-        return SeleniumAssert.softAssert(locator);
+        return new LocatorAssert(SeleniumAssert.extractBy(locator), locator.toString(), this);
     }
 
     /** Returns {@code true} if at least one {@code that()} call evaluated to {@code false}. */

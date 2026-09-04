@@ -39,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **OAuth2 token cache race condition** — double-checked locking prevents thundering herd on expired tokens
 - **RP launch naming** — context-aware base URL selection based on run type (Web vs API)
 - **Dark theme text visibility** — CSS safety nets for all Prism token types; fixed invisible code block text; dark mode overrides for search dropdown, tabs, collapsible, badges, footer
+- **AI model defaults and validation** — `ai.model` is optional and defaults per provider (`claude-haiku-4-5-20251001` for Claude, `gemini-2.5-flash` for Gemini); sanitized Gemini model names against injection
+- **Session cache isolation & script safety** — `BrowserSessionCache` and `PreconditionSessionCache` clear localStorage before restore and pass items safely via WebDriver script arguments
+- **PreCondition retry vs DataProvider isolation** — Fixed premature session cache invalidation during multi-row `@DataProvider` runs; cache is now only invalidated on true retries (`result.wasRetried()`)
+- **LocatorAssert failure propagation** — Restrict caught wait exceptions to `TimeoutException` so unexpected browser/WebDriver driver faults are not masked
+- **Locator withText matching** — `Locator.withText` defaults to case-insensitive substring matching and respects the exact-match parameter
 
 ---
 

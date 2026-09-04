@@ -62,7 +62,8 @@ public final class CucumberStepLogger implements ConcurrentEventListener {
         StepLogger.step(stepName, status, screenshot);
     }
 
-    private static StepStatus mapStatus(Status cucumberStatus) {
+    public static StepStatus mapStatus(Status cucumberStatus) {
+        if (cucumberStatus == null) return StepStatus.INFO;
         return switch (cucumberStatus) {
             case PASSED             -> StepStatus.PASS;
             case FAILED             -> StepStatus.FAIL;

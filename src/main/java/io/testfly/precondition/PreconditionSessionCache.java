@@ -93,19 +93,17 @@ final class PreconditionSessionCache {
     }
 
     private static void restoreLocalStorage(WebDriver driver, Map<String, String> items) {
-        if (items.isEmpty()) return;
         try {
-            StringBuilder js = new StringBuilder("localStorage.clear();");
-            items.forEach((k, v) ->
-                js.append("localStorage.setItem(")
-                  .append(jsString(k)).append(",")
-                  .append(jsString(v)).append(");")
+            ((JavascriptExecutor) driver).executeScript(
+                "localStorage.clear(); " +
+                "var items = arguments[0]; " +
+                "if (items) { " +
+                "  for (var k in items) { " +
+                "    localStorage.setItem(k, items[k]); " +
+                "  } " +
+                "}",
+                items != null ? items : java.util.Collections.emptyMap()
             );
-            ((JavascriptExecutor) driver).executeScript(js.toString());
         } catch (Exception ignored) {}
-    }
-
-    private static String jsString(String value) {
-        return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'";
     }
 }
