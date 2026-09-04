@@ -40,7 +40,7 @@ public final class PreConditionRunner {
         if (annotation == null)
             return;
 
-        boolean isRetry = result.getMethod().getCurrentInvocationCount() > 0;
+        boolean isRetry = isRetry(result);
         WebDriver driver = DriverManager.getDriver();
 
         for (String conditionName : annotation.value()) {
@@ -54,6 +54,18 @@ public final class PreConditionRunner {
                 runProvider(conditionName, driver);
             }
         }
+    }
+
+    private static boolean isRetry(ITestResult result) {
+        if (result == null) return false;
+        if (result.wasRetried()) return true;
+        if (result.getMethod() != null) {
+            org.testng.IRetryAnalyzer analyzer = result.getMethod().getRetryAnalyzer(result);
+            if (analyzer instanceof io.testfly.listeners.RetryListener rl) {
+                return rl.getAttempt() > 0;
+            }
+        }
+        return false;
     }
 
     /**

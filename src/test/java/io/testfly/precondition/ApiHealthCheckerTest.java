@@ -80,6 +80,7 @@ public class ApiHealthCheckerTest {
     @Test
     public void checkOrSkip_cachesResult_secondCallDoesNotProbe() {
         String url = "http://invalid.localhost.test:1/health";
+        assertFalse(ApiHealthChecker.isCached(url), "URL should not be cached initially");
 
         // First call should probe and cache the result
         try {
@@ -89,6 +90,8 @@ public class ApiHealthCheckerTest {
             // Expected
         }
 
+        assertTrue(ApiHealthChecker.isCached(url), "URL should be cached after first probe");
+
         // Second call should use cached result (still throw SkipException)
         try {
             ApiHealthChecker.checkOrSkip(url, 1);
@@ -96,6 +99,8 @@ public class ApiHealthCheckerTest {
         } catch (SkipException e) {
             // Expected — cached result should still cause skip
         }
+
+        assertTrue(ApiHealthChecker.isCached(url), "URL should remain cached after second call");
     }
 
     @Test
@@ -109,8 +114,12 @@ public class ApiHealthCheckerTest {
             // Expected
         }
 
+        assertTrue(ApiHealthChecker.isCached(url), "URL should be cached after probe");
+
         // Clear cache
         ApiHealthChecker.clearCache();
+        assertFalse(ApiHealthChecker.isCached(url), "Cache should be empty after clearCache()");
+        assertEquals(ApiHealthChecker.getCacheSize(), 0, "Cache size should be 0");
 
         // Second call should probe again (still fail, but proves cache was cleared)
         try {
@@ -118,6 +127,8 @@ public class ApiHealthCheckerTest {
         } catch (SkipException e) {
             // Expected
         }
+
+        assertTrue(ApiHealthChecker.isCached(url), "URL should be re-cached after second call");
     }
 
     @Test

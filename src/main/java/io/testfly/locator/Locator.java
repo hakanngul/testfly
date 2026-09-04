@@ -419,7 +419,12 @@ public final class Locator {
             candidates = candidates.stream()
                     .filter(el -> {
                         try {
-                            return el.getText().trim().equals(target);
+                            String actual = el.getText().trim();
+                            if (exact) {
+                                return actual.equals(target);
+                            } else {
+                                return actual.toLowerCase().contains(target.toLowerCase());
+                            }
                         } catch (Exception ignored) {
                             return false;
                         }

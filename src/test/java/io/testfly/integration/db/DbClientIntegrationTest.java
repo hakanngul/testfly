@@ -29,6 +29,7 @@ import static org.testng.Assert.*;
  * mvn verify -Preal-backends -Dit.test=DbClientIntegrationTest
  * </pre>
  */
+@Test(singleThreaded = true)
 public class DbClientIntegrationTest {
 
     private static final String H2_URL  = "jdbc:h2:mem:testfly_integration;DB_CLOSE_DELAY=-1";
@@ -52,7 +53,7 @@ public class DbClientIntegrationTest {
         exec.setBaseUrl("http://localhost");
         config.setExecution(exec);
 
-        TestFlyContext.initialize(config);
+        TestFlyContext.setConfig(config);
 
         // Create test schema via direct H2 connection
         try (Connection conn = DriverManager.getConnection(H2_URL, H2_USER, H2_PASS);
@@ -73,6 +74,7 @@ public class DbClientIntegrationTest {
     @AfterClass
     public void tearDown() {
         DbConnectionFactory.closeAll();
+        TestFlyContext.reset();
         // Drop the in-memory database
         try (Connection conn = DriverManager.getConnection(H2_URL, H2_USER, H2_PASS);
              Statement stmt = conn.createStatement()) {

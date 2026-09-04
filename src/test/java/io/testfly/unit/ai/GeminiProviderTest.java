@@ -76,10 +76,10 @@ public class GeminiProviderTest {
     }
 
     @Test
-    public void call_invalidApiKey_failsGracefullyWithoutThrowing() {
+    public void call_invalidModelName_rejectedWithoutHttpCall() {
         GeminiProvider provider = new GeminiProvider();
-        // Should not throw, returns null on failure
-        String result = provider.call("invalid-key", "gemini-2.0-flash", "test prompt", 1);
+        // Model with invalid characters (e.g. path traversal or query params) must be rejected
+        String result = provider.call("fake-key", "../invalid/model?query=1", "prompt", 1);
         Assert.assertNull(result);
     }
 }

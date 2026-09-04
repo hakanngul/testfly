@@ -57,6 +57,11 @@ reporting:
 - OAuth2 token cache race condition (double-checked locking)
 - Dark theme code block text visibility (Prism token CSS safety nets)
 - Dark theme component overrides (search, tabs, badges, footer)
+- AI model defaults and validation (`ai.model` optional, provider-specific defaults, input sanitization)
+- Session cache isolation and script safety (clearing localStorage prior to restore, safe script argument passing)
+- PreCondition retry vs DataProvider isolation (prevent premature cache invalidation during multi-row DataProvider runs)
+- LocatorAssert failure propagation (narrow caught wait exceptions to `TimeoutException`)
+- Locator withText matching (case-insensitive substring default with exact-match support)
 
 ---
 

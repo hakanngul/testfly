@@ -23,11 +23,13 @@ public interface SoftAssertSupport {
     }
 
     /** Begins a fluent, auto-retrying soft assertion on the given locator. */
+    @TestFlyApi(since = "1.0.0")
     default LocatorAssert softAssert(By locator) {
         return SeleniumAssert.softAssert(locator);
     }
 
     /** Begins a fluent, auto-retrying soft assertion on the given {@link Locator} chain. */
+    @TestFlyApi(since = "1.0.0")
     default LocatorAssert softAssert(Locator locator) {
         return SeleniumAssert.softAssert(locator);
     }

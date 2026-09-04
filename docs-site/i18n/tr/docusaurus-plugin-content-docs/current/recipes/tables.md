@@ -82,7 +82,7 @@ assertThat(find("#orders tbody tr")).count(3);   // auto-waits until 3 rows exis
 
 ## Bir satırın varlığını doğrulama
 
-Eşleşen satıra odaklanmak için `withText(...)` kullanın ve ardından görünürlüğünü doğrulayın:
+Metni içeren satıra odaklanmak için `withText(...)` kullanın (varsayılan olarak alt dize / substring eşleştirmesi yapar) ve ardından görünürlüğünü doğrulayın:
 
 ```java
 assertThat(find("#orders tbody tr").withText("ORD-1234")).isVisible();
