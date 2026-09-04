@@ -21,7 +21,7 @@ import java.lang.annotation.Target;
  * {@literal @}PreCondition("login")
  * public void viewDashboard() {
  *     open("/dashboard");
- *     Assert.assertTrue(dashboardPage.isLoaded());
+ *     softAssert().that(dashboardPage.isLoaded(), "Dashboard should be loaded");
  * }
  *
  * {@literal @}Test
