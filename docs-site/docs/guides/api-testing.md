@@ -95,6 +95,25 @@ res.assertJson("$.user.name", "Alice");
 ```java
 String token = res.json("$.token");
 int    id     = res.json("$.user.id", Integer.class);
+JsonNode node = res.jsonNode("$.user.metadata"); // direct Jackson JsonNode
+```
+
+### Advanced JSON Assertions
+
+```java
+// Numeric comparisons
+res.assertJsonGreaterThan("$.score", 85.0);
+res.assertJsonLessThan("$.responseTimeMs", 500.0);
+
+// Substring matching
+res.assertJsonContains("$.email", "@company.com");
+
+// Boolean checks
+res.assertJsonTrue("$.verified");
+res.assertJsonFalse("$.isSuspended");
+
+// Custom functional predicates
+res.assertJson("$.roles", node -> node.isArray() && node.size() >= 2, "at least 2 user roles");
 ```
 
 ### Deserialize to object
@@ -128,8 +147,32 @@ ApiClient.get("/api/users/1")
         .send()
         .assertStatus(200)
         .assertJson("$.name", "Alice")
+        .assertJsonTrue("$.active")
         .assertSchema("schemas/user.json");
 ```
+
+---
+
+## Asynchronous Polling — `pollUntil`
+
+Microservices and event-driven architectures often require waiting for asynchronous jobs or eventual consistency. Instead of arbitrary `Thread.sleep()`, use `pollUntil()`:
+
+```java
+import java.time.Duration;
+
+// Poll until condition is met or timeout (default 500ms interval)
+ApiResponse res = ApiClient.get("/api/jobs/job-12345")
+        .pollUntil(r -> "COMPLETED".equals(r.json("$.status")), Duration.ofSeconds(30));
+
+res.assertJson("$.result", "SUCCESS");
+
+// Custom polling interval
+ApiResponse order = ApiClient.get("/api/orders/ord-999")
+        .pollUntil(r -> r.status() == 200, Duration.ofSeconds(15), Duration.ofMillis(250));
+```
+
+During polling, `ApiClient` logs attempts to `StepLogger` (`[API Polling] Started...`, `[API Polling] Condition satisfied in 1420ms`). If the condition is not satisfied before timeout, an `ApiException` with details is thrown.
+
 
 ---
 
@@ -196,7 +239,7 @@ public class CheckoutTest extends BaseTest {
 
 ---
 
-## Step Timeline
+## Step Timeline & API Tracing
 
 Every `ApiClient` request is automatically logged in the step timeline:
 
@@ -206,9 +249,14 @@ Every `ApiClient` request is automatically logged in the step timeline:
 [API] DELETE /api/orders/5 → 404 (12ms)   ← logged as FAIL
 ```
 
-Enable body logging in `testfly.yml`:
+Enable body and cURL logging in `testfly.yml`:
 
 ```yaml
 api:
   logBody: true
 ```
+
+When `logBody: true` is enabled:
+- The HTML report renders requests with an expandable **cURL snippet** ready to copy-paste directly into your terminal or Postman.
+- Formatted request and response JSON payloads are highlighted in preformatted blocks inside the test's execution drawer.
+

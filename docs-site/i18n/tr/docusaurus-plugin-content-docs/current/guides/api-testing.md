@@ -95,6 +95,25 @@ res.assertJson("$.user.name", "Alice");
 ```java
 String token = res.json("$.token");
 int    id     = res.json("$.user.id", Integer.class);
+JsonNode node = res.jsonNode("$.user.metadata"); // doğrudan Jackson JsonNode erişimi
+```
+
+### Gelişmiş JSON Doğrulamaları
+
+```java
+// Sayısal karşılaştırmalar
+res.assertJsonGreaterThan("$.score", 85.0);
+res.assertJsonLessThan("$.responseTimeMs", 500.0);
+
+// Alt metin (substring) kontrolü
+res.assertJsonContains("$.email", "@company.com");
+
+// Mantıksal (boolean) kontroller
+res.assertJsonTrue("$.verified");
+res.assertJsonFalse("$.isSuspended");
+
+// Özel fonksiyonel koşullar (predicates)
+res.assertJson("$.roles", node -> node.isArray() && node.size() >= 2, "en az 2 kullanıcı rolü");
 ```
 
 ### Nesneye dönüştürme (deserialization)
@@ -128,8 +147,32 @@ ApiClient.get("/api/users/1")
         .send()
         .assertStatus(200)
         .assertJson("$.name", "Alice")
+        .assertJsonTrue("$.active")
         .assertSchema("schemas/user.json");
 ```
+
+---
+
+## Asenkron Polling — `pollUntil`
+
+Mikroservis mimarilerinde ve event-driven sistemlerde arka plan işlerini veya nihai tutarlılığı (eventual consistency) beklemek yaygındır. Rastgele `Thread.sleep()` kullanmak yerine `pollUntil()` metodundan yararlanın:
+
+```java
+import java.time.Duration;
+
+// Koşul sağlanana veya zaman aşımına kadar yoklar (varsayılan 500ms aralık)
+ApiResponse res = ApiClient.get("/api/jobs/job-12345")
+        .pollUntil(r -> "COMPLETED".equals(r.json("$.status")), Duration.ofSeconds(30));
+
+res.assertJson("$.result", "SUCCESS");
+
+// Özel yoklama aralığı ile
+ApiResponse order = ApiClient.get("/api/orders/ord-999")
+        .pollUntil(r -> r.status() == 200, Duration.ofSeconds(15), Duration.ofMillis(250));
+```
+
+Yoklama sırasında `ApiClient`, denemeleri `StepLogger` üzerine kaydeder (`[API Polling] Started...`, `[API Polling] Condition satisfied in 1420ms`). Süre aşımına kadar koşul sağlanmazsa detaylı bir `ApiException` fırlatılır.
+
 
 ---
 
@@ -196,7 +239,7 @@ public class CheckoutTest extends BaseTest {
 
 ---
 
-## Adım Zaman Çizelgesi
+## Adım Zaman Çizelgesi ve API İstek İzi
 
 Her `ApiClient` isteği otomatik olarak adım zaman çizelgesine kaydedilir:
 
@@ -206,9 +249,13 @@ Her `ApiClient` isteği otomatik olarak adım zaman çizelgesine kaydedilir:
 [API] DELETE /api/orders/5 → 404 (12ms)   ← logged as FAIL
 ```
 
-`testfly.yml` içinde gövde loglamayı etkinleştirin:
+`testfly.yml` içinde gövde ve cURL loglamayı etkinleştirin:
 
 ```yaml
 api:
   logBody: true
 ```
+
+`logBody: true` etkinleştirildiğinde:
+- HTML raporu, doğrudan terminalinize veya Postman'e kopyalayıp çalıştırabileceğiniz genişletilebilir bir **cURL komut bloğu** sunar.
+- Biçimlendirilmiş istek ve yanıt JSON gövdeleri (payload), testin detay çekmecesi içerisinde özel kod bloklarında vurgulanır.

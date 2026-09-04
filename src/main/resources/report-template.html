@@ -742,7 +742,40 @@
         .step-pill.pass { background: var(--good-bg); color: var(--good-text); }
         .step-pill.info { background: var(--primary-bg); color: var(--primary); }
         .step-pill.fail { background: var(--bad-bg); color: var(--bad-text); }
-        .step-text { color: var(--text); }
+        .step-pill.warn { background: var(--warn-bg); color: var(--warn-text); }
+        .step-text { color: var(--text); flex: 1; word-break: break-word; }
+
+        /* API Tracing Box inside Timeline */
+        .api-step-box {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+        .api-step-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+        }
+        .api-step-details {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--code-text);
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-top: 4px;
+            line-height: 1.45;
+        }
+
+        /* Flakiness Risk Badges */
+        .status-badge.risk-high { background: var(--bad-bg); color: var(--bad-text); border: 1px solid var(--bad-border); }
+        .status-badge.risk-watch { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-border); }
+        .status-badge.risk-stable { background: var(--good-bg); color: var(--good-text); border: 1px solid var(--good-border); }
 
         /* ── Stack Trace Box with Copy Button ── */
         .stack-trace-box {
@@ -931,6 +964,13 @@
                     <span>Run History</span>
                 </div>
                 <span class="nav-count">{{HISTORY_COUNT}}</span>
+            </li>
+            <li id="nav-flakiness" class="nav-item" onclick="showTab('flakiness', this)">
+                <div class="nav-item-left">
+                    <span>&#127919;</span>
+                    <span>Flakiness Radar</span>
+                </div>
+                <span id="nav-flaky-count" class="nav-count status-flaky" style="display:none;">0</span>
             </li>
         </ul>
     </aside>
@@ -1147,6 +1187,64 @@
                         <tbody id="historyTableBody"></tbody>
                     </table>
                 </div>
+        <!-- ═══════════════ FLAKINESS RADAR TAB ═══════════════ -->
+        <div id="tab-flakiness" class="tab-pane">
+            <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+                <h2 style="font-size:18px;font-weight:700;">Flakiness Radar &amp; Stability Analysis</h2>
+                <span id="flakinessSubtitle" style="font-size:13px;color:var(--text-muted);">Historical test reliability tracking</span>
+            </div>
+
+            <!-- Flakiness KPI Summary -->
+            <div class="kpi-grid">
+                <div class="stat-card">
+                    <div class="stat-top">
+                        <span class="stat-label">Analysed Tests</span>
+                        <span class="nav-count">&#128269; SCORED</span>
+                    </div>
+                    <div id="flaky-total" class="stat-value">0</div>
+                    <div class="stat-meta">Tests tracked across runs</div>
+                </div>
+                <div class="stat-card card-failed">
+                    <div class="stat-top">
+                        <span class="stat-label">High Risk Flaky</span>
+                        <span class="status-badge status-failed">HIGH</span>
+                    </div>
+                    <div id="flaky-high" class="stat-value">0</div>
+                    <div class="stat-meta">Intermittent failure rate &ge; 33%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-top">
+                        <span class="stat-label">Watch List</span>
+                        <span class="status-badge status-broken">WATCH</span>
+                    </div>
+                    <div id="flaky-watch" class="stat-value">0</div>
+                    <div class="stat-meta">Failure rate between 10% - 33%</div>
+                </div>
+                <div class="stat-card card-passed">
+                    <div class="stat-top">
+                        <span class="stat-label">Stable Tests</span>
+                        <span class="status-badge status-passed">STABLE</span>
+                    </div>
+                    <div id="flaky-stable" class="stat-value">0</div>
+                    <div class="stat-meta">Reliable tests (&lt; 10% failures)</div>
+                </div>
+            </div>
+
+            <div class="card table-card">
+                <div class="table-wrap">
+                    <table id="flakinessTable">
+                        <thead>
+                            <tr>
+                                <th>Test Identifier</th>
+                                <th style="text-align:center;">Risk Level</th>
+                                <th style="text-align:right;">Failure Rate</th>
+                                <th style="text-align:right;">Fails / Runs</th>
+                                <th style="text-align:center;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="flakinessTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -1342,6 +1440,7 @@ function renderView() {
     renderTestTable(tests);
     renderFailureTable(tests);
     renderHistoryTable();
+    renderFlakinessTable();
 }
 
 // ── Charts Rendering (Allure Standard Color Palette) ──
@@ -1530,13 +1629,36 @@ function renderTestTable(tests) {
                             <div>
                                 <strong style="font-size:12px;text-transform:uppercase;color:var(--text-muted);">Step Execution Timeline</strong>
                                 <div class="timeline-wrap">
-                                    ${(m.steps && m.steps.length > 0) ? m.steps.map(s => `
-                                        <div class="timeline-step">
-                                            <span class="step-offset">+${s.offsetMs || 0}ms</span>
-                                            <span class="step-pill ${(s.status || 'info').toLowerCase()}">${s.status || 'INFO'}</span>
-                                            <span class="step-text">${escapeHtml(s.name || '')}</span>
-                                        </div>
-                                    `).join('') : '<div style="font-size:12px;color:var(--text-muted);">No individual steps logged.</div>'}
+                                    ${(m.steps && m.steps.length > 0) ? m.steps.map(s => {
+                                        const rawName = s.name || '';
+                                        const isApiStep = rawName.startsWith('[API]');
+                                        const hasMultiline = rawName.includes('\n');
+                                        const pillStatus = (s.status || 'info').toLowerCase();
+
+                                        if (isApiStep && hasMultiline) {
+                                            const lines = rawName.split('\n');
+                                            const headerLine = lines[0];
+                                            const detailLines = lines.slice(1).join('\n');
+                                            return `
+                                                <div class="timeline-step" style="flex-direction:column;align-items:flex-start;gap:6px;">
+                                                    <div style="display:flex;align-items:center;gap:12px;width:100%;">
+                                                        <span class="step-offset">+${s.offsetMs || 0}ms</span>
+                                                        <span class="step-pill ${pillStatus}">${s.status || 'INFO'}</span>
+                                                        <span class="step-text" style="font-weight:600;">${escapeHtml(headerLine)}</span>
+                                                    </div>
+                                                    <pre class="api-step-details">${escapeHtml(detailLines)}</pre>
+                                                </div>
+                                            `;
+                                        }
+
+                                        return `
+                                            <div class="timeline-step">
+                                                <span class="step-offset">+${s.offsetMs || 0}ms</span>
+                                                <span class="step-pill ${pillStatus}">${s.status || 'INFO'}</span>
+                                                <span class="step-text">${escapeHtml(rawName)}</span>
+                                            </div>
+                                        `;
+                                    }).join('') : '<div style="font-size:12px;color:var(--text-muted);">No individual steps logged.</div>'}
                                 </div>
                             </div>
                         </div>
@@ -1618,6 +1740,59 @@ function renderHistoryTable() {
             <td><a href="${escapeHtml(h.reportPath || '#')}" target="_blank" style="color:var(--primary);font-weight:600;text-decoration:none;">View Report &rarr;</a></td>
         </tr>
     `).join('');
+}
+
+// ── Render Flakiness Radar Table ──
+function renderFlakinessTable() {
+    const flakiness = reportData.flakiness || {};
+    const scores = flakiness.scores || [];
+
+    const elTotal = document.getElementById('flaky-total');
+    const elHigh = document.getElementById('flaky-high');
+    const elWatch = document.getElementById('flaky-watch');
+    const elStable = document.getElementById('flaky-stable');
+    const navFlaky = document.getElementById('nav-flaky-count');
+
+    const highCount = flakiness.highRisk || 0;
+    const watchCount = flakiness.watch || 0;
+    const stableCount = flakiness.stable || 0;
+    const totalCount = flakiness.analysedTests || scores.length;
+
+    if (elTotal) elTotal.innerText = totalCount;
+    if (elHigh) elHigh.innerText = highCount;
+    if (elWatch) elWatch.innerText = watchCount;
+    if (elStable) elStable.innerText = stableCount;
+
+    if (navFlaky) {
+        navFlaky.innerText = highCount + watchCount;
+        navFlaky.style.display = (highCount + watchCount) > 0 ? '' : 'none';
+    }
+
+    const tbody = document.getElementById('flakinessTableBody');
+    if (!tbody) return;
+
+    if (scores.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);">No flakiness history data collected yet. Run test suites with flakiness enabled to build history.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = scores.map(s => {
+        const risk = (s.risk || 'STABLE').toUpperCase();
+        const badgeClass = risk === 'HIGH' ? 'risk-high' : risk === 'WATCH' ? 'risk-watch' : 'risk-stable';
+        const rateColor = risk === 'HIGH' ? 'var(--bad)' : risk === 'WATCH' ? 'var(--flaky)' : 'var(--good)';
+
+        return `
+            <tr>
+                <td><strong>${escapeHtml(s.testId || '')}</strong></td>
+                <td style="text-align:center;"><span class="status-badge ${badgeClass}">${risk}</span></td>
+                <td style="text-align:right;font-family:var(--font-mono);font-weight:700;color:${rateColor};">${s.failureRate}%</td>
+                <td style="text-align:right;font-family:var(--font-mono);">${s.failCount || 0} / ${s.runsAnalysed || 0}</td>
+                <td style="text-align:center;">
+                    ${risk === 'HIGH' ? '<span style="color:var(--bad);font-weight:600;font-size:11px;">Quarantine Recommended</span>' : '<span style="color:var(--text-muted);font-size:11px;">Monitored</span>'}
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 // ── Accordions & Drawer Toggles ──

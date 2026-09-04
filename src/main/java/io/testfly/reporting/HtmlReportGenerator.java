@@ -147,6 +147,39 @@ public final class HtmlReportGenerator {
             reportData.put("environment", envMap);
             reportData.put("tests", new ArrayList<>(cumulativeTestsMap.values()));
             reportData.put("currentRunTests", currentRunTests);
+            // Flakiness scores
+            Map<String, Object> flakinessData = new LinkedHashMap<>();
+            try {
+                File flakinessFile = new File("target/flakiness-report.json");
+                if (flakinessFile.exists()) {
+                    flakinessData = mapper.readValue(flakinessFile, Map.class);
+                } else {
+                    List<io.testfly.flakiness.FlakinessScore> scores = io.testfly.flakiness.FlakinessAnalyzer.getLastResult();
+                    if (scores != null && !scores.isEmpty()) {
+                        List<Map<String, Object>> scoreList = new ArrayList<>();
+                        long high = 0, watch = 0, stable = 0;
+                        for (io.testfly.flakiness.FlakinessScore s : scores) {
+                            Map<String, Object> sm = new LinkedHashMap<>();
+                            sm.put("testId", s.getTestId());
+                            sm.put("runsAnalysed", s.getRunsAnalysed());
+                            sm.put("failCount", s.getFailCount());
+                            sm.put("failureRate", Math.round(s.getFailureRate() * 10.0) / 10.0);
+                            sm.put("risk", s.getRisk().name());
+                            scoreList.add(sm);
+                            if (s.getRisk() == io.testfly.flakiness.FlakinessScore.Risk.HIGH) high++;
+                            else if (s.getRisk() == io.testfly.flakiness.FlakinessScore.Risk.WATCH) watch++;
+                            else stable++;
+                        }
+                        flakinessData.put("analysedTests", scores.size());
+                        flakinessData.put("highRisk", high);
+                        flakinessData.put("watch", watch);
+                        flakinessData.put("stable", stable);
+                        flakinessData.put("scores", scoreList);
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            reportData.put("flakiness", flakinessData);
             reportData.put("history", runHistory);
             reportData.put("runTimestamp", timestamp);
 

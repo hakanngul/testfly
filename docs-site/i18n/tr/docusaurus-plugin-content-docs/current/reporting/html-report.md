@@ -72,11 +72,24 @@ Her test çalıştırması otomatik olarak `target/reports/testfly-report-YYYYMM
 Herhangi bir test satırını genişletmek, şu özelliklerle donatılmış bir detay paneli açar:
 
 - **Adım Zaman Çizelgesi (Step Timeline):** `StepLogger` ile kaydedilen adım zaman farklarını (`+56ms`), adım durumlarını (`PASS`, `INFO`, `FAIL`) ve açıklamaları gösterir.
+- **API İstek İzi ve cURL İncelemesi:** HTTP metodu, uç nokta, durum kodu, gecikme süresi, kopyalanabilir cURL komutları ve istek/yanıt JSON gövdelerini doğrudan adım çekmecesinde gösterir.
 - **Tek Tıkla Stack Trace Kopyalama:** Biçimlendirilmiş hata yığın izini tek butonla panoya kopyalar.
 - **AI Hata Analiz Kartı (AI Failure Analysis):** AI analizi aktif olduğunda hatanın kök nedenini ve önerilen çözüm adımlarını sunar.
 - **Ekran Görüntüsü Lightbox:** Base64 gömülü küçük resimler tıklandığında yüksek çözünürlüklü pencerede (lightbox) açılır.
 
 ---
+
+### 5. Flakiness Radarı ve Risk Analizi
+Özel **Flakiness Radar** sekmesi, geçmiş koşumlardaki yürütme eğilimlerini analiz eder:
+
+- **Yüksek Risk (High Risk):** CI hattını bozma potansiyeline sahip, karantinaya alınması tavsiye edilen (`@Quarantine`) dengesiz testler.
+- **İzleme Listesi (Watch List):** Ara sıra başarısızlık sergileyen ve inceleme gerektiren testler.
+- **Kararlı (Stable):** Tutarlı bir şekilde %100 başarı oranına sahip güvenilir testler.
+- **Özet KPI Kartları:** Değerlendirilen test sayısı, Yüksek Risk, İzleme Listesi ve Kararlı test adetlerini anında gösterir.
+- **İnteraktif Risk Tablosu:** Testleri başarısızlık yüzdesine, toplam koşum sayısına ve karantina önerisine göre sıralayıp filtreleme imkanı sunar.
+
+---
+
 
 ## Yapılandırma
 
