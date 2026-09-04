@@ -11,7 +11,6 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.testng.Assert;
 
 import java.time.Duration;
 import java.util.List;
@@ -180,7 +179,7 @@ public final class LocatorAssert {
         try {
             new WebDriverWait(driver, Duration.ofSeconds(timeout)).until(condition);
         } catch (Exception e) {
-            Assert.fail(failMessage + " (timeout: " + timeout + "s)");
+            throw new AssertionError(failMessage + " (timeout: " + timeout + "s)");
         }
     }
 }
