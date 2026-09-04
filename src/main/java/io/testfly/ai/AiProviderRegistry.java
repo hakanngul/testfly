@@ -10,7 +10,8 @@ import java.util.logging.Logger;
  * <p>Built-in providers:
  * <ul>
  *   <li>{@code claude} — Anthropic Claude (native Messages API)</li>
- *   <li>{@code openai-compatible} — DeepSeek, Gemini, OpenAI, Groq, Ollama, etc.</li>
+ *   <li>{@code gemini} — Google Gemini (native Google Generative AI REST API)</li>
+ *   <li>{@code openai-compatible} — DeepSeek, OpenAI, Groq, Ollama, etc.</li>
  * </ul>
  *
  * <p>Custom providers can be registered programmatically:
@@ -26,6 +27,7 @@ public final class AiProviderRegistry {
 
     static {
         register(new ClaudeProvider());
+        register(new GeminiProvider());
     }
 
     private AiProviderRegistry() {}

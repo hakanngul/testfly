@@ -101,7 +101,7 @@ for (AccessibilityViolation v : result.violations()) {
 }
 
 // Yumuşak doğrulama — en fazla 2 küçük ihlale tolerans göster
-Assert.assertTrue(
+softAssert().that(
     result.violationsAtLevel(Impact.SERIOUS).isEmpty(),
     "Serious ihlaller bulundu:\n" + result.violations()
 );

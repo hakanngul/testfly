@@ -8,7 +8,6 @@ import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.testng.Assert;
 
 import javax.imageio.ImageIO;
 import java.awt.Color;
@@ -128,8 +127,7 @@ public final class VisualAssert {
         try {
             base = ImageIO.read(baseline);
         } catch (IOException e) {
-            Assert.fail("[VisualAssert] Failed to read baseline '" + name + "': " + e.getMessage());
-            return;
+            throw new AssertionError("[VisualAssert] Failed to read baseline '" + name + "': " + e.getMessage());
         }
 
         // Resize current to match baseline dimensions if they differ (handles minor
@@ -146,7 +144,7 @@ public final class VisualAssert {
             // Save diff image
             File diffFile = diffFile(name);
             saveDiff(diffFile, result.diffImage());
-            Assert.fail(String.format(
+            throw new AssertionError(String.format(
                     "[VisualAssert] '%s' differs by %.2f%% (tolerance: %.2f%%). " +
                     "Diff image: %s",
                     name, diffPercent, tolerance.getPercent(), diffFile.getAbsolutePath()));

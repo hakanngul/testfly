@@ -17,7 +17,6 @@ const flagshipFeatures = [
       </svg>
     ),
     title: 'Zero Boilerplate',
-    span: 2,
     description: 'Extend BaseTest, write @Test methods, and go. Driver lifecycle, waits, retries, reports, and screenshots are all handled — no setup code required.',
     code: `class CheckoutTest extends BaseTest {
 
@@ -58,7 +57,6 @@ const flagshipFeatures = [
       </svg>
     ),
     title: 'A Report Stakeholders Actually Read',
-    span: 2,
     visual: 'report',
     description: 'A tabbed HTML dashboard with a pass-rate gauge, retry badges, expandable errors, a Flakiness Radar, trace links, search, and dark mode.',
   },
@@ -405,7 +403,6 @@ assertThat(find("h1"))
                 <div
                   key={f.title}
                   className={styles.bentoCard}
-                  data-span={f.span === 2 ? '2' : undefined}
                   data-reveal
                   style={{ '--i': i % 3 }}
                 >

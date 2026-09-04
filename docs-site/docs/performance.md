@@ -94,7 +94,7 @@ PerformanceMetrics perf = collectPerformance();
 System.out.println("LCP: " + perf.lcp() + "ms");
 System.out.println("CLS: " + perf.cls());
 
-Assert.assertTrue(perf.lcp() < 3000, "LCP regression: " + perf.lcp() + "ms");
+assertPerformance().lcp().isBelow(3000);
 ```
 
 ### Chaining

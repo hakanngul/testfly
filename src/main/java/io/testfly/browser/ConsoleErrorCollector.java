@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 /**
  * Captures browser JavaScript console errors during test execution.
@@ -30,7 +29,7 @@ import java.util.stream.Collectors;
  * ConsoleErrorCollector.clear();
  * click(By.id("submit"));
  * List&lt;String&gt; errors = ConsoleErrorCollector.getErrors();
- * Assert.assertTrue(errors.isEmpty(), "Unexpected JS errors: " + errors);
+ * softAssert().that(errors.isEmpty(), "Unexpected JS errors: " + errors);
  * </pre>
  *
  * <p>When {@code captureConsoleErrors: true}, errors are automatically appended

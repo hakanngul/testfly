@@ -2,7 +2,7 @@
 
 This document is a living inventory of TestFly capabilities. It covers what the framework does today, what was added in recent iterations, and the features planned for upcoming releases.
 
-For implementation status details, see [`imlpementation-status.md`](imlpementation-status.md) and [`ROADMAP.md`](ROADMAP.md).
+For implementation status details, see [`implementation-status.md`](implementation-status.md) and [`ROADMAP.md`](ROADMAP.md).
 
 ---
 
