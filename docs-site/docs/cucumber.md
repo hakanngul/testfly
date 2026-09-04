@@ -1,5 +1,5 @@
 ---
-description: "BDD Selenium testing with Cucumber 7: driver lifecycle, screenshots on failure, and a step timeline in the HTML report, wired up out of the box."
+description: "BDD Selenium testing with Cucumber 7: driver lifecycle, parallel execution, API step helpers, ScenarioContext data sharing, AI failure analysis, and ReportPortal integration."
 id: cucumber
 title: BDD / Cucumber
 sidebar_position: 11
@@ -7,148 +7,271 @@ sidebar_position: 11
 
 # BDD / Cucumber Integration
 
-TestFly integrates with Cucumber 7 out of the box. Driver lifecycle, the HTML report step timeline, screenshots on failure, metrics, and all framework features work automatically — no boilerplate in your step definitions.
+TestFly integrates with Cucumber 7 out of the box. The framework manages the entire lifecycle — WebDriver provisioning per scenario, ThreadLocal driver isolation, screenshots on failure, step timelines in the HTML report, built-in REST API testing inside steps, cross-step state sharing via `ScenarioContext` without DI boilerplate, quarantine handling, and AI root cause analysis.
 
 ---
 
 ## Setup
 
-Add Cucumber to your project alongside TestFly:
+Add Cucumber dependencies alongside TestFly:
 
 ```xml title="pom.xml"
-<dependency>
-    <groupId>io.testfly</groupId>
-    <artifactId>testfly</artifactId>
-    <version>1.0.0</version>
-</dependency>
+<dependencies>
+    <!-- TestFly Core -->
+    <dependency>
+        <groupId>io.testfly</groupId>
+        <artifactId>testfly</artifactId>
+        <version>1.0.0</version>
+    </dependency>
 
-<dependency>
-    <groupId>io.cucumber</groupId>
-    <artifactId>cucumber-java</artifactId>
-    <version>7.20.1</version>
-</dependency>
-
-<dependency>
-    <groupId>io.cucumber</groupId>
-    <artifactId>cucumber-testng</artifactId>
-    <version>7.20.1</version>
-</dependency>
+    <!-- Cucumber Java & TestNG -->
+    <dependency>
+        <groupId>io.cucumber</groupId>
+        <artifactId>cucumber-java</artifactId>
+        <version>7.20.1</version>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>io.cucumber</groupId>
+        <artifactId>cucumber-testng</artifactId>
+        <version>7.20.1</version>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
 ```
 
 ---
 
-## Project structure
+## Project Structure
 
-```
+A typical TestFly + Cucumber project layout:
+
+```text
 src/
 └── test/
     ├── java/
     │   └── com/yourcompany/
     │       ├── bdd/
-    │       │   ├── CucumberRunner.java       ← runner class
+    │       │   ├── CucumberRunner.java          ← Extends BaseCucumberTest
     │       │   └── steps/
-    │       │       ├── LoginSteps.java        ← extend BaseCucumberSteps
-    │       │       └── NavigationSteps.java
+    │       │       ├── AuthSteps.java           ← Extends BaseCucumberSteps
+    │       │       ├── ProductSteps.java        ← Extends BaseCucumberSteps
+    │       │       └── OrderSteps.java          ← Extends BaseCucumberSteps
     └── resources/
         ├── features/
-        │   └── login.feature
-        └── cucumber.properties               ← for IDE single-scenario runs
+        │   ├── login.feature
+        │   └── checkout.feature
+        ├── cucumber.properties                  ← For IDE single-scenario runs
+        └── testfly.yml                          ← Framework configuration
 ```
 
 ---
 
-## Runner class
+## Runner Class & Parallel Execution
 
-Annotate with `@CucumberOptions` and extend `BaseCucumberTest`. No other code needed:
+Annotate your runner with `@CucumberOptions` and extend `BaseCucumberTest`.
 
-```java
+```java title="src/test/java/com/yourcompany/bdd/CucumberRunner.java"
+package com.yourcompany.bdd;
+
+import io.cucumber.testng.CucumberOptions;
+import io.testfly.cucumber.BaseCucumberTest;
+import org.testng.annotations.DataProvider;
+
 @CucumberOptions(
     features = "src/test/resources/features",
     glue     = {"com.yourcompany.bdd.steps", "io.testfly.cucumber"},
     plugin   = {"pretty", "io.testfly.cucumber.CucumberStepLogger"}
 )
-public class CucumberRunner extends BaseCucumberTest {}
-```
+public class CucumberRunner extends BaseCucumberTest {
 
-`"io.testfly.cucumber"` in `glue` is required — it tells Cucumber where to find `CucumberHooks`, which manages the driver lifecycle.
-
-`CucumberStepLogger` in `plugin` streams Gherkin step names into the TestFly HTML report step timeline.
-
----
-
-## Step definitions
-
-Extend `BaseCucumberSteps` to get `getDriver()`, `open()`, `find()`, `assertThat()`:
-
-```java
-public class LoginSteps extends BaseCucumberSteps {
-
-    private LoginPage loginPage;
-
-    @Given("the user is on the login page")
-    public void onLoginPage() {
-        open();                                 // navigates to execution.baseUrl
-        loginPage = new LoginPage(getDriver());
-    }
-
-    @When("they login as {string} with password {string}")
-    public void login(String username, String password) {
-        loginPage.login(username, password);
-    }
-
-    @Then("the dashboard is visible")
-    public void dashboardVisible() {
-        assertThat(By.id("dashboard")).isVisible();   // auto-retrying assertion
+    /**
+     * Required for parallel scenario execution in TestNG Cucumber!
+     */
+    @Override
+    @DataProvider(parallel = true)
+    public Object[][] scenarios() {
+        return super.scenarios();
     }
 }
 ```
 
-`BaseCucumberSteps` provides:
+:::warning CRITICAL: Parallel Scenario Gotcha in Cucumber-TestNG
+By default, Cucumber's `AbstractTestNGCucumberTests` runs scenarios **sequentially**, even if `parallel: methods` is set in `testfly.yml`. To execute scenarios concurrently across threads, you **must override `scenarios()` with `@DataProvider(parallel = true)`** in your runner as shown above!
+:::
 
-| Method | Description |
-|---|---|
-| `getDriver()` | Current thread's `WebDriver` |
-| `getWait()` | `WebDriverWait` using `timeouts.explicit` from `testfly.yml` |
-| `open()` | Navigate to `execution.baseUrl` |
-| `open(path)` | Navigate to `baseUrl + path` |
-| `find(css)` | Chainable fluent locator |
-| `find(By)` | Chainable fluent locator |
-| `assertThat(By)` | Auto-retrying assertion |
-| `assertThat(Locator)` | Auto-retrying assertion on a locator chain |
-| `getScenario()` | The current Cucumber `Scenario` object |
+### Parallel Configuration in `testfly.yml`
 
----
+Control the concurrency level in `testfly.yml`:
 
-## Feature files
+```yaml title="testfly.yml"
+execution:
+  mode: local
+  parallel: methods
+  threadCount: 4
+  maxActiveSessions: 4
 
-Standard Gherkin — no framework-specific syntax:
-
-```gherkin title="src/test/resources/features/login.feature"
-Feature: User Login
-
-  Scenario: Valid credentials grant access
-    Given the user is on the login page
-    When they login as "admin" with password "secret"
-    Then the dashboard is visible
-
-  Scenario Outline: Multiple accounts can log in
-    Given the user is on the login page
-    When they login as "<username>" with password "<password>"
-    Then the dashboard is visible
-
-    Examples:
-      | username | password |
-      | admin    | secret   |
-      | editor   | pass123  |
+browser:
+  name: chrome
+  headless: true
 ```
 
-Each Scenario Outline example row produces a separate entry in the HTML report with its own step timeline and screenshot.
+Each scenario receives its own isolated `WebDriver` instance on its own thread, managed safely by `DriverManager`.
+
+### Glue & Plugin Requirements:
+- `"io.testfly.cucumber"` in `glue` is **mandatory** — it instructs Cucumber to discover `CucumberHooks`, which orchestrates driver provisioning, metrics, AI analysis, and teardown.
+- `CucumberStepLogger` in `plugin` streams Gherkin step names and status directly into the TestFly HTML timeline report.
 
 ---
 
-## IDE single-scenario execution
+## Step Definitions (`BaseCucumberSteps`)
 
-When running a single scenario from the IDE (right-click → Run), the IDE uses its own runner and doesn't read `@CucumberOptions`. Add a `cucumber.properties` file so `CucumberHooks` is always discovered:
+Step definition classes should extend `BaseCucumberSteps`. It exposes the full TestFly convenience API directly to your step methods:
+
+```java title="src/test/java/com/yourcompany/bdd/steps/LoginSteps.java"
+package com.yourcompany.bdd.steps;
+
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
+import io.testfly.cucumber.BaseCucumberSteps;
+import io.testfly.locator.Role;
+import org.openqa.selenium.By;
+
+public class LoginSteps extends BaseCucumberSteps {
+
+    @Given("the user is on the login page")
+    public void onLoginPage() {
+        open("/login");
+    }
+
+    @When("they sign in with username {string} and password {string}")
+    public void signIn(String username, String password) {
+        getByLabel("Username").type(username);
+        getByLabel("Password").type(password);
+        getByRole(Role.BUTTON, "Sign In").click();
+    }
+
+    @Then("the dashboard header is displayed")
+    public void dashboardDisplayed() {
+        assertThat(getByRole(Role.HEADING, "Dashboard")).isVisible();
+    }
+}
+```
+
+### What `BaseCucumberSteps` Provides:
+
+| Capability | Available Methods |
+|---|---|
+| **Navigation** | `open()`, `open(path)`, `getDriver()`, `getWait()` |
+| **Semantic Locators** | `getByRole(Role, name)`, `getByText()`, `getByLabel()`, `getByPlaceholder()`, `getByTestId()`, `getByAltText()`, `getByTitle()` |
+| **Fluent Locators** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
+| **Web-First Assertions** | `assertThat(By)`, `assertThat(Locator)` with automatic waiting |
+| **Soft Assertions** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)` |
+| **Built-in REST Client** | `apiClient()`, `apiGet(path)`, `apiPost(path, body)`, `apiPut()`, `apiDelete()` |
+| **Step Logging** | `step(name)`, `step(name, takeScreenshot)` |
+| **Cucumber Context** | `getScenario()` returning the current `io.cucumber.java.Scenario` |
+
+---
+
+## Sharing State Between Steps (`ScenarioContext`)
+
+In standard Cucumber, passing state (such as an auth token, user ID, or generated order number) between different step definition classes requires configuring an external dependency injection container like PicoContainer or Spring.
+
+TestFly provides built-in, thread-safe scenario state sharing via **`ScenarioContext`**:
+
+```java title="src/test/java/com/yourcompany/bdd/steps/OrderSteps.java"
+package com.yourcompany.bdd.steps;
+
+import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
+import io.testfly.context.ScenarioContext;
+import io.testfly.cucumber.BaseCucumberSteps;
+import org.openqa.selenium.By;
+
+public class OrderSteps extends BaseCucumberSteps {
+
+    @When("the user places an order for item {string}")
+    public void placeOrder(String item) {
+        find(".buy-btn").click();
+        String orderNumber = find("#confirmation-num").getText();
+
+        // Store state for subsequent steps (even in other step classes!)
+        ScenarioContext.put("orderId", orderNumber);
+    }
+
+    @Then("the order status should be confirmed")
+    public void verifyOrderStatus() {
+        // Retrieve state across steps
+        String orderId = ScenarioContext.get("orderId", String.class);
+        
+        open("/orders/" + orderId);
+        assertThat(By.id("order-status")).hasText("CONFIRMED");
+    }
+}
+```
+
+> **Automatic Cleanup:** `CucumberHooks` automatically invokes `ScenarioContext.clear()` in `@After(order = 20000)`, guaranteeing zero memory leaks or state leakage between scenarios.
+
+---
+
+## Hybrid API & UI Steps in BDD
+
+BDD scenarios often require prerequisite test data. Instead of wasting time clicking through UI setup flows, use TestFly's built-in `ApiSupport` right inside your step definitions:
+
+```java
+public class UserSteps extends BaseCucumberSteps {
+
+    @Given("an active user exists with email {string}")
+    public void seedUserViaApi(String email) {
+        // Create user instantly via REST API
+        String json = String.format("{\"email\":\"%s\",\"role\":\"CUSTOMER\"}", email);
+        String userId = apiPost("/api/users", json)
+                .assertThat().statusCode(201)
+                .jsonPath().getString("id");
+
+        ScenarioContext.put("userId", userId);
+    }
+}
+```
+
+---
+
+## Feature Files & Scenario Outlines
+
+Standard Gherkin syntax works seamlessly:
+
+```gherkin title="src/test/resources/features/checkout.feature"
+Feature: Checkout Process
+
+  Background:
+    Given an active user exists with email "buyer@testfly.io"
+    And the user is on the login page
+
+  Scenario: Complete checkout with credit card
+    When they sign in with username "buyer@testfly.io" and password "secret"
+    And the user places an order for item "Mechanical Keyboard"
+    Then the order status should be confirmed
+
+  Scenario Outline: Promo code discounts
+    When they apply promo code "<code>"
+    Then the discount reflects "<percentage>"
+
+    Examples:
+      | code       | percentage |
+      | SUMMER2026 | 20%        |
+      | WELCOME10  | 10%        |
+```
+
+Every `Examples` row in a Scenario Outline generates an independent entry in the TestFly HTML report with its own execution metrics, screenshots, and step timeline.
+
+---
+
+## IDE Single-Scenario Execution
+
+When running an individual scenario directly from IntelliJ IDEA or Eclipse (Right-Click → *Run 'Scenario: ...'*), IDEs use their own runner and do not read `@CucumberOptions`.
+
+Add a `cucumber.properties` file in `src/test/resources` so `CucumberHooks` and `CucumberStepLogger` are always activated:
 
 ```properties title="src/test/resources/cucumber.properties"
 cucumber.glue=com.yourcompany.bdd.steps,io.testfly.cucumber
@@ -158,119 +281,125 @@ cucumber.monochrome=true
 
 ---
 
-## Retry
+## Smart Retries: Global & Tagged
 
-### Global retry
-
-Enable retry in `testfly.yml` — all scenarios that fail will be retried automatically:
-
+### 1. Global Retry in `testfly.yml`
 ```yaml title="testfly.yml"
 retry:
   enabled: true
-  maxAttempts: 1   # 1 retry = 2 total attempts per scenario
+  maxAttempts: 1   # 1 retry = 2 attempts total
 ```
 
-### Per-scenario retry tag
+### 2. Per-Scenario Retry Tags
+Override global retry behavior on specific scenarios:
 
-Override the global config for individual scenarios using the `@retryable` or `@retryable=N` tag:
+| Tag | Behavior |
+|---|---|
+| `@retryable` | Retries using global `retry.maxAttempts` from `testfly.yml` |
+| `@retryable=N` | Retries up to `N` times (e.g., `@retryable=2`), overriding config |
 
 ```gherkin
-# Use global retry.maxAttempts from testfly.yml
-@retryable
-Scenario: Login sometimes flakes on slow CI
-  Given the user is on the login page
-  When they submit valid credentials
-  Then the dashboard is visible
-
-# Exactly 2 retries regardless of global config
 @retryable=2
-Scenario: Very flaky third-party widget
-  Given the widget is loaded
-  Then it should display the correct value
+Scenario: Payment gateway occasionally flakes under heavy load
+  When they submit payment details
+  Then the receipt is displayed
 ```
 
-Tag formats:
-
-| Tag | Behaviour |
-|---|---|
-| `@retryable` | Retry using `retry.maxAttempts` from config |
-| `@retryable=N` | Retry exactly N times (overrides config) |
-
-### How it works
-
-When a scenario fails, the **entire scenario reruns from step 1** with a fresh driver. The app is in a clean state for every retry attempt.
-
-Retried scenarios show a **↻ 1x** badge in the HTML report. The final status (PASSED or FAILED after all attempts) is what appears in the report.
+When retried, TestFly launches a **fresh browser instance from step 1** and marks retried scenarios with a **↻ Nx** badge in the HTML report.
 
 ---
 
-## Run via Maven
+## Quarantining Scenarios
+
+Temporarily exclude known flaky or under-development scenarios without deleting tests or modifying Git code:
+
+### Method 1: Tag-Based Quarantine
+Add the `@quarantine` tag directly to the scenario or feature:
+
+```gherkin
+@quarantine
+Scenario: Flaky legacy export feature
+  When they click export
+  Then file downloads
+```
+
+You can customize the tag name in `testfly.yml`:
+```yaml title="testfly.yml"
+quarantine:
+  enabled: true
+  cucumberTag: "flaky"   # Uses @flaky instead of @quarantine
+```
+
+### Method 2: YAML-Based Quarantine (`testfly-quarantine.yml`)
+Quarantine scenarios centrally without touching `.feature` files:
+
+```yaml title="testfly-quarantine.yml"
+quarantine:
+  - scenario: "checkout.feature#Complete checkout with credit card"
+    reason: "Downstream payment simulator maintenance"
+  - feature: "export.feature"
+    reason: "Feature under rewrite"
+```
+
+Quarantined scenarios are skipped (`SkipException`) before WebDriver is initialized, saving time and cloud resources.
+
+---
+
+## AI Failure Analysis for Cucumber
+
+When a Cucumber scenario fails, `CucumberHooks` extracts:
+- Current page URL & Title
+- Failed Gherkin step & line number
+- Full exception stack trace & DOM context
+
+It sends this context to Google Gemini or Claude and embeds a formatted root cause analysis at the bottom of the HTML report:
+
+```markdown
+**Root Cause:** The step `Then the order status should be confirmed` failed because element `By.id: order-status` was still showing `PENDING` after 10s.
+**Recommended Fix:**
+- Verify whether the background worker for payment processing is started.
+- Add an explicit wait for status transition: `assertThat(By.id("order-status")).hasText("CONFIRMED")`.
+```
+
+Enable it in `testfly.yml`:
+```yaml title="testfly.yml"
+ai:
+  failureAnalysis: true
+  provider: gemini
+  apiKey: ${GEMINI_API_KEY}
+```
+
+---
+
+## Enterprise Integrations
+
+### ReportPortal Automatic Step Nesting
+`BaseCucumberTest` includes built-in auto-registration for the ReportPortal Cucumber 7 plugin (`com.epam.reportportal.cucumber.ScenarioReporter`).
+
+When `agent-java-cucumber7` is on the classpath and `reporting.reportportal.enabled=true`, TestFly auto-registers the reporter:
+- Features appear as Root Launches/Suites
+- Scenarios appear as Test Items
+- Steps (`Given`, `When`, `Then`) appear as nested child logs with screenshots attached to the failing step!
+
+### JavaScript Console Error Capture
+During scenario execution, `ConsoleErrorCollector` monitors browser console output. If JavaScript errors are detected, they appear as warning steps (`[JS Error]`) in the scenario timeline.
+
+If `browser.failOnConsoleErrors: true` is configured in `testfly.yml`, the scenario will fail if unhandled JS errors occurred.
+
+---
+
+## Running Cucumber Scenarios
 
 ```bash
 # Run all Cucumber scenarios
 mvn test -Dtest=CucumberRunner
 
 # Run a specific feature file
-mvn test -Dtest=CucumberRunner -Dcucumber.features=src/test/resources/features/login.feature
+mvn test -Dtest=CucumberRunner -Dcucumber.features=src/test/resources/features/checkout.feature
 
-# Run scenarios tagged @smoke
-mvn test -Dtest=CucumberRunner -Dcucumber.filter.tags="@smoke"
-```
+# Run scenarios with a specific tag
+mvn test -Dtest=CucumberRunner -Dcucumber.filter.tags="@smoke and not @quarantine"
 
----
-
-## What's automatic
-
-`CucumberHooks` (in the `io.testfly.cucumber` glue package) handles everything per scenario:
-
-| Event | What happens |
-|---|---|
-| Scenario start | Driver created, metrics timer started, test ID registered |
-| Step execution | `CucumberStepLogger` logs each step name + pass/fail status into the HTML report timeline |
-| Scenario failure | Screenshot captured and embedded in both the TestFly report and Cucumber's own HTML report |
-| Scenario end | Driver quit, metrics recorded, status (PASSED / FAILED / SKIPPED) written |
-| Suite end | `SuiteExecutionListener.onFinish()` generates the full HTML report, flakiness radar, and JSON export |
-
----
-
-## Parallel execution
-
-Set `parallel` and `threadCount` in `testfly.yml` — the framework's ThreadLocal driver isolation makes Cucumber scenarios thread-safe:
-
-```yaml title="testfly.yml"
-execution:
-  parallel: methods
-  threadCount: 4
-  maxActiveSessions: 4
-```
-
-Each scenario runs on its own thread with its own driver instance.
-
----
-
-## Mixing Cucumber and TestNG in one suite
-
-TestFly supports both in the same Maven invocation. The HTML report combines TestNG test results and Cucumber scenario results into a single dashboard. `TestExecutionListener` automatically skips recording for Cucumber runner tests to avoid duplicate entries.
-
----
-
-## Attaching data to the Cucumber report
-
-Access the current `Scenario` object from any step definition to attach screenshots, text, or JSON to Cucumber's own HTML report:
-
-```java
-public class MySteps extends BaseCucumberSteps {
-
-    @Then("attach current screenshot")
-    public void attachScreenshot() {
-        String base64 = ScreenshotManager.captureAsBase64();
-        if (base64 != null) {
-            getScenario().attach(
-                Base64.getDecoder().decode(base64),
-                "image/png",
-                "Current state"
-            );
-        }
-    }
-}
+# Run with an environment profile (testfly-staging.yml)
+mvn test -Dtest=CucumberRunner -Dtestfly.profile=staging
 ```

@@ -1,5 +1,5 @@
 ---
-description: "Cucumber 7 ile BDD Selenium testi: sürücü yaşam döngüsü, hata anında ekran görüntüsü ve HTML raporunda adım zaman çizelgesi — kutudan çıktığı gibi bağlanmış."
+description: "Cucumber 7 ile BDD Selenium testi: sürücü yaşam döngüsü, paralel çalıştırma, API adım yardımcıları, ScenarioContext ile veri paylaşımı, AI hata analizi ve ReportPortal entegrasyonu."
 id: cucumber
 title: BDD / Cucumber
 sidebar_position: 11
@@ -7,270 +7,400 @@ sidebar_position: 11
 
 # BDD / Cucumber Entegrasyonu
 
-TestFly, Cucumber 7 ile kutudan çıktığı gibi entegre çalışır. Sürücü yaşam döngüsü, HTML raporu adım zaman çizelgesi, hata anında ekran görüntüsü, metrikler ve tüm framework özellikleri otomatik çalışır — adım tanımlarınızda hiçbir kalıp kod (boilerplate) gerekmez.
+TestFly, Cucumber 7 ile kutudan çıktığı gibi tam entegre çalışır. Framework tüm yaşam döngüsünü yönetir: her senaryo için bağımsız WebDriver sağlama, ThreadLocal sürücü izolasyonu, hata anında otomatik ekran görüntüsü, HTML raporunda adım zaman çizelgesi, adımlar içinde doğrudan REST API test desteği, dependency injection gerektirmeyen yerleşik `ScenarioContext` veri paylaşımı, karantina mekanizması ve yapay zeka (AI) destekli hata analizi.
 
 ---
 
 ## Kurulum
 
-Cucumber'ı TestFly ile birlikte projenize ekleyin:
+Projenizin `pom.xml` dosyasına TestFly'ın yanına Cucumber bağımlılıklarını ekleyin:
 
 ```xml title="pom.xml"
-<dependency>
-    <groupId>io.testfly</groupId>
-    <artifactId>testfly</artifactId>
-    <version>1.11.0</version>
-</dependency>
+<dependencies>
+    <!-- TestFly Çekirdeği -->
+    <dependency>
+        <groupId>io.testfly</groupId>
+        <artifactId>testfly</artifactId>
+        <version>1.0.0</version>
+    </dependency>
 
-<dependency>
-    <groupId>io.cucumber</groupId>
-    <artifactId>cucumber-java</artifactId>
-    <version>7.20.1</version>
-</dependency>
-
-<dependency>
-    <groupId>io.cucumber</groupId>
-    <artifactId>cucumber-testng</artifactId>
-    <version>7.20.1</version>
-</dependency>
+    <!-- Cucumber Java ve TestNG -->
+    <dependency>
+        <groupId>io.cucumber</groupId>
+        <artifactId>cucumber-java</artifactId>
+        <version>7.20.1</version>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>io.cucumber</groupId>
+        <artifactId>cucumber-testng</artifactId>
+        <version>7.20.1</version>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
 ```
 
 ---
 
-## Proje yapısı
+## Proje Dizini Yapısı
 
-```
+Standart bir TestFly + Cucumber proje yerleşimi:
+
+```text
 src/
 └── test/
     ├── java/
-    │   └── com/yourcompany/
+    │   └── com/sirketiniz/
     │       ├── bdd/
-    │       │   ├── CucumberRunner.java       ← koşturucu (runner) sınıfı
+    │       │   ├── CucumberRunner.java          ← BaseCucumberTest'i genişletir
     │       │   └── steps/
-    │       │       ├── LoginSteps.java        ← BaseCucumberSteps'i genişletir
-    │       │       └── NavigationSteps.java
+    │       │       ├── AuthSteps.java           ← BaseCucumberSteps'i genişletir
+    │       │       ├── ProductSteps.java        ← BaseCucumberSteps'i genişletir
+    │       │       └── OrderSteps.java          ← BaseCucumberSteps'i genişletir
     └── resources/
         ├── features/
-        │   └── login.feature
-        └── cucumber.properties               ← IDE tek-senaryo çalıştırmaları için
+        │   ├── login.feature
+        │   └── checkout.feature
+        ├── cucumber.properties                  ← IDE tekil senaryo koşuları için
+        └── testfly.yml                          ← Framework yapılandırması
 ```
 
 ---
 
-## Koşturucu (runner) sınıfı
+## Runner Sınıfı ve Paralel Çalıştırma
 
-`@CucumberOptions` ile işaretleyin ve `BaseCucumberTest`'i genişletin. Başka koda gerek yok:
+Runner sınıfınızı `@CucumberOptions` ile etiketleyin ve `BaseCucumberTest` sınıfından türetin:
 
-```java
+```java title="src/test/java/com/sirketiniz/bdd/CucumberRunner.java"
+package com.sirketiniz.bdd;
+
+import io.cucumber.testng.CucumberOptions;
+import io.testfly.cucumber.BaseCucumberTest;
+import org.testng.annotations.DataProvider;
+
 @CucumberOptions(
     features = "src/test/resources/features",
-    glue     = {"com.yourcompany.bdd.steps", "io.testfly.cucumber"},
+    glue     = {"com.sirketiniz.bdd.steps", "io.testfly.cucumber"},
     plugin   = {"pretty", "io.testfly.cucumber.CucumberStepLogger"}
 )
-public class CucumberRunner extends BaseCucumberTest {}
-```
+public class CucumberRunner extends BaseCucumberTest {
 
-`glue` içindeki `"io.testfly.cucumber"` değeri gereklidir — Cucumber'a sürücü yaşam döngüsünü yöneten `CucumberHooks`'u nerede bulacağını söyler.
-
-`plugin` içindeki `CucumberStepLogger`, Gherkin adım adlarını TestFly HTML raporu adım zaman çizelgesine akıtır.
-
----
-
-## Adım tanımları
-
-`getDriver()`, `open()`, `$()`, `assertThat()` almak için `BaseCucumberSteps`'i genişletin:
-
-```java
-public class LoginSteps extends BaseCucumberSteps {
-
-    private LoginPage loginPage;
-
-    @Given("the user is on the login page")
-    public void onLoginPage() {
-        open();                                 // execution.baseUrl adresine gider
-        loginPage = new LoginPage(getDriver());
-    }
-
-    @When("they login as {string} with password {string}")
-    public void login(String username, String password) {
-        loginPage.login(username, password);
-    }
-
-    @Then("the dashboard is visible")
-    public void dashboardVisible() {
-        assertThat(By.id("dashboard")).isVisible();   // otomatik yeniden deneyen doğrulama
+    /**
+     * TestNG Cucumber senaryolarının paralel koşması için ZORUNLUDUR!
+     */
+    @Override
+    @DataProvider(parallel = true)
+    public Object[][] scenarios() {
+        return super.scenarios();
     }
 }
 ```
 
-`BaseCucumberSteps` şunları sağlar:
+:::warning KRİTİK BİLGİ: Cucumber-TestNG Paralel Senaryo Tuzağı
+Varsayılan olarak Cucumber'ın `AbstractTestNGCucumberTests` sınıfı, `testfly.yml` içinde `parallel: methods` yazsa bile senaryoları **sırayla (tek thread)** çalıştırır. Senaryoların gerçekten farklı thread'lerde eşzamanlı çalışabilmesi için yukarıdaki gibi **`scenarios()` metodunu `@DataProvider(parallel = true)` ile override etmeniz ZORUNLUDUR!**
+:::
 
-| Metot | Açıklama |
-|---|---|
-| `getDriver()` | Geçerli iş parçacığının `WebDriver` nesnesi |
-| `getWait()` | `testfly.yml` içindeki `timeouts.explicit` değerini kullanan `WebDriverWait` |
-| `open()` | `execution.baseUrl` adresine gider |
-| `open(path)` | `baseUrl + path` adresine gider |
-| `$(css)` | Zincirlenebilir akıcı (fluent) locator |
-| `$(By)` | Zincirlenebilir akıcı (fluent) locator |
-| `assertThat(By)` | Otomatik yeniden deneyen doğrulama |
-| `assertThat(Locator)` | Bir locator zinciri üzerinde otomatik yeniden deneyen doğrulama |
-| `getScenario()` | Geçerli Cucumber `Scenario` nesnesi |
+### `testfly.yml` Paralel Yapılandırması
 
----
+Paralel thread sayısını `testfly.yml` dosyasından belirleyin:
 
-## Özellik (feature) dosyaları
+```yaml title="testfly.yml"
+execution:
+  mode: local
+  parallel: methods
+  threadCount: 4
+  maxActiveSessions: 4
 
-Standart Gherkin — framework'e özgü bir sözdizimi yok:
-
-```gherkin title="src/test/resources/features/login.feature"
-Feature: User Login
-
-  Scenario: Valid credentials grant access
-    Given the user is on the login page
-    When they login as "admin" with password "secret"
-    Then the dashboard is visible
-
-  Scenario Outline: Multiple accounts can log in
-    Given the user is on the login page
-    When they login as "<username>" with password "<password>"
-    Then the dashboard is visible
-
-    Examples:
-      | username | password |
-      | admin    | secret   |
-      | editor   | pass123  |
+browser:
+  name: chrome
+  headless: true
 ```
 
-Her Scenario Outline örnek satırı, kendi adım zaman çizelgesi ve ekran görüntüsüyle HTML raporunda ayrı bir giriş üretir.
+Her senaryo kendi iş parçacığında (thread) `DriverManager` tarafından yönetilen tamamen izole bir `WebDriver` örneğine sahip olur.
+
+### Glue ve Plugin Gereksinimleri:
+- `glue` içinde `"io.testfly.cucumber"` tanımlanması **zorunludur** — bu ayar Cucumber'a sürücü yaşam döngüsünü, metrikleri ve AI analizini yöneten `CucumberHooks`'u nerede bulacağını söyler.
+- `plugin` içindeki `CucumberStepLogger`, Gherkin adım adlarını ve durumlarını TestFly HTML zaman çizelgesi raporuna anlık olarak aktarır.
 
 ---
 
-## IDE tek-senaryo çalıştırma
+## Adım Tanımları (`BaseCucumberSteps`)
 
-Bir senaryoyu IDE'den tek başına çalıştırdığınızda (sağ tık → Run), IDE kendi koşturucusunu kullanır ve `@CucumberOptions` değerini okumaz. `CucumberHooks`'un her zaman bulunması için bir `cucumber.properties` dosyası ekleyin:
+Step definition sınıflarınız `BaseCucumberSteps` sınıfını genişletmelidir. Bu sayede TestFly'ın tüm akıcı ve anlamsal metotlarına doğrudan erişebilirsiniz:
+
+```java title="src/test/java/com/sirketiniz/bdd/steps/LoginSteps.java"
+package com.sirketiniz.bdd.steps;
+
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
+import io.testfly.cucumber.BaseCucumberSteps;
+import io.testfly.locator.Role;
+import org.openqa.selenium.By;
+
+public class LoginSteps extends BaseCucumberSteps {
+
+    @Given("kullanıcı giriş sayfasındadır")
+    public void onLoginPage() {
+        open("/login");
+    }
+
+    @When("kullanıcı adı {string} ve şifre {string} ile giriş yapar")
+    public void signIn(String username, String password) {
+        getByLabel("Kullanıcı Adı").type(username);
+        getByLabel("Şifre").type(password);
+        getByRole(Role.BUTTON, "Giriş Yap").click();
+    }
+
+    @Then("dashboard başlığı görüntülenir")
+    public void dashboardDisplayed() {
+        assertThat(getByRole(Role.HEADING, "Dashboard")).isVisible();
+    }
+}
+```
+
+### `BaseCucumberSteps` Tarafından Sağlanan Yetenekler:
+
+| Yetenek | Sunulan Metotlar |
+|---|---|
+| **Gezinme (Navigation)** | `open()`, `open(path)`, `getDriver()`, `getWait()` |
+| **Anlamsal Locator'lar** | `getByRole(Role, name)`, `getByText()`, `getByLabel()`, `getByPlaceholder()`, `getByTestId()`, `getByAltText()`, `getByTitle()` |
+| **Akıcı Locator'lar** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
+| **Web-Öncelikli Doğrulamalar** | `assertThat(By)`, `assertThat(Locator)` otomatik beklemeli doğrulamalar |
+| **Soft Assertions** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)` |
+| **Yerleşik REST İstemcisi** | `apiClient()`, `apiGet(path)`, `apiPost(path, body)`, `apiPut()`, `apiDelete()` |
+| **Adım Kaydı (Step Logging)**| `step(name)`, `step(name, takeScreenshot)` |
+| **Cucumber Bağlamı** | `getScenario()` ile mevcut `io.cucumber.java.Scenario` nesnesine erişim |
+
+---
+
+## Adımlar Arası Durum Paylaşımı (`ScenarioContext`)
+
+Standart Cucumber'da farklı step sınıfları arasında veri aktarımı yapmak (örneğin giriş adımında alınan token'ı veya sipariş numarasını ödeme adımında kullanmak) için PicoContainer, Spring veya Guice gibi harici dependency injection araçları yapılandırmak gerekir.
+
+TestFly, thread-safe çalışan yerleşik **`ScenarioContext`** mekanizması ile bunu sıfır yapılandırmayla çözer:
+
+```java title="src/test/java/com/sirketiniz/bdd/steps/OrderSteps.java"
+package com.sirketiniz.bdd.steps;
+
+import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
+import io.testfly.context.ScenarioContext;
+import io.testfly.cucumber.BaseCucumberSteps;
+import org.openqa.selenium.By;
+
+public class OrderSteps extends BaseCucumberSteps {
+
+    @When("kullanıcı {string} ürünü için sipariş verir")
+    public void placeOrder(String item) {
+        find(".buy-btn").click();
+        String orderNumber = find("#confirmation-num").getText();
+
+        // Veriyi sonraki adımlar (veya farklı step sınıfları) için saklayın
+        ScenarioContext.put("orderId", orderNumber);
+    }
+
+    @Then("sipariş durumu onaylandı olmalıdır")
+    public void verifyOrderStatus() {
+        // Saklanan veriyi başka bir adımda okuyun
+        String orderId = ScenarioContext.get("orderId", String.class);
+        
+        open("/orders/" + orderId);
+        assertThat(By.id("order-status")).hasText("CONFIRMED");
+    }
+}
+```
+
+> **Otomatik Bellek Temizliği:** Her senaryo bittiğinde `CucumberHooks`, `@After(order = 20000)` kancası içinde `ScenarioContext.clear()` çağrısını otomatik yapar. Senaryolar arasında hiçbir veri veya bellek sızıntısı kalmaz.
+
+---
+
+## BDD Adımlarında Hibrit API ve UI Kullanımı
+
+BDD senaryolarında kullanıcı veya ürün gibi önkoşul verilerini UI üzerinden tıklayarak oluşturmak testleri ciddi oranda yavaşlatır. `BaseCucumberSteps` içindeki yerleşik API metotlarını kullanarak önkoşulları saniyeler içinde hazırlayabilirsiniz:
+
+```java
+public class UserSteps extends BaseCucumberSteps {
+
+    @Given("sistemde e-postası {string} olan aktif bir müşteri bulunur")
+    public void seedUserViaApi(String email) {
+        // Kullanıcıyı REST API ile anında oluşturun
+        String json = String.format("{\"email\":\"%s\",\"role\":\"CUSTOMER\"}", email);
+        String userId = apiPost("/api/users", json)
+                .assertThat().statusCode(201)
+                .jsonPath().getString("id");
+
+        ScenarioContext.put("userId", userId);
+    }
+}
+```
+
+---
+
+## Feature Dosyaları ve Senaryo Şablonları
+
+Standart Gherkin sözdizimi aynen geçerlidir:
+
+```gherkin title="src/test/resources/features/checkout.feature"
+# language: tr
+Özellik: Ödeme ve Sipariş Akışı
+
+  Önkoşul:
+    Diyelim ki sistemde e-postası "alici@testfly.io" olan aktif bir müşteri bulunur
+    Ve kullanıcı giriş sayfasındadır
+
+  Senaryo: Kredi kartı ile başarılı ödeme
+    Eğer kullanıcı adı "alici@testfly.io" ve şifre "secret" ile giriş yapar
+    Ve kullanıcı "Mekanik Klavye" ürünü için sipariş verir
+    O zaman sipariş durumu onaylandı olmalıdır
+
+  Senaryo Taslağı: İndirim kuponu uygulama
+    Eğer promosyon kodu "<kod>" uygulanırsa
+    O zaman indirim oranı "<oran>" olarak yansımalıdır
+
+    Örnekler:
+      | kod        | oran |
+      | YAZ2026    | %20  |
+      | HOSGELDIN  | %10  |
+```
+
+Senaryo Taslağındaki (Scenario Outline) her `Examples` satırı TestFly HTML raporunda kendi ekran görüntüleri, metrikleri ve adım zaman çizelgesiyle ayrı bir test kaydı olarak listelenir.
+
+---
+
+## IDE Tekil Senaryo Çalıştırma
+
+IntelliJ IDEA veya Eclipse içinden tek bir senaryoya sağ tıklayıp çalıştırdığınızda (Run 'Scenario: ...'), IDE kendi çalıştırıcısını kullanır ve `@CucumberOptions` ayarlarını okuyamaz.
+
+`CucumberHooks` ve `CucumberStepLogger`'ın IDE üzerinden de devreye girmesi için `src/test/resources/cucumber.properties` dosyasını ekleyin:
 
 ```properties title="src/test/resources/cucumber.properties"
-cucumber.glue=com.yourcompany.bdd.steps,io.testfly.cucumber
+cucumber.glue=com.sirketiniz.bdd.steps,io.testfly.cucumber
 cucumber.plugin=pretty,io.testfly.cucumber.CucumberStepLogger
 cucumber.monochrome=true
 ```
 
 ---
 
-## Yeniden deneme (Retry)
+## Akıllı Yeniden Deneme (Smart Retry)
 
-### Global yeniden deneme
-
-`testfly.yml` içinde yeniden denemeyi etkinleştirin — başarısız olan tüm senaryolar otomatik olarak yeniden denenir:
-
+### 1. Global Yapılandırma (`testfly.yml`)
 ```yaml title="testfly.yml"
 retry:
   enabled: true
-  maxAttempts: 1   # 1 yeniden deneme = senaryo başına toplam 2 deneme
+  maxAttempts: 1   # 1 retry = toplam 2 deneme
 ```
 
-### Senaryo bazlı yeniden deneme etiketi
-
-`@retryable` veya `@retryable=N` etiketini kullanarak global yapılandırmayı tek tek senaryolar için geçersiz kılın:
-
-```gherkin
-# testfly.yml içindeki global retry.maxAttempts değerini kullanır
-@retryable
-Scenario: Login sometimes flakes on slow CI
-  Given the user is on the login page
-  When they submit valid credentials
-  Then the dashboard is visible
-
-# Global yapılandırmadan bağımsız olarak tam 2 yeniden deneme
-@retryable=2
-Scenario: Very flaky third-party widget
-  Given the widget is loaded
-  Then it should display the correct value
-```
-
-Etiket biçimleri:
+### 2. Senaryo Bazlı `@retryable` Etiketleri
+Belirli senaryolarda global kuralı geçersiz kılabilirsiniz:
 
 | Etiket | Davranış |
 |---|---|
-| `@retryable` | Yapılandırmadaki `retry.maxAttempts` değerini kullanarak yeniden dener |
-| `@retryable=N` | Tam olarak N kez yeniden dener (yapılandırmayı geçersiz kılar) |
+| `@retryable` | `testfly.yml` içindeki global `retry.maxAttempts` değerini kullanır |
+| `@retryable=N` | Belirtilen `N` defa yeniden dener (örn: `@retryable=2`) |
 
-### Nasıl çalışır
+```gherkin
+@retryable=2
+Senaryo: Ağ gecikmelerine duyarlı üçüncü parti ödeme servisi
+  Eğer ödeme bilgileri gönderilirse
+  O zaman ödeme makbuzu görüntülenir
+```
 
-Bir senaryo başarısız olduğunda, **senaryonun tamamı 1. adımdan itibaren** taze bir sürücüyle yeniden çalıştırılır. Uygulama her yeniden deneme için temiz bir durumdadır.
-
-Yeniden denenmiş senaryolar HTML raporunda bir **↻ 1x** rozeti gösterir. Raporlarda görünen, son durumdur (tüm denemeler sonrası PASSED veya FAILED).
+Yeniden deneme sırasında TestFly **1. adımdan itibaren taze bir tarayıcı başlatır** ve HTML raporunda senaryoya **↻ Nx** rozeti ekler.
 
 ---
 
-## Maven ile çalıştırma
+## Senaryoları Karantinaya Alma (Quarantine)
+
+Geliştirme aşamasındaki veya geçici olarak hatalı senaryoları test kodunu silmeden devre dışı bırakın:
+
+### Yöntem 1: Etiket ile Karantina
+Senaryoya doğrudan `@quarantine` etiketi ekleyin:
+
+```gherkin
+@quarantine
+Senaryo: Yenilenmekte olan eski rapor indirme akışı
+  Eğer rapor indir butonuna tıklanırsa
+  O zaman dosya başarıyla iner
+```
+
+Etiket adını `testfly.yml` üzerinden özelleştirebilirsiniz:
+```yaml title="testfly.yml"
+quarantine:
+  enabled: true
+  cucumberTag: "flaky"   # @quarantine yerine @flaky etiketi kullanılır
+```
+
+### Yöntem 2: YAML Dosyası ile Karantina (`testfly-quarantine.yml`)
+Feature dosyalarına dokunmadan merkezi yapılandırma dosyasından karantinaya alın:
+
+```yaml title="testfly-quarantine.yml"
+quarantine:
+  - scenario: "checkout.feature#Kredi kartı ile başarılı ödeme"
+    reason: "Ödeme simülatöründe bakım çalışması var"
+  - feature: "export.feature"
+    reason: "Modül yeniden yazılıyor"
+```
+
+Karantinaya alınan senaryolar WebDriver başlatılmadan anında atlanır (SKIPPED).
+
+---
+
+## Cucumber Senaryolarında AI Hata Analizi
+
+Bir senaryo fail ettiğinde `CucumberHooks`:
+- Sayfanın son URL'i ve başlığını,
+- Fail eden Gherkin adımını ve satır numarasını,
+- Hata mesajı ve stack trace'i yakalar.
+
+Bu veriler Google Gemini veya Anthropic Claude modeline iletilerek HTML raporunun altında Türkçe kök neden analizi sunulur:
+
+```markdown
+**Kök Neden:** `O zaman sipariş durumu onaylandı olmalıdır` adımı, `By.id("order-status")` elemanı 10 saniye boyunca `PENDING` durumunda kaldığı için zaman aşımına uğradı.
+**Önerilen Çözüm:**
+- Arka plandaki sipariş onay işleyicisinin (worker) ayakta olduğunu kontrol edin.
+- Adım tanımına durum geçişi için açık bekleme ekleyin: `assertThat(By.id("order-status")).hasText("CONFIRMED")`.
+```
+
+`testfly.yml` ayarı:
+```yaml title="testfly.yml"
+ai:
+  failureAnalysis: true
+  provider: gemini
+  apiKey: ${GEMINI_API_KEY}
+```
+
+---
+
+## Kurumsal Raporlama Entegrasyonları
+
+### ReportPortal Otomatik Adım Hiyerarşisi
+`BaseCucumberTest`, ReportPortal Cucumber 7 eklentisini (`com.epam.reportportal.cucumber.ScenarioReporter`) otomatik olarak algılar ve bağlar.
+
+Classpath'te `agent-java-cucumber7` mevcut ve `reporting.reportportal.enabled=true` ise:
+- Özellikler (Feature) Root Launch/Suite olarak,
+- Senaryolar Test Item olarak,
+- Adımlar (`Given`, `When`, `Then`) iç içe geçmiş (nested) log adımları olarak ve hata anında ekran görüntüsü eklenerek ReportPortal'a aktarılır.
+
+### JavaScript Konsol Hataları Takibi
+Senaryo koşumu sırasında `ConsoleErrorCollector` tarayıcı konsolunu izler. Yakalanan JavaScript hataları raporda uyarı adımı (`[JS Error]`) olarak listelenir.
+
+`browser.failOnConsoleErrors: true` yapılandırılmışsa, konsol hatası tespit edilen senaryolar doğrudan fail edilir.
+
+---
+
+## Maven ile Senaryoları Çalıştırma
 
 ```bash
 # Tüm Cucumber senaryolarını çalıştır
 mvn test -Dtest=CucumberRunner
 
-# Belirli bir özellik dosyasını çalıştır
-mvn test -Dtest=CucumberRunner -Dcucumber.features=src/test/resources/features/login.feature
+# Belirli bir feature dosyasını çalıştır
+mvn test -Dtest=CucumberRunner -Dcucumber.features=src/test/resources/features/checkout.feature
 
-# @smoke etiketli senaryoları çalıştır
-mvn test -Dtest=CucumberRunner -Dcucumber.filter.tags="@smoke"
-```
+# Belirli etiketlere sahip senaryoları çalıştır
+mvn test -Dtest=CucumberRunner -Dcucumber.filter.tags="@smoke and not @quarantine"
 
----
-
-## Neler otomatiktir
-
-`CucumberHooks` (`io.testfly.cucumber` glue paketinde bulunur) senaryo başına her şeyi yönetir:
-
-| Olay | Ne olur |
-|---|---|
-| Senaryo başlangıcı | Sürücü oluşturulur, metrik zamanlayıcı başlar, test kimliği kaydedilir |
-| Adım yürütme | `CucumberStepLogger` her adım adını + başarı/başarısızlık durumunu HTML raporu zaman çizelgesine yazar |
-| Senaryo başarısızlığı | Ekran görüntüsü yakalanır ve hem TestFly raporuna hem de Cucumber'ın kendi HTML raporuna gömülür |
-| Senaryo sonu | Sürücü kapatılır, metrikler kaydedilir, durum (PASSED / FAILED / SKIPPED) yazılır |
-| Paket sonu | `SuiteExecutionListener.onFinish()` tam HTML raporunu, flakiness radarını ve JSON dışa aktarımını üretir |
-
----
-
-## Paralel yürütme
-
-`testfly.yml` içinde `parallel` ve `threadCount` ayarlayın — framework'ün ThreadLocal sürücü izolasyonu Cucumber senaryolarını iş parçacığı güvenli yapar:
-
-```yaml title="testfly.yml"
-execution:
-  parallel: methods
-  threadCount: 4
-  maxActiveSessions: 4
-```
-
-Her senaryo, kendi sürücü örneğiyle kendi iş parçacığında çalışır.
-
----
-
-## Tek pakette Cucumber ve TestNG karışımı
-
-TestFly, ikisini de aynı Maven çağrısında destekler. HTML raporu, TestNG test sonuçlarını ve Cucumber senaryo sonuçlarını tek bir panelde birleştirir. `TestExecutionListener`, yinelenen girişleri önlemek için Cucumber koşturucu testlerinin kaydını otomatik olarak atlar.
-
----
-
-## Cucumber raporuna veri ekleme
-
-Cucumber'ın kendi HTML raporuna ekran görüntüsü, metin veya JSON eklemek için herhangi bir adım tanımından geçerli `Scenario` nesnesine erişin:
-
-```java
-public class MySteps extends BaseCucumberSteps {
-
-    @Then("attach current screenshot")
-    public void attachScreenshot() {
-        String base64 = ScreenshotManager.captureAsBase64();
-        if (base64 != null) {
-            getScenario().attach(
-                Base64.getDecoder().decode(base64),
-                "image/png",
-                "Current state"
-            );
-        }
-    }
-}
+# Staging ortam profili ile çalıştır (testfly-staging.yml yüklenir)
+mvn test -Dtest=CucumberRunner -Dtestfly.profile=staging
 ```
