@@ -148,7 +148,7 @@
 ---
 
 ### T-10 · Fix documentation drift
-- [ ] Rename `imlpementation-status.md` → `implementation-status.md`; update all references.
+- [x] Rename `implementation-status.md`; update all references. (done)
 - [ ] Root `CONTRIBUTING.md` vs `docs/CONTRIBUTING.md`: keep one source of truth, replace the other with a link.
 - [ ] Check `docs/ci/github-actions.md`: if `.github/workflows/` does not exist, either add the documented workflow or mark the page as "planned". Doc and repo must agree.
 - [ ] `AGENTS.md` and `CLAUDE.md`: align content so both agents behave identically — keep one canonical file and make the other reference it, if tooling allows.

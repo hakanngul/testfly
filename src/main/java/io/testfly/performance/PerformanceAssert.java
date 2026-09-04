@@ -25,7 +25,7 @@ import io.testfly.api.TestFlyApi;
  * <p>Access raw values for custom assertions:
  * <pre>
  * PerformanceMetrics perf = collectPerformance();
- * Assert.assertTrue(perf.lcp() &lt; 3000, "LCP regression detected");
+ * softAssert().that(perf.lcp() &lt; 3000, "LCP regression detected");
  * </pre>
  */
 @TestFlyApi(since = "2.4.0")

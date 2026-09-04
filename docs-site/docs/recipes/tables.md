@@ -50,15 +50,13 @@ public class OrdersPage extends BasePage {
 ```
 
 ```java title="OrdersTest.java"
-import org.testng.Assert;
-
 public class OrdersTest extends BaseTest {
 
     @Test
     public void orderStatusIsShipped() {
         open("/orders");
         OrdersPage page = new OrdersPage();
-        Assert.assertEquals(page.statusOf("ORD-1234"), "Shipped");
+        softAssert().that(page.statusOf("ORD-1234").equals("Shipped"), "Order ORD-1234 should be Shipped");
     }
 }
 ```
@@ -68,10 +66,8 @@ public class OrdersTest extends BaseTest {
 ## Count rows
 
 ```java
-import org.testng.Assert;
-
 int visibleRows = find("#orders tbody tr").count();
-Assert.assertTrue(visibleRows > 0);
+softAssert().that(visibleRows > 0, "Should have at least one visible row");
 ```
 
 ---
@@ -84,17 +80,12 @@ assertThat(find("#orders tbody tr")).count(3);   // auto-waits until 3 rows exis
 
 ---
 
-## Iterate over rows
+## Assert a row exists
 
-Use `find(...).all()` to collect rows and assert across them:
+Use `withText(...)` to scope the locator to the matching row, then assert visibility:
 
 ```java
-List<WebElement> rows = find("#orders tbody tr").all();
-List<String> ids = rows.stream()
-    .map(r -> r.findElement(By.cssSelector("td:first-child")).getText())
-    .toList();
-
-assertTrue(ids.contains("ORD-1234"));
+assertThat(find("#orders tbody tr").withText("ORD-1234")).isVisible();
 ```
 
 ---

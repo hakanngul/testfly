@@ -36,6 +36,7 @@ const sidebars = {
         'guides/base-test',
         'guides/base-page',
         'guides/wait-engine',
+        'guides/assertions',
         'guides/retry',
         'guides/screenshots',
         'guides/step-logging',
@@ -72,6 +73,7 @@ const sidebars = {
         'recipes/oauth-sso',
         'recipes/alerts',
         'recipes/drag-and-drop',
+        'recipes/saucedemo-assertions-example',
       ],
     },
     {

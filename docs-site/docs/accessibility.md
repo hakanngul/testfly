@@ -101,7 +101,7 @@ for (AccessibilityViolation v : result.violations()) {
 }
 
 // Soft assertion — tolerate up to 2 minor violations
-Assert.assertTrue(
+softAssert().that(
     result.violationsAtLevel(Impact.SERIOUS).isEmpty(),
     "Serious violations found:\n" + result.violations()
 );

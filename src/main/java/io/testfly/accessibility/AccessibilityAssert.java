@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  *
  * // Collect results without asserting (for custom inspection)
  * AccessibilityResult result = accessibility().collect();
- * Assert.assertEquals(result.violationCount(), 0, result.toString());
+ * softAssert().that(result.violationCount() == 0, "Expected zero violations: " + result);
  * </pre>
  *
  * <p>axe-core is bundled in the JAR — no internet connection or extra dependency needed.
@@ -129,7 +129,7 @@ public final class AccessibilityAssert {
      *
      * <pre>
      * AccessibilityResult result = accessibility().withLevel(Impact.SERIOUS).collect();
-     * Assert.assertTrue(result.violationCount() &lt;= 2, "Too many violations: " + result);
+     * softAssert().that(result.violationCount() &lt;= 2, "Too many violations: " + result);
      * </pre>
      */
     public AccessibilityResult collect() {

@@ -11,7 +11,6 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.testng.Assert;
 
 import java.time.Duration;
 import java.util.List;
@@ -37,10 +36,73 @@ public final class LocatorAssert {
 
     private final By by;
     private final String description;
+    private Duration customTimeout;
+    private String customMessage;
+    private boolean soft;
 
     LocatorAssert(By by, String description) {
+        this(by, description, false);
+    }
+
+    LocatorAssert(By by, String description, boolean soft) {
         this.by          = by;
         this.description = description;
+        this.soft        = soft;
+    }
+
+    // ------------------------------------------------------------------
+    // Modifiers & Configuration
+    // ------------------------------------------------------------------
+
+    /**
+     * Overrides the wait timeout for this assertion.
+     *
+     * @param timeout custom duration to poll before failing
+     * @return this assertion for chaining
+     */
+    public LocatorAssert within(Duration timeout) {
+        this.customTimeout = timeout;
+        return this;
+    }
+
+    /**
+     * Overrides the wait timeout in seconds for this assertion.
+     *
+     * @param timeoutSeconds custom timeout in seconds
+     * @return this assertion for chaining
+     */
+    public LocatorAssert within(int timeoutSeconds) {
+        this.customTimeout = Duration.ofSeconds(timeoutSeconds);
+        return this;
+    }
+
+    /**
+     * Attaches a custom description or failure message to this assertion.
+     *
+     * @param message custom message displayed upon failure
+     * @return this assertion for chaining
+     */
+    public LocatorAssert as(String message) {
+        this.customMessage = message;
+        return this;
+    }
+
+    /**
+     * Alias for {@link #as(String)}.
+     */
+    public LocatorAssert describedAs(String message) {
+        return as(message);
+    }
+
+    /**
+     * Switches this assertion into soft mode — failures are collected in
+     * {@link SoftAssertions} rather than throwing an immediate {@link AssertionError}.
+     *
+     * @return this assertion for chaining
+     */
+    public LocatorAssert softly() {
+        this.soft = true;
+        return this;
     }
 
     // ------------------------------------------------------------------
@@ -142,6 +204,41 @@ public final class LocatorAssert {
         return this;
     }
 
+    /** Asserts the element has the specified attribute present (regardless of its value) — retries until timeout. */
+    public LocatorAssert hasAttribute(String attribute) {
+        StepLogger.step("Assert attribute '" + attribute + "' exists for: " + description);
+        poll(driver -> {
+            List<WebElement> els = driver.findElements(by);
+            if (els.isEmpty()) return null;
+            return els.get(0).getAttribute(attribute) != null ? true : null;
+        }, "Expected attribute [" + attribute + "] to exist for: " + description);
+        return this;
+    }
+
+    /** Asserts the element has the specified CSS property value — retries until timeout. */
+    public LocatorAssert hasCssValue(String propertyName, String expectedValue) {
+        StepLogger.step("Assert CSS " + propertyName + "='" + expectedValue + "' for: " + description);
+        poll(driver -> {
+            List<WebElement> els = driver.findElements(by);
+            if (els.isEmpty()) return null;
+            String val = els.get(0).getCssValue(propertyName);
+            return expectedValue != null && expectedValue.equals(val) ? true : null;
+        }, "Expected CSS property [" + propertyName + "='" + expectedValue + "'] for: " + description);
+        return this;
+    }
+
+    /** Asserts the element is currently focused (the active element in the document) — retries until timeout. */
+    public LocatorAssert isFocused() {
+        StepLogger.step("Assert focused: " + description);
+        poll(driver -> {
+            List<WebElement> els = driver.findElements(by);
+            if (els.isEmpty()) return null;
+            WebElement active = driver.switchTo().activeElement();
+            return els.get(0).equals(active) ? true : null;
+        }, "Expected element to be focused: " + description);
+        return this;
+    }
+
     /** Asserts the element has the given CSS class — retries until timeout. */
     public LocatorAssert hasClass(String className) {
         StepLogger.step("Assert has class '" + className + "' for: " + description);
@@ -175,12 +272,25 @@ public final class LocatorAssert {
     // ------------------------------------------------------------------
 
     private <T> void poll(ExpectedCondition<T> condition, String failMessage) {
-        int timeout = TestFlyContext.getConfig().getTimeouts().getExplicit();
+        Duration timeout = customTimeout != null
+                ? customTimeout
+                : Duration.ofSeconds(TestFlyContext.getConfig().getTimeouts().getExplicit());
         WebDriver driver = DriverManager.getDriver();
+        String fullMessage = customMessage != null && !customMessage.isBlank()
+                ? "[" + customMessage + "] " + failMessage
+                : failMessage;
         try {
-            new WebDriverWait(driver, Duration.ofSeconds(timeout)).until(condition);
+            new WebDriverWait(driver, timeout).until(condition);
         } catch (Exception e) {
-            Assert.fail(failMessage + " (timeout: " + timeout + "s)");
+            String timeoutStr = timeout.toMillis() >= 1000 && timeout.toMillis() % 1000 == 0
+                    ? timeout.toSeconds() + "s"
+                    : timeout.toMillis() + "ms";
+            String err = fullMessage + " (timeout: " + timeoutStr + ")";
+            if (soft) {
+                SoftAssertions.get().that(false, err);
+            } else {
+                throw new AssertionError(err);
+            }
         }
     }
 }

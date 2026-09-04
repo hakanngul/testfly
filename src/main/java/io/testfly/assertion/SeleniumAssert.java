@@ -48,6 +48,22 @@ public final class SeleniumAssert {
     }
 
     /**
+     * Begin a fluent soft assertion chain for the given {@link By} locator.
+     * <p>Failures are collected in {@link SoftAssertions} and will not terminate test execution immediately.
+     */
+    public static LocatorAssert softAssert(By locator) {
+        return new LocatorAssert(locator, locator.toString(), true);
+    }
+
+    /**
+     * Begin a fluent soft assertion chain for the given {@link Locator}.
+     * <p>Failures are collected in {@link SoftAssertions} and will not terminate test execution immediately.
+     */
+    public static LocatorAssert softAssert(Locator locator) {
+        return new LocatorAssert(extractBy(locator), locator.toString(), true);
+    }
+
+    /**
      * Extracts the underlying {@link By} from a {@link Locator} instance
      * by parsing its toString. This is a lightweight bridge — for complex
      * chains (filter, nth, withText) use the Locator's own isVisible() / isHidden()

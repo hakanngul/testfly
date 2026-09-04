@@ -94,7 +94,7 @@ public void login() {
 public void viewDashboard() {
     // no login needed — session cookie is still in the browser
     open("/dashboard");
-    Assert.assertTrue(new DashboardPage(getDriver()).isLoaded());
+    softAssert().that(new DashboardPage(getDriver()).isLoaded(), "Dashboard should be loaded");
 }
 
 @Test(priority = 3, dependsOnMethods = "viewDashboard")

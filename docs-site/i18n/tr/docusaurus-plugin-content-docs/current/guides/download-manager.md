@@ -30,8 +30,8 @@ public void exportCsvTest() {
     click(By.id("export-csv"));
 
     File downloaded = DownloadManager.waitForFile("report.csv", 15);
-    Assert.assertTrue(downloaded.exists());
-    Assert.assertTrue(downloaded.length() > 0);
+    softAssert().that(downloaded.exists(), "Downloaded file should exist");
+    softAssert().that(downloaded.length() > 0, "Downloaded file should not be empty");
 }
 ```
 
@@ -45,7 +45,7 @@ Dosya adı dinamik olduğunda (örn. bir zaman damgası içerdiğinde):
 click(By.id("download-invoice"));
 
 File invoice = DownloadManager.waitForAnyFile(15);
-Assert.assertTrue(invoice.getName().endsWith(".pdf"));
+softAssert().that(invoice.getName().endsWith(".pdf"), "Downloaded file should be a PDF");
 ```
 
 ---
