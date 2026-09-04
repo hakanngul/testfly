@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -190,6 +191,94 @@ public class HtmlReportGeneratorTest {
                 HtmlReportGenerator.generate();
                 assertFalse(ReportPaths.htmlReport().exists(),
                         "HTML report should not be created when metrics JSON is missing");
+            }
+        }
+    }
+
+    @Test
+    public void generate_archivesTimestampedReport() throws IOException {
+        synchronized (GLOBAL_REPORT_LOCK) {
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                TestFlyContext.initialize(minimalConfig());
+                writeMetricsWithCi();
+                HtmlReportGenerator.generate();
+
+                File reportsDir = ReportPaths.reportsHistoryDir();
+                assertTrue(reportsDir.exists(), "Reports history directory should exist");
+                File[] archives = reportsDir.listFiles((d, name) -> name.startsWith("testfly-report-") && name.endsWith(".html"));
+                assertNotNull(archives);
+                assertTrue(archives.length > 0, "At least one timestamped archive report should be created");
+            }
+        }
+    }
+
+    @Test
+    public void generate_embedsRunHistoryAndCopyButtons() throws IOException {
+        synchronized (GLOBAL_REPORT_LOCK) {
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                TestFlyContext.initialize(minimalConfig());
+
+                // Create metrics with a failed test and stack trace
+                Map<String, Object> root = new LinkedHashMap<>();
+                root.put("totalTests", 1);
+                root.put("passedTests", 0);
+                root.put("failedTests", 1);
+                root.put("skippedTests", 0);
+                root.put("passRate", 0.0);
+                root.put("totalTimeMs", 500L);
+
+                Map<String, Object> testEntry = new LinkedHashMap<>();
+                testEntry.put("testId", "com.example.SampleTest.failedMethod");
+                testEntry.put("status", "FAILED");
+                testEntry.put("errorMessage", "Assertion failed: expected true but was false");
+                testEntry.put("stackTrace", "java.lang.AssertionError: expected true but was false\n\tat com.example.SampleTest.failedMethod(SampleTest.java:42)");
+                testEntry.put("aiAnalysis", "The boolean flag was false. Check configuration initialization.");
+                root.put("tests", java.util.List.of(testEntry));
+
+                ObjectMapper mapper = new ObjectMapper();
+                File json = ReportPaths.metricsJson();
+                json.getParentFile().mkdirs();
+                mapper.writeValue(json, root);
+
+                HtmlReportGenerator.generate();
+                String html = Files.readString(ReportPaths.htmlReport().toPath());
+
+                assertTrue(html.contains("run-selector-wrap"), "Must contain run selector dropdown container");
+                assertTrue(html.contains("runSelect"), "Must contain run selection element");
+                assertTrue(html.contains("copyStackTrace"), "Must contain copy stack trace handler");
+                assertTrue(html.contains("AI Failure Analysis") || html.contains("TestFly AI Analysis"), "Must contain AI analysis card");
+                assertTrue(html.contains("tab-history"), "Must contain run history tab");
+            }
+        }
+    }
+
+    @Test
+    public void generate_exportsJsonDataAndCumulativeTotals() throws IOException {
+        synchronized (GLOBAL_REPORT_LOCK) {
+            synchronized (CONTEXT_LOCK) {
+                System.clearProperty("testfly.reports.dir");
+                TestFlyContext.initialize(minimalConfig());
+                writeMetricsWithCi();
+
+                HtmlReportGenerator.generate();
+
+                // 1. Verify testfly-report-data.json was created
+                File dataJson = ReportPaths.reportDataJson();
+                assertTrue(dataJson.exists(), "testfly-report-data.json should be created");
+                String jsonData = Files.readString(dataJson.toPath());
+                assertTrue(jsonData.contains("cumulativeTotals"), "JSON report data must contain cumulativeTotals");
+                assertTrue(jsonData.contains("totalTests"), "JSON report data must contain totalTests");
+
+                // 2. Verify HTML report embeds JSON data and has Allure styling (no purple)
+                String html = Files.readString(ReportPaths.htmlReport().toPath());
+                assertTrue(html.contains("id=\"testfly-data\""), "HTML must contain embedded testfly-data script");
+                assertTrue(html.contains("cumulativeTotals"), "Embedded data must include cumulativeTotals");
+                assertTrue(html.contains("#97cc64"), "HTML must use Allure green (#97cc64)");
+                assertTrue(html.contains("#fd5a3e"), "HTML must use Allure red (#fd5a3e)");
+                assertFalse(html.contains("#6366f1"), "HTML must not contain purple (#6366f1)");
+                assertFalse(html.contains("#4f46e5"), "HTML must not contain purple (#4f46e5)");
             }
         }
     }

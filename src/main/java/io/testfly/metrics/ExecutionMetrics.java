@@ -279,6 +279,80 @@ public final class ExecutionMetrics {
         System.out.println("===========================================\n");
     }
 
+    private static boolean isMergeEnabled() {
+        String sysProp = System.getProperty("testfly.merge");
+        if (sysProp != null && !sysProp.isBlank()) {
+            return Boolean.parseBoolean(sysProp) || "true".equalsIgnoreCase(sysProp);
+        }
+        if (TestFlyContext.isInitialized()) {
+            TestFlyConfig cfg = TestFlyContext.getConfig();
+            if (cfg != null && cfg.getReporting() != null) {
+                return cfg.getReporting().isMergeRuns();
+            }
+        }
+        return false;
+    }
+
+    private static Map<String, Object> timingToMap(TestTiming timing) {
+        Map<String, Object> testEntry = new LinkedHashMap<>();
+        testEntry.put("testId", timing.getTestId());
+        testEntry.put("testClassName", timing.getTestClassName() != null ? timing.getTestClassName() : "");
+        testEntry.put("thread", timing.getThreadName());
+        testEntry.put("status", timing.getStatus() != null ? timing.getStatus() : "UNKNOWN");
+        testEntry.put("retryCount", timing.getRetryCount());
+        testEntry.put("driverStartupMs", timing.getDriverStartupTime());
+        testEntry.put("testLogicMs", timing.getTestExecutionTime());
+        testEntry.put("totalMs", timing.getTotalTime());
+        if (timing.getScreenshotPath() != null) {
+            testEntry.put("screenshotPath", timing.getScreenshotPath());
+        }
+        if (timing.getDescription() != null) {
+            testEntry.put("description", timing.getDescription());
+        }
+        if (timing.getErrorMessage() != null) {
+            testEntry.put("errorMessage", timing.getErrorMessage());
+        }
+        if (timing.getStackTrace() != null) {
+            testEntry.put("stackTrace", timing.getStackTrace());
+        }
+        if (timing.getBrowser() != null) {
+            testEntry.put("browser", timing.getBrowser());
+        }
+        if (timing.getRecordingPath() != null) {
+            testEntry.put("recordingPath", timing.getRecordingPath());
+        }
+        if (timing.getTracePath() != null) {
+            testEntry.put("tracePath", timing.getTracePath());
+        }
+        if (timing.getHealedCount() > 0) {
+            testEntry.put("healedCount", timing.getHealedCount());
+        }
+        if (timing.getAiAnalysis() != null) {
+            testEntry.put("aiAnalysis", timing.getAiAnalysis());
+        }
+        if (timing.getSessionUrl() != null) {
+            testEntry.put("sessionUrl", timing.getSessionUrl());
+        }
+        if (timing.getPerformanceMetrics() != null) {
+            testEntry.put("performanceMetrics", timing.getPerformanceMetrics());
+        }
+        if (!timing.getSteps().isEmpty()) {
+            List<Map<String, Object>> stepList = new ArrayList<>();
+            for (io.testfly.steps.StepRecord s : timing.getSteps()) {
+                Map<String, Object> stepEntry = new LinkedHashMap<>();
+                stepEntry.put("name", s.getName());
+                stepEntry.put("offsetMs", s.getOffsetMs());
+                stepEntry.put("status", s.getStatus());
+                if (s.getScreenshotBase64() != null) {
+                    stepEntry.put("screenshotBase64", s.getScreenshotBase64());
+                }
+                stepList.add(stepEntry);
+            }
+            testEntry.put("steps", stepList);
+        }
+        return testEntry;
+    }
+
     // ==========================================================
     // JSON Export
     // ==========================================================
@@ -287,23 +361,59 @@ public final class ExecutionMetrics {
 
         Map<String, Object> report = new LinkedHashMap<>();
 
-        int totalTests = TIMINGS.size();
-        long totalTime = TOTAL_DURATION.get();
+        Map<String, Map<String, Object>> allTests = new LinkedHashMap<>();
 
-        List<Long> totalDurations = new ArrayList<>();
-        List<Long> driverDurations = new ArrayList<>();
-
-        for (TestTiming timing : TIMINGS.values()) {
-            totalDurations.add(timing.getTotalTime());
-            driverDurations.add(timing.getDriverStartupTime());
+        // If merge is enabled and previous metrics file exists, load existing tests first
+        if (isMergeEnabled()) {
+            File primary = io.testfly.reporting.ReportPaths.metricsJson();
+            if (primary.exists() && primary.length() > 0) {
+                try {
+                    ObjectMapper readMapper = new ObjectMapper();
+                    com.fasterxml.jackson.databind.JsonNode prevRoot = readMapper.readTree(primary);
+                    if (prevRoot.has("tests") && prevRoot.get("tests").isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode prevTest : prevRoot.get("tests")) {
+                            if (prevTest.has("testId")) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> testMap = readMapper.convertValue(prevTest, Map.class);
+                                allTests.put(prevTest.get("testId").asText(), testMap);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("[TestFly] Warning: Failed to load previous metrics for merge: " + e.getMessage());
+                }
+            }
         }
 
-        long passed   = TIMINGS.values().stream().filter(t -> "PASSED".equals(t.getStatus())).count();
-        long failed   = TIMINGS.values().stream().filter(t -> "FAILED".equals(t.getStatus())).count();
-        long skipped  = TIMINGS.values().stream().filter(t -> "SKIPPED".equals(t.getStatus())).count();
-        long flaky    = TIMINGS.values().stream().filter(t -> t.getRetryCount() > 0).count();
-        long recovered = TIMINGS.values().stream()
-                .filter(t -> t.getRetryCount() > 0 && "PASSED".equals(t.getStatus())).count();
+        // Insert / overwrite with current run's tests
+        for (TestTiming timing : TIMINGS.values()) {
+            allTests.put(timing.getTestId(), timingToMap(timing));
+        }
+
+        int totalTests = allTests.size();
+        List<Long> totalDurations = new ArrayList<>();
+        List<Long> driverDurations = new ArrayList<>();
+        long calculatedTotalTime = 0L;
+
+        for (Map<String, Object> t : allTests.values()) {
+            long tot = t.get("totalMs") instanceof Number ? ((Number) t.get("totalMs")).longValue() : 0L;
+            long drv = t.get("driverStartupMs") instanceof Number ? ((Number) t.get("driverStartupMs")).longValue() : 0L;
+            totalDurations.add(tot);
+            driverDurations.add(drv);
+            calculatedTotalTime += tot;
+        }
+
+        long passed = allTests.values().stream().filter(t -> "PASSED".equals(t.get("status"))).count();
+        long failed = allTests.values().stream().filter(t -> "FAILED".equals(t.get("status"))).count();
+        long skipped = allTests.values().stream().filter(t -> "SKIPPED".equals(t.get("status"))).count();
+        long flaky = allTests.values().stream().filter(t -> {
+            Object r = t.get("retryCount");
+            return r instanceof Number && ((Number) r).intValue() > 0;
+        }).count();
+        long recovered = allTests.values().stream().filter(t -> {
+            Object r = t.get("retryCount");
+            return r instanceof Number && ((Number) r).intValue() > 0 && "PASSED".equals(t.get("status"));
+        }).count();
         double passRate = totalTests == 0 ? 0.0
                 : Math.round((passed * 1000.0) / totalTests) / 10.0;
 
@@ -314,9 +424,9 @@ public final class ExecutionMetrics {
         report.put("passRate", passRate);
         report.put("flakyTests", flaky);
         report.put("recoveredTests", recovered);
-        report.put("totalTimeMs", totalTime);
+        report.put("totalTimeMs", calculatedTotalTime);
         report.put("averageTimeMs",
-                totalTests == 0 ? 0 : totalTime / totalTests);
+                totalTests == 0 ? 0 : calculatedTotalTime / totalTests);
 
         if (TestFlyContext.isInitialized()) {
             TestFlyConfig.Ci ciConfig = TestFlyContext.getConfig().getCi();
@@ -350,70 +460,7 @@ public final class ExecutionMetrics {
             report.put("driverStartupPercentilesMs", driverPercentiles);
         }
 
-        List<Map<String, Object>> testList = new ArrayList<>();
-
-        for (TestTiming timing : TIMINGS.values()) {
-
-            Map<String, Object> testEntry =
-                    new LinkedHashMap<>();
-
-            testEntry.put("testId",        timing.getTestId());
-            testEntry.put("testClassName", timing.getTestClassName() != null ? timing.getTestClassName() : "");
-            testEntry.put("thread",        timing.getThreadName());
-            testEntry.put("status",        timing.getStatus() != null ? timing.getStatus() : "UNKNOWN");
-            testEntry.put("retryCount",    timing.getRetryCount());
-            testEntry.put("driverStartupMs", timing.getDriverStartupTime());
-            testEntry.put("testLogicMs",   timing.getTestExecutionTime());
-            testEntry.put("totalMs",       timing.getTotalTime());
-            if (timing.getScreenshotPath() != null) {
-                testEntry.put("screenshotPath", timing.getScreenshotPath());
-            }
-            if (timing.getDescription() != null) {
-                testEntry.put("description", timing.getDescription());
-            }
-            if (timing.getErrorMessage() != null) {
-                testEntry.put("errorMessage", timing.getErrorMessage());
-            }
-            if (timing.getStackTrace() != null) {
-                testEntry.put("stackTrace", timing.getStackTrace());
-            }
-            if (timing.getBrowser() != null) {
-                testEntry.put("browser", timing.getBrowser());
-            }
-            if (timing.getRecordingPath() != null) {
-                testEntry.put("recordingPath", timing.getRecordingPath());
-            }
-            if (timing.getTracePath() != null) {
-                testEntry.put("tracePath", timing.getTracePath());
-            }
-            if (timing.getHealedCount() > 0) {
-                testEntry.put("healedCount", timing.getHealedCount());
-            }
-            if (timing.getAiAnalysis() != null) {
-                testEntry.put("aiAnalysis", timing.getAiAnalysis());
-            }
-            if (timing.getSessionUrl() != null) {
-                testEntry.put("sessionUrl", timing.getSessionUrl());
-            }
-            if (!timing.getSteps().isEmpty()) {
-                List<Map<String, Object>> stepList = new ArrayList<>();
-                for (io.testfly.steps.StepRecord s : timing.getSteps()) {
-                    Map<String, Object> stepEntry = new LinkedHashMap<>();
-                    stepEntry.put("name",     s.getName());
-                    stepEntry.put("offsetMs", s.getOffsetMs());
-                    stepEntry.put("status",   s.getStatus());
-                    if (s.getScreenshotBase64() != null) {
-                        stepEntry.put("screenshotBase64", s.getScreenshotBase64());
-                    }
-                    stepList.add(stepEntry);
-                }
-                testEntry.put("steps", stepList);
-            }
-
-            testList.add(testEntry);
-        }
-
-        report.put("tests", testList);
+        report.put("tests", new ArrayList<>(allTests.values()));
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);

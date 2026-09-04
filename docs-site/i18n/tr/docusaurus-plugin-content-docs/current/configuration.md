@@ -168,6 +168,8 @@ notifications:
 
 # ── Reporting (Raporlama) ────────────────────────────────────────────────────
 reporting:
+  mergeRuns: false                  # ardışık test koşumlarını sıfırlamak yerine kümülatif olarak birleştir (-Dtestfly.merge=true)
+  historyRuns: 10                   # rapor geçmişi seçicisinde saklanacak geçmiş koşum sayısı
   allure:
     enabled: false                  # target/allure-results/ dizinine Allure 2 rapor çıktıları üret
   reportportal:
@@ -443,7 +445,16 @@ CI ortamı algılama ve derleme başarı kriterleri.
 
 ## Raporlama (Reporting) {#reporting}
 
-Harici test panoları ve sonuç portalları entegrasyonu.
+Dahili HTML gösterge paneli (dashboard) raporu, koşum geçmişi arşivleme ve üçüncü taraf test portalları ayarları.
+
+| Özellik | Tip | Varsayılan | Açıklama |
+|---|---|---|---|
+| `mergeRuns` | `boolean` | `false` | `true` yapıldığında, ardışık test koşumları önceki testleri silmek yerine sonuçları kümülatif tek bir raporda birleştirir. Komut satırından da açılabilir: `-Dtestfly.merge=true`. |
+| `historyRuns` | `int` | `10` | `target/reports/` altında saklanacak ve interaktif HTML raporundaki koşum seçici menüsünde listelenecek maksimum geçmiş koşum sayısı. |
+
+:::tip Koşum Arşivleme ve Geçmiş Seçici
+TestFly, ana `target/testfly-report.html` raporunun yanı sıra her test koşumunu otomatik olarak `target/reports/testfly-report-YYYYAAGG-SSddss.html` adıyla zaman damgalı olarak arşivler. Raporun üst başlığında bulunan koşum seçici açılır menüsü veya **Run History** sekmesi üzerinden geçmiş koşumlar, zaman çizelgeleri ve başarı oranları arasında kolayca geçiş yapabilirsiniz.
+:::
 
 #### `reportportal`
 
