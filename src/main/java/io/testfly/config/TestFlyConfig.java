@@ -369,9 +369,9 @@ public final class TestFlyConfig {
     public Recording getRecording() { return recording; }
     public void setRecording(Recording recording) { this.recording = recording; }
 
-    private Reporting reporting;
-    public Reporting getReporting() { return reporting; }
-    public void setReporting(Reporting reporting) { this.reporting = reporting; }
+    private Reporting reporting = new Reporting();
+    public Reporting getReporting() { return reporting != null ? reporting : (reporting = new Reporting()); }
+    public void setReporting(Reporting reporting) { this.reporting = reporting != null ? reporting : new Reporting(); }
 
     private Notifications notifications;
     public Notifications getNotifications() { return notifications; }
@@ -409,10 +409,24 @@ public final class TestFlyConfig {
 
     public static final class Reporting {
         private boolean allureEnabled = false;
+        private boolean mergeRuns = false;
+        private int historyRuns = 10;
         private ReportPortal reportPortal = new ReportPortal();
 
         public boolean isAllureEnabled()                      { return allureEnabled; }
         public void    setAllureEnabled(boolean allureEnabled) { this.allureEnabled = allureEnabled; }
+
+        public boolean isMergeRuns() {
+            String sysProp = System.getProperty("testfly.merge");
+            if (sysProp != null && !sysProp.isBlank()) {
+                return Boolean.parseBoolean(sysProp) || "true".equalsIgnoreCase(sysProp);
+            }
+            return mergeRuns;
+        }
+        public void setMergeRuns(boolean mergeRuns)           { this.mergeRuns = mergeRuns; }
+
+        public int  getHistoryRuns()                          { return historyRuns; }
+        public void setHistoryRuns(int historyRuns)           { this.historyRuns = historyRuns > 0 ? historyRuns : 10; }
 
         public ReportPortal getReportPortal()                 { return reportPortal; }
         public void         setReportPortal(ReportPortal v)   { this.reportPortal = v != null ? v : new ReportPortal(); }

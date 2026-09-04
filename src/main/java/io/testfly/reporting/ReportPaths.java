@@ -54,4 +54,14 @@ public final class ReportPaths {
     public static File metricsHistoryDir() {
         return new File(baseDir(), "metrics-history");
     }
+
+    /** {@code <baseDir>/reports} — timestamped HTML report archives for run history retention. */
+    public static File reportsHistoryDir() {
+        return new File(baseDir(), "reports");
+    }
+
+    /** {@code <baseDir>/testfly-report-data.json} — standalone JSON data file for the SPA report. */
+    public static File reportDataJson() {
+        return new File(baseDir(), "testfly-report-data.json");
+    }
 }
