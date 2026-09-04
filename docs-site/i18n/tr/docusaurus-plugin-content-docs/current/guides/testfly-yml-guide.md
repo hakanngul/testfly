@@ -120,6 +120,17 @@ timeouts:
 | `explicit` | `WaitEngine`, `Locator` ve `BasePage` yardımcı metodlarının kullandığı varsayılan bekleme süresi. |
 | `pageLoad` | Saniye cinsinden tarayıcı sayfa yükleme zaman aşımı. |
 
+```yaml
+reporting:
+  mergeRuns: false
+  historyRuns: 10
+```
+
+| Anahtar | Ne yapar |
+|-----|--------------|
+| `mergeRuns` | `true` yapıldığında (veya `-Dtestfly.merge=true` ile), ardışık test koşumları önceki testleri silmek yerine sonuçları kümülatif tek bir raporda birleştirir. |
+| `historyRuns` | `target/reports/` altında saklanacak ve rapordaki açılır menüde listelenecek maksimum geçmiş rapor sayısı. |
+
 ---
 
 ## Ortam profilleri
