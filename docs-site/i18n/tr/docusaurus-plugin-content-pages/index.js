@@ -17,7 +17,6 @@ const flagshipFeatures = [
       </svg>
     ),
     title: 'Sıfır Boilerplate',
-    span: 2,
     description: 'BaseTest’i extend edin, @Test metotları yazın ve ilerleyin. Driver yaşam döngüsü, bekleme, retry, raporlar ve ekran görüntüleri hepsi halledilir — kurulum kodu gerekmez.',
     code: `class CheckoutTest extends BaseTest {
 
@@ -58,7 +57,6 @@ const flagshipFeatures = [
       </svg>
     ),
     title: 'Paydaşların Gerçekten Okuduğu Rapor',
-    span: 2,
     visual: 'report',
     description: 'Sekmeli HTML dashboard, geçiş oranı göstergesi, retry rozetleri, genişletilebilir hatalar, Flakiness Radar, trace linkleri, arama ve karanlık mod.',
   },
@@ -79,8 +77,8 @@ const flagshipFeatures = [
         <path d="m9 9 6 6M15 9l-6 6" />
       </svg>
     ),
-    title: 'Prompt'tan Test Üretin — Yakında',
-    description: 'TestFly MCP (yakında) üzerinden AI destekli test yazımı, Claude veya Copilot'un gerçek bir tarayıcıyı sürmesine ve tek bir prompt'tan çalışmaya hazır TestFly testleri üretmesine olanak tanıyacak.',
+    title: 'Prompt\'tan Test Üretin — Yakında',
+    description: 'TestFly MCP (yakında) üzerinden AI destekli test yazımı, Claude veya Copilot\'un gerçek bir tarayıcıyı sürmesine ve tek bir prompt\'tan çalışmaya hazır TestFly testleri üretmesine olanak tanıyacak.',
   },
 ];
 
@@ -404,7 +402,6 @@ assertThat(find("h1"))
                 <div
                   key={f.title}
                   className={styles.bentoCard}
-                  data-span={f.span === 2 ? '2' : undefined}
                   data-reveal
                   style={{ '--i': i % 3 }}
                 >
