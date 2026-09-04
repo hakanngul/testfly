@@ -275,6 +275,9 @@ public class HtmlReportGeneratorTest {
                 String html = Files.readString(ReportPaths.htmlReport().toPath());
                 assertTrue(html.contains("id=\"testfly-data\""), "HTML must contain embedded testfly-data script");
                 assertTrue(html.contains("cumulativeTotals"), "Embedded data must include cumulativeTotals");
+                assertTrue(html.contains("tab-flakiness"), "HTML must contain tab-flakiness panel");
+                assertTrue(html.contains("Flakiness Radar"), "HTML must contain Flakiness Radar navigation");
+                assertTrue(html.contains("api-step-details"), "HTML must contain api-step-details style for tracing");
                 assertTrue(html.contains("#97cc64"), "HTML must use Allure green (#97cc64)");
                 assertTrue(html.contains("#fd5a3e"), "HTML must use Allure red (#fd5a3e)");
                 assertFalse(html.contains("#6366f1"), "HTML must not contain purple (#6366f1)");

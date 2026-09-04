@@ -72,11 +72,24 @@ Every test execution automatically archives a timestamped report in `target/repo
 Expanding any test row opens an inline detail panel equipped with:
 
 - **Step Execution Timeline:** Shows step offsets (`+56ms`), step status (`PASS`, `INFO`, `FAIL`), and descriptions logged via `StepLogger`.
+- **API Tracing & cURL Inspection:** Displays HTTP method, endpoint, status code, latency, preformatted cURL snippets, and formatted request/response payloads directly in the step drawer.
 - **One-Click "Copy Stack Trace":** Instantly copies formatted exception stack traces to the clipboard.
 - **AI Failure Analysis Card:** Displays root-cause explanations and actionable remediation steps when AI failure analysis is active.
 - **Screenshot Lightbox:** Base64-embedded thumbnails expand into a high-resolution lightbox modal upon click.
 
 ---
+
+### 5. Flakiness Radar & Risk Analysis
+The dedicated **Flakiness Radar** tab analyses execution patterns across historical runs:
+
+- **High Risk:** Tests with frequent, unpredictable failure rates that warrant quarantine (`@Quarantine` or quarantine tags).
+- **Watch List:** Tests showing intermittent flakiness needing developer attention.
+- **Stable:** Dependable tests with consistent 100% pass rates.
+- **Summary KPIs:** Instant metric cards summarizing Scored Tests, High Risk count, Watch count, and Stable count.
+- **Interactive Risk Table:** Sort and filter tests by failure rate percentage, total runs, and quarantine recommendation.
+
+---
+
 
 ## Configuration
 
