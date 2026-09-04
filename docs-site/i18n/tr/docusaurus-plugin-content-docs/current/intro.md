@@ -28,7 +28,7 @@ public class LoginTest extends BaseTest {
     public void loginTest() {
         open();
         new LoginPage(getDriver()).login("admin", "secret");
-        Assert.assertTrue(new DashboardPage(getDriver()).isLoaded());
+        softAssert().that(new DashboardPage(getDriver()).isLoaded(), "Dashboard should be loaded");
     }
 }
 ```

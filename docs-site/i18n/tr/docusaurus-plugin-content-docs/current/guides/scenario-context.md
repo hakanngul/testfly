@@ -127,7 +127,7 @@ public class CheckoutTest extends BaseTest {
 
         // UI — open cart and verify
         open("/cart/" + ctx().get("cartId"));
-        Assert.assertEquals(getText(By.cssSelector(".item-count")), "2 items");
+        assertThat(By.cssSelector(".item-count")).hasText("2 items");
     }
 }
 ```

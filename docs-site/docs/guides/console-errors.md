@@ -36,7 +36,7 @@ public void noJsErrorsOnLogin() {
     click(By.id("submit"));
 
     List<String> errors = ConsoleErrorCollector.getErrors();
-    Assert.assertTrue(errors.isEmpty(), "Unexpected JS errors: " + errors);
+    softAssert().that(errors.isEmpty(), "Unexpected JS errors: " + errors);
 }
 ```
 
