@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -29,10 +30,10 @@ import java.util.UUID;
  *
  * <p>Status mapping:
  * <ul>
- *   <li>PASSED  → passed</li>
- *   <li>FAILED  → failed</li>
- *   <li>SKIPPED → skipped</li>
- *   <li>other   → broken</li>
+ *   <li>PASSED / PASS / INFO → passed</li>
+ *   <li>FAILED / FAIL        → failed</li>
+ *   <li>SKIPPED              → skipped</li>
+ *   <li>WARN / other         → broken</li>
  * </ul>
  */
 public class AllureReportAdapter implements ReportAdapter {
@@ -177,11 +178,22 @@ public class AllureReportAdapter implements ReportAdapter {
     // ----------------------------------------------------------
 
     private String mapStatus(String status) {
-        switch (status.toUpperCase()) {
-            case "PASSED":  return "passed";
-            case "FAILED":  return "failed";
-            case "SKIPPED": return "skipped";
-            default:        return "broken";
+        if (status == null) {
+            return "broken";
+        }
+        switch (status.toUpperCase(Locale.ROOT)) {
+            case "PASSED":
+            case "PASS":
+            case "INFO":
+                return "passed";
+            case "FAILED":
+            case "FAIL":
+                return "failed";
+            case "SKIPPED":
+                return "skipped";
+            case "WARN":
+            default:
+                return "broken";
         }
     }
 

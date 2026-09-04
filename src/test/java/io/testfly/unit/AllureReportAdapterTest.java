@@ -210,6 +210,65 @@ public class AllureReportAdapterTest {
     }
 
     @Test
+    public void generate_stepsWithInfoAndPassStatus_mapToPassedInAllure() throws IOException {
+        String stepsJson = "  \"steps\": ["
+                + "    {\"name\": \"[API] GET /users\", \"offsetMs\": 0,   \"status\": \"INFO\"},"
+                + "    {\"name\": \"Assert status 200\", \"offsetMs\": 100, \"status\": \"PASS\"}"
+                + "  ]";
+        writeMetricsWithSteps("PASSED", stepsJson);
+        generateSync();
+        JsonNode steps = firstResult().path("steps");
+        assertEquals(steps.size(), 2);
+        assertEquals(steps.get(0).path("status").asText(), "passed", "INFO step must map to 'passed'");
+        assertEquals(steps.get(1).path("status").asText(), "passed", "PASS step must map to 'passed'");
+    }
+
+    @Test
+    public void generate_stepsWithFailStatus_mapToFailedInAllure() throws IOException {
+        String stepsJson = "  \"steps\": ["
+                + "    {\"name\": \"Soft assert failed\", \"offsetMs\": 0, \"status\": \"FAIL\"}"
+                + "  ]";
+        writeMetricsWithSteps("FAILED", stepsJson);
+        generateSync();
+        JsonNode steps = firstResult().path("steps");
+        assertEquals(steps.size(), 1);
+        assertEquals(steps.get(0).path("status").asText(), "failed", "FAIL step must map to 'failed'");
+    }
+
+    @Test
+    public void generate_stepsWithWarnStatus_mapToBrokenInAllure() throws IOException {
+        String stepsJson = "  \"steps\": ["
+                + "    {\"name\": \"JS Error warning\", \"offsetMs\": 0, \"status\": \"WARN\"}"
+                + "  ]";
+        writeMetricsWithSteps("PASSED", stepsJson);
+        generateSync();
+        JsonNode steps = firstResult().path("steps");
+        assertEquals(steps.size(), 1);
+        assertEquals(steps.get(0).path("status").asText(), "broken", "WARN step must map to 'broken'");
+    }
+
+    private void writeMetricsWithSteps(String status, String stepsJson) throws IOException {
+        String json = "{"
+                + "\"totalTests\": 1, \"passedTests\": 1, \"failedTests\": 0,"
+                + "\"skippedTests\": 0, \"passRate\": 100.0,"
+                + "\"flakyTests\": 0, \"recoveredTests\": 0,"
+                + "\"totalTimeMs\": 1000,"
+                + "\"tests\": [{"
+                + "  \"testId\": \"myLoginTest\","
+                + "  \"testClassName\": \"LoginTest\","
+                + "  \"thread\": \"main\","
+                + "  \"status\": \"" + status + "\","
+                + "  \"retryCount\": 0,"
+                + "  \"driverStartupMs\": 200,"
+                + "  \"testLogicMs\": 800,"
+                + "  \"totalMs\": 1000,"
+                + "  \"description\": \"Login with valid creds\","
+                + stepsJson
+                + "}]}";
+        Files.writeString(metricsFile.toPath(), json);
+    }
+
+    @Test
     public void generate_nonExistentMetricsFile_isNoOp() {
         synchronized (FILE_LOCK) {
             new AllureReportAdapter().generate(new File("target/nonexistent-metrics.json"));
