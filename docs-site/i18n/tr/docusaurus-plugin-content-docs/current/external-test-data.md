@@ -32,7 +32,7 @@ public void loginWithCsvData() {
     String username = (String) data.get("username");
     String password = (String) data.get("password");
     new LoginPage(getDriver()).login(username, password);
-    assertTrue(new DashboardPage(getDriver()).isLoaded());
+    assertThat(find("[data-testid='dashboard']")).isVisible();
 }
 ```
 

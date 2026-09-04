@@ -80,17 +80,12 @@ assertThat(find("#orders tbody tr")).count(3);   // auto-waits until 3 rows exis
 
 ---
 
-## Satırlar üzerinde yineleme
+## Bir satırın varlığını doğrulama
 
-Satırları toplamak ve üzerlerinde doğrulama yapmak için `find(...).all()` kullanın:
+Eşleşen satıra odaklanmak için `withText(...)` kullanın ve ardından görünürlüğünü doğrulayın:
 
 ```java
-List<WebElement> rows = find("#orders tbody tr").all();
-List<String> ids = rows.stream()
-    .map(r -> r.findElement(By.cssSelector("td:first-child")).getText())
-    .toList();
-
-assertTrue(ids.contains("ORD-1234"));
+assertThat(find("#orders tbody tr").withText("ORD-1234")).isVisible();
 ```
 
 ---

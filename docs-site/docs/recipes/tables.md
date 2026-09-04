@@ -80,17 +80,12 @@ assertThat(find("#orders tbody tr")).count(3);   // auto-waits until 3 rows exis
 
 ---
 
-## Iterate over rows
+## Assert a row exists
 
-Use `find(...).all()` to collect rows and assert across them:
+Use `withText(...)` to scope the locator to the matching row, then assert visibility:
 
 ```java
-List<WebElement> rows = find("#orders tbody tr").all();
-List<String> ids = rows.stream()
-    .map(r -> r.findElement(By.cssSelector("td:first-child")).getText())
-    .toList();
-
-assertTrue(ids.contains("ORD-1234"));
+assertThat(find("#orders tbody tr").withText("ORD-1234")).isVisible();
 ```
 
 ---
