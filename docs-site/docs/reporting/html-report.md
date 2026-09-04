@@ -1,5 +1,5 @@
 ---
-description: "TestFly HTML report: a self-contained dashboard with pass-rate gauge, retries, screenshots, flakiness radar, and dark mode, no server needed."
+description: "TestFly HTML report: an Allure-style self-contained SPA dashboard with cumulative suite totals, run history archiving, AI failure analysis, and dark mode."
 id: html-report
 title: Selenium HTML Report
 sidebar_label: HTML Report
@@ -8,125 +8,84 @@ sidebar_position: 1
 
 # HTML Report
 
-TestFly generates a self-contained HTML report at `target/testfly-report.html` after every test run. It requires no server, no extra tools — just open the file in a browser.
+TestFly generates an interactive, Allure-style single-page HTML report after every test execution. It requires no external server or database — simply double-click and open `target/testfly-report.html` directly in any web browser.
 
 ---
 
-## Report location
+## Architecture & File Locations
+
+The report uses a **JSON-driven architecture (Allure style)**. Test execution metrics are exported as structured JSON and embedded into the HTML file for 100% offline self-containment.
 
 ```
 target/
-└── testfly-report.html   ← open this
+├── testfly-report.html           ← Main interactive HTML report
+├── testfly-report-data.json      ← Standalone JSON data file
+├── testfly-metrics.json          ← Raw execution metrics data
+├── reports/
+│   └── testfly-report-*.html     ← Timestamped archived historical runs
+└── metrics-history/
+    └── testfly-metrics-*.json    ← Historical metrics JSON snapshots
 ```
 
 ---
 
-## Tabs
+## Key Features
 
-The report has three tabs in the left sidebar:
+### 1. Cumulative Suite Totals on Dashboard
+Unlike traditional test reports that only display the last single run, TestFly's dashboard prominently displays **Cumulative Suite Totals** across all tests recorded in the suite:
 
-### Dashboard tab
+- **Total Tests** — Total unique test cases in the test suite
+- **Total Passed** — Cumulative successful tests
+- **Total Failed** — Cumulative failures requiring triage
+- **Total Skipped** — Cumulative bypassed tests
+- **Overall Pass Rate** — Cumulative pass percentage
+- **Total Duration** — Total cumulative wall-clock execution time
 
-High-level summary of the run:
-
-- **Total / Passed / Failed / Skipped** counts
-- **Duration** — total wall-clock time
-- **Pass Rate** — percentage of passing tests, colour-coded (green / orange / red)
-- **Retry Summary** — retried, recovered, still-failing counts (shown only when retries occurred)
-- **Slowest 5 Tests** — ranked by total duration
-- **Driver Startup** percentile chart
-
-### Test Cases tab
-
-Full table of all tests with:
-
-| Column | Description |
-|---|---|
-| Class | Simple class name |
-| Test | Test method name |
-| Status | PASSED / FAILED / SKIPPED badge |
-| Duration | ms |
-| Retries | Badge showing retry count (hidden when 0) |
-
-Click any row to expand the **detail panel**:
-- Error message (red, bold)
-- Full stack trace (monospace, scrollable)
-- Step timeline with timestamps, status badges, and inline screenshots
-
-### Failures tab
-
-Same detail panels as Test Cases tab, but only for failed tests. Detail panels are pre-expanded so you can immediately see what went wrong without clicking.
+:::tip Cumulative Test Merging
+When running tests sequentially across different test classes or batches, enable `reporting.mergeRuns: true` or pass `-Dtestfly.merge=true`. TestFly will automatically retain and merge previous test results into a single unified report instead of overwriting them.
+:::
 
 ---
 
-## Self-contained format
+### 2. Allure-Inspired Color Palette
+The report interface adopts Allure's iconic QA color design:
 
-All screenshots are Base64-encoded and embedded inline. The report is a single file you can:
-
-- Email to a stakeholder
-- Attach to a Jira ticket
-- Archive as a CI artifact
-- Store in a shared folder
-
-No images folder, no asset references, no server needed.
+| Status | Color | Hex | Description |
+|---|---|---|---|
+| **Passed** | Allure Green | `#97cc64` | Successful test execution |
+| **Failed** | Allure Red | `#fd5a3e` | Assertion or unexpected failure |
+| **Broken / Warning** | Allure Amber | `#ffb238` | Environment or startup error |
+| **Skipped** | Allure Gray | `#8c8c8c` | Test bypassed or ignored |
+| **Primary / Brand** | Allure Blue | `#1890ff` | Navigation active states & accents |
 
 ---
 
-## Step timeline
+### 3. Run History & Interactive Switcher
+Every test execution automatically archives a timestamped report in `target/reports/testfly-report-YYYYMMDD-HHmmss.html`.
 
-When tests use `StepLogger`, each step appears in the detail panel:
+- **Run Switcher Dropdown:** Located in the top header, allowing one-click switching between **Suite Total (All Tests)**, **Latest Run**, and past historical executions.
+- **Run History Tab:** Displays a quality trend timeline, historical pass rates, test counts, durations, and direct links to archived reports.
 
-```
- 1  Open login page          +0ms     INFO
- 2  Enter credentials         +312ms   INFO
- 3  Assert dashboard visible  +891ms   PASS  [screenshot]
-```
+---
 
-Thumbnails are clickable — they open full-size in a lightbox overlay.
+### 4. Diagnostic & Triage Tools
+Expanding any test row opens an inline detail panel equipped with:
+
+- **Step Execution Timeline:** Shows step offsets (`+56ms`), step status (`PASS`, `INFO`, `FAIL`), and descriptions logged via `StepLogger`.
+- **One-Click "Copy Stack Trace":** Instantly copies formatted exception stack traces to the clipboard.
+- **AI Failure Analysis Card:** Displays root-cause explanations and actionable remediation steps when AI failure analysis is active.
+- **Screenshot Lightbox:** Base64-embedded thumbnails expand into a high-resolution lightbox modal upon click.
 
 ---
 
 ## Configuration
 
-The report path and name are not currently configurable — the file is always written to `target/testfly-report.html`.
+Configure reporting behaviour in your [`testfly.yml`](../guides/testfly-yml-guide.md):
 
----
-
-## Build Metadata
-
-The report displays a **Build Metadata** card that surfaces CI context captured at runtime:
-
-| Field | Source |
-|---|---|
-| CI Provider | Detected from env vars (`GITHUB_ACTIONS`, `JENKINS_URL`, `GITLAB_CI`, etc.) |
-| Build Number / Build ID | Provider-specific run identifiers |
-| Branch / Commit | Current branch and SHA |
-| Repository / Actor | Repo slug and the user that triggered the build |
-| Job Name / Agent Name | CI job and runner/agent name |
-| Build URL | Link back to the pipeline run |
-
-Metadata capture is automatic in recognized CI environments and can be disabled in `testfly.yml`:
-
-```yaml title="testfly.yml"
-ci:
-  captureMetadata: false
+```yaml
+reporting:
+  mergeRuns: false                  # set true or pass -Dtestfly.merge=true to merge sequential test runs
+  historyRuns: 10                   # max historical run reports to keep in run switcher (default: 10)
+  allure:
+    enabled: false                  # export Allure 2 results to target/allure-results/
 ```
-
-See [CI Metadata](../ci/ci-metadata) for the full list of supported providers and variables.
-
----
-
-## CI usage
-
-Upload the report as an artifact to preserve it after the CI workspace is cleaned:
-
-```yaml title="GitHub Actions"
-- name: Upload report
-  if: always()
-  uses: actions/upload-artifact@v4
-  with:
-    name: testfly-report
-    path: target/testfly-report.html
-```
-
-The `if: always()` ensures the report is uploaded even when tests fail.
