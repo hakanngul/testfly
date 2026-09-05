@@ -109,8 +109,11 @@ public final class HtmlReportGenerator {
                             if (recFile.exists()) {
                                 try {
                                     byte[] bytes = Files.readAllBytes(recFile.toPath());
+                                    boolean isMp4 = recFile.getName().toLowerCase().endsWith(".mp4");
+                                    String mime = isMp4 ? "video/mp4" : "image/gif";
+                                    tMap.put("recordingType", isMp4 ? "mp4" : "gif");
                                     tMap.put("recordingBase64",
-                                            "data:image/gif;base64," + Base64.getEncoder().encodeToString(bytes));
+                                            "data:" + mime + ";base64," + Base64.getEncoder().encodeToString(bytes));
                                 } catch (Exception ignored) {
                                 }
                             }

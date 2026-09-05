@@ -1254,9 +1254,13 @@
     </main>
 </div>
 
-<!-- Screenshot Lightbox Modal -->
+<!-- Screenshot / Video Lightbox Modal -->
 <div id="lightbox" class="lightbox-modal" onclick="closeLightbox()">
     <img id="lightbox-img" class="lightbox-img" src="" alt="Screenshot Fullscreen" onclick="event.stopPropagation()">
+    <video id="lightbox-video" class="lightbox-img" controls autoplay loop playsinline onclick="event.stopPropagation()" style="display:none;max-width:90vw;max-height:85vh;border-radius:8px;outline:none;background:#000;">
+        <source id="lightbox-video-source" src="" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
 </div>
 
 <script>
@@ -1624,7 +1628,14 @@ function renderTestTable(tests) {
                                         <button type="button" class="btn-copy" onclick="openLightbox('${m.recordingBase64}')">Open Fullscreen</button>
                                     </div>
                                     <div style="display:flex;justify-content:center;background:#000;border-radius:6px;overflow:hidden;max-height:380px;">
-                                        <img src="${m.recordingBase64}" style="max-width:100%;max-height:380px;object-fit:contain;cursor:pointer;" onclick="openLightbox(this.src)" title="Click to view full size video recording">
+                                        ${(m.recordingType === 'mp4' || (m.recordingBase64 && m.recordingBase64.startsWith('data:video'))) ? `
+                                            <video controls autoplay loop playsinline style="max-width:100%;max-height:380px;outline:none;border-radius:6px;">
+                                                <source src="${m.recordingBase64}" type="video/mp4">
+                                                Your browser does not support the video tag.
+                                            </video>
+                                        ` : `
+                                            <img src="${m.recordingBase64}" style="max-width:100%;max-height:380px;object-fit:contain;cursor:pointer;" onclick="openLightbox(this.src)" title="Click to view full size video recording">
+                                        `}
                                     </div>
                                 </div>
                             ` : ''}
@@ -1730,7 +1741,14 @@ function renderFailureTable(tests) {
                                     <button type="button" class="btn-copy" onclick="openLightbox('${f.recordingBase64}')">Open Fullscreen</button>
                                 </div>
                                 <div style="display:flex;justify-content:center;background:#000;border-radius:6px;overflow:hidden;max-height:380px;">
-                                    <img src="${f.recordingBase64}" style="max-width:100%;max-height:380px;object-fit:contain;cursor:pointer;" onclick="openLightbox(this.src)" title="Click to view full size video recording">
+                                    ${(f.recordingType === 'mp4' || (f.recordingBase64 && f.recordingBase64.startsWith('data:video'))) ? `
+                                        <video controls autoplay loop playsinline style="max-width:100%;max-height:380px;outline:none;border-radius:6px;">
+                                            <source src="${f.recordingBase64}" type="video/mp4">
+                                            Your browser does not support the video tag.
+                                        </video>
+                                    ` : `
+                                        <img src="${f.recordingBase64}" style="max-width:100%;max-height:380px;object-fit:contain;cursor:pointer;" onclick="openLightbox(this.src)" title="Click to view full size video recording">
+                                    `}
                                 </div>
                             </div>
                         ` : ''}
@@ -2005,18 +2023,48 @@ function copyStackTrace(event, btn) {
 function openLightbox(src) {
     const modal = document.getElementById('lightbox');
     const img = document.getElementById('lightbox-img');
-    if (modal && img) {
-        img.src = src;
-        modal.classList.add('open');
-        document.body.style.overflow = 'hidden';
+    const video = document.getElementById('lightbox-video');
+    const videoSource = document.getElementById('lightbox-video-source');
+    if (!modal) return;
+
+    const isVideo = src && (src.startsWith('data:video') || src.endsWith('.mp4'));
+    if (isVideo) {
+        if (img) img.style.display = 'none';
+        if (video && videoSource) {
+            video.style.display = 'block';
+            videoSource.src = src;
+            video.load();
+            video.play().catch(() => {});
+        }
+    } else {
+        if (video) {
+            video.pause();
+            video.style.display = 'none';
+        }
+        if (img) {
+            img.style.display = 'block';
+            img.src = src;
+        }
     }
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
 }
 function closeLightbox() {
     const modal = document.getElementById('lightbox');
     const img = document.getElementById('lightbox-img');
+    const video = document.getElementById('lightbox-video');
+    const videoSource = document.getElementById('lightbox-video-source');
     if (modal) {
         modal.classList.remove('open');
-        if (img) img.src = '';
+        if (video) {
+            video.pause();
+            video.style.display = 'none';
+            if (videoSource) videoSource.src = '';
+        }
+        if (img) {
+            img.src = '';
+            img.style.display = 'none';
+        }
         document.body.style.overflow = '';
     }
 }

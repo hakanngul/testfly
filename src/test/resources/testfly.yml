@@ -60,6 +60,7 @@ ai:
 recording:
   enabled: true                    # Video kaydını aktif eder (varsayılan: false)
   mode: retain-on-failure          # 'retain-on-failure' | 'on' | 'off'
+  format: mp4                      # 'mp4' (H.264 video) | 'gif' (varsayılan: mp4)
   fps: 5                           # Saniyedeki kare sayısı (önerilen: 2-10)
   maxDurationSeconds: 60           # Bellek güvenliği için maksimum kayıt süresi
   cdp: true                        # Chromium için native CDP screencast kullanımı

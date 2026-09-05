@@ -198,6 +198,18 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Pure-Java MP4 video encoder (Playwright-style Web UI video recording) -->
+        <dependency>
+            <groupId>org.jcodec</groupId>
+            <artifactId>jcodec</artifactId>
+            <version>0.2.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jcodec</groupId>
+            <artifactId>jcodec-javase</artifactId>
+            <version>0.2.5</version>
+        </dependency>
+
         <!-- Unit-test tooling (test scope only) -->
         <dependency>
             <groupId>org.mockito</groupId>

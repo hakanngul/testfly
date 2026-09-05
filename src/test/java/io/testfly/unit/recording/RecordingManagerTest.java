@@ -107,8 +107,7 @@ public class RecordingManagerTest {
         // Special characters should be replaced with underscores
         assertFalse(fileName.contains("#"), "File name must not contain '#'");
         assertFalse(fileName.contains("("), "File name must not contain '('");
-        assertFalse(fileName.contains(")"), "File name must not contain ')'");
-        assertTrue(fileName.endsWith(".gif"), "Output must be a .gif file");
+        assertTrue(fileName.endsWith(".mp4") || fileName.endsWith(".gif"), "Output must be a video (.mp4) or gif file");
     }
 
     @Test

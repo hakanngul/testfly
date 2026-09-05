@@ -500,6 +500,7 @@ public final class TestFlyConfig {
     public static final class Recording {
         private boolean enabled            = false;
         private String  mode               = "retain-on-failure";
+        private String  format             = "mp4";
         private boolean cdp                = true;
         private int     fps                = 2;
         private int     maxDurationSeconds = 60;
@@ -509,6 +510,11 @@ public final class TestFlyConfig {
 
         public String  getMode()                      { return mode; }
         public void    setMode(String mode)           { this.mode = mode != null ? mode : "retain-on-failure"; }
+
+        public String  getFormat()                    { return format; }
+        public void    setFormat(String format)       { this.format = format != null ? format : "mp4"; }
+
+        public boolean isMp4()                        { return "mp4".equalsIgnoreCase(format); }
 
         public boolean isCdp()                        { return cdp; }
         public void    setCdp(boolean cdp)            { this.cdp = cdp; }

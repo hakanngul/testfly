@@ -134,15 +134,43 @@ public final class RecordingManager {
         String safeId = testId.replaceAll("[^a-zA-Z0-9._-]", "_");
         File   dir    = new File("target/recordings");
         dir.mkdirs();
-        File output = new File(dir, safeId + ".gif");
 
-        int delayMs = 1000 / Math.max(1, session.getFps());
+        String format = "mp4";
         try {
-            GifEncoder.write(frames, output, delayMs);
-            return output.getPath();
-        } catch (IOException e) {
-            System.err.println("[TestFly] Failed to save recording for '" + testId + "': " + e.getMessage());
-            return null;
+            if (io.testfly.internal.TestFlyContext.isInitialized()) {
+                io.testfly.config.TestFlyConfig cfg = io.testfly.internal.TestFlyContext.getConfig();
+                if (cfg != null && cfg.getRecording() != null && cfg.getRecording().getFormat() != null) {
+                    format = cfg.getRecording().getFormat().toLowerCase();
+                }
+            }
+        } catch (Exception ignored) {}
+
+        if ("gif".equalsIgnoreCase(format)) {
+            File output = new File(dir, safeId + ".gif");
+            int delayMs = 1000 / Math.max(1, session.getFps());
+            try {
+                GifEncoder.write(frames, output, delayMs);
+                return output.getPath();
+            } catch (IOException e) {
+                System.err.println("[TestFly] Failed to save GIF recording for '" + testId + "': " + e.getMessage());
+                return null;
+            }
+        } else {
+            File output = new File(dir, safeId + ".mp4");
+            try {
+                Mp4Encoder.encode(frames, output, session.getFps());
+                return output.getPath();
+            } catch (Exception e) {
+                System.err.println("[TestFly] MP4 encoding failed, falling back to GIF: " + e.getMessage());
+                File gifOutput = new File(dir, safeId + ".gif");
+                int delayMs = 1000 / Math.max(1, session.getFps());
+                try {
+                    GifEncoder.write(frames, gifOutput, delayMs);
+                    return gifOutput.getPath();
+                } catch (IOException ioException) {
+                    return null;
+                }
+            }
         }
     }
 

@@ -214,11 +214,19 @@ public final class TraceRecorder {
                 try {
                     byte[] bytes = java.nio.file.Files.readAllBytes(recFile.toPath());
                     String base64 = Base64.getEncoder().encodeToString(bytes);
+                    boolean isMp4 = recFile.getName().toLowerCase().endsWith(".mp4");
                     sb.append("<div class=\"section\">\n");
                     sb.append("  <div class=\"section-title\">&#127916; Execution Video Recording</div>\n");
                     sb.append("  <div class=\"final-screenshot-wrap\" style=\"background:#000;display:flex;justify-content:center;\">\n");
-                    sb.append("    <img class=\"final-screenshot\" src=\"data:image/gif;base64,")
-                            .append(base64).append("\" alt=\"Execution Video Recording\" />\n");
+                    if (isMp4) {
+                        sb.append("    <video controls autoplay loop playsinline style=\"max-width:100%;max-height:400px;border-radius:4px;\">\n");
+                        sb.append("      <source src=\"data:video/mp4;base64,").append(base64).append("\" type=\"video/mp4\">\n");
+                        sb.append("      Your browser does not support HTML5 video.\n");
+                        sb.append("    </video>\n");
+                    } else {
+                        sb.append("    <img class=\"final-screenshot\" src=\"data:image/gif;base64,")
+                                .append(base64).append("\" alt=\"Execution Video Recording\" />\n");
+                    }
                     sb.append("  </div>\n</div>\n");
                 } catch (Exception ignored) {
                 }

@@ -161,9 +161,12 @@ public class AllureReportAdapter implements ReportAdapter {
         if (test.has("recordingPath")) {
             File recording = new File(test.path("recordingPath").asText());
             if (recording.exists()) {
-                String attachSource = UUID.randomUUID() + "-recording.gif";
+                boolean isMp4 = recording.getName().toLowerCase().endsWith(".mp4");
+                String ext = isMp4 ? ".mp4" : ".gif";
+                String mime = isMp4 ? "video/mp4" : "image/gif";
+                String attachSource = UUID.randomUUID() + "-recording" + ext;
                 Files.copy(recording.toPath(), new File(outputDir, attachSource).toPath());
-                addAttachment(attachments, "Execution Video", attachSource, "image/gif");
+                addAttachment(attachments, "Execution Video", attachSource, mime);
             }
         }
         if (test.has("aiAnalysis")) {
