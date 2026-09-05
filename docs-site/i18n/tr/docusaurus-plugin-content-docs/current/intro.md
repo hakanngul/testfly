@@ -8,7 +8,7 @@ slug: /
 
 # TestFly
 
-**Fikir sahibi, Spring Boot'tan esinlenilmiş bir Java test otomasyon çerçevesi.**
+**Spring Boot felsefesinde, sıfır boilerplate ile tasarlanmış modern Java test otomasyon platformu.**
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.testfly/testfly)](https://central.sonatype.com/artifact/io.github.hakanngul/testfly)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/hakanngul/testfly/blob/master/LICENSE)
@@ -17,9 +17,9 @@ slug: /
 
 ## TestFly Nedir?
 
-TestFly, her Java Selenium projesinin tekrarladığı tekrarlayan kodları ortadan kaldırır — WebDriver kurulumu ve kapatma, bekleme yardımcıları, retry mantığı, ekran görüntüsü yakalama ve rapor üretimi — böylece test kodunuzda yalnızca test amacı kalır.
+TestFly, her Java test otomasyon projesinde tekrar tekrar yazılan altyapı kodlarını ortadan kaldırır — WebDriver kurulumu ve kapatılması, bekleme yardımcıları, retry mekanizması, ekran görüntüsü yakalama, raporlama ve paralel çalıştırma — böylece test sınıflarınızda yalnızca test senaryonuzun gerçek niyeti kalır.
 
-**Spring Boot felsefesinden** esinlenilmiştir: akıllı varsayılanlar, yapılandırmaya üstün gelen convention ve yaygın durumlar için sıfır kurulum.
+**Spring Boot felsefesinden** esinlenilmiştir: Akıllı varsayılanlar, yapılandırma yerine uzlaşı (convention over configuration) ve yaygın senaryolar için sıfır ön hazırlık.
 
 ```java
 public class LoginTest extends BaseTest {
@@ -33,37 +33,37 @@ public class LoginTest extends BaseTest {
 }
 ```
 
-`WebDriver` kurulumu yok. `@AfterMethod` kapatma yok. Bekleme yardımcısı yok. Retry yapılandırması yok.
-**Sadece test.**
+`WebDriver` kurulum kodu yok. `@AfterMethod` kapatma kargaşası yok. Manuel bekleme yardımcıları yok. Retry yapılandırması yok.
+**Sadece iş mantığı ve test.**
 
 ---
 
 ## Tasarım Felsefesi
 
-İnsanlar sıkça TestFly'nin fikir sahibi bir çerçeve mi, genişletilebilir bir araç seti mi, yoksa Selenium üzerine ince bir verimlilik katmanı mı olduğunu sorar. Cevap **Java test otomasyonunun Spring Boot'u** — ve bu cevap katmanlıdır, üçünün eşit karışımı değil:
+TestFly; kuralcı bir çatı mı, genişletilebilir bir araç seti mi, yoksa Selenium üzerine kurulu modern bir verimlilik katmanı mı? Cevap: **Java test otomasyonunun Spring Boot'u** — akıllı varsayılanlarla başlar, ihtiyaç duyduğunuzda derinlemesine özelleştirilebilir:
 
-1. **Fikir sahibi çekirdek (birincil).** Yapılandırmaya üstün gelen convention, varsayılan olarak sıfır tekrarlayan kod. Bir bağımlılık ekleyin, `BaseTest` / `BasePage` extend edin; framework sizin için akıllıca kararları çoktan vermiştir. `testfly.yml` isteğe bağlıdır — yazmasanız bile `TestFlyDefaults` sizi korur.
-2. **Selenium'u asla gizlemez (kısıt).** Daha ağır soyutlamaların aksine, TestFly size ham `WebDriver`'ı asla elinizden almaz. Convention'lar uymadığında doğrudan `WebDriver` / `By` / `WebElement` seviyesine inebilirsiniz. Fikir sahibi ama kafes değil.
-3. **Genişletilebilir araç seti (çıkış kapısı).** Bir SPI/registry plugin sistemi (`DriverProviderRegistry`, `PluginRegistry`, `ReportAdapterRegistry`) güç kullanıcıları için modülerlik sağlar — fikir sahibi çekirdeğe hizmet eder, onun yerini almaz. Çoğu kullanıcı bunu hiç dokunmaz.
+1. **Akıllı ve Kuralcı Çekirdek (Convention over Configuration).** Sıfır altyapı kodu. Tek bir bağımlılık ekleyin, `BaseTest`, `BaseJUnit5Test` veya `BaseCucumberSteps` extend edin; framework sizin adınıza en iyi mimari kararları otomatik olarak uygular. `testfly.yml` isteğe bağlıdır — hiçbir şey yazmasanız bile `TestFlyDefaults` devreye girer.
+2. **Selenium'u Asla Gizlemez (Esneklik).** TestFly ham `WebDriver` erişimini asla kısıtlamaz. İhtiyaç duyduğunuz anda `getDriver()` ile doğrudan `WebDriver` / `By` / `WebElement` seviyesine inebilirsiniz. Standartları belirler ama sizi bir kafese hapsetmez.
+3. **Genişletilebilir Ekosistem (SPI Desteği).** Java SPI tabanlı registry mimarisi (`DriverProviderRegistry`, `PluginRegistry`, `ReportAdapterRegistry`) ile özel driver'lar, rapor adaptörleri ve yaşam döngüsü hook'ları ekleyebilirsiniz.
 
-### Selenium'a zaten yatırım yaptınız mı?
+### Selenium Altyapınızı Korumaya Devam Edin
 
-Playwright'ın ergonomisini sevmek için Selenium'dan vazgeçmeniz gerekmez. TestFly bu fikirleri Selenium ekosistemine getirir — böylece stack'inizi, grid'inizi ve ekibinizin yeteneklerini korursunuz:
+Playwright'ın akıcı ergonomisini kullanmak için mevcut Selenium ekosisteminizden, Selenium Grid'inizden veya kurumsal Java birikiminizden vazgeçmeniz gerekmez. TestFly bu modern yaklaşımı doğrudan Selenium dünyasına getirir:
 
-| Playwright fikri | TestFly'da |
+| Playwright Ergonomisi | TestFly Karşılığı |
 |---|---|
-| Erişilebilirlik-öncelikli locator'lar | `getByRole`, `getByLabel`, `getByText`, `getByPlaceholder`, `getByTestId` — erişilebilirlik ağacını hedefler, CSS/DOM refactor'lerine dayanır |
-| Otomatik bekleme | `WaitEngine` destekli aksiyonlar — `Thread.sleep()` ortadan kalkar |
-| Web-öncelikli assertion'lar | doğru olana kadar otomatik yeniden deneyen `assertThat(...)` |
-| Yapılandırmaya üstün gelen convention | Sıfır-boilerplate varsayılanlar, isteğe bağlı `testfly.yml` |
+| Erişilebilirlik odaklı seçiciler | `getByRole`, `getByLabel`, `getByText`, `getByPlaceholder`, `getByTestId` — DOM refactor'lerine dirençli |
+| Otomatik bekleme (Auto-waiting) | `WaitEngine` destekli aksiyonlar — `Thread.sleep()` tamamen tarih olur |
+| Web-öncelikli doğrulamalar | Koşul sağlanana kadar otomatik yeniden deneyen `assertThat(...)` |
+| Sıfır kurulum / Akıllı varsayılanlar | Sıfır-boilerplate defaults, isteğe bağlı `testfly.yml` |
 
-…tüm bunlar **ham Selenium'u gizlemeden**, mevcut Selenium / Java / TestNG stack'inizi, ekip yeteneklerinizi ve Selenium Grid'inizi koruyarak.
+…tüm bunlar **ham Selenium'u gizlemeden**, mevcut Selenium / Java / TestNG / JUnit 5 stack'inizi, ekip yeteneklerinizi ve test altyapınızı koruyarak çalışır.
 
-### Neden kendi çerçeveminizi inşa etmiyorsunuz?
+### Neden Kendi Framework'ünüzü Sıfırdan Yazmamalısınız?
 
-Neredeyse her Java ekibinin bir tanesi vardır: ev yapımı bir `BaseTest`, bir `DriverFactory`, bir yığın bekleme utility'si ve bir raporlama çözümü — her yeni proje veya şirkette sıfırdan yeniden yazılır. Bu, sahip olduğunuz, hata ayıkladığınız ve sonsuza dek bakımını yaptığınız ücretsiz bir altyapıdır; nadiren test edilir veya paralel-güvenlidir.
+Neredeyse her kurumsal Java ekibinin ev yapımı bir `BaseTest`'i, bir `DriverFactory`'si, bir yığın flaky bekleme utility'si ve bakım gerektiren özel bir raporlama kodu vardır — ve her yeni projede bunlar sıfırdan kopyalanıp yapıştırılır. Zamanla bu kodlar test edilmemiş, paralel çalışmada çöken ve sürekli hata veren bir teknik borca dönüşür.
 
-TestFly **tam olarak bu çerçevedir** — çoktan inşa edilmiş, bakılan, test edilmiş, thread-safe ve dokümante edilmiş. Asıl size ait olan kısmı (test amacı) korur, altyapıyı siler:
+TestFly **bu tekerleği yeniden icat etme derdini bitirir** — endüstri standartlarında inşa edilmiş, thread-safe, paralel yürütmeye hazır, kapsamlı test edilmiş ve dokümante edilmiştir:
 
 | Kendin yaz | TestFly |
 |---|---|

@@ -669,15 +669,48 @@ table td {
 
 @media (max-width: 996px) {
   .navbar-sidebar {
-    background: var(--tf-material);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    backdrop-filter: blur(20px) saturate(180%);
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    background: #ffffff !important;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.25) !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   [data-theme='dark'] .navbar-sidebar {
-    background: rgba(0, 0, 0, 0.85);
-    -webkit-backdrop-filter: blur(30px) saturate(200%);
-    backdrop-filter: blur(30px) saturate(200%);
+    background: #1c1c1e !important;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.6) !important;
+  }
+
+  .navbar-sidebar__items {
+    flex: 1 1 auto !important;
+    height: calc(100% - var(--ifm-navbar-height)) !important;
+    max-height: calc(100% - var(--ifm-navbar-height)) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure language items are clearly visible and styled nicely in mobile sidebar */
+  .navbar-sidebar .menu__list-item .menu__link--sublist {
+    font-weight: 600;
+  }
+
+  .navbar-sidebar .menu__list-item .menu__list {
+    padding-left: 1.25rem !important;
+    border-left: 2px solid var(--tf-separator);
+    margin-left: 1rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .navbar-sidebar .menu__list-item .menu__link--active {
+    color: var(--ifm-color-primary) !important;
+    font-weight: 700 !important;
   }
 
   .theme-doc-sidebar-container {
