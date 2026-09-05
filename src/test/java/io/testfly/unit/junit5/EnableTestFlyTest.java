@@ -5,7 +5,6 @@ import io.testfly.junit5.TestFlyExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.testng.annotations.Test;
 
-import java.lang.annotation.Annotation;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -94,7 +93,9 @@ public class EnableTestFlyTest {
     // ----------------------------------------------------------
 
     @EnableTestFly
-    static class SampleAnnotatedTest {}
+    static class SampleAnnotatedTest {
+    }
 
-    static class SamplePlainTest {}
+    static class SamplePlainTest {
+    }
 }

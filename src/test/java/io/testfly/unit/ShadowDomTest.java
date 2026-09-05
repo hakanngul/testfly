@@ -3,10 +3,8 @@ package io.testfly.unit;
 import io.testfly.shadow.ShadowDom;
 import org.mockito.Mockito;
 import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.SearchContext;
-import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.testng.annotations.Test;
 
@@ -22,9 +20,9 @@ public class ShadowDomTest {
 
     @Test
     public void find_returnsElementFromShadowRoot() {
-        WebElement host   = Mockito.mock(WebElement.class);
+        WebElement host = Mockito.mock(WebElement.class);
         SearchContext root = Mockito.mock(SearchContext.class);
-        WebElement target  = Mockito.mock(WebElement.class);
+        WebElement target = Mockito.mock(WebElement.class);
 
         Mockito.when(host.getShadowRoot()).thenReturn(root);
         Mockito.when(root.findElement(By.cssSelector("#btn"))).thenReturn(target);
@@ -35,12 +33,12 @@ public class ShadowDomTest {
 
     @Test(expectedExceptions = NoSuchElementException.class)
     public void find_throwsWhenSelectorMatchesNothing() {
-        WebElement host   = Mockito.mock(WebElement.class);
+        WebElement host = Mockito.mock(WebElement.class);
         SearchContext root = Mockito.mock(SearchContext.class);
 
         Mockito.when(host.getShadowRoot()).thenReturn(root);
         Mockito.when(root.findElement(By.cssSelector(".missing")))
-               .thenThrow(new NoSuchElementException("not found"));
+                .thenThrow(new NoSuchElementException("not found"));
 
         ShadowDom.find(host, ".missing");
     }
@@ -49,14 +47,14 @@ public class ShadowDomTest {
 
     @Test
     public void findAll_returnsAllMatchingElements() {
-        WebElement host    = Mockito.mock(WebElement.class);
-        SearchContext root  = Mockito.mock(SearchContext.class);
-        WebElement item1   = Mockito.mock(WebElement.class);
-        WebElement item2   = Mockito.mock(WebElement.class);
+        WebElement host = Mockito.mock(WebElement.class);
+        SearchContext root = Mockito.mock(SearchContext.class);
+        WebElement item1 = Mockito.mock(WebElement.class);
+        WebElement item2 = Mockito.mock(WebElement.class);
 
         Mockito.when(host.getShadowRoot()).thenReturn(root);
         Mockito.when(root.findElements(By.cssSelector(".item")))
-               .thenReturn(Arrays.asList(item1, item2));
+                .thenReturn(Arrays.asList(item1, item2));
 
         List<WebElement> result = ShadowDom.findAll(host, ".item");
         assertEquals(result.size(), 2);
@@ -64,12 +62,12 @@ public class ShadowDomTest {
 
     @Test
     public void findAll_returnsEmptyListWhenNoMatch() {
-        WebElement host   = Mockito.mock(WebElement.class);
+        WebElement host = Mockito.mock(WebElement.class);
         SearchContext root = Mockito.mock(SearchContext.class);
 
         Mockito.when(host.getShadowRoot()).thenReturn(root);
         Mockito.when(root.findElements(By.cssSelector(".none")))
-               .thenReturn(Collections.emptyList());
+                .thenReturn(Collections.emptyList());
 
         List<WebElement> result = ShadowDom.findAll(host, ".none");
         assertTrue(result.isEmpty());
@@ -79,25 +77,25 @@ public class ShadowDomTest {
 
     @Test
     public void exists_returnsTrueWhenElementFound() {
-        WebElement host   = Mockito.mock(WebElement.class);
+        WebElement host = Mockito.mock(WebElement.class);
         SearchContext root = Mockito.mock(SearchContext.class);
-        WebElement el     = Mockito.mock(WebElement.class);
+        WebElement el = Mockito.mock(WebElement.class);
 
         Mockito.when(host.getShadowRoot()).thenReturn(root);
         Mockito.when(root.findElements(By.cssSelector(".badge")))
-               .thenReturn(Collections.singletonList(el));
+                .thenReturn(Collections.singletonList(el));
 
         assertTrue(ShadowDom.exists(host, ".badge"));
     }
 
     @Test
     public void exists_returnsFalseWhenNothingFound() {
-        WebElement host   = Mockito.mock(WebElement.class);
+        WebElement host = Mockito.mock(WebElement.class);
         SearchContext root = Mockito.mock(SearchContext.class);
 
         Mockito.when(host.getShadowRoot()).thenReturn(root);
         Mockito.when(root.findElements(By.cssSelector(".gone")))
-               .thenReturn(Collections.emptyList());
+                .thenReturn(Collections.emptyList());
 
         assertFalse(ShadowDom.exists(host, ".gone"));
     }
@@ -121,10 +119,10 @@ public class ShadowDomTest {
     @Test
     public void buildPierceJs_containsAllSelectors() {
         String js = ShadowDom.buildPierceJs("outer-host", "inner-host", "#target");
-        assertTrue(js.contains("outer-host"),  "JS should contain first selector");
-        assertTrue(js.contains("inner-host"),  "JS should contain intermediate selector");
-        assertTrue(js.contains("#target"),      "JS should contain final selector");
-        assertTrue(js.contains("shadowRoot"),   "JS should traverse shadowRoot");
+        assertTrue(js.contains("outer-host"), "JS should contain first selector");
+        assertTrue(js.contains("inner-host"), "JS should contain intermediate selector");
+        assertTrue(js.contains("#target"), "JS should contain final selector");
+        assertTrue(js.contains("shadowRoot"), "JS should traverse shadowRoot");
     }
 
     @Test
@@ -136,8 +134,8 @@ public class ShadowDomTest {
     @Test
     public void buildPierceJs_twoSelectorsProducesValidStructure() {
         String js = ShadowDom.buildPierceJs("my-host", "#button");
-        assertTrue(js.startsWith("(function()"),   "Should be an IIFE");
+        assertTrue(js.startsWith("(function()"), "Should be an IIFE");
         assertTrue(js.contains("document.querySelector"), "Should start from document");
-        assertTrue(js.endsWith(")()"),              "IIFE should be immediately invoked");
+        assertTrue(js.endsWith(")()"), "IIFE should be immediately invoked");
     }
 }

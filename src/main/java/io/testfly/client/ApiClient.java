@@ -27,7 +27,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 /**
- * Fluent HTTP client for API testing — zero boilerplate, same philosophy as BasePage.
+ * Fluent HTTP client for API testing — zero boilerplate, same philosophy as
+ * BasePage.
  *
  * <pre>
  * // Pure API call
@@ -55,17 +56,22 @@ import java.util.stream.Collectors;
 public class ApiClient {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final HttpClient   HTTP   = HttpClient.newBuilder()
+    private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(30))
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
 
-    /** Thread-local global auth — applied to every request on this thread unless overridden. */
+    /**
+     * Thread-local global auth — applied to every request on this thread unless
+     * overridden.
+     */
     private static final ThreadLocal<ApiAuth> GLOBAL_AUTH = new ThreadLocal<>();
 
-    /** Thread-local cookie jar — shared across requests on the same thread when cookies are enabled. */
-    private static final ThreadLocal<Map<String, String>> COOKIE_JAR =
-            ThreadLocal.withInitial(HashMap::new);
+    /**
+     * Thread-local cookie jar — shared across requests on the same thread when
+     * cookies are enabled.
+     */
+    private static final ThreadLocal<Map<String, String>> COOKIE_JAR = ThreadLocal.withInitial(HashMap::new);
 
     /** Global request interceptors — applied to every request. */
     private static final List<RequestInterceptor> REQUEST_INTERCEPTORS = new CopyOnWriteArrayList<>();
@@ -76,21 +82,35 @@ public class ApiClient {
     /** Global request spec — applied to every request on any thread. */
     private static volatile ApiRequestSpec GLOBAL_SPEC;
 
-    /** Set once (e.g. in {@code @BeforeSuite}) — all requests on this thread use it automatically. */
-    public static void setGlobalAuth(ApiAuth auth)  { GLOBAL_AUTH.set(auth); }
+    /**
+     * Set once (e.g. in {@code @BeforeSuite}) — all requests on this thread use it
+     * automatically.
+     */
+    public static void setGlobalAuth(ApiAuth auth) {
+        GLOBAL_AUTH.set(auth);
+    }
 
-    /** Remove global auth for this thread. Called automatically by the framework after each test. */
-    public static void clearGlobalAuth()            { GLOBAL_AUTH.remove(); }
+    /**
+     * Remove global auth for this thread. Called automatically by the framework
+     * after each test.
+     */
+    public static void clearGlobalAuth() {
+        GLOBAL_AUTH.remove();
+    }
 
     /** Clear all cookies for this thread. */
-    public static void clearCookies()               { COOKIE_JAR.remove(); }
+    public static void clearCookies() {
+        COOKIE_JAR.remove();
+    }
 
     /** Register a request interceptor — applied to every request before sending. */
     public static void addRequestInterceptor(RequestInterceptor interceptor) {
         REQUEST_INTERCEPTORS.add(interceptor);
     }
 
-    /** Register a response interceptor — applied to every response after receiving. */
+    /**
+     * Register a response interceptor — applied to every response after receiving.
+     */
     public static void addResponseInterceptor(ResponseInterceptor interceptor) {
         RESPONSE_INTERCEPTORS.add(interceptor);
     }
@@ -102,37 +122,58 @@ public class ApiClient {
     }
 
     /** Set a global request spec applied to every request. */
-    public static void setGlobalSpec(ApiRequestSpec spec) { GLOBAL_SPEC = spec; }
+    public static void setGlobalSpec(ApiRequestSpec spec) {
+        GLOBAL_SPEC = spec;
+    }
 
     /** Remove global request spec. */
-    public static void clearGlobalSpec() { GLOBAL_SPEC = null; }
+    public static void clearGlobalSpec() {
+        GLOBAL_SPEC = null;
+    }
 
-    private String              baseUrl;
-    private String              method;
-    private String              path;
+    private String baseUrl;
+    private String method;
+    private String path;
     private final Map<String, String> headers = new LinkedHashMap<>();
     private final Map<String, String> queryParams = new LinkedHashMap<>();
     private final Map<String, String> pathParams = new LinkedHashMap<>();
     private final Map<String, String> formParams = new LinkedHashMap<>();
-    private final Map<String, Path>   fileParams = new LinkedHashMap<>();
+    private final Map<String, Path> fileParams = new LinkedHashMap<>();
     private final Map<String, String> fieldParams = new LinkedHashMap<>();
-    private Object              body;
-    private ApiAuth             auth;
-    private Integer             timeoutOverride;
-    private boolean             cookiesEnabled;
+    private Object body;
+    private ApiAuth auth;
+    private Integer timeoutOverride;
+    private boolean cookiesEnabled;
 
-    private ApiClient() {}
+    private ApiClient() {
+    }
 
     // ── Factory methods ───────────────────────────────────────────────────────
 
     /** Returns a blank ApiClient — use fluent methods to set method and path. */
-    public static ApiClient create() { return new ApiClient(); }
+    public static ApiClient create() {
+        return new ApiClient();
+    }
 
-    public static ApiClient get(String path)    { return method("GET",    path); }
-    public static ApiClient post(String path)   { return method("POST",   path); }
-    public static ApiClient put(String path)    { return method("PUT",    path); }
-    public static ApiClient patch(String path)  { return method("PATCH",  path); }
-    public static ApiClient delete(String path) { return method("DELETE", path); }
+    public static ApiClient get(String path) {
+        return method("GET", path);
+    }
+
+    public static ApiClient post(String path) {
+        return method("POST", path);
+    }
+
+    public static ApiClient put(String path) {
+        return method("PUT", path);
+    }
+
+    public static ApiClient patch(String path) {
+        return method("PATCH", path);
+    }
+
+    public static ApiClient delete(String path) {
+        return method("DELETE", path);
+    }
 
     /** Override base URL for this request only. */
     public static ApiClient to(String baseUrl) {
@@ -141,7 +182,10 @@ public class ApiClient {
         return c;
     }
 
-    /** Resolve base URL from multi-service map: api.baseUrls[service] or api.baseUrl. */
+    /**
+     * Resolve base URL from multi-service map: api.baseUrls[service] or
+     * api.baseUrl.
+     */
     public static ApiClient toService(String service) {
         try {
             TestFlyConfig.Api api = TestFlyContext.getConfig().getApi();
@@ -150,7 +194,8 @@ public class ApiClient {
                 url = api.baseUrlFor(service);
             }
             if (url == null) {
-                throw new IllegalStateException("[ApiClient] No baseUrl for service '" + service + "'. Set api.baseUrls." + service + " or api.baseUrl in testfly.yml");
+                throw new IllegalStateException("[ApiClient] No baseUrl for service '" + service
+                        + "'. Set api.baseUrls." + service + " or api.baseUrl in testfly.yml");
             }
             return to(url);
         } catch (IllegalStateException e) {
@@ -160,12 +205,35 @@ public class ApiClient {
         }
     }
 
-    public ApiClient get()    { this.method = "GET";    return this; }
-    public ApiClient post()   { this.method = "POST";   return this; }
-    public ApiClient put()    { this.method = "PUT";    return this; }
-    public ApiClient patch()  { this.method = "PATCH";  return this; }
-    public ApiClient delete() { this.method = "DELETE"; return this; }
-    public ApiClient path(String path) { this.path = path; return this; }
+    public ApiClient get() {
+        this.method = "GET";
+        return this;
+    }
+
+    public ApiClient post() {
+        this.method = "POST";
+        return this;
+    }
+
+    public ApiClient put() {
+        this.method = "PUT";
+        return this;
+    }
+
+    public ApiClient patch() {
+        this.method = "PATCH";
+        return this;
+    }
+
+    public ApiClient delete() {
+        this.method = "DELETE";
+        return this;
+    }
+
+    public ApiClient path(String path) {
+        this.path = path;
+        return this;
+    }
 
     // ── Builder methods ───────────────────────────────────────────────────────
 
@@ -211,7 +279,10 @@ public class ApiClient {
         return this;
     }
 
-    /** Set a path template placeholder — {@code {name}} is replaced with URL-encoded value. */
+    /**
+     * Set a path template placeholder — {@code {name}} is replaced with URL-encoded
+     * value.
+     */
     public ApiClient pathParam(String name, Object value) {
         pathParams.put(name, URLEncoder.encode(String.valueOf(value), StandardCharsets.UTF_8));
         return this;
@@ -259,12 +330,26 @@ public class ApiClient {
         return this;
     }
 
-    boolean hasBaseUrl() { return baseUrl != null; }
-    boolean hasHeader(String name) { return headers.containsKey(name); }
-    boolean hasQueryParam(String name) { return queryParams.containsKey(name); }
-    boolean hasAuth() { return auth != null; }
+    boolean hasBaseUrl() {
+        return baseUrl != null;
+    }
 
-    /** Enable cookie jar for this request — captures Set-Cookie and sends them on subsequent requests. */
+    boolean hasHeader(String name) {
+        return headers.containsKey(name);
+    }
+
+    boolean hasQueryParam(String name) {
+        return queryParams.containsKey(name);
+    }
+
+    boolean hasAuth() {
+        return auth != null;
+    }
+
+    /**
+     * Enable cookie jar for this request — captures Set-Cookie and sends them on
+     * subsequent requests.
+     */
     public ApiClient withCookies() {
         this.cookiesEnabled = true;
         return this;
@@ -273,7 +358,8 @@ public class ApiClient {
     // ── Polling ───────────────────────────────────────────────────────────────
 
     /**
-     * Repeatedly executes this API request until {@code condition} returns true or {@code maxTimeout} expires.
+     * Repeatedly executes this API request until {@code condition} returns true or
+     * {@code maxTimeout} expires.
      * Uses a default polling interval of 1 second.
      *
      * <pre>
@@ -281,7 +367,7 @@ public class ApiClient {
      *         .pollUntil(r -> "COMPLETED".equals(r.json("$.status")), Duration.ofSeconds(30));
      * </pre>
      *
-     * @param condition predicate evaluated against each received response
+     * @param condition  predicate evaluated against each received response
      * @param maxTimeout maximum duration to continue polling
      * @return the successful {@link ApiResponse} meeting the condition
      */
@@ -290,32 +376,37 @@ public class ApiClient {
     }
 
     /**
-     * Repeatedly executes this API request until {@code condition} returns true or {@code maxTimeout} expires.
+     * Repeatedly executes this API request until {@code condition} returns true or
+     * {@code maxTimeout} expires.
      *
-     * @param condition predicate evaluated against each received response
-     * @param maxTimeout maximum duration to continue polling
+     * @param condition    predicate evaluated against each received response
+     * @param maxTimeout   maximum duration to continue polling
      * @param pollInterval interval between subsequent polling attempts
      * @return the successful {@link ApiResponse} meeting the condition
      */
-    public ApiResponse pollUntil(java.util.function.Predicate<ApiResponse> condition, Duration maxTimeout, Duration pollInterval) {
+    public ApiResponse pollUntil(java.util.function.Predicate<ApiResponse> condition, Duration maxTimeout,
+            Duration pollInterval) {
         long start = System.currentTimeMillis();
         long maxMs = maxTimeout.toMillis();
         long intervalMs = Math.max(50, pollInterval.toMillis());
         int attempt = 0;
         ApiResponse lastResponse = null;
 
-        StepLogger.step("[API Polling] Started polling " + method + " " + (path != null ? path : "") + " (timeout: " + maxTimeout.getSeconds() + "s)");
+        StepLogger.step("[API Polling] Started polling " + method + " " + (path != null ? path : "") + " (timeout: "
+                + maxTimeout.getSeconds() + "s)");
 
         while ((System.currentTimeMillis() - start) < maxMs) {
             attempt++;
             try {
                 lastResponse = send();
                 if (condition.test(lastResponse)) {
-                    StepLogger.step("[API Polling] Condition satisfied on attempt " + attempt + " (" + (System.currentTimeMillis() - start) + "ms)");
+                    StepLogger.step("[API Polling] Condition satisfied on attempt " + attempt + " ("
+                            + (System.currentTimeMillis() - start) + "ms)");
                     return lastResponse;
                 }
             } catch (Exception e) {
-                StepLogger.step("[API Polling] Attempt " + attempt + " failed with error: " + e.getMessage(), StepStatus.WARN);
+                StepLogger.step("[API Polling] Attempt " + attempt + " failed with error: " + e.getMessage(),
+                        StepStatus.WARN);
             }
 
             long elapsed = System.currentTimeMillis() - start;
@@ -328,9 +419,12 @@ public class ApiClient {
         long totalElapsed = System.currentTimeMillis() - start;
         String errMsg = "[ApiClient] Polling timeout exceeded (" + totalElapsed + "ms, " + attempt + " attempts) for "
                 + method + " " + (path != null ? path : "")
-                + (lastResponse != null ? " — Last status: " + lastResponse.status() + ", body: " + truncate(lastResponse.body(), 200) : "");
+                + (lastResponse != null
+                        ? " — Last status: " + lastResponse.status() + ", body: " + truncate(lastResponse.body(), 200)
+                        : "");
         StepLogger.step(errMsg, StepStatus.FAIL);
-        throw new ApiException(method, buildUrl(), lastResponse != null ? lastResponse.status() : 0, lastResponse != null ? lastResponse.body() : null, errMsg);
+        throw new ApiException(method, buildUrl(), lastResponse != null ? lastResponse.status() : 0,
+                lastResponse != null ? lastResponse.body() : null, errMsg);
     }
 
     // ── Execute ───────────────────────────────────────────────────────────────
@@ -340,9 +434,12 @@ public class ApiClient {
         if (GLOBAL_SPEC != null) {
             GLOBAL_SPEC.applyToIfAbsent(this);
         }
-        // Allow auth to modify client (e.g. apiKeyQuery adds query param) before URL is built
-        if (auth != null) auth.applyToClient(this);
-        else if (GLOBAL_AUTH.get() != null) GLOBAL_AUTH.get().applyToClient(this);
+        // Allow auth to modify client (e.g. apiKeyQuery adds query param) before URL is
+        // built
+        if (auth != null)
+            auth.applyToClient(this);
+        else if (GLOBAL_AUTH.get() != null)
+            GLOBAL_AUTH.get().applyToClient(this);
 
         String url = buildUrl();
         int timeout = resolveTimeout();
@@ -443,10 +540,12 @@ public class ApiClient {
             }
             headers.forEach(builder::header);
             ApiAuth effectiveAuth = this.auth != null ? this.auth : GLOBAL_AUTH.get();
-            if (effectiveAuth != null) effectiveAuth.apply(builder);
+            if (effectiveAuth != null)
+                effectiveAuth.apply(builder);
 
             // Apply cookies
-            if (cookiesEnabled) applyCookies(builder);
+            if (cookiesEnabled)
+                applyCookies(builder);
 
             // Apply request interceptors
             for (RequestInterceptor interceptor : REQUEST_INTERCEPTORS) {
@@ -464,12 +563,13 @@ public class ApiClient {
 
             builder.method(method, publisher);
 
-            long start    = System.currentTimeMillis();
+            long start = System.currentTimeMillis();
             HttpResponse<String> raw = HTTP.send(builder.build(), HttpResponse.BodyHandlers.ofString());
             long duration = System.currentTimeMillis() - start;
 
             // Capture cookies
-            if (cookiesEnabled) captureCookies(raw);
+            if (cookiesEnabled)
+                captureCookies(raw);
 
             ApiResponse response = new ApiResponse(raw, duration, method, url);
 
@@ -499,11 +599,13 @@ public class ApiClient {
             }
         }
         if (resolvedPath != null && resolvedPath.contains("{") && resolvedPath.contains("}")) {
-            throw new IllegalStateException("[ApiClient] Unresolved path params in: " + resolvedPath + " — missing pathParam() for placeholder");
+            throw new IllegalStateException("[ApiClient] Unresolved path params in: " + resolvedPath
+                    + " — missing pathParam() for placeholder");
         }
 
         String base = isAbsolute(resolvedPath) ? resolvedPath
-                : resolveBaseUrl() + (resolvedPath != null && resolvedPath.startsWith("/") ? resolvedPath : "/" + resolvedPath);
+                : resolveBaseUrl()
+                        + (resolvedPath != null && resolvedPath.startsWith("/") ? resolvedPath : "/" + resolvedPath);
 
         if (!queryParams.isEmpty()) {
             String query = queryParams.entrySet().stream()
@@ -516,19 +618,23 @@ public class ApiClient {
     }
 
     private String resolveBaseUrl() {
-        if (baseUrl != null) return baseUrl;
+        if (baseUrl != null)
+            return baseUrl;
         try {
             TestFlyConfig config = TestFlyContext.getConfig();
             TestFlyConfig.Api api = config.getApi();
-            if (api != null && api.getBaseUrl() != null) return api.getBaseUrl();
+            if (api != null && api.getBaseUrl() != null)
+                return api.getBaseUrl();
             return config.getExecution().getBaseUrl();
         } catch (Exception e) {
-            throw new IllegalStateException("[ApiClient] No baseUrl configured. Set execution.baseUrl or api.baseUrl in testfly.yml");
+            throw new IllegalStateException(
+                    "[ApiClient] No baseUrl configured. Set execution.baseUrl or api.baseUrl in testfly.yml");
         }
     }
 
     private int resolveTimeout() {
-        if (timeoutOverride != null) return timeoutOverride;
+        if (timeoutOverride != null)
+            return timeoutOverride;
         try {
             TestFlyConfig.Api api = TestFlyContext.getConfig().getApi();
             return api != null ? api.getTimeoutSeconds() : 30;
@@ -538,8 +644,10 @@ public class ApiClient {
     }
 
     private String serializeBody() throws Exception {
-        if (body == null) return null;
-        if (body instanceof String) return (String) body;
+        if (body == null)
+            return null;
+        if (body instanceof String)
+            return (String) body;
         return MAPPER.writeValueAsString(body);
     }
 
@@ -548,7 +656,11 @@ public class ApiClient {
     private static final class MultipartBody {
         final byte[] bytes;
         final String contentType;
-        MultipartBody(byte[] bytes, String contentType) { this.bytes = bytes; this.contentType = contentType; }
+
+        MultipartBody(byte[] bytes, String contentType) {
+            this.bytes = bytes;
+            this.contentType = contentType;
+        }
     }
 
     private MultipartBody buildMultipartBody() throws IOException {
@@ -560,7 +672,8 @@ public class ApiClient {
 
         for (Map.Entry<String, String> e : fieldParams.entrySet()) {
             parts.add(dashBoundary);
-            parts.add(("Content-Disposition: form-data; name=\"" + e.getKey() + "\"\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+            parts.add(("Content-Disposition: form-data; name=\"" + e.getKey() + "\"\r\n\r\n")
+                    .getBytes(StandardCharsets.UTF_8));
             parts.add(e.getValue().getBytes(StandardCharsets.UTF_8));
             parts.add(crlf);
         }
@@ -568,9 +681,11 @@ public class ApiClient {
             Path file = e.getValue();
             String fileName = file.getFileName().toString();
             String mime = Files.probeContentType(file);
-            if (mime == null) mime = "application/octet-stream";
+            if (mime == null)
+                mime = "application/octet-stream";
             parts.add(dashBoundary);
-            parts.add(("Content-Disposition: form-data; name=\"" + e.getKey() + "\"; filename=\"" + fileName + "\"\r\n").getBytes(StandardCharsets.UTF_8));
+            parts.add(("Content-Disposition: form-data; name=\"" + e.getKey() + "\"; filename=\"" + fileName + "\"\r\n")
+                    .getBytes(StandardCharsets.UTF_8));
             parts.add(("Content-Type: " + mime + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
             parts.add(Files.readAllBytes(file));
             parts.add(crlf);
@@ -580,7 +695,10 @@ public class ApiClient {
         int total = parts.stream().mapToInt(b -> b.length).sum();
         byte[] all = new byte[total];
         int pos = 0;
-        for (byte[] p : parts) { System.arraycopy(p, 0, all, pos, p.length); pos += p.length; }
+        for (byte[] p : parts) {
+            System.arraycopy(p, 0, all, pos, p.length);
+            pos += p.length;
+        }
         return new MultipartBody(all, contentType);
     }
 
@@ -603,7 +721,8 @@ public class ApiClient {
                 String name = cookie.substring(0, eqIdx);
                 String value = cookie.substring(eqIdx + 1);
                 int semiIdx = value.indexOf(';');
-                if (semiIdx > 0) value = value.substring(0, semiIdx);
+                if (semiIdx > 0)
+                    value = value.substring(0, semiIdx);
                 COOKIE_JAR.get().put(name, value);
             }
         });
@@ -628,10 +747,12 @@ public class ApiClient {
                     maskedHeaders = Set.copyOf(api.getMaskedHeaders());
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         StepStatus status = response.status() >= 400 ? StepStatus.FAIL : StepStatus.PASS;
-        StringBuilder log = new StringBuilder("[API] " + method + " " + path + " → " + response.status() + " (" + response.durationMs() + "ms)");
+        StringBuilder log = new StringBuilder(
+                "[API] " + method + " " + path + " → " + response.status() + " (" + response.durationMs() + "ms)");
 
         if (!headers.isEmpty()) {
             log.append("\n  Headers: ");
@@ -644,8 +765,10 @@ public class ApiClient {
         if (logBody && response.body() != null && !response.body().isBlank()) {
             String body = response.body();
             if (prettyLog) {
-                try { body = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(MAPPER.readTree(body)); }
-                catch (Exception ignored) {}
+                try {
+                    body = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(MAPPER.readTree(body));
+                } catch (Exception ignored) {
+                }
             }
             log.append("\n  Body: ").append(truncate(body, truncationLimit));
         }
@@ -661,8 +784,10 @@ public class ApiClient {
         StringBuilder curl = new StringBuilder("curl -X ").append(method).append(" '").append(buildUrl()).append("'");
         headers.forEach((k, v) -> curl.append(" -H '").append(k).append(": ").append(v).append("'"));
         if (body != null) {
-            try { curl.append(" -d '").append(serializeBody()).append("'"); }
-            catch (Exception ignored) {}
+            try {
+                curl.append(" -d '").append(serializeBody()).append("'");
+            } catch (Exception ignored) {
+            }
         } else if (!formParams.isEmpty()) {
             String form = formParams.entrySet().stream()
                     .map(e -> e.getKey() + "=" + e.getValue())
@@ -677,7 +802,7 @@ public class ApiClient {
     private static ApiClient method(String method, String path) {
         ApiClient c = new ApiClient();
         c.method = method;
-        c.path   = path;
+        c.path = path;
         return c;
     }
 
@@ -699,13 +824,18 @@ public class ApiClient {
 
     // ── Interceptor interfaces ────────────────────────────────────────────────
 
-    /** Intercepts HTTP requests before they are sent. Use to add headers, log, etc. */
+    /**
+     * Intercepts HTTP requests before they are sent. Use to add headers, log, etc.
+     */
     @FunctionalInterface
     public interface RequestInterceptor {
         void intercept(HttpRequest.Builder builder);
     }
 
-    /** Intercepts HTTP responses after they are received. Use to log, collect metrics, etc. */
+    /**
+     * Intercepts HTTP responses after they are received. Use to log, collect
+     * metrics, etc.
+     */
     @FunctionalInterface
     public interface ResponseInterceptor {
         void intercept(ApiResponse response);

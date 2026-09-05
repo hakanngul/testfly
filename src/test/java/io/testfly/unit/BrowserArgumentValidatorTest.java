@@ -6,8 +6,6 @@ import org.testng.annotations.Test;
 import java.util.Collections;
 import java.util.List;
 
-import static org.testng.Assert.*;
-
 /**
  * Unit tests for {@link BrowserArgumentValidator}.
  */

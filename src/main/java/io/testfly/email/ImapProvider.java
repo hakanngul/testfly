@@ -3,8 +3,6 @@ package io.testfly.email;
 import io.testfly.config.TestFlyConfig;
 import jakarta.mail.*;
 import jakarta.mail.internet.MimeMultipart;
-import jakarta.mail.search.RecipientStringTerm;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -14,7 +12,9 @@ import java.util.Properties;
  * Works with Gmail (app passwords), Yahoo, corporate IMAP servers, and any
  * standards-compliant server.
  *
- * <p>Requires {@code com.sun.mail:jakarta.mail} on the consumer's classpath:
+ * <p>
+ * Requires {@code com.sun.mail:jakarta.mail} on the consumer's classpath:
+ * 
  * <pre>
  * &lt;dependency&gt;
  *   &lt;groupId&gt;com.sun.mail&lt;/groupId&gt;
@@ -99,19 +99,22 @@ final class ImapProvider implements EmailProvider {
 
     private static Email parseMessage(Message msg) throws Exception {
         String subject = msg.getSubject() != null ? msg.getSubject() : "";
-        String from    = msg.getFrom() != null && msg.getFrom().length > 0
-                ? msg.getFrom()[0].toString() : "";
+        String from = msg.getFrom() != null && msg.getFrom().length > 0
+                ? msg.getFrom()[0].toString()
+                : "";
         Address[] toAddrs = msg.getRecipients(Message.RecipientType.TO);
         String to = (toAddrs != null && toAddrs.length > 0) ? toAddrs[0].toString() : "";
 
         String plain = "";
-        String html  = "";
+        String html = "";
 
         Object content = msg.getContent();
         if (content instanceof String) {
             String ct = msg.getContentType().toLowerCase();
-            if (ct.contains("text/html"))  html  = (String) content;
-            else                           plain = (String) content;
+            if (ct.contains("text/html"))
+                html = (String) content;
+            else
+                plain = (String) content;
         } else if (content instanceof MimeMultipart mp) {
             for (int i = 0; i < mp.getCount(); i++) {
                 BodyPart part = mp.getBodyPart(i);
@@ -119,14 +122,15 @@ final class ImapProvider implements EmailProvider {
                 if (ct.startsWith("text/plain") && plain.isEmpty())
                     plain = part.getContent().toString();
                 else if (ct.startsWith("text/html") && html.isEmpty())
-                    html  = part.getContent().toString();
+                    html = part.getContent().toString();
             }
         }
         return new Email(subject, plain, html, from, to);
     }
 
     private static String resolveEnv(String value) {
-        if (value == null) return null;
+        if (value == null)
+            return null;
         if (value.startsWith("${") && value.endsWith("}")) {
             String var = value.substring(2, value.length() - 1);
             String resolved = System.getenv(var);

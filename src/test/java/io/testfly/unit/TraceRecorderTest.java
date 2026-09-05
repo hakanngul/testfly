@@ -6,8 +6,6 @@ import io.testfly.tracing.TraceRecorder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.List;
-
 /**
  * Unit tests for {@link TraceRecorder} — HTML generation logic only.
  * No browser required.
@@ -154,10 +152,10 @@ public class TraceRecorderTest {
         Assert.assertTrue(html.startsWith("<!DOCTYPE html>"));
         Assert.assertTrue(html.contains("<html"));
         Assert.assertTrue(html.contains("</html>"));
-        Assert.assertTrue(html.contains("<style>"),    "CSS should be inlined");
-        Assert.assertTrue(html.contains("<script>"),   "JS should be inlined");
-        Assert.assertFalse(html.contains("cdn."),      "No CDN references");
-        Assert.assertFalse(html.contains("https://"),  "No external URLs");
+        Assert.assertTrue(html.contains("<style>"), "CSS should be inlined");
+        Assert.assertTrue(html.contains("<script>"), "JS should be inlined");
+        Assert.assertFalse(html.contains("cdn."), "No CDN references");
+        Assert.assertFalse(html.contains("https://"), "No external URLs");
     }
 
     // ------------------------------------------------------------------

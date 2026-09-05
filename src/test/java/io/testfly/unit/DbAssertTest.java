@@ -10,7 +10,6 @@ import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -18,7 +17,8 @@ import static org.mockito.Mockito.*;
 import static org.testng.Assert.*;
 
 /**
- * Unit tests for {@link DbClient}, {@link DbQuery}, and {@link DbAssertException}.
+ * Unit tests for {@link DbClient}, {@link DbQuery}, and
+ * {@link DbAssertException}.
  * Uses mock JDBC objects — no real database required.
  */
 public class DbAssertTest {
@@ -237,13 +237,12 @@ public class DbAssertTest {
 
         Field connectionsField = DbConnectionFactory.class.getDeclaredField("CONNECTIONS");
         connectionsField.setAccessible(true);
-        ThreadLocal<Map<String, Connection>> connections =
-            (ThreadLocal<Map<String, Connection>>) connectionsField.get(null);
+        ThreadLocal<Map<String, Connection>> connections = (ThreadLocal<Map<String, Connection>>) connectionsField
+                .get(null);
         connections.get().put(key, conn);
 
         // Create DbClient via reflection targeting the named datasource key
-        java.lang.reflect.Constructor<DbClient> ctor =
-            DbClient.class.getDeclaredConstructor(String.class);
+        java.lang.reflect.Constructor<DbClient> ctor = DbClient.class.getDeclaredConstructor(String.class);
         ctor.setAccessible(true);
         return ctor.newInstance(key);
     }

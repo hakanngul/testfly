@@ -8,19 +8,21 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chromium.ChromiumDriver;
 import org.openqa.selenium.devtools.DevTools;
 import org.openqa.selenium.devtools.v144.emulation.Emulation;
-import org.openqa.selenium.devtools.v144.emulation.model.DevicePosture;
-
 import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
  * Applies mobile/tablet device emulation to the current browser session.
  *
- * <p>On Chrome/Edge (Chromium), full CDP emulation is used:
- * viewport dimensions, device scale factor, mobile flag, and user-agent are all set.
+ * <p>
+ * On Chrome/Edge (Chromium), full CDP emulation is used:
+ * viewport dimensions, device scale factor, mobile flag, and user-agent are all
+ * set.
  *
- * <p>On Firefox and other browsers, a best-effort fallback is applied:
- * the window is resized to the device dimensions and the user-agent is overridden
+ * <p>
+ * On Firefox and other browsers, a best-effort fallback is applied:
+ * the window is resized to the device dimensions and the user-agent is
+ * overridden
  * via JavaScript {@code Object.defineProperty}.
  *
  * <pre>
@@ -40,14 +42,16 @@ public final class DeviceEmulator {
 
     private static final Logger LOG = Logger.getLogger(DeviceEmulator.class.getName());
 
-    private DeviceEmulator() {}
+    private DeviceEmulator() {
+    }
 
     // ------------------------------------------------------------------
     // Public API
     // ------------------------------------------------------------------
 
     /**
-     * Applies the named device profile (case-insensitive) from {@link DeviceProfiles}.
+     * Applies the named device profile (case-insensitive) from
+     * {@link DeviceProfiles}.
      *
      * @throws IllegalArgumentException if the name is not found in the registry
      */
@@ -66,7 +70,7 @@ public final class DeviceEmulator {
             applyVisFallback(driver, profile);
         }
         LOG.info("[DeviceEmulator] Emulating: " + profile.getName() +
-                 " (" + profile.getWidth() + "x" + profile.getHeight() + ")");
+                " (" + profile.getWidth() + "x" + profile.getHeight() + ")");
     }
 
     /**
@@ -95,23 +99,22 @@ public final class DeviceEmulator {
                     p.getHeight(),
                     p.getDeviceScaleFactor(),
                     p.isMobile(),
-                    Optional.empty(),       // scale
-                    Optional.empty(),       // screenWidth
-                    Optional.empty(),       // screenHeight
-                    Optional.empty(),       // positionX
-                    Optional.empty(),       // positionY
-                    Optional.empty(),       // dontSetVisibleSize
-                    Optional.empty(),       // screenOrientation
-                    Optional.empty(),       // viewport
-                    Optional.empty(),       // displayFeature
-                    Optional.empty()        // devicePosture
+                    Optional.empty(), // scale
+                    Optional.empty(), // screenWidth
+                    Optional.empty(), // screenHeight
+                    Optional.empty(), // positionX
+                    Optional.empty(), // positionY
+                    Optional.empty(), // dontSetVisibleSize
+                    Optional.empty(), // screenOrientation
+                    Optional.empty(), // viewport
+                    Optional.empty(), // displayFeature
+                    Optional.empty() // devicePosture
             ));
             devTools.send(Emulation.setUserAgentOverride(
                     p.getUserAgent(),
                     Optional.empty(),
                     Optional.empty(),
-                    Optional.empty()
-            ));
+                    Optional.empty()));
         }
     }
 
@@ -123,8 +126,7 @@ public final class DeviceEmulator {
                     "",
                     Optional.empty(),
                     Optional.empty(),
-                    Optional.empty()
-            ));
+                    Optional.empty()));
         }
     }
 
@@ -137,9 +139,10 @@ public final class DeviceEmulator {
         try {
             ((JavascriptExecutor) driver).executeScript(
                     "Object.defineProperty(navigator, 'userAgent', {" +
-                    "  get: function() { return arguments[0]; }," +
-                    "  configurable: true" +
-                    "});", p.getUserAgent());
+                            "  get: function() { return arguments[0]; }," +
+                            "  configurable: true" +
+                            "});",
+                    p.getUserAgent());
         } catch (Exception ignored) {
             LOG.warning("[DeviceEmulator] User-agent override via JS failed (non-Chromium).");
         }

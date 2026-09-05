@@ -19,7 +19,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -63,9 +62,12 @@ public class LocatorAssertTest {
     @AfterMethod
     public void tearDown() {
         SoftAssertions.clear();
-        if (stepLoggerMock != null) stepLoggerMock.close();
-        if (contextMock != null) contextMock.close();
-        if (driverManagerMock != null) driverManagerMock.close();
+        if (stepLoggerMock != null)
+            stepLoggerMock.close();
+        if (contextMock != null)
+            contextMock.close();
+        if (driverManagerMock != null)
+            driverManagerMock.close();
     }
 
     // ---------------------------------------------------------------
