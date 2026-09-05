@@ -64,6 +64,17 @@ public final class TestFlyConfig {
         private boolean interceptEnabled = false;
         public boolean isInterceptEnabled() { return interceptEnabled; }
         public void setInterceptEnabled(boolean interceptEnabled) { this.interceptEnabled = interceptEnabled; }
+
+        /**
+         * Glob URL patterns to abort globally (trackers, ads) without a per-test
+         * {@code mockRoute} call. Lowest-priority rule — an explicit route/stub
+         * matching the same URL always wins. Defaults to an empty list.
+         */
+        private java.util.List<String> blockUrls = new java.util.ArrayList<>();
+        public java.util.List<String> getBlockUrls() { return blockUrls; }
+        public void setBlockUrls(java.util.List<String> blockUrls) {
+            this.blockUrls = (blockUrls != null) ? blockUrls : new java.util.ArrayList<>();
+        }
     }
 
     // =========================
