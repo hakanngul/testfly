@@ -130,8 +130,8 @@ const faqs = [
 
 const stats = [
   { value: '1', label: 'Dependency to add' },
-  { value: '20+', label: 'Built-in features' },
-  { value: '4', label: 'CI platforms auto-detected' },
+  { value: '30+', label: 'Built-in features' },
+  { value: '7', label: 'CI platforms auto-detected' },
   { value: '0', label: 'Boilerplate required' },
 ];
 

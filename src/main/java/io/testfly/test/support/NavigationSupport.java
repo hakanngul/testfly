@@ -43,6 +43,7 @@ public interface NavigationSupport {
     /** Navigates to {@code execution.baseUrl} from {@code testfly.yml}. */
     default void open() {
         String url = baseUrl();
+        io.testfly.network.NetworkMock.get().activateBlocklistIfConfigured();
         StepLogger.step("Open " + url);
         getDriver().get(url);
         if (ConsoleErrorCollector.isEnabled()) ConsoleErrorCollector.injectShim();
@@ -63,6 +64,7 @@ public interface NavigationSupport {
                 url = base + path;
             }
         }
+        io.testfly.network.NetworkMock.get().activateBlocklistIfConfigured();
         StepLogger.step("Open " + url);
         getDriver().get(url);
         if (ConsoleErrorCollector.isEnabled()) ConsoleErrorCollector.injectShim();

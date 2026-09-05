@@ -17,7 +17,7 @@ const flagshipFeatures = [
       </svg>
     ),
     title: 'Sıfır Boilerplate',
-    description: 'BaseTest’i extend edin, @Test metotları yazın ve ilerleyin. Driver yaşam döngüsü, bekleme, retry, raporlar ve ekran görüntüleri hepsi halledilir — kurulum kodu gerekmez.',
+    description: 'BaseTest veya BaseJUnit5Test’i extend edin, testlerinizi yazın. Driver yaşam döngüsü, akıllı bekleme, otomatik retry, raporlar ve hata ekran görüntüleri sıfır konfigürasyonla hazır gelir.',
     code: `class CheckoutTest extends BaseTest {
 
   @Test
@@ -36,8 +36,8 @@ const flagshipFeatures = [
         <path d="M12 16v-4M12 8h.01" />
       </svg>
     ),
-    title: 'CSS Refactor’lerinden Sağ Çıkan Testler',
-    description: 'Erişilebilirlik-öncelikli getByRole / getByText / getByLabel, erişilebilirlik ağacını hedefler — Playwright tarzı, otomatik bekleme ve CSS ya da DOM refactor’lerine dayanıklı.',
+    title: 'DOM Değişikliklerine Dirençli Lokasyonlar',
+    description: 'Erişilebilirlik odaklı getByRole, getByText ve getByLabel ile erişilebilirlik ağacını hedefleyin — Playwright ergonomisinde, otomatik bekleyen ve CSS/DOM refactor’lerine dirençli testler.',
   },
   {
     icon: (
@@ -46,8 +46,8 @@ const flagshipFeatures = [
         <path d="m9 12 2 2 4-4" />
       </svg>
     ),
-    title: 'Kendini Onaran Locator’lar',
-    description: 'Bir locator kırıldığında, self-healing otomatik olarak id, name, text ve data-testid üzerinden geri döner — ve her iyileştirmeyi raporda işaretler.',
+    title: 'Kendi Kendini Onaran Lokasyonlar (Self-Healing)',
+    description: 'Bir lokatör kırıldığında akıllı onarım motoru text, name ve data-testid üzerinden elemanı bulup testi kurtarır; yapılan her iyileştirmeyi raporda açıkça belgeler.',
   },
   {
     icon: (
@@ -56,9 +56,9 @@ const flagshipFeatures = [
         <path d="M18 17V9M13 17V5M8 17v-3" />
       </svg>
     ),
-    title: 'Paydaşların Gerçekten Okuduğu Rapor',
+    title: 'Zengin & İnteraktif HTML Raporlama',
     visual: 'report',
-    description: 'Sekmeli HTML dashboard, geçiş oranı göstergesi, retry rozetleri, genişletilebilir hatalar, Flakiness Radar, trace linkleri, arama ve karanlık mod.',
+    description: 'Zaman çizelgesi (timeline), adım adım ekran görüntüleri, Flakiness Radarı, video kaydı, arama filtreleri ve karanlık mod ile tüm ekibin anlayacağı şeffaf test sonuçları.',
   },
   {
     icon: (
@@ -67,8 +67,8 @@ const flagshipFeatures = [
         <path d="M9 21h6" />
       </svg>
     ),
-    title: 'Bir Testin Neden Başarısız Olduğunu Bilin',
-    description: 'Her başarısızlıkta, AI failure analysis Claude ile hatayı, adımları ve URL’yi okur; ardından rapora düz İngilizce bir kök neden ve önerilen düzeltme yerleştirir.',
+    title: 'Yapay Zeka ile Otomatik Arıza Analizi',
+    description: 'Test çöktüğünde Claude veya Gemini DOM ağacını, logları ve adımları analiz eder; raporda doğrudan hatanın kök nedenini ve düzeltme önerisini sunar.',
   },
   {
     icon: (
@@ -77,24 +77,24 @@ const flagshipFeatures = [
         <path d="m9 9 6 6M15 9l-6 6" />
       </svg>
     ),
-    title: 'Prompt\'tan Test Üretin — Yakında',
-    description: 'TestFly MCP (yakında) üzerinden AI destekli test yazımı, Claude veya Copilot\'un gerçek bir tarayıcıyı sürmesine ve tek bir prompt\'tan çalışmaya hazır TestFly testleri üretmesine olanak tanıyacak.',
+    title: 'Prompt’tan Test Üretimi (TestFly MCP)',
+    description: 'TestFly MCP sunucusu sayesinde AI asistanları (Claude Code, Copilot, Antigravity) gerçek tarayıcıyı kontrol ederek tek bir prompt’tan çalışmaya hazır TestFly testleri üretir.',
   },
 ];
 
 const moreFeatures = [
-  { icon: '📄', title: 'Kod Değiştirmeden Ortam Değiştirin', short: 'Tek bir testfly.yml, tarayıcıları, thread’leri, timeout’ları, retry ve CI kapılarını kontrol eder.' },
-  { icon: '🔁', title: 'Flaky Test’ler Build’inizi Başarısız Etmeyi Bıraksın', short: 'Flaky test’leri otomatik retry yapın ve raporda HIGH / WATCH / STABLE olarak sıralayın.' },
-  { icon: '📋', title: 'Tesisat Değil, Page Yazın', short: 'BasePage, tıklamaları, bekleme işlemlerini, dropdown’ları, iframe’leri, Shadow DOM’u ve upload’ları sarar.' },
-  { icon: '🔗', title: 'Herhangi Bir Elemanı Sabitleyin', short: 'Otomatik retry yapan assertThat() ile fluent, Playwright tarzı zincirlenebilir locator’lar.' },
-  { icon: '🌐', title: 'Gerçek Bir Backend Olmadan Test Edin', short: 'CDP üzerinden API yanıtlarını mock’layın; storage, cookie ve geo verilerini okuyun ve yazın.' },
-  { icon: '📸', title: 'Görsel Regresyonları Yakalayın', short: 'Piksel farklı ekran görüntüleri ve 6 mobil profil için tek satırlık cihaz emülasyonu.' },
-  { icon: '🪜', title: 'Testi Bir Spec Gibi Okuyun', short: 'Adım loglama — ekran görüntülü, isimlendirilmiş adımlar ve kendi içinde tutarlı hata izi.' },
-  { icon: '🔐', title: 'Bir Kez Giriş Yapın, Oturumu Yeniden Kullanın', short: '@PreCondition login işlemini bir kez çalıştırır, oturumu önbelleğe alır ve her test için geri yükler.' },
-  { icon: '📧', title: 'Uygulamanızın Gönderdiği E-postayı Doğrulayın', short: 'E-posta doğrulama, Mailhog, Mailtrap, Graph API veya IMAP üzerinden gerçek e-postaları bekler.' },
-  { icon: '🕐', title: 'Zamanı Beklemeden Test Edin', short: 'Clock mocking, sona erme, trial ve geri sayımları test etmek için tarayıcı saatini dondurur.' },
-  { icon: '☁️', title: 'Gerçek Bulut Tarayıcılarında Çalıştırın', short: 'Tek bir config satırını değiştirerek BrowserStack veya Sauce Labs.' },
-  { icon: '🔌', title: 'Forklamadan Genişletin', short: 'Özel driver’lar, rapor adaptörleri ve hook’ları Java SPI / ServiceLoader ile kaydedin.' },
+  { icon: '📄', title: 'Sıfır Kod Değişikliğiyle Ortam Yönetimi', short: 'Tek bir testfly.yml ile tarayıcıları, paralel thread’leri, timeout’ları ve CI kapılarını yönetin.' },
+  { icon: '🚀', title: 'Yerleşik REST API Test İstemcisi', short: 'Harici kütüphane olmadan fluent HTTP istemcisi (ApiClient), JSON Schema doğrulama ve auth token yönetimi.' },
+  { icon: '🔁', title: 'Flaky Test Yönetimi ve Otomatik Retry', short: 'Kırılgan testleri otomatik yeniden deneyin; raporda HIGH / WATCH / STABLE olarak izleyin.' },
+  { icon: '📋', title: 'Boilerplate Değil, Temiz Page Object', short: 'BasePage tıklamaları, akıllı beklemeleri, dropdown’ları, iframe’leri ve Shadow DOM’u tek satıra indirir.' },
+  { icon: '🔗', title: 'Akıllı ve Otomatik Bekleyen Doğrulamalar', short: 'assertThat() ile otomatik bekleyen (auto-waiting), zincirlenebilir modern web assertion’ları.' },
+  { icon: '🌐', title: 'Ağ ve API Mocking (Network DSL)', short: 'CDP üzerinden ağ isteklerini yakalayın, yanıtları mock’layın; çerezleri ve storage’ı kolayca yönetin.' },
+  { icon: '📸', title: 'Görsel Regresyon ve Cihaz Emülasyonu', short: 'Piksel bazlı ekran görüntüsü karşılaştırması ve mobil cihaz profilleriyle piksel kusursuzluğu.' },
+  { icon: '🪜', title: 'Spesifikasyon Kalitesinde Adım Loglama', short: 'Her adıma özel ekran görüntüleri, milisaniyelik zaman damgaları ve hata anı görsel izi.' },
+  { icon: '🔐', title: '@PreCondition ile Akıllı Oturum Önbelleği', short: 'Login adımını bir kez çalıştırıp oturumu önbelleğe alın; tüm testlerde saniyeler kazanın.' },
+  { icon: '📧', title: 'Yerleşik E-Posta Doğrulama (EmailSupport)', short: 'Mailhog, Mailtrap veya IMAP üzerinden aktivasyon ve şifre sıfırlama e-postalarını bekleyin ve doğrulayın.' },
+  { icon: '🕐', title: 'Saat Manipülasyonu (Clock Mocking)', short: 'Geri sayımlar ve oturum süreleri için tarayıcı saatini dondurun veya ileri sarın.' },
+  { icon: '🗄️', title: 'Veritabanı Doğrulama Desteği (DbSupport)', short: 'UI veya API testlerinizin arkasındaki veritabanı durumunu yerleşik sorgularla doğrudan doğrulayın.' },
 ];
 
 const faqs = [
@@ -130,8 +130,8 @@ const faqs = [
 
 const stats = [
   { value: '1', label: 'Eklenecek bağımlılık' },
-  { value: '20+', label: 'Dahili özellik' },
-  { value: '4', label: 'Otomatik algılanan CI platformu' },
+  { value: '30+', label: 'Dahili özellik' },
+  { value: '7', label: 'Otomatik algılanan CI platformu' },
   { value: '0', label: 'Gereken boilerplate' },
 ];
 
@@ -271,13 +271,15 @@ export default function Home() {
           <div className="container">
             <div className={styles.heroInner}>
               <div className={styles.heroText}>
-                <span className={styles.heroEyebrow}>Java · Selenium · TestNG · JUnit 5</span>
+                <span className={styles.heroEyebrow}>Java · Selenium · TestNG · JUnit 5 · Cucumber</span>
                 <h1 className={styles.heroTitle}>
                   Test otomasyonu
                   <br />
-                  <span className={styles.heroTitleAccent}>gereksiz detay olmadan</span>
+                  <span className={styles.heroTitleAccent}>sıfır boilerplate ile</span>
                 </h1>
-                <p className={styles.heroSubtitle}>{siteConfig.tagline}</p>
+                <p className={styles.heroSubtitle}>
+                  Spring Boot ergonomisinde, Selenium tabanlı modern Java test platformu: Web, REST API, Veritabanı ve AI destekli arıza analizi — tek bağımlılık, sıfır karmaşa.
+                </p>
                 <div className={styles.heroActions}>
                   <Link className={styles.buttonPrimary} to="/docs/getting-started">
                     Başlayın
@@ -342,10 +344,10 @@ export default function Home() {
           <div className="container">
             <div className={styles.sectionHeader} data-reveal>
               <span className={styles.sectionEyebrow}>Önce / Sonra</span>
-              <h2 className={styles.sectionTitle}>Aynı test.<br />Hiçbir tesisat yok.</h2>
+              <h2 className={styles.sectionTitle}>Aynı test.<br />Sıfır altyapı hamallığı.</h2>
               <p className={styles.sectionSubtitle}>
-                TestFly, ekibinizin çerçeve mühendisliğine değil, teste odaklanmasını sağlar.
-                Beklemeler, driver kurulumu, boilerplate — hepsi halledilir.
+                TestFly ekibinizin altyapı mühendisliğine değil, test senaryolarına odaklanmasını sağlar.
+                Akıllı beklemeler, driver kurulumu ve konfigürasyon kalabalığı — hepsi arka planda sessizce çözülür.
               </p>
             </div>
 
@@ -409,7 +411,14 @@ assertThat(find("h1"))
                   <div className={styles.featureIconWrap}>{f.icon}</div>
                   <h3 className={styles.bentoTitle}>{f.title}</h3>
                   <p className={styles.bentoDesc}>{f.description}</p>
-                  {f.code && <pre className={styles.bentoCode}>{f.code}</pre>}
+                  {f.code && (
+                    <CodeWindow
+                      filename=""
+                      language="java"
+                      code={f.code}
+                      className={styles.bentoCode}
+                    />
+                  )}
                   {f.visual === 'report' && <ReportPreview />}
                 </div>
               ))}

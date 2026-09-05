@@ -5,6 +5,8 @@ target/
 .kotlin
 .agents
 GEMINI.md
+.kiro
+.mcp.json
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
