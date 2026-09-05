@@ -761,7 +761,7 @@ A working demo project covering all framework features is available at:
 
 ## Documentation
 
-Full documentation at **[testfly.github.io/testfly](https://hakanngul.github.io/TestFly)**
+Full documentation at **[hakanngul.github.io/testfly](https://hakanngul.github.io/testfly)**
 
 ---
 
