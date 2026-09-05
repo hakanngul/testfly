@@ -1,12 +1,9 @@
 package io.testfly.examples.tdd;
 
 import io.testfly.examples.pages.LoginPage;
-import io.testfly.examples.pages.ProductsPage;
 import io.testfly.test.BaseTest;
 import org.openqa.selenium.By;
 import org.testng.annotations.Test;
-
-import static org.testng.Assert.*;
 
 /**
  * Intentionally failing tests that trigger AI Failure Analysis on flow and state issues.
@@ -27,8 +24,9 @@ public class AiFlowFailureDemoTest extends BaseTest {
     public void productsPageTitleShouldBeVisible() {
         open();
         // Bug: forgot to login — still on the login page
-        String title = new ProductsPage(getDriver()).getTitle();
-        assertEquals(title, "Products", "Should be on the products page");
+        assertThat(By.className("title"))
+                .as("Should be on the products page")
+                .hasText("Products");
     }
 
     /**
@@ -41,10 +39,9 @@ public class AiFlowFailureDemoTest extends BaseTest {
         new LoginPage(getDriver()).login("standard_user", "secret_sauce");
 
         // Bug: no product was added, cart badge doesn't even exist yet
-        String cartCount = getDriver()
-                .findElement(By.className("shopping_cart_badge"))
-                .getText();
-        assertEquals(cartCount, "3", "Cart should have 3 items");
+        assertThat(By.className("shopping_cart_badge"))
+                .as("Cart should have 3 items")
+                .hasText("3");
     }
 
     /**
@@ -57,8 +54,9 @@ public class AiFlowFailureDemoTest extends BaseTest {
         new LoginPage(getDriver()).login("standard_user", "wrong_password");
 
         // Bug: login failed — the URL is still /index.html (login page)
-        assertTrue(getDriver().getCurrentUrl().contains("inventory"),
-                "Should be on the inventory page after login");
+        assertThat(getDriver())
+                .as("Should be on the inventory page after login")
+                .urlContains("inventory");
     }
 
     /**
@@ -74,7 +72,8 @@ public class AiFlowFailureDemoTest extends BaseTest {
         find(By.id("react-burger-menu-btn")).click();
         find(By.id("logout_sidebar_link")).click();
 
-        assertTrue(getDriver().getCurrentUrl().contains("index"),
-                "Should be back on the login page after logout");
+        assertThat(getDriver())
+                .as("Should be back on the login page after logout")
+                .urlContains("index");
     }
 }

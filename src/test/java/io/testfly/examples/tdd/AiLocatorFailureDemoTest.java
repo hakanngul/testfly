@@ -6,8 +6,6 @@ import io.testfly.test.BaseTest;
 import org.openqa.selenium.By;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
-
 /**
  * Intentionally failing tests that trigger AI Failure Analysis on locator-related issues.
  *
@@ -26,8 +24,9 @@ public class AiLocatorFailureDemoTest extends BaseTest {
     @Test
     public void loginButtonShouldBeClickable() {
         open();
-        assertTrue(getDriver().findElement(By.id("submit-btn")).isDisplayed(),
-                "Login button should be visible on the page");
+        assertThat(By.id("submit-btn"))
+                .as("Login button should be visible on the page")
+                .isVisible();
     }
 
     /**
@@ -39,11 +38,9 @@ public class AiLocatorFailureDemoTest extends BaseTest {
         open();
         new LoginPage(getDriver()).login("locked_out_user", "secret_sauce");
 
-        String errorText = getDriver()
-                .findElement(By.cssSelector(".error-message"))
-                .getText();
-        assertTrue(errorText.contains("locked out"),
-                "Error should mention the locked-out user");
+        assertThat(By.cssSelector(".error-message"))
+                .as("Error should mention the locked-out user")
+                .containsText("locked out");
     }
 
     /**
@@ -63,6 +60,6 @@ public class AiLocatorFailureDemoTest extends BaseTest {
     @Test
     public void loginButtonShouldBeFoundByRole() {
         open();
-        getByRole(Role.LINK, "Login").isVisible();
+        assertThat(getByRole(Role.LINK, "Login")).isVisible();
     }
 }

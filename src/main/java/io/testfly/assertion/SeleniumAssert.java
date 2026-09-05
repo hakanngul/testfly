@@ -1,8 +1,10 @@
 package io.testfly.assertion;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.driver.DriverManager;
 import io.testfly.locator.Locator;
 import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
 
 /**
  * Entry point for web-first assertions.
@@ -14,7 +16,7 @@ import org.openqa.selenium.By;
  * <p>
  * Available as a protected method in {@link io.testfly.test.BasePage}
  * and {@link io.testfly.test.BaseTest} via {@code assertThat(By)} /
- * {@code assertThat(Locator)}.
+ * {@code assertThat(Locator)} / {@code assertThat(WebDriver)} / {@code assertThatPage()}.
  *
  * <pre>
  * // In a test or page object:
@@ -23,6 +25,8 @@ import org.openqa.selenium.By;
  * assertThat(By.cssSelector(".error")).isHidden();
  * assertThat(By.id("submit")).isEnabled();
  * assertThat($(".items")).count(5);
+ * assertThat(getDriver()).hasTitle("Dashboard");
+ * assertThatPage().urlContains("/orders");
  * </pre>
  */
 @TestFlyApi(since = "1.4.0")
@@ -51,6 +55,20 @@ public final class SeleniumAssert {
     }
 
     /**
+     * Begin a fluent assertion chain for the given {@link WebDriver} (page title, URL).
+     */
+    public static PageAssert assertThat(WebDriver driver) {
+        return new PageAssert(driver);
+    }
+
+    /**
+     * Begin a fluent assertion chain for the current thread's {@link WebDriver} page state.
+     */
+    public static PageAssert assertThatPage() {
+        return new PageAssert(DriverManager.getDriver());
+    }
+
+    /**
      * Begin a fluent soft assertion chain for the given {@link By} locator.
      * <p>
      * Failures are collected in {@link SoftAssertions} and will not terminate test
@@ -68,6 +86,20 @@ public final class SeleniumAssert {
      */
     public static LocatorAssert softAssert(Locator locator) {
         return new LocatorAssert(extractBy(locator), locator.toString(), true);
+    }
+
+    /**
+     * Begin a fluent soft assertion chain for the given {@link WebDriver} (page title, URL).
+     */
+    public static PageAssert softAssert(WebDriver driver) {
+        return new PageAssert(driver, true);
+    }
+
+    /**
+     * Begin a fluent soft assertion chain for the current thread's {@link WebDriver} page state.
+     */
+    public static PageAssert softAssertPage() {
+        return new PageAssert(DriverManager.getDriver(), true);
     }
 
     /**
