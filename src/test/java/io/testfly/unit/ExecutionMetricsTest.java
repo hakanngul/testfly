@@ -200,22 +200,34 @@ public class ExecutionMetricsTest {
 
     @Test
     public void recordError_setsMessageAndStackTrace() {
-        ExecutionMetrics.markStart("err-test");
-        ExecutionMetrics.markEnd("err-test");
-        ExecutionMetrics.recordError("err-test", new RuntimeException("something went wrong"));
-        TestTiming t = ExecutionMetrics.getTimings().iterator().next();
-        assertEquals(t.getErrorMessage(), "something went wrong");
-        assertNotNull(t.getStackTrace());
-        assertTrue(t.getStackTrace().contains("RuntimeException"));
+        synchronized (GLOBAL_REPORT_LOCK) {
+            ExecutionMetrics.reset();
+            ExecutionMetrics.markStart("err-test");
+            ExecutionMetrics.markEnd("err-test");
+            ExecutionMetrics.recordError("err-test", new RuntimeException("something went wrong"));
+            TestTiming t = ExecutionMetrics.getTimings().stream()
+                    .filter(timing -> "err-test".equals(timing.getTestId()))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(t.getErrorMessage(), "something went wrong");
+            assertNotNull(t.getStackTrace());
+            assertTrue(t.getStackTrace().contains("RuntimeException"));
+        }
     }
 
     @Test
     public void recordError_nullMessage_usesClassName() {
-        ExecutionMetrics.markStart("err-test-2");
-        ExecutionMetrics.markEnd("err-test-2");
-        ExecutionMetrics.recordError("err-test-2", new NullPointerException());
-        TestTiming t = ExecutionMetrics.getTimings().iterator().next();
-        assertEquals(t.getErrorMessage(), "NullPointerException");
+        synchronized (GLOBAL_REPORT_LOCK) {
+            ExecutionMetrics.reset();
+            ExecutionMetrics.markStart("err-test-2");
+            ExecutionMetrics.markEnd("err-test-2");
+            ExecutionMetrics.recordError("err-test-2", new NullPointerException());
+            TestTiming t = ExecutionMetrics.getTimings().stream()
+                    .filter(timing -> "err-test-2".equals(timing.getTestId()))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(t.getErrorMessage(), "NullPointerException");
+        }
     }
 
     // ----------------------------------------------------------
@@ -224,11 +236,17 @@ public class ExecutionMetricsTest {
 
     @Test
     public void recordTestClass_setsClassName() {
-        ExecutionMetrics.markStart("cls-test");
-        ExecutionMetrics.markEnd("cls-test");
-        ExecutionMetrics.recordTestClass("cls-test", "MyPageTest");
-        TestTiming t = ExecutionMetrics.getTimings().iterator().next();
-        assertEquals(t.getTestClassName(), "MyPageTest");
+        synchronized (GLOBAL_REPORT_LOCK) {
+            ExecutionMetrics.reset();
+            ExecutionMetrics.markStart("cls-test");
+            ExecutionMetrics.markEnd("cls-test");
+            ExecutionMetrics.recordTestClass("cls-test", "MyPageTest");
+            TestTiming t = ExecutionMetrics.getTimings().stream()
+                    .filter(timing -> "cls-test".equals(timing.getTestId()))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(t.getTestClassName(), "MyPageTest");
+        }
     }
 
     // ----------------------------------------------------------
