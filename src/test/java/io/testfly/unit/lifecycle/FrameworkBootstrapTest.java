@@ -28,43 +28,56 @@ import static org.testng.Assert.*;
  * Unit tests for {@link FrameworkBootstrap}.
  *
  * <p>
- * Uses temp config files and reflection-based state resets to avoid
- * cross-test contamination from static singletons.
+ * Uses temp config files and reflection-based state resets with global
+ * synchronization on TestFlyContext.class to avoid cross-test contamination
+ * from static singletons during parallel test execution.
  */
 @Test(singleThreaded = true)
 public class FrameworkBootstrapTest {
+
+    private static final Object CONTEXT_LOCK = TestFlyContext.class;
 
     private String savedConfigPath;
     private String savedProfile;
 
     @BeforeMethod
     public void setUp() throws Exception {
-        savedConfigPath = System.getProperty("testfly.config");
-        savedProfile = System.getProperty("testfly.profile");
-        System.clearProperty("testfly.config");
-        System.clearProperty("testfly.profile");
+        synchronized (CONTEXT_LOCK) {
+            savedConfigPath = System.getProperty("testfly.config");
+            savedProfile = System.getProperty("testfly.profile");
+            System.clearProperty("testfly.config");
+            System.clearProperty("testfly.profile");
 
-        resetTestFlyContext();
-        resetDotEnvLoader();
-        resetHealingCache();
+            resetStateInternal();
+        }
     }
 
     @AfterMethod
     public void tearDown() throws Exception {
-        if (savedConfigPath != null) {
-            System.setProperty("testfly.config", savedConfigPath);
-        } else {
-            System.clearProperty("testfly.config");
-        }
-        if (savedProfile != null) {
-            System.setProperty("testfly.profile", savedProfile);
-        } else {
-            System.clearProperty("testfly.profile");
-        }
+        synchronized (CONTEXT_LOCK) {
+            if (savedConfigPath != null) {
+                System.setProperty("testfly.config", savedConfigPath);
+            } else {
+                System.clearProperty("testfly.config");
+            }
+            if (savedProfile != null) {
+                System.setProperty("testfly.profile", savedProfile);
+            } else {
+                System.clearProperty("testfly.profile");
+            }
 
-        resetTestFlyContext();
-        resetDotEnvLoader();
-        resetHealingCache();
+            resetStateInternal();
+        }
+    }
+
+    private static void resetStateInternal() {
+        try {
+            resetTestFlyContext();
+            resetDotEnvLoader();
+            resetHealingCache();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to reset framework state", e);
+        }
     }
 
     // ----------------------------------------------------------
@@ -73,26 +86,30 @@ public class FrameworkBootstrapTest {
 
     @Test
     public void initialize_withValidConfig_initializesContextAndPopulatesRegistries() throws Exception {
-        Path tempDir = Files.createTempDirectory("bootstrap-test-");
-        try {
-            Path configFile = createValidConfig(tempDir);
-            System.setProperty("testfly.config", configFile.toString());
+        synchronized (CONTEXT_LOCK) {
+            resetStateInternal();
+            Path tempDir = Files.createTempDirectory("bootstrap-test-");
+            try {
+                Path configFile = createValidConfig(tempDir);
+                System.setProperty("testfly.config", configFile.toString());
 
-            try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
-                ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
+                try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
+                    ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
 
-                FrameworkBootstrap.initialize();
+                    FrameworkBootstrap.initialize();
 
-                assertTrue(TestFlyContext.isInitialized(),
-                        "TestFlyContext should be initialized after bootstrap");
-                TestFlyConfig config = TestFlyContext.getConfig();
-                assertNotNull(config, "Config must not be null");
-                assertEquals(config.getBrowser().getName(), "chrome");
-                assertEquals(config.getExecution().getMode(), "local");
-                assertEquals(config.getExecution().getBaseUrl(), "https://example.com");
+                    assertTrue(TestFlyContext.isInitialized(),
+                            "TestFlyContext should be initialized after bootstrap");
+                    TestFlyConfig config = TestFlyContext.getConfig();
+                    assertNotNull(config, "Config must not be null");
+                    assertEquals(config.getBrowser().getName(), "chrome");
+                    assertEquals(config.getExecution().getMode(), "local");
+                    assertEquals(config.getExecution().getBaseUrl(), "https://example.com");
+                }
+            } finally {
+                deleteRecursively(tempDir);
+                resetStateInternal();
             }
-        } finally {
-            deleteRecursively(tempDir);
         }
     }
 
@@ -102,26 +119,30 @@ public class FrameworkBootstrapTest {
 
     @Test
     public void initialize_calledTwice_doesNotReinitialize() throws Exception {
-        Path tempDir = Files.createTempDirectory("bootstrap-idem-");
-        try {
-            Path configFile = createValidConfig(tempDir);
-            System.setProperty("testfly.config", configFile.toString());
+        synchronized (CONTEXT_LOCK) {
+            resetStateInternal();
+            Path tempDir = Files.createTempDirectory("bootstrap-idem-");
+            try {
+                Path configFile = createValidConfig(tempDir);
+                System.setProperty("testfly.config", configFile.toString());
 
-            try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
-                ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
+                try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
+                    ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
 
-                FrameworkBootstrap.initialize();
-                TestFlyConfig firstConfig = TestFlyContext.getConfig();
+                    FrameworkBootstrap.initialize();
+                    TestFlyConfig firstConfig = TestFlyContext.getConfig();
 
-                // Second call must be a no-op
-                FrameworkBootstrap.initialize();
-                TestFlyConfig secondConfig = TestFlyContext.getConfig();
+                    // Second call must be a no-op
+                    FrameworkBootstrap.initialize();
+                    TestFlyConfig secondConfig = TestFlyContext.getConfig();
 
-                assertSame(firstConfig, secondConfig,
-                        "Second initialize() must not replace the existing config");
+                    assertSame(firstConfig, secondConfig,
+                            "Second initialize() must not replace the existing config");
+                }
+            } finally {
+                deleteRecursively(tempDir);
+                resetStateInternal();
             }
-        } finally {
-            deleteRecursively(tempDir);
         }
     }
 
@@ -131,30 +152,40 @@ public class FrameworkBootstrapTest {
 
     @Test(expectedExceptions = IllegalStateException.class)
     public void initialize_withMissingConfigFile_throwsIllegalStateException() {
-        System.setProperty("testfly.config", "/nonexistent/path/testfly.yml");
+        synchronized (CONTEXT_LOCK) {
+            resetStateInternal();
+            System.setProperty("testfly.config", "/nonexistent/path/testfly.yml");
 
-        try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
-            ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
-            FrameworkBootstrap.initialize();
+            try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
+                ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
+                FrameworkBootstrap.initialize();
+            } finally {
+                resetStateInternal();
+            }
         }
     }
 
     @Test
     public void initialize_withMissingConfigFile_doesNotInitializeContext() {
-        System.setProperty("testfly.config", "/nonexistent/path/testfly.yml");
+        synchronized (CONTEXT_LOCK) {
+            resetStateInternal();
+            System.setProperty("testfly.config", "/nonexistent/path/testfly.yml");
 
-        try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
-            ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
-            try {
-                FrameworkBootstrap.initialize();
-                fail("Expected IllegalStateException");
-            } catch (IllegalStateException expected) {
-                // expected
+            try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
+                ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
+                try {
+                    FrameworkBootstrap.initialize();
+                    fail("Expected IllegalStateException");
+                } catch (IllegalStateException expected) {
+                    // expected
+                }
+            } finally {
+                resetStateInternal();
             }
-        }
 
-        assertFalse(TestFlyContext.isInitialized(),
-                "Context must not be initialized when config is missing");
+            assertFalse(TestFlyContext.isInitialized(),
+                    "Context must not be initialized when config is missing");
+        }
     }
 
     // ----------------------------------------------------------
@@ -163,76 +194,88 @@ public class FrameworkBootstrapTest {
 
     @Test
     public void initialize_withInvalidYaml_throwsException() throws Exception {
-        Path tempDir = Files.createTempDirectory("bootstrap-bad-yaml-");
-        try {
-            Path configFile = tempDir.resolve("testfly.yml");
-            Files.writeString(configFile, "{{invalid yaml content::");
-            System.setProperty("testfly.config", configFile.toString());
+        synchronized (CONTEXT_LOCK) {
+            resetStateInternal();
+            Path tempDir = Files.createTempDirectory("bootstrap-bad-yaml-");
+            try {
+                Path configFile = tempDir.resolve("testfly.yml");
+                Files.writeString(configFile, "{{invalid yaml content::");
+                System.setProperty("testfly.config", configFile.toString());
 
-            try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
-                ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
-                try {
-                    FrameworkBootstrap.initialize();
-                    fail("Expected an exception for malformed YAML");
-                } catch (RuntimeException e) {
-                    // SnakeYAML throws ParserException which extends RuntimeException;
-                    // if ConfigurationLoader wraps it, it would be IllegalStateException.
-                    // Either way, a RuntimeException must propagate.
-                    assertNotNull(e.getMessage());
+                try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
+                    ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
+                    try {
+                        FrameworkBootstrap.initialize();
+                        fail("Expected an exception for malformed YAML");
+                    } catch (RuntimeException e) {
+                        // SnakeYAML throws ParserException which extends RuntimeException;
+                        // if ConfigurationLoader wraps it, it would be IllegalStateException.
+                        // Either way, a RuntimeException must propagate.
+                        assertNotNull(e.getMessage());
+                    }
                 }
+            } finally {
+                deleteRecursively(tempDir);
+                resetStateInternal();
             }
-        } finally {
-            deleteRecursively(tempDir);
         }
     }
 
     @Test
     public void initialize_withInvalidYaml_doesNotInitializeContext() throws Exception {
-        Path tempDir = Files.createTempDirectory("bootstrap-bad-yaml2-");
-        try {
-            Path configFile = tempDir.resolve("testfly.yml");
-            Files.writeString(configFile, "{{invalid yaml content::");
-            System.setProperty("testfly.config", configFile.toString());
+        synchronized (CONTEXT_LOCK) {
+            resetStateInternal();
+            Path tempDir = Files.createTempDirectory("bootstrap-bad-yaml2-");
+            try {
+                Path configFile = tempDir.resolve("testfly.yml");
+                Files.writeString(configFile, "{{invalid yaml content::");
+                System.setProperty("testfly.config", configFile.toString());
 
-            try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
-                ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
-                try {
-                    FrameworkBootstrap.initialize();
-                    fail("Expected an exception for malformed YAML");
-                } catch (RuntimeException expected) {
-                    // SnakeYAML or ConfigurationLoader exception — either is acceptable
+                try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
+                    ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
+                    try {
+                        FrameworkBootstrap.initialize();
+                        fail("Expected an exception for malformed YAML");
+                    } catch (RuntimeException expected) {
+                        // SnakeYAML or ConfigurationLoader exception — either is acceptable
+                    }
                 }
-            }
 
-            assertFalse(TestFlyContext.isInitialized(),
-                    "Context must not be initialized when config is invalid");
-        } finally {
-            deleteRecursively(tempDir);
+                assertFalse(TestFlyContext.isInitialized(),
+                        "Context must not be initialized when config is invalid");
+            } finally {
+                deleteRecursively(tempDir);
+                resetStateInternal();
+            }
         }
     }
 
     @Test
     public void initialize_withIncompleteConfig_throwsDescriptiveException() throws Exception {
-        Path tempDir = Files.createTempDirectory("bootstrap-incomplete-");
-        try {
-            // YAML parses fine but fails validation (missing required fields)
-            Path configFile = tempDir.resolve("testfly.yml");
-            Files.writeString(configFile, "browser:\n  name: chrome\n");
-            System.setProperty("testfly.config", configFile.toString());
+        synchronized (CONTEXT_LOCK) {
+            resetStateInternal();
+            Path tempDir = Files.createTempDirectory("bootstrap-incomplete-");
+            try {
+                // YAML parses fine but fails validation (missing required fields)
+                Path configFile = tempDir.resolve("testfly.yml");
+                Files.writeString(configFile, "browser:\n  name: chrome\n");
+                System.setProperty("testfly.config", configFile.toString());
 
-            try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
-                ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
-                try {
-                    FrameworkBootstrap.initialize();
-                    fail("Expected IllegalStateException for incomplete config");
-                } catch (IllegalStateException e) {
-                    assertNotNull(e.getMessage(), "Exception should carry a message");
-                    assertFalse(e.getMessage().isBlank(),
-                            "Exception message should describe the validation failure");
+                try (MockedStatic<CiEnvironmentDetector> ciMock = mockStatic(CiEnvironmentDetector.class)) {
+                    ciMock.when(CiEnvironmentDetector::isCI).thenReturn(false);
+                    try {
+                        FrameworkBootstrap.initialize();
+                        fail("Expected IllegalStateException for incomplete config");
+                    } catch (IllegalStateException e) {
+                        assertNotNull(e.getMessage(), "Exception should carry a message");
+                        assertFalse(e.getMessage().isBlank(),
+                                "Exception message should describe the validation failure");
+                    }
                 }
+            } finally {
+                deleteRecursively(tempDir);
+                resetStateInternal();
             }
-        } finally {
-            deleteRecursively(tempDir);
         }
     }
 
@@ -261,6 +304,7 @@ public class FrameworkBootstrapTest {
 
     @SuppressWarnings("unchecked")
     private static void resetTestFlyContext() throws Exception {
+        TestFlyContext.reset();
         Field configField = TestFlyContext.class.getDeclaredField("CONFIG");
         configField.setAccessible(true);
         AtomicReference<?> ref = (AtomicReference<?>) configField.get(null);
