@@ -62,6 +62,18 @@ const sidebars = {
     },
     {
       type: 'category',
+      label: 'AI & MCP Automation',
+      collapsed: false,
+      items: [
+        'ai/overview',
+        'ai/testfly-mcp',
+        'ai/ide-plugins',
+        'ai/interactive-studio',
+        'ai/prompt-recipes',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Recipes',
       items: [
         'recipes/upload-a-file',
