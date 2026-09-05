@@ -10,26 +10,46 @@ The architecture is intentionally simple, opinionated, and extensible only at we
 
 The architecture of TestFly is designed to:
 
-- Minimize Selenium framework boilerplate
-- Enforce consistent usage patterns
-- Reduce flakiness through standardized execution behavior
-- Remain transparent to Selenium APIs
-- Support long-lived enterprise test suites
-- Enable controlled extensibility without fragmentation
+- Minimize Selenium framework boilerplate across web, API, and BDD tests
+- Enforce consistent, thread-isolated execution patterns across parallel test runs
+- Reduce flakiness through standardized explicit waits and smart auto-retries
+- Remain transparent to native Selenium WebDriver APIs without hiding or obfuscating them
+- Provide unified observability (HTML report, Allure, ReportPortal) with zero configuration
+- Power AI test generation via the official Model Context Protocol (TestFly MCP)
 
 ---
 
-## High-Level Architecture
+## Layered Architecture
 
-TestFly follows a layered, responsibility-driven architecture.
+TestFly follows a layered, responsibility-driven architecture:
 
-Test Layer  
-↑  
-TestFly Core  
-↑  
-Infrastructure Layer  
-↑  
-Selenium (WebDriver APIs)
+```
+┌────────────────────────────────────────────────────────┐
+│                   Test Layer (User)                    │
+│   TestNG (BaseTest) · JUnit 5 (BaseJUnit5Test)         │
+│   Cucumber 7 BDD (@TestFlySession) · Page Objects      │
+└───────────────────────────┬────────────────────────────┘
+                            │
+┌───────────────────────────▼────────────────────────────┐
+│                      TestFly Core                      │
+│   Lifecycle Orchestrator · ThreadLocal Driver Manager │
+│   Fluent Locators & Assertions (PageAssert, Locator)  │
+│   Network Mocking (CDP v152) · REST API Client        │
+│   Precondition Session Cache · WaitEngine & Retries   │
+└───────────────────────────┬────────────────────────────┘
+                            │
+┌───────────────────────────▼────────────────────────────┐
+│                  Infrastructure Layer                  │
+│   YAML Config Loader (testfly.yml) · Profile Resolver  │
+│   Interactive HTML Reporter · Allure / ReportPortal   │
+│   Selenium Manager (Driver Binary Resolver)           │
+└───────────────────────────┬────────────────────────────┘
+                            │
+┌───────────────────────────▼────────────────────────────┐
+│                     Selenium 4 (CDP)                   │
+│   Chromium (Chrome/Edge) · Firefox · Safari · Grid    │
+└────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -38,133 +58,78 @@ Selenium (WebDriver APIs)
 ### 1. Test Layer (User-Owned)
 
 Responsibilities:
-- TestNG test classes
-- Page Object Models
-- Test data and assertions
-- Business-level test logic
+- Test classes written in TestNG, JUnit 5, or Cucumber BDD
+- Page Object Models extending `BasePage`
+- Business-level assertions using `assertThat(locator)` and `assertThatPage()`
+- API endpoint verification using `api()`
 
 Rules:
-- No direct WebDriver setup
-- No lifecycle or execution control logic
-- Selenium APIs remain directly usable
+- No manual `new ChromeDriver()` or `driver.quit()` in tests
+- No static WebDriver variables
+- Page Objects do not contain assertions
 
 ---
 
 ### 2. TestFly Core (Framework-Owned)
 
 Responsibilities:
-- Test lifecycle orchestration
-- Driver lifecycle management
-- Smart wait handling
-- Retry logic
-- Parallel execution control
-- TestNG listener integration
-
-This layer defines how Selenium is executed, not what is tested.
+- **Lifecycle Orchestration**: Automates driver start, pre-conditions, and teardown across TestNG, JUnit 5, and Cucumber.
+- **ThreadLocal Isolation**: Ensures zero cross-thread driver contamination during parallel execution.
+- **Fluent Locators & Assertions**: Auto-waiting locator factories (`find()`, `getByRole()`) and assertions.
+- **Network Mocking (`page().route()`)**: Declarative request stubbing and routing over Chrome DevTools Protocol.
+- **Unified REST API Client**: Built-in HTTP client with polling and JSONPath validation.
+- **Session Caching**: Caches cookies and web storage via `@PreCondition` to skip repetitive UI logins.
+- **Wait Engine & Retries**: Centralized explicit waits (preventing harmful implicit waits) and automated flakiness retry.
 
 ---
 
-### 3. Infrastructure Layer
+### 3. Infrastructure & Reporting Layer
 
 Responsibilities:
-- WebDriver provisioning
-- Configuration loading
-- Reporting
-- Logging
-- Environment awareness
+- **Configuration Engine**: Loads and validates `testfly.yml`, merging system properties and environment variables.
+- **HTML Reporting**: Generates a self-contained, interactive HTML report (`target/testfly-report.html`) containing execution timeline, flakiness radar, video recordings, and step-by-step screenshots.
+- **Third-Party Reporting Adapters**: Out-of-the-box integration with Allure and ReportPortal.
 
 ---
 
-### 4. Selenium Layer
+### 4. Selenium & Browser Layer
 
 Responsibilities:
-- Browser automation
-- WebDriver APIs
-- Browser-level interactions
-
-TestFly does not hide or replace Selenium APIs.
-
----
-
-## Core Components
-
-### Configuration Manager
-- Loads configuration from a single YAML file
-- Supports environment-based profiles
-- Enforces sane defaults
-
-### Driver Manager
-- Automatic driver resolution
-- Thread-safe driver lifecycle
-- Local and remote execution support
-
-### Execution Engine
-- Controls test execution flow
-- Handles retries and failures
-- Coordinates parallel execution
-
-### Wait Engine
-- Centralized explicit waits
-- Prevents unsafe implicit waits
-- Standardized timeout handling
-
-### Reporting Engine
-- Clean HTML reporting
-- Screenshot capture on failure
-- Execution metadata collection
+- Native Selenium 4.48.0 WebDriver APIs and Chrome DevTools Protocol (CDP v152).
+- Automated driver binary discovery via Selenium Manager (no manual chromedriver downloads needed).
+- Support for Local (Chrome, Firefox, Edge, Safari) and Remote Grid execution.
 
 ---
 
 ## Execution Flow
 
-1. Configuration is loaded at startup
-2. TestNG listeners are initialized
-3. Drivers are provisioned
-4. Tests execute with standardized waits and retries
-5. Failures trigger evidence capture
-6. Reports are generated
-7. Resources are released
+```mermaid
+sequenceDiagram
+    participant Runner as Test Runner (TestNG / JUnit 5)
+    participant CFG as Config Manager
+    participant DM as Driver Manager
+    participant Test as Test Method
+    participant CDP as DevTools / NetworkMock
+    participant Rep as HTML Reporter
 
----
-
-## Parallel Execution Model
-
-- Enabled by default
-- Thread-safe driver handling
-- No shared WebDriver state
-- Configuration-driven control
-
----
-
-## Extension Points (Planned)
-
-- Custom driver providers
-- Reporting adapters
-- Execution lifecycle hooks
-- Configuration overrides
+    Runner->>CFG: Load and validate testfly.yml
+    Runner->>DM: Request ThreadLocal WebDriver
+    DM->>DM: Provision browser (Chrome/Edge/Firefox)
+    Runner->>CDP: Attach CDP v152 session (if Chromium)
+    Runner->>Test: Execute test logic
+    Test->>Test: Perform actions & fluent assertions
+    alt Test Fails
+        Runner->>Rep: Capture failure screenshot & DOM snapshot
+        Runner->>Test: Trigger retry attempt (if configured)
+    end
+    Runner->>DM: Quit WebDriver and release thread
+    Runner->>Rep: Compile target/testfly-report.html
+```
 
 ---
 
 ## Architectural Constraints
 
-- No static global WebDriver access
-- No implicit waits
-- No test-managed driver lifecycle
-- No hidden Selenium abstractions
-
-Violations are considered design errors.
-
----
-
-## Design Trade-Offs
-
-- Flexibility traded for predictability
-- Cleverness traded for debuggability
-- Breadth traded for long-term stability
-
----
-
-## Summary
-
-TestFly’s architecture prioritizes clarity, discipline, and production readiness.
-It standardizes framework concerns while preserving full control over test logic.
+1. **Strict Isolation**: No global static driver state. Every thread owns an independent browser session.
+2. **Zero Implicit Waits**: Implicit waits are enforced at `0ms` to prevent compounding retry delays.
+3. **Transparent APIs**: The native Selenium `WebDriver` instance is always accessible via `getDriver()` if custom Actions or JavaScript execution is needed.

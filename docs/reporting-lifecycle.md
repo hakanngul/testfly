@@ -3,8 +3,7 @@
 This document defines the **reporting lifecycle contract** for TestFly.
 It specifies reporting events, generated artifacts, and final outputs.
 
-The reporting system is designed to provide **maximum observability** without
-affecting test execution behavior.
+The reporting system is designed to provide **maximum observability** without affecting test execution behavior.
 
 ---
 
@@ -12,205 +11,86 @@ affecting test execution behavior.
 
 The reporting system aims to:
 
-- Provide clear execution visibility
-- Preserve failure evidence reliably
-- Remain non-intrusive to test execution
-- Support CI/CD consumption
-- Scale for long-running, parallel test suites
-
-Reporting must **never influence test results**.
+- Provide transparent, real-time execution visibility
+- Capture failure evidence (screenshots, DOM snapshots, network traces) automatically
+- Produce a single, self-contained interactive HTML report for easy CI artifact sharing
+- Support standard machine-readable formats (JSON metrics export, Allure, ReportPortal)
+- Scale gracefully for high-concurrency, parallel test suites
 
 ---
 
-## Core Principles
+## Reporting Architecture Overview
 
-- Reporting is event-driven
-- Reporting is asynchronous where possible
-- Reporting failures must not fail tests
-- Artifacts must be deterministic and traceable
-- Final output must reflect actual execution state
-
----
-
-## Reporting Lifecycle Overview
-
-High-level lifecycle:
-
-1. Execution start event
-2. Test start event
-3. Step-level events (future)
-4. Test failure or success event
-5. Artifact capture
-6. Execution completion event
-7. Final report generation
+```
+Test Execution (TestNG / JUnit 5 / Cucumber)
+    │
+    ├── Step Events (@Step, StepLogger, ApiLogger)
+    ├── Evidence Capture (ScreenshotOnFailure, DOM snapshot)
+    └── Session Metadata (Timing, Flakiness, Browser metrics)
+            │
+            ▼
+    Report Aggregator & Model
+            │
+            ├──► target/testfly-report.html (Self-contained interactive dashboard)
+            ├──► target/testfly-metrics.json (CI / machine-readable summary)
+            └──► Third-Party Adapters (Allure, ReportPortal)
+```
 
 ---
 
 ## Reporting Events
 
-### Execution Start
+### 1. Suite Execution Start
+Triggered once per test run:
+- Captures environment details, OS, Java version, and browser capabilities.
+- Initializes the run timeline and execution timer.
 
-Triggered:
-- Once per test suite
+### 2. Test Start
+Triggered before each test method / scenario:
+- Binds test metadata (class, method, thread ID, description).
+- Initializes per-test step and action loggers.
 
-Captured Data:
-- Execution timestamp
-- Environment details
-- Browser configuration
-- Parallel execution settings
+### 3. Step Events
+Triggered during test execution:
+- UI actions (`click`, `fill`, `hover`) and explicit step annotations (`@Step`).
+- REST API calls (endpoint, status code, response time, request/response headers, cURL commands).
 
----
+### 4. Test Completion (Pass / Fail / Skip)
+- **On Pass**: Records duration and steps; cleans up temporary resources.
+- **On Failure**: Captures immediate full-page screenshot (Base64 or PNG file) and failure stack trace.
+- **On Retry**: Logs previous attempts in the test's retry history tab.
 
-### Test Start
-
-Triggered:
-- Before each test method
-
-Captured Data:
-- Test name and class
-- Thread identifier
-- Browser session identifier
-
----
-
-### Test Success
-
-Triggered:
-- After successful test completion
-
-Captured Data:
-- Execution duration
-- Retry count (if any)
+### 5. Suite Completion
+- Compiles the final interactive HTML report.
+- Writes structured execution metrics to `target/testfly-metrics.json`.
 
 ---
 
-### Test Failure
+## Generated Artifacts
 
-Triggered:
-- After final failed attempt
+### 1. `target/testfly-report.html` (Primary Report)
+A zero-dependency, self-contained interactive report that opens directly in any browser without needing a web server:
+- **Executive Summary**: Pass/fail/skip rates, duration, and thread utilization.
+- **Timeline Tab**: Visual timeline chart showing parallel thread execution.
+- **Flakiness Radar**: Identifies flaky tests that succeeded only after retries.
+- **Step-by-Step Breakdown**: Hierarchical test view with embedded screenshots and cURL reproductions.
+- **Theme**: Built-in Dark Mode and Light Mode with responsive design.
 
-Captured Data:
-- Failure reason
-- Exception stack trace
-- Retry attempts
-
----
-
-## Artifact Generation
-
-Artifacts are generated **only on failure** unless configured otherwise.
-
-### Mandatory Artifacts
-
-On failure:
-- Screenshot (PNG)
-- Execution metadata (JSON or text)
+### 2. `target/testfly-metrics.json`
+Structured JSON report for CI/CD gates and trend tracking dashboards.
 
 ---
 
-### Optional Artifacts (Future)
+## Retry Reporting Guarantees
 
-- Page source
-- Browser console logs
-- Network logs
-
-Artifact generation must be configurable.
+- Every retry attempt is explicitly recorded with its individual duration and failure reason.
+- Retries are aggregated under a single test entry with a clear retry counter.
+- Tests that pass on retry are flagged as **Flaky** in the Flakiness Radar to alert developers of intermittent stability issues.
 
 ---
 
-## Artifact Naming & Organization
+## Parallel Execution Guarantees
 
-Artifacts follow a deterministic naming scheme:
-
-```
-reports/
-├── execution-summary.html
-├── tests/
-│   └── TestClass_TestMethod/
-│       ├── screenshot.png
-│       ├── metadata.json
-│       └── error.log
-```
-
-This structure supports both human review and machine parsing.
-
----
-
-## Retry Reporting Behavior
-
-- Each retry attempt is recorded
-- Only the final failure generates artifacts
-- Retry history is visible in the final report
-
-Retries must never overwrite previous artifacts.
-
----
-
-## Parallel Execution Considerations
-
-- Artifact generation must be thread-safe
-- No file overwrites across threads
-- Unique identifiers per test execution
-
-Reporting must remain reliable under high parallelism.
-
----
-
-## Final Report Generation
-
-Triggered:
-- After suite execution completes
-
-Output:
-- Clean HTML summary
-- Pass/fail statistics
-- Retry metrics
-- Execution duration
-- Failure links to artifacts
-
-Report generation failures are logged but do not fail execution.
-
----
-
-## CI/CD Compatibility
-
-Reporting outputs must support:
-
-- Human-readable HTML reports
-- Machine-readable summaries (planned)
-- Artifact archiving by CI tools
-
-Reports must be generated in predictable locations.
-
----
-
-## Forbidden Reporting Practices
-
-The reporting system must not:
-
-- Modify test execution flow
-- Mask test failures
-- Swallow exceptions silently
-- Depend on external services by default
-- Require network access
-
----
-
-## Debuggability Guarantees
-
-When reviewing a failure, engineers must be able to determine:
-
-- Which test failed
-- Why it failed
-- Whether retries occurred
-- What the final browser state was
-
-Reporting must reduce investigation time, not increase it.
-
----
-
-## Summary
-
-TestFly reporting is designed as an **observability layer**, not a decoration.
-Clear events, reliable artifacts, and stable outputs ensure trust in automation
-results across local, CI, and enterprise environments.
+- All reporting events and loggers use `ThreadLocal` context tracking.
+- Artifact generation is completely lock-free and thread-safe.
+- Concurrent tests running across multiple worker threads never overwrite each other's evidence.
