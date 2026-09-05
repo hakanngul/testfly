@@ -2,12 +2,12 @@
 
 **Java Test Automation SDK — web, API, mobile, and AI-powered test automation without hiding Selenium**
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.testfly/testfly)](https://central.sonatype.com/artifact/io.github.hakanngul/testfly)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.hakanngul/testfly)](https://central.sonatype.com/artifact/io.github.hakanngul/testfly)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Good first issues](https://img.shields.io/github/issues/testfly/testfly/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+[![Good first issues](https://img.shields.io/github/issues/hakanngul/testfly/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
-**[Documentation](https://hakanngul.github.io/TestFly) · [Sample Project](https://github.com/testfly/testfly-test) · [Changelog](#project-status)**
+**[Documentation](https://hakanngul.github.io/testfly) · [Sample Project](https://github.com/hakanngul/testfly-test) · [TestFly MCP](https://github.com/hakanngul/testfly-mcp) · [Feature Roadmap](docs/features/README.md)**
 
 ---
 
@@ -26,7 +26,7 @@ Three files. Copy them as-is and `mvn test` goes green against a real Chrome.
 
 <dependencies>
     <dependency>
-        <groupId>io.testfly</groupId>
+        <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
         <version>1.0.0</version>
     </dependency>
@@ -76,7 +76,7 @@ public class SmokeTest extends BaseTest {
     @Test
     public void opensThePage() {
         open();
-        assertThat(getDriver()).titleContains("Example Domain");
+        assertThatPage().hasTitle("Example Domain");
     }
 }
 ```
@@ -93,8 +93,8 @@ Next: [the full Getting Started walkthrough](#getting-started) adds page objects
 
 ---
 
-> **AI-powered test authoring — Coming Soon**
-> **TestFly MCP** — an MCP server that lets Claude / GitHub Copilot control a real browser, record your session, and generate ready-to-run TestFly test code — is **coming soon**. Stay tuned for the public release.
+> 🤖 **AI-Powered Test Automation with TestFly MCP**
+> TestFly includes a first-class Model Context Protocol (MCP) server — **[TestFly MCP](https://github.com/hakanngul/testfly-mcp)** — allowing AI coding agents (Claude Desktop, Cursor, Antigravity, VS Code) to inspect live browsers, execute actions, capture DOM snapshots, and automatically author production-ready TestFly Java tests.
 
 ---
 
@@ -163,7 +163,7 @@ Add to your `pom.xml`:
 
 ```xml
 <dependency>
-    <groupId>io.testfly</groupId>
+    <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
     <version>1.0.0</version>
 </dependency>
@@ -265,34 +265,36 @@ your-project/
 
 ### Step 4: Create a Page Object
 
-Extend the framework's built-in `BasePage` — it provides wait-backed interaction helpers out of the box:
+Extend the framework's built-in `BasePage` — it provides wait-backed interaction helpers and accessibility-first locators out of the box:
 
 ```java
 package com.yourcompany.pages;
 
+import io.testfly.locator.Role;
 import io.testfly.test.BasePage;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
 public class LoginPage extends BasePage {
 
-    private final By usernameField = By.id("username");
-    private final By passwordField = By.id("password");
-    private final By loginButton   = By.id("login-btn");
+    // Accessibility-first & semantic locators
+    private final By usernameInput = getByPlaceholder("Username");
+    private final By passwordInput = getByPlaceholder("Password");
+    private final By submitButton  = getByRole(Role.BUTTON, "Sign In");
 
     public LoginPage(WebDriver driver) {
         super(driver);
     }
 
     public void login(String username, String password) {
-        type(usernameField, username);
-        type(passwordField, password);
-        click(loginButton);
+        type(usernameInput, username);
+        type(passwordInput, password);
+        click(submitButton);
     }
 }
 ```
 
-`BasePage` provides: `click`, `type`, `getText`, `getAttribute`, `isDisplayed`, `withinFrame`, `withinFrameIndex`, `upload`. All backed by `WaitEngine` — no manual waits needed.
+`BasePage` provides: `click`, `type`, `getText`, `getAttribute`, `isDisplayed`, `withinFrame`, `withinFrameIndex`, `upload`, plus Playwright-inspired locators (`getByRole`, `getByText`, `getByLabel`, `getByPlaceholder`, `getByTestId`). All backed by `WaitEngine` — no manual waits needed.
 
 ---
 
@@ -308,19 +310,19 @@ import io.testfly.test.BaseTest;
 import com.yourcompany.pages.LoginPage;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.assertTrue;
-
 public class LoginTest extends BaseTest {
 
     @Test
     public void loginWithValidCredentials() {
         StepLogger.step("Open login page");
-        open();
+        open("/login");
 
         StepLogger.step("Enter credentials and submit", true);
         new LoginPage(getDriver()).login("admin", "password123");
 
-        assertTrue(getDriver().getCurrentUrl().contains("/dashboard"));
+        // Web-first auto-waiting assertions
+        assertThatPage().hasUrlContains("/dashboard");
+        assertThat(find(".welcome-badge")).isVisible().hasText("Welcome, admin!");
     }
 }
 ```
@@ -568,9 +570,9 @@ public class CheckoutTest extends BaseTest {
                 .assertStatus(201)
                 .json("$.orderId");
 
-        // Verify in the UI
+        // Verify in the UI with auto-waiting web assertions
         open("/orders/" + orderId);
-        Assert.assertEquals(getText(By.id("status")), "Pending");
+        assertThat(find("#status")).hasText("Pending");
     }
 }
 ```
@@ -587,6 +589,36 @@ String token = ctx().get("token");
 // SuiteContext — survives between tests, thread-safe
 suiteCtx().set("createdUserId", res.json("$.id"));   // in test 1
 String userId = suiteCtx().get("createdUserId");      // in test 2
+```
+
+---
+
+## Web-First Assertions (`assertThat` & `assertThatPage`)
+
+TestFly provides Playwright-inspired, auto-waiting assertions that automatically poll until the condition is met or the timeout expires:
+
+### Element Assertions (`ElementAssert`)
+```java
+// Fluent element assertions with automatic retry and polling
+assertThat(find("#submit-button"))
+    .isVisible()
+    .isEnabled()
+    .hasText("Place Order");
+
+assertThat(getByRole(Role.CHECKBOX, "Subscribe to newsletter"))
+    .isChecked();
+
+assertThat(find(".alert-danger"))
+    .hasAttribute("data-error-code", "400");
+```
+
+### Page Assertions (`PageAssert`)
+```java
+// Assert page-level state without manual driver polling
+assertThatPage()
+    .hasTitle("TestFly - Dashboard")
+    .hasUrlContains("/dashboard")
+    .urlMatches("https://.*\\.example\\.com/dashboard");
 ```
 
 ---
@@ -755,13 +787,26 @@ See the full version history in **[CHANGELOG.md](CHANGELOG.md)**.
 ## Sample Project
 
 A working demo project covering all framework features is available at:
-**[github.com/testfly/testfly-test](https://github.com/hakanngul/testfly-test)**
+**[github.com/hakanngul/testfly-test](https://github.com/hakanngul/testfly-test)**
+
+---
+
+## Future Feature Roadmap (RFCs)
+
+Explore the architectural specifications and phased delivery plans for upcoming releases:
+- ⏱️ [**RFC 01: Time-Travel & Interactive Trace Viewer**](docs/features/01-time-travel-trace-viewer.md) (`v1.2.0`)
+- 🌐 [**RFC 02: Declarative Network Interception & Mocking DSL**](docs/features/02-declarative-network-mocking.md) (`v1.2.0`)
+- 🤖 [**RFC 03: Agentic CI Failure Auto-Healer & PR Creator**](docs/features/03-agentic-ci-failure-auto-healer.md) (`v1.3.0`)
+- 👁️ [**RFC 04: Built-in Visual Regression & Pixel Diffing Engine**](docs/features/04-visual-regression-testing.md) (`v1.2.0`)
+- 💡 [**RFC 05: IDE In-Gutter Live Locator Inspector & Highlighting**](docs/features/05-ide-in-gutter-locator-inspector.md) (`v1.3.0`)
+
+See the comprehensive comparison table and milestone roadmap at **[docs/features/README.md](docs/features/README.md)**.
 
 ---
 
 ## Documentation
 
-Full documentation at **[testfly.github.io/testfly](https://hakanngul.github.io/TestFly)**
+Full documentation at **[hakanngul.github.io/testfly](https://hakanngul.github.io/testfly)**
 
 ---
 
@@ -779,7 +824,7 @@ Contributions are warmly welcome — TestFly is opinionated, and contributions t
 
 - 🙌 [**Good first issues**](https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — scoped, self-contained tasks
 - 🤝 [**Help wanted**](https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) — larger pieces we'd love a hand with
-- 🗺️ [**Roadmap**](ROADMAP.md) — where the project is heading and where help fits
+- 🗺️ [**Roadmap & Feature RFCs**](docs/features/README.md) — where the project is heading and where help fits
 - 💬 [**Discussions**](https://github.com/hakanngul/testfly/discussions) — questions and feature ideas
 
 Then read [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, the PR checklist, and the backward-compatibility policy. Bug reports and feature requests both have [issue templates](https://github.com/hakanngul/testfly/issues/new/choose) to guide you.

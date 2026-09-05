@@ -1,14 +1,14 @@
 name: Release to Maven Central
 
 on:
-  # Tag push ile release: git tag v1.0.1 && git push origin v1.0.1
+  # Tag push ile release: git tag v1.0.2 && git push origin v1.0.2
   push:
     tags: ['v*']
   # Manuel tetikleme: GitHub Actions sekmesinden Run workflow
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (örn: 1.0.1) — boş bırakılırsa pom.xml versiyonu kullanılır'
+        description: 'Release version (örn: 1.0.2) — boş bırakılırsa pom.xml versiyonu kullanılır'
         required: false
         type: string
 
@@ -23,14 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java
-        # Bu step GitHub Secrets'tan ~/.m2/settings.xml ve GPG key'i otomatik oluşturur.
-        # Gerekli Secrets: GitHub repo → Settings → Secrets and variables → Actions → New repository secret
-        #   MAVEN_USERNAME  → https://central.sonatype.com → View Account → Generate User Token → username
-        #   MAVEN_PASSWORD  → aynı token'ın password kısmı
-        #   GPG_PRIVATE_KEY → terminalde: gpg --export-secret-keys --armor hakanngul@icloud.com
-        #   GPG_PASSPHRASE  → GPG key oluştururken verdiğin passphrase
-        # pom.xml'deki <publishingServerId>central</publishingServerId> ile buradaki server-id eşleşmeli.
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: temurin
@@ -39,7 +32,7 @@ jobs:
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase: GPG_PASSPHRASE
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
       - name: Set version from tag or input
         if: startsWith(github.ref, 'refs/tags/v') || inputs.version != ''
@@ -51,14 +44,15 @@ jobs:
           fi
           echo "Setting version to $VERSION"
           mvn versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false --no-transfer-progress
-          cat pom.xml | grep -A1 "<version>"
+          echo "--- pom.xml version after set ---"
+          grep -m1 '<version>' pom.xml
 
       - name: Verify
         run: mvn -B verify -Dgpg.skip=true --no-transfer-progress
 
       - name: Deploy to Maven Central
-        run: mvn -B deploy -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}" --no-transfer-progress
+        run: mvn -B deploy --no-transfer-progress
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
