@@ -437,6 +437,16 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <version>3.2.5</version>
+                        <dependencies>
+                            <!-- Integration tests are written with TestNG; force the
+                                 TestNG provider so failsafe does not fall back to the
+                                 JUnit Platform provider (which finds 0 tests). -->
+                            <dependency>
+                                <groupId>org.apache.maven.surefire</groupId>
+                                <artifactId>surefire-testng</artifactId>
+                                <version>3.2.5</version>
+                            </dependency>
+                        </dependencies>
                         <executions>
                             <execution>
                                 <goals>
