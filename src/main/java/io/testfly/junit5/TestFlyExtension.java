@@ -164,7 +164,8 @@ public class TestFlyExtension
 
                 if (!noBrowser) {
                     saveTraceIfEnabled(testId, testName, false);
-                    RecordingManager.saveOnFailure(testId);
+                    String recPath = RecordingManager.saveOnFailure(testId);
+                    ExecutionMetrics.recordRecording(testId, recPath);
                 }
                 runAiAnalysisIfEnabled(testId);
                 HookRegistry.onTestFailure(testId, cause);

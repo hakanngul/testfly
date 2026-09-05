@@ -159,8 +159,15 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         }
         SoftAssertions.clear();
 
+        io.testfly.config.TestFlyConfig cfg = TestFlyContext.getConfig();
+        io.testfly.config.TestFlyConfig.Recording rec = cfg != null ? cfg.getRecording() : null;
+        if (rec != null && rec.isRecordAll() && !skipBrowser(result)) {
+            String recPath = RecordingManager.save(testId);
+            ExecutionMetrics.recordRecording(testId, recPath);
+        } else {
+            RecordingManager.stop(); // discard frames — test passed in retain-on-failure mode
+        }
         capturePerformanceIfEnabled(testId, result);
-        RecordingManager.stop(); // discard frames — test passed
         ExecutionMetrics.recordStatus(testId, "PASSED");
         ExecutionMetrics.markEnd(testId);
         saveTraceIfEnabled(testId, result.getMethod().getMethodName(), true);
@@ -280,12 +287,12 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
 
     private void startRecordingIfEnabled() {
         try {
-            io.testfly.config.TestFlyConfig.Recording rec =
-                    TestFlyContext.getConfig().getRecording();
-            if (rec == null || !rec.isEnabled()) return;
+            io.testfly.config.TestFlyConfig cfg = TestFlyContext.getConfig();
+            io.testfly.config.TestFlyConfig.Recording rec = cfg != null ? cfg.getRecording() : null;
+            if (rec == null || !rec.shouldRecord()) return;
             org.openqa.selenium.WebDriver driver = DriverManager.getDriver();
             if (driver == null) return;
-            RecordingManager.start(driver, rec.getFps(), rec.getMaxDurationSeconds());
+            RecordingManager.start(driver, rec.getFps(), rec.getMaxDurationSeconds(), rec.isCdp());
         } catch (Exception ignored) {}
     }
 

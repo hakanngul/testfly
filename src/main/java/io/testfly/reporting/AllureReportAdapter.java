@@ -158,8 +158,14 @@ public class AllureReportAdapter implements ReportAdapter {
                 addAttachment(attachments, "Screenshot on Failure", attachSource, "image/png");
             }
         }
-
-        // AI Failure Analysis attachment
+        if (test.has("recordingPath")) {
+            File recording = new File(test.path("recordingPath").asText());
+            if (recording.exists()) {
+                String attachSource = UUID.randomUUID() + "-recording.gif";
+                Files.copy(recording.toPath(), new File(outputDir, attachSource).toPath());
+                addAttachment(attachments, "Execution Video", attachSource, "image/gif");
+            }
+        }
         if (test.has("aiAnalysis")) {
             String aiText = test.path("aiAnalysis").asText();
             String aiFile = UUID.randomUUID() + "-ai-analysis.txt";

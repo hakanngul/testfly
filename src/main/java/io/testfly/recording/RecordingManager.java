@@ -3,6 +3,11 @@ package io.testfly.recording;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.devtools.DevTools;
+import org.openqa.selenium.devtools.HasDevTools;
+import org.openqa.selenium.devtools.v152.page.Page;
+import org.openqa.selenium.devtools.v152.page.Page.StartScreencastFormat;
+import org.openqa.selenium.devtools.v152.page.model.ScreencastFrame;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -10,49 +15,73 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Captures a screen recording during test execution.
+ * Captures a screen recording during Web UI test execution.
  *
- * <p>A background thread takes screenshots at a configurable FPS.
- * On test pass, frames are discarded. On test failure, frames are
- * assembled into an animated GIF saved to {@code target/recordings/}.
+ * <p>Supports two recording backends:
+ * <ul>
+ *   <li><b>CDP Screencast:</b> Uses Chrome DevTools Protocol {@code Page.startScreencast}
+ *       on Chromium browsers (Chrome/Edge) for smooth, non-blocking frame streaming.</li>
+ *   <li><b>Scheduled Screenshot Poller:</b> Fallback mechanism for non-Chromium browsers
+ *       (Firefox, Safari, or remote grids without CDP) capturing periodic frames via {@link TakesScreenshot}.</li>
+ * </ul>
  *
- * <p>ThreadLocal-based — safe for parallel test execution.
+ * <p>On test pass (in {@code retain-on-failure} mode), frames are discarded.
+ * On test failure, frames are assembled into an animated GIF saved to {@code target/recordings/}.
+ *
+ * <p>ThreadLocal-based — safe for concurrent parallel test execution.
  */
 public final class RecordingManager {
 
+    private static final Logger LOG = Logger.getLogger(RecordingManager.class.getName());
     private static final ThreadLocal<RecordingSession> SESSION = new ThreadLocal<>();
 
     private RecordingManager() {}
 
     /**
-     * Starts a screen recording session for the current thread.
+     * Starts a screen recording session for the current thread with CDP preference enabled.
      *
-     * @param driver             the WebDriver instance to screenshot
+     * @param driver             the WebDriver instance to record
      * @param fps                frames per second (1–10 recommended)
      * @param maxDurationSeconds hard cap on recording length
      */
     public static void start(WebDriver driver, int fps, int maxDurationSeconds) {
+        start(driver, fps, maxDurationSeconds, true);
+    }
+
+    /**
+     * Starts a screen recording session for the current thread.
+     *
+     * @param driver             the WebDriver instance to record
+     * @param fps                frames per second (1–10 recommended)
+     * @param maxDurationSeconds hard cap on recording length
+     * @param preferCdp          whether to use CDP screencast if available on the driver
+     */
+    public static void start(WebDriver driver, int fps, int maxDurationSeconds, boolean preferCdp) {
         stop(); // discard any leftover session from a previous test
-        if (!(driver instanceof TakesScreenshot)) return;
+        if (driver == null) return;
 
         int  maxFrames  = Math.max(1, fps) * Math.max(1, maxDurationSeconds);
         long intervalMs = 1000L / Math.max(1, fps);
 
-        RecordingSession session = new RecordingSession((TakesScreenshot) driver, maxFrames, fps);
+        RecordingSession session = new RecordingSession(driver, maxFrames, fps, preferCdp);
         SESSION.set(session);
         session.start(intervalMs);
     }
 
     /**
-     * Stops recording and discards all captured frames (called on test success).
+     * Stops recording and discards all captured frames (called on test success in retain-on-failure mode).
      */
     public static void stop() {
         RecordingSession session = SESSION.get();
@@ -64,12 +93,22 @@ public final class RecordingManager {
 
     /**
      * Stops recording and saves captured frames as an animated GIF.
-     * Called on test failure.
+     * Called on test failure or when recording mode is set to always record.
      *
      * @param testId the fully-qualified test method name (used as filename)
      * @return the path to the saved GIF, or {@code null} if saving failed or no frames were captured
      */
     public static String saveOnFailure(String testId) {
+        return save(testId);
+    }
+
+    /**
+     * Stops recording and saves captured frames as an animated GIF.
+     *
+     * @param testId the fully-qualified test method name (used as filename)
+     * @return the path to the saved GIF, or {@code null} if saving failed or no frames were captured
+     */
+    public static String save(String testId) {
         RecordingSession session = SESSION.get();
         if (session == null) return null;
         session.cancel();
@@ -97,35 +136,83 @@ public final class RecordingManager {
 
     private static final class RecordingSession {
 
-        private final TakesScreenshot         driver;
+        private final WebDriver               driver;
         private final int                     maxFrames;
         private final int                     fps;
+        private final boolean                 preferCdp;
         private final List<BufferedImage>     frames   = new CopyOnWriteArrayList<>();
         private       ScheduledExecutorService executor;
         private       ScheduledFuture<?>       future;
+        private       DevTools                devTools;
+        private       boolean                 cdpActive;
 
-        RecordingSession(TakesScreenshot driver, int maxFrames, int fps) {
+        RecordingSession(WebDriver driver, int maxFrames, int fps, boolean preferCdp) {
             this.driver    = driver;
             this.maxFrames = maxFrames;
             this.fps       = fps;
+            this.preferCdp = preferCdp;
         }
 
         void start(long intervalMs) {
+            if (preferCdp && driver instanceof HasDevTools) {
+                try {
+                    DevTools dt = ((HasDevTools) driver).getDevTools();
+                    dt.createSessionIfThereIsNotOne();
+
+                    dt.addListener(Page.screencastFrame(), frame -> {
+                        if (frames.size() >= maxFrames) {
+                            return;
+                        }
+                        try {
+                            byte[] bytes = Base64.getDecoder().decode(frame.getData());
+                            BufferedImage img = ImageIO.read(new ByteArrayInputStream(bytes));
+                            if (img != null) {
+                                frames.add(img);
+                            }
+                        } catch (Exception ignored) {
+                        } finally {
+                            try {
+                                dt.send(Page.screencastFrameAck(frame.getSessionId()));
+                            } catch (Exception ignored) {}
+                        }
+                    });
+
+                    // everyNthFrame = 1, quality = 80
+                    dt.send(Page.startScreencast(
+                            Optional.of(StartScreencastFormat.JPEG),
+                            Optional.of(80),
+                            Optional.of(1280),
+                            Optional.of(720),
+                            Optional.of(1)
+                    ));
+
+                    this.devTools = dt;
+                    this.cdpActive = true;
+                    return;
+                } catch (Throwable t) {
+                    LOG.log(Level.FINE, "[RecordingManager] CDP screencast unavailable, falling back to screenshot sampler: " + t.getMessage());
+                    this.cdpActive = false;
+                }
+            }
+
+            // Fallback: Periodic screenshot sampler
+            if (!(driver instanceof TakesScreenshot)) return;
+
             executor = Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = new Thread(r, "testfly-recorder");
                 t.setDaemon(true);
                 return t;
             });
-            future = executor.scheduleAtFixedRate(this::capture, 0, intervalMs, TimeUnit.MILLISECONDS);
+            future = executor.scheduleAtFixedRate(this::captureFallback, 0, intervalMs, TimeUnit.MILLISECONDS);
         }
 
-        private void capture() {
+        private void captureFallback() {
             if (frames.size() >= maxFrames) {
                 cancel();
                 return;
             }
             try {
-                byte[]      png = driver.getScreenshotAs(OutputType.BYTES);
+                byte[] png = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
                 BufferedImage img = ImageIO.read(new ByteArrayInputStream(png));
                 if (img != null) frames.add(img);
             } catch (Exception ignored) {
@@ -134,6 +221,11 @@ public final class RecordingManager {
         }
 
         void cancel() {
+            if (cdpActive && devTools != null) {
+                try {
+                    devTools.send(Page.stopScreencast());
+                } catch (Exception ignored) {}
+            }
             if (future   != null) future.cancel(false);
             if (executor != null) executor.shutdownNow();
         }

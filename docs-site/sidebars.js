@@ -39,6 +39,7 @@ const sidebars = {
         'guides/assertions',
         'guides/retry',
         'guides/screenshots',
+        'guides/video-recording',
         'guides/step-logging',
         'guides/browser-lifecycle',
         'guides/parallel',

@@ -207,6 +207,24 @@ public final class TraceRecorder {
             sb.append("  </div>\n</div>\n");
         }
 
+        // ── Video recording ──
+        if (timing.getRecordingPath() != null) {
+            File recFile = new File(timing.getRecordingPath());
+            if (recFile.exists()) {
+                try {
+                    byte[] bytes = java.nio.file.Files.readAllBytes(recFile.toPath());
+                    String base64 = Base64.getEncoder().encodeToString(bytes);
+                    sb.append("<div class=\"section\">\n");
+                    sb.append("  <div class=\"section-title\">&#127916; Execution Video Recording</div>\n");
+                    sb.append("  <div class=\"final-screenshot-wrap\" style=\"background:#000;display:flex;justify-content:center;\">\n");
+                    sb.append("    <img class=\"final-screenshot\" src=\"data:image/gif;base64,")
+                            .append(base64).append("\" alt=\"Execution Video Recording\" />\n");
+                    sb.append("  </div>\n</div>\n");
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
         // ── Error section ──
         if (errorMsg != null || stackTrace != null) {
             sb.append("<div class=\"section error-section\">\n");

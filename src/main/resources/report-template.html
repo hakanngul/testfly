@@ -1614,6 +1614,21 @@ function renderTestTable(tests) {
                 <tr id="detail-${m.globalIdx}" class="detail-row" style="display:none;">
                     <td colspan="6">
                         <div class="drawer-content">
+                            <!-- Video Recording (Failure Replay) Card -->
+                            ${m.recordingBase64 ? `
+                                <div class="video-card" style="margin-bottom:16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px;">
+                                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                                        <span style="font-size:12px;font-weight:600;text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:6px;">
+                                            &#127916; Execution Video Recording
+                                        </span>
+                                        <button type="button" class="btn-copy" onclick="openLightbox('${m.recordingBase64}')">Open Fullscreen</button>
+                                    </div>
+                                    <div style="display:flex;justify-content:center;background:#000;border-radius:6px;overflow:hidden;max-height:380px;">
+                                        <img src="${m.recordingBase64}" style="max-width:100%;max-height:380px;object-fit:contain;cursor:pointer;" onclick="openLightbox(this.src)" title="Click to view full size video recording">
+                                    </div>
+                                </div>
+                            ` : ''}
+
                             <!-- AI Failure Analysis Card -->
                             ${m.aiAnalysis ? `
                                 <div id="ai-analysis-card" class="ai-card">
@@ -1705,6 +1720,20 @@ function renderFailureTable(tests) {
             <tr id="fdetail-${idx}" class="detail-row" style="display:none;">
                 <td colspan="6">
                     <div class="drawer-content">
+                        <!-- Video Recording (Failure Replay) Card -->
+                        ${f.recordingBase64 ? `
+                            <div class="video-card" style="margin-bottom:16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                                    <span style="font-size:12px;font-weight:600;text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:6px;">
+                                        &#127916; Execution Video Recording
+                                    </span>
+                                    <button type="button" class="btn-copy" onclick="openLightbox('${f.recordingBase64}')">Open Fullscreen</button>
+                                </div>
+                                <div style="display:flex;justify-content:center;background:#000;border-radius:6px;overflow:hidden;max-height:380px;">
+                                    <img src="${f.recordingBase64}" style="max-width:100%;max-height:380px;object-fit:contain;cursor:pointer;" onclick="openLightbox(this.src)" title="Click to view full size video recording">
+                                </div>
+                            </div>
+                        ` : ''}
                         ${f.aiAnalysis ? `
                             <div class="ai-card">
                                 <div class="ai-card-title">&#129302; AI Failure Analysis</div>
