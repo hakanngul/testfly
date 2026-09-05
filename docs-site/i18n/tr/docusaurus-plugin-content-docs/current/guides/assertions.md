@@ -81,6 +81,28 @@ assertThat(By.cssSelector("table tbody tr")).count(5);
 assertThat($(".card")).count(3);
 ```
 
+### Sayfa ve URL Doğrulamaları (PageAssert)
+
+Sayfa başlığı (`title`) ve adresini (`url`) otomatik bekleme (auto-wait) ile doğrulayın — artık ham `getDriver().getTitle()` veya `getCurrentUrl()` ile TestNG/JUnit assertion'larına gerek yok:
+
+```java
+// Başlık kontrolleri
+assertThat(getDriver()).hasTitle("Dashboard");
+assertThat(getDriver()).titleContains("Sauce");
+assertThatPage().hasTitle("Products");
+
+// URL kontrolleri
+assertThat(getDriver()).hasUrl("https://example.com/dashboard");
+assertThat(getDriver()).urlContains("/inventory");
+assertThat(getDriver()).urlMatches(".*\\/orders\\/\\d+");
+
+// Özel mesaj ve zaman aşımıyla
+assertThat(getDriver())
+    .as("Giriş sonrası panele yönlenmeli")
+    .within(Duration.ofSeconds(5))
+    .urlContains("/dashboard");
+```
+
 ---
 
 ## Özelleştirme ve Niteleyiciler

@@ -88,9 +88,9 @@ to `BasePage` helpers via this). Removing or renaming any of these breaks codege
 The MCP emits `assertThat(<locator>)` chained with:
 `isVisible()`, `isHidden()`, `hasText(String)`, `containsText(String)`,
 `hasAttribute(String, String)`, `count(int)`.
-Page-title / URL checks fall back to `org.testng.Assert` (TestNG flavors) or
-`org.junit.jupiter.api.Assertions` (JUnit 5) on `getDriver().getTitle()` /
-`getCurrentUrl()`. See [`LocatorAssert.java`](../src/main/java/com/testfly/assertion/LocatorAssert.java).
+Page-title and URL checks use `assertThat(getDriver())` or `assertThatPage()` ([`PageAssert.java`](../src/main/java/io/testfly/assertion/PageAssert.java)) with:
+`hasTitle(String)`, `titleContains(String)`, `hasUrl(String)`, `urlContains(String)`, `urlMatches(String)`.
+See [`LocatorAssert.java`](../src/main/java/io/testfly/assertion/LocatorAssert.java) and [`PageAssert.java`](../src/main/java/io/testfly/assertion/PageAssert.java).
 
 ## 5. Base-class helpers the generated code calls
 
