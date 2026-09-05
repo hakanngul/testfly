@@ -40,7 +40,7 @@ public final class LocatorAssert {
     private Duration customTimeout;
     private String customMessage;
     private boolean soft;
-    private SoftAssertionCollector collector;
+    private final SoftAssertionCollector collector;
 
     LocatorAssert(By by, String description) {
         this(by, description, false, null);

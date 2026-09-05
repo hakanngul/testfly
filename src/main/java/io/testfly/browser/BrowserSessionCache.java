@@ -130,14 +130,7 @@ public final class BrowserSessionCache {
     // Internals
     // ----------------------------------------------------------
 
-    private static final class SavedSession {
-        final Set<Cookie> cookies;
-        final Map<String, String> localStorage;
-
-        SavedSession(Set<Cookie> cookies, Map<String, String> localStorage) {
-            this.cookies = cookies;
-            this.localStorage = localStorage;
-        }
+    private record SavedSession(Set<Cookie> cookies, Map<String, String> localStorage) {
     }
 
     @SuppressWarnings("unchecked")

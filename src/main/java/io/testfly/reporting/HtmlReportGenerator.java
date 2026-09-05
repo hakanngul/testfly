@@ -14,7 +14,6 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -160,14 +159,14 @@ public final class HtmlReportGenerator {
                         long high = 0, watch = 0, stable = 0;
                         for (io.testfly.flakiness.FlakinessScore s : scores) {
                             Map<String, Object> sm = new LinkedHashMap<>();
-                            sm.put("testId", s.getTestId());
-                            sm.put("runsAnalysed", s.getRunsAnalysed());
-                            sm.put("failCount", s.getFailCount());
-                            sm.put("failureRate", Math.round(s.getFailureRate() * 10.0) / 10.0);
-                            sm.put("risk", s.getRisk().name());
+                            sm.put("testId", s.testId());
+                            sm.put("runsAnalysed", s.runsAnalysed());
+                            sm.put("failCount", s.failCount());
+                            sm.put("failureRate", Math.round(s.failureRate() * 10.0) / 10.0);
+                            sm.put("risk", s.risk().name());
                             scoreList.add(sm);
-                            if (s.getRisk() == io.testfly.flakiness.FlakinessScore.Risk.HIGH) high++;
-                            else if (s.getRisk() == io.testfly.flakiness.FlakinessScore.Risk.WATCH) watch++;
+                            if (s.risk() == io.testfly.flakiness.FlakinessScore.Risk.HIGH) high++;
+                            else if (s.risk() == io.testfly.flakiness.FlakinessScore.Risk.WATCH) watch++;
                             else stable++;
                         }
                         flakinessData.put("analysedTests", scores.size());

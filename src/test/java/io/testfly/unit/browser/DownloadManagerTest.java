@@ -19,10 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.mockStatic;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.*;
 
 /**
  * Unit tests for {@link DownloadManager}.
@@ -119,7 +116,7 @@ public class DownloadManagerTest {
     public void waitForFile_timeoutMessage_includesFilename() {
         try {
             DownloadManager.waitForFile("expected-report.xlsx", 1);
-            assertTrue(false, "Expected RuntimeException");
+            fail("Expected RuntimeException");
         } catch (RuntimeException e) {
             String msg = e.getMessage();
             assertTrue(msg.contains("expected-report.xlsx"),

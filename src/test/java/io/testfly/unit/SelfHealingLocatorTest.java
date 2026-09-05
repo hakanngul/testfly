@@ -129,8 +129,8 @@ public class SelfHealingLocatorTest {
         List<FallbackEntry> fb = SelfHealingLocator.buildFallbacks(
                 "By.xpath: //input[@id='email'][@name='email']");
         // Both id and name should be extracted
-        boolean hasId   = fb.stream().anyMatch(e -> "id-from-xpath".equals(e.strategy));
-        boolean hasName = fb.stream().anyMatch(e -> "name-from-xpath".equals(e.strategy));
+        boolean hasId   = fb.stream().anyMatch(e -> "id-from-xpath".equals(e.strategy()));
+        boolean hasName = fb.stream().anyMatch(e -> "name-from-xpath".equals(e.strategy()));
         Assert.assertTrue(hasId && hasName);
     }
 
@@ -139,13 +139,13 @@ public class SelfHealingLocatorTest {
     // ------------------------------------------------------------------
 
     private void assertContainsStrategy(List<FallbackEntry> fallbacks, String strategy) {
-        boolean found = fallbacks.stream().anyMatch(f -> strategy.equals(f.strategy));
+        boolean found = fallbacks.stream().anyMatch(f -> strategy.equals(f.strategy()));
         Assert.assertTrue(found, "Expected strategy '" + strategy + "' in fallbacks: "
-                + fallbacks.stream().map(f -> f.strategy).toList());
+                + fallbacks.stream().map(f -> f.strategy()).toList());
     }
 
     private void assertContainsByType(List<FallbackEntry> fallbacks, By expected) {
-        boolean found = fallbacks.stream().anyMatch(f -> expected.toString().equals(f.by.toString()));
+        boolean found = fallbacks.stream().anyMatch(f -> expected.toString().equals(f.by().toString()));
         Assert.assertTrue(found, "Expected By " + expected + " in fallbacks");
     }
 }

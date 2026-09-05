@@ -259,7 +259,7 @@ public class DeviceEmulatorTest {
     public void emulate_nonChrome_toleratesJsException() {
         driverManagerMock.when(DriverManager::getDriver).thenReturn(mockNonChromeDriver);
 
-        when(((JavascriptExecutor) mockNonChromeDriver).executeScript(anyString(), anyString()))
+        when(mockNonChromeDriver.executeScript(anyString(), anyString()))
                 .thenThrow(new RuntimeException("JS failed"));
 
         // Should not throw — JS UA override failure is tolerated

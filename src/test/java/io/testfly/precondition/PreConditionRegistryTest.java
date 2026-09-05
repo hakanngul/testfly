@@ -25,7 +25,7 @@ public class PreConditionRegistryTest {
 
         PreConditionRegistry.ProviderMethod pm = PreConditionRegistry.find("regTest_register");
         assertNotNull(pm, "Registered provider should be findable");
-        assertSame(pm.instance, provider, "Provider instance should match");
+        assertSame(pm.instance(), provider, "Provider instance should match");
     }
 
     @Test
@@ -67,7 +67,7 @@ public class PreConditionRegistryTest {
 
         PreConditionRegistry.ProviderMethod pm = PreConditionRegistry.find("regTest_methodName");
         assertNotNull(pm);
-        assertEquals(pm.method.getName(), "doSomething",
+        assertEquals(pm.method().getName(), "doSomething",
                 "Should resolve to the correct method name");
     }
 
@@ -84,7 +84,7 @@ public class PreConditionRegistryTest {
         PreConditionRegistry.ProviderMethod pm = PreConditionRegistry.find("regTest_duplicate");
         assertNotNull(pm, "Should find a provider for the condition");
         // Registry finds the first match during iteration
-        assertSame(pm.instance, first, "First registered provider should be found");
+        assertSame(pm.instance(), first, "First registered provider should be found");
     }
 
     @Test
