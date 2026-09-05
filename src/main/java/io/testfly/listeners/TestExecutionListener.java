@@ -200,10 +200,11 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         if (!skipBrowser(result) && ConsoleErrorCollector.isEnabled() && !jsErrorsLogged.get()) {
             ConsoleErrorCollector.collect().forEach(e -> StepLogger.step("[JS Error] " + e, StepStatus.WARN));
         }
-        jsErrorsLogged.set(false);
-
         String recordingPath = skipBrowser(result) ? null : RecordingManager.saveOnFailure(testId);
         ExecutionMetrics.recordRecording(testId, recordingPath);
+        if (recordingPath != null) {
+            System.out.println("[TestFly] 🎥 Video recording saved: " + recordingPath);
+        }
         ExecutionMetrics.recordStatus(testId, "FAILED");
         ExecutionMetrics.markEnd(testId);
         if (result.getThrowable() != null) {
@@ -293,7 +294,10 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
             org.openqa.selenium.WebDriver driver = DriverManager.getDriver();
             if (driver == null) return;
             RecordingManager.start(driver, rec.getFps(), rec.getMaxDurationSeconds(), rec.isCdp());
-        } catch (Exception ignored) {}
+            System.out.println("[TestFly] 🎥 Video recording started (mode=" + rec.getMode() + ", fps=" + rec.getFps() + ")");
+        } catch (Exception e) {
+            System.err.println("[TestFly] Failed to start video recording: " + e.getMessage());
+        }
     }
 
     private boolean isApiTest(ITestResult result) {

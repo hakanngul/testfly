@@ -48,6 +48,20 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
             return; // RP client not on classpath
         }
 
+        if (!io.testfly.internal.TestFlyContext.isInitialized()) {
+            return;
+        }
+        io.testfly.config.TestFlyConfig cfg = io.testfly.internal.TestFlyContext.getConfig();
+        if (cfg == null || cfg.getReporting() == null
+                || cfg.getReporting().getReportPortal() == null
+                || !cfg.getReporting().getReportPortal().isEnabled()) {
+            return;
+        }
+        String key = io.testfly.config.DotEnvLoader.resolve(cfg.getReporting().getReportPortal().getApiKey());
+        if (key == null || key.trim().isEmpty() || key.startsWith("${")) {
+            return;
+        }
+
         if ((screenshotPath == null || screenshotPath.isBlank())
                 && (aiAnalysis == null || aiAnalysis.isBlank())) {
             return;

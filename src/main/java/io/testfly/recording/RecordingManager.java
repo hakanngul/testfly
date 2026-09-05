@@ -115,7 +115,21 @@ public final class RecordingManager {
         SESSION.remove();
 
         List<BufferedImage> frames = session.getFrames();
+        if (frames.isEmpty() && session.getDriver() instanceof TakesScreenshot) {
+            try {
+                byte[] png = ((TakesScreenshot) session.getDriver()).getScreenshotAs(OutputType.BYTES);
+                BufferedImage img = ImageIO.read(new ByteArrayInputStream(png));
+                if (img != null) {
+                    frames.add(img);
+                }
+            } catch (Exception ignored) {}
+        }
         if (frames.isEmpty()) return null;
+
+        // Duplicate single frame so animated GIF loops gracefully
+        if (frames.size() == 1) {
+            frames.add(frames.get(0));
+        }
 
         String safeId = testId.replaceAll("[^a-zA-Z0-9._-]", "_");
         File   dir    = new File("target/recordings");
@@ -158,6 +172,9 @@ public final class RecordingManager {
                 try {
                     DevTools dt = ((HasDevTools) driver).getDevTools();
                     dt.createSessionIfThereIsNotOne();
+                    try {
+                        dt.send(Page.enable(Optional.empty()));
+                    } catch (Exception ignored) {}
 
                     dt.addListener(Page.screencastFrame(), frame -> {
                         if (frames.size() >= maxFrames) {
@@ -232,5 +249,6 @@ public final class RecordingManager {
 
         List<BufferedImage> getFrames() { return new ArrayList<>(frames); }
         int getFps()                     { return fps; }
+        WebDriver getDriver()            { return driver; }
     }
 }

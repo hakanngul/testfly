@@ -7,6 +7,8 @@ target/
 GEMINI.md
 .kiro
 .mcp.json
+reportportal.lock
+reportportal.sync
 
 ### IntelliJ IDEA ###
 .idea/modules.xml

@@ -35,7 +35,7 @@ timeouts:
 reporting:
   allureEnabled: true
   reportPortal:
-    enabled: true
+    enabled: false
     endpoint: ${REPORTPORTAL_ENDPOINT:-https://reportportal.example.com}
     apiKey: ${REPORTPORTAL_API_KEY}
     project: demo-web
@@ -49,10 +49,17 @@ locators:
   selfHealing: true
 
 ai:
-  failureAnalysis: true
+  failureAnalysis: false
   provider: openai-compatible
   baseUrl: https://api.deepseek.com
   apiKey: ${AI_API_KEY}
   model: deepseek-v4-flash
   language: tr
   timeoutSeconds: 20
+
+recording:
+  enabled: true                    # Video kaydını aktif eder (varsayılan: false)
+  mode: retain-on-failure          # 'retain-on-failure' | 'on' | 'off'
+  fps: 5                           # Saniyedeki kare sayısı (önerilen: 2-10)
+  maxDurationSeconds: 60           # Bellek güvenliği için maksimum kayıt süresi
+  cdp: true                        # Chromium için native CDP screencast kullanımı

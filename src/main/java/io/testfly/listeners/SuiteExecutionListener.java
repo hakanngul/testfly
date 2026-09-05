@@ -93,9 +93,7 @@ public final class SuiteExecutionListener implements ISuiteListener {
         if (!TestFlyContext.isInitialized()) return;
         TestFlyConfig config = TestFlyContext.getConfig();
         TestFlyConfig.Reporting reporting = config.getReporting();
-        if (reporting == null
-                || reporting.getReportPortal() == null
-                || !reporting.getReportPortal().isEnabled()) {
+        if (!isReportPortalConfigured(reporting)) {
             return;
         }
 
@@ -165,9 +163,7 @@ public final class SuiteExecutionListener implements ISuiteListener {
         }
         TestFlyConfig config = TestFlyContext.getConfig();
         TestFlyConfig.Reporting reporting = config.getReporting();
-        if (reporting == null
-                || reporting.getReportPortal() == null
-                || !reporting.getReportPortal().isEnabled()) {
+        if (!isReportPortalConfigured(reporting)) {
             return;
         }
 
@@ -259,6 +255,21 @@ public final class SuiteExecutionListener implements ISuiteListener {
         // Build quality gates — must run last so all metrics are recorded
         TestFlyConfig config = TestFlyContext.getConfig();
         BuildThresholdEnforcer.enforce(config, ExecutionMetrics.getTimings());
+    }
+
+    private static boolean isReportPortalConfigured(TestFlyConfig.Reporting reporting) {
+        if (reporting == null || reporting.getReportPortal() == null || !reporting.getReportPortal().isEnabled()) {
+            return false;
+        }
+        String key = io.testfly.config.DotEnvLoader.resolve(reporting.getReportPortal().getApiKey());
+        String ep = io.testfly.config.DotEnvLoader.resolve(reporting.getReportPortal().getEndpoint());
+        if (key == null || key.trim().isEmpty() || key.startsWith("${")) {
+            return false;
+        }
+        if (ep == null || ep.trim().isEmpty() || ep.contains("example.com")) {
+            return false;
+        }
+        return true;
     }
 
     /**
