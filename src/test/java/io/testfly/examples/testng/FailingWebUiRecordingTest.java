@@ -20,7 +20,30 @@ import org.testng.annotations.Test;
  */
 public class FailingWebUiRecordingTest extends BaseTest {
 
-    @Test
+    @Test(priority = 1)
+    public void successfulLoginTest() {
+        // Step 1: Open the website
+        open();
+
+        // Step 2: Login successfully
+        LoginPage loginPage = new LoginPage(getDriver());
+        loginPage.login("standard_user", "secret_sauce");
+
+        // Step 3: Assertion succeeds — recording will be discarded (no video saved)
+        assertThat(By.className("title")).hasText("Products");
+        assertThat(By.className("inventory_item")).isVisible();
+    }
+
+    @Test(priority = 2)
+    public void successfulSauceDemoTitleTest() {
+        // Step 1: Open the website
+        open();
+
+        // Step 2: Assert header title succeeds — recording will be discarded (no video saved)
+        assertThat(By.className("login_logo")).hasText("Swag Labs");
+    }
+
+    @Test(priority = 3)
     public void failingWebUiTestWithVideoRecording() {
         // Step 1: Open the website
         open();
