@@ -20,16 +20,23 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Generates an Allure-style single-page interactive HTML report driven by JSON data.
+ * Generates an Allure-style single-page interactive HTML report driven by JSON
+ * data.
  *
- * <p>The report computes cumulative totals across sequential and historical test runs
- * so that tests are never lost when running new tests, and exports both a standalone
- * {@code testfly-report-data.json} and a self-contained {@code testfly-report.html}
- * with embedded JSON for seamless offline viewing.</p>
+ * <p>
+ * The report computes cumulative totals across sequential and historical test
+ * runs
+ * so that tests are never lost when running new tests, and exports both a
+ * standalone
+ * {@code testfly-report-data.json} and a self-contained
+ * {@code testfly-report.html}
+ * with embedded JSON for seamless offline viewing.
+ * </p>
  */
 public final class HtmlReportGenerator {
 
-    private HtmlReportGenerator() {}
+    private HtmlReportGenerator() {
+    }
 
     public static void generate() {
         try {
@@ -56,7 +63,8 @@ public final class HtmlReportGenerator {
             // Historical tests first
             File historyDir = ReportPaths.metricsHistoryDir();
             if (historyDir.exists() && historyDir.isDirectory()) {
-                File[] histFiles = historyDir.listFiles((dir, name) -> name.startsWith("testfly-metrics-") && name.endsWith(".json"));
+                File[] histFiles = historyDir
+                        .listFiles((dir, name) -> name.startsWith("testfly-metrics-") && name.endsWith(".json"));
                 if (histFiles != null) {
                     Arrays.sort(histFiles, Comparator.comparing(File::getName));
                     for (File hf : histFiles) {
@@ -71,12 +79,14 @@ public final class HtmlReportGenerator {
                                     }
                                 }
                             }
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
             }
 
-            // Current run tests (updates latest status and attaches base64 screenshot if present)
+            // Current run tests (updates latest status and attaches base64 screenshot if
+            // present)
             List<Map<String, Object>> currentRunTests = new ArrayList<>();
             if (root.has("tests") && root.get("tests").isArray()) {
                 for (JsonNode t : root.get("tests")) {
@@ -88,8 +98,10 @@ public final class HtmlReportGenerator {
                             if (scFile.exists()) {
                                 try {
                                     byte[] bytes = Files.readAllBytes(scFile.toPath());
-                                    tMap.put("screenshotBase64", "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes));
-                                } catch (Exception ignored) {}
+                                    tMap.put("screenshotBase64",
+                                            "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes));
+                                } catch (Exception ignored) {
+                                }
                             }
                         }
                         currentRunTests.add(tMap);
@@ -106,12 +118,16 @@ public final class HtmlReportGenerator {
             if (cumTotal > 0) {
                 cumPassed = cumulativeTestsMap.values().stream().filter(t -> "PASSED".equals(t.get("status"))).count();
                 cumFailed = cumulativeTestsMap.values().stream().filter(t -> "FAILED".equals(t.get("status"))).count();
-                cumSkipped = cumulativeTestsMap.values().stream().filter(t -> "SKIPPED".equals(t.get("status"))).count();
+                cumSkipped = cumulativeTestsMap.values().stream().filter(t -> "SKIPPED".equals(t.get("status")))
+                        .count();
                 cumFlaky = cumulativeTestsMap.values().stream().filter(t -> {
                     Object r = t.get("retryCount");
                     return r instanceof Number && ((Number) r).intValue() > 0;
                 }).count();
-                cumDuration = cumulativeTestsMap.values().stream().mapToLong(t -> t.get("totalMs") instanceof Number ? ((Number) t.get("totalMs")).longValue() : 0L).sum();
+                cumDuration = cumulativeTestsMap.values().stream()
+                        .mapToLong(
+                                t -> t.get("totalMs") instanceof Number ? ((Number) t.get("totalMs")).longValue() : 0L)
+                        .sum();
                 cumPassRate = Math.round((cumPassed * 1000.0) / cumTotal) / 10.0;
             } else {
                 // Fallback to summary root metrics when tests array was empty or omitted
@@ -121,7 +137,8 @@ public final class HtmlReportGenerator {
                 cumSkipped = root.has("skippedTests") ? root.get("skippedTests").asLong() : 0L;
                 cumFlaky = root.has("flakyTests") ? root.get("flakyTests").asLong() : 0L;
                 cumDuration = root.has("totalTimeMs") ? root.get("totalTimeMs").asLong() : 0L;
-                cumPassRate = root.has("passRate") ? root.get("passRate").asDouble() : (cumTotal == 0 ? 0.0 : Math.round((cumPassed * 1000.0) / cumTotal) / 10.0);
+                cumPassRate = root.has("passRate") ? root.get("passRate").asDouble()
+                        : (cumTotal == 0 ? 0.0 : Math.round((cumPassed * 1000.0) / cumTotal) / 10.0);
             }
 
             Map<String, Object> cumulativeTotals = new LinkedHashMap<>();
@@ -153,7 +170,8 @@ public final class HtmlReportGenerator {
                 if (flakinessFile.exists()) {
                     flakinessData = mapper.readValue(flakinessFile, Map.class);
                 } else {
-                    List<io.testfly.flakiness.FlakinessScore> scores = io.testfly.flakiness.FlakinessAnalyzer.getLastResult();
+                    List<io.testfly.flakiness.FlakinessScore> scores = io.testfly.flakiness.FlakinessAnalyzer
+                            .getLastResult();
                     if (scores != null && !scores.isEmpty()) {
                         List<Map<String, Object>> scoreList = new ArrayList<>();
                         long high = 0, watch = 0, stable = 0;
@@ -165,9 +183,12 @@ public final class HtmlReportGenerator {
                             sm.put("failureRate", Math.round(s.failureRate() * 10.0) / 10.0);
                             sm.put("risk", s.risk().name());
                             scoreList.add(sm);
-                            if (s.risk() == io.testfly.flakiness.FlakinessScore.Risk.HIGH) high++;
-                            else if (s.risk() == io.testfly.flakiness.FlakinessScore.Risk.WATCH) watch++;
-                            else stable++;
+                            if (s.risk() == io.testfly.flakiness.FlakinessScore.Risk.HIGH)
+                                high++;
+                            else if (s.risk() == io.testfly.flakiness.FlakinessScore.Risk.WATCH)
+                                watch++;
+                            else
+                                stable++;
                         }
                         flakinessData.put("analysedTests", scores.size());
                         flakinessData.put("highRisk", high);
@@ -176,7 +197,8 @@ public final class HtmlReportGenerator {
                         flakinessData.put("scores", scoreList);
                     }
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
 
             reportData.put("flakiness", flakinessData);
             reportData.put("history", runHistory);
@@ -195,7 +217,8 @@ public final class HtmlReportGenerator {
             }
 
             // 7. Render HTML report
-            String html = buildHtml(reportDataJson, metadataSection, cumulativeTotals, timestamp, runHistory.size(), mapper.writeValueAsString(runHistory));
+            String html = buildHtml(reportDataJson, metadataSection, cumulativeTotals, timestamp, runHistory.size(),
+                    mapper.writeValueAsString(runHistory));
 
             File reportFile = ReportPaths.htmlReport();
             File reportDir = reportFile.getParentFile();
@@ -238,14 +261,16 @@ public final class HtmlReportGenerator {
 
         Map<String, Object> env = new LinkedHashMap<>();
         env.put("profile", profile);
-        env.put("browser", (browserCfg != null ? browserCfg.getName() : "unknown") + (browserCfg != null && browserCfg.isHeadless() ? " (headless)" : ""));
+        env.put("browser", (browserCfg != null ? browserCfg.getName() : "unknown")
+                + (browserCfg != null && browserCfg.isHeadless() ? " (headless)" : ""));
         env.put("executionMode", executionCfg != null ? executionCfg.getMode() : "unknown");
         env.put("baseUrl", executionCfg != null && executionCfg.getBaseUrl() != null ? executionCfg.getBaseUrl() : "—");
         env.put("gridUrl", executionCfg != null && executionCfg.getGridUrl() != null ? executionCfg.getGridUrl() : "—");
         env.put("parallel", executionCfg != null ? executionCfg.getParallel() : "none");
         env.put("threadCount", executionCfg != null ? executionCfg.getThreadCount() : 1);
         env.put("maxSessions", executionCfg != null ? executionCfg.getMaxActiveSessions() : 5);
-        env.put("retry", retryCfg != null && retryCfg.isEnabled() ? "Enabled (max " + retryCfg.getMaxAttempts() + ")" : "Disabled");
+        env.put("retry", retryCfg != null && retryCfg.isEnabled() ? "Enabled (max " + retryCfg.getMaxAttempts() + ")"
+                : "Disabled");
         env.put("explicitTimeout", (timeoutsCfg != null ? timeoutsCfg.getExplicit() : 10) + "s");
         env.put("pageLoadTimeout", (timeoutsCfg != null ? timeoutsCfg.getPageLoad() : 30) + "s");
 
@@ -316,7 +341,8 @@ public final class HtmlReportGenerator {
         if (buildUrl != null) {
             sb.append("      <div class=\"meta-item\">\n");
             sb.append("        <span class=\"meta-label\">Build URL</span>\n");
-            sb.append("        <span class=\"meta-value\"><a href=\"").append(escapeHtml(buildUrl)).append("\" target=\"_blank\">").append(escapeHtml(buildUrl)).append("</a></span>\n");
+            sb.append("        <span class=\"meta-value\"><a href=\"").append(escapeHtml(buildUrl))
+                    .append("\" target=\"_blank\">").append(escapeHtml(buildUrl)).append("</a></span>\n");
             sb.append("      </div>\n");
         }
 
@@ -328,13 +354,15 @@ public final class HtmlReportGenerator {
     }
 
     private static String ciText(JsonNode ci, String field) {
-        if (ci == null || !ci.has(field)) return "—";
+        if (ci == null || !ci.has(field))
+            return "—";
         String value = ci.get(field).asText();
         return value != null && !value.isBlank() ? value : "—";
     }
 
     private static String ciUrl(JsonNode ci) {
-        if (ci == null || !ci.has("buildUrl")) return null;
+        if (ci == null || !ci.has("buildUrl"))
+            return null;
         String value = ci.get("buildUrl").asText();
         return value != null && !value.isBlank() ? value : null;
     }
@@ -352,7 +380,8 @@ public final class HtmlReportGenerator {
         if (!historyDir.exists() || !historyDir.isDirectory()) {
             return list;
         }
-        File[] files = historyDir.listFiles((dir, name) -> name.startsWith("testfly-metrics-") && name.endsWith(".json"));
+        File[] files = historyDir
+                .listFiles((dir, name) -> name.startsWith("testfly-metrics-") && name.endsWith(".json"));
         if (files == null || files.length == 0) {
             return list;
         }
@@ -364,7 +393,8 @@ public final class HtmlReportGenerator {
             if (cfg != null && cfg.getReporting() != null) {
                 limit = cfg.getReporting().getHistoryRuns();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         for (int i = 0; i < Math.min(files.length, limit); i++) {
             File f = files[i];
@@ -392,13 +422,15 @@ public final class HtmlReportGenerator {
                 item.put("totalTimeMs", dur);
                 item.put("reportPath", "reports/testfly-report-" + rawTs + ".html");
                 list.add(item);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
         return list;
     }
 
     private static String formatHistoryTimestamp(String raw) {
-        if (raw == null || raw.length() < 15) return raw;
+        if (raw == null || raw.length() < 15)
+            return raw;
         try {
             String y = raw.substring(0, 4);
             String m = raw.substring(4, 6);
@@ -412,7 +444,8 @@ public final class HtmlReportGenerator {
         }
     }
 
-    private static String buildHtml(String reportDataJson, String metadataSection, Map<String, Object> cumTotals, String timestamp, int historyCount, String runHistoryJson) {
+    private static String buildHtml(String reportDataJson, String metadataSection, Map<String, Object> cumTotals,
+            String timestamp, int historyCount, String runHistoryJson) {
         int cumTotal = (int) cumTotals.getOrDefault("totalTests", 0);
         long cumPassed = (long) cumTotals.getOrDefault("passedTests", 0L);
         long cumFailed = (long) cumTotals.getOrDefault("failedTests", 0L);
@@ -455,7 +488,9 @@ public final class HtmlReportGenerator {
                     .replace("{{RUN_HISTORY_SECTION}}", "")
                     .replace("{{RETRY_SECTION}}", "")
                     .replace("{{FLAKINESS_SECTION}}", "")
-                    .replace("{{DONUT_DATA}}", String.format("{\"passed\":%d,\"failed\":%d,\"skipped\":%d}", cumPassed, cumFailed, cumSkipped))
+                    .replace("{{DONUT_DATA}}",
+                            String.format("{\"passed\":%d,\"failed\":%d,\"skipped\":%d}", cumPassed, cumFailed,
+                                    cumSkipped))
                     .replace("{{EXECUTION_PERCENTILES}}", "{}");
 
         } catch (Exception e) {
@@ -464,7 +499,8 @@ public final class HtmlReportGenerator {
     }
 
     private static String escapeHtml(String s) {
-        if (s == null) return "";
+        if (s == null)
+            return "";
         return s.replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
