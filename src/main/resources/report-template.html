@@ -958,7 +958,7 @@
                 </div>
                 <span id="nav-failed-tests" class="nav-count">{{FAILURE_BADGE}}</span>
             </li>
-            <li id="tab-history" class="nav-item" onclick="showTab('history', this)">
+            <li id="nav-history" class="nav-item" onclick="showTab('history', this)">
                 <div class="nav-item-left">
                     <span>&#128338;</span>
                     <span>Run History</span>
@@ -1187,6 +1187,9 @@
                         <tbody id="historyTableBody"></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
         <!-- ═══════════════ FLAKINESS RADAR TAB ═══════════════ -->
         <div id="tab-flakiness" class="tab-pane">
             <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
@@ -1196,7 +1199,7 @@
 
             <!-- Flakiness KPI Summary -->
             <div class="kpi-grid">
-                <div class="stat-card">
+                <div class="stat-card" style="cursor:pointer;" onclick="filterFlakiness('ALL')" title="Show all scored tests">
                     <div class="stat-top">
                         <span class="stat-label">Analysed Tests</span>
                         <span class="nav-count">&#128269; SCORED</span>
@@ -1204,7 +1207,7 @@
                     <div id="flaky-total" class="stat-value">0</div>
                     <div class="stat-meta">Tests tracked across runs</div>
                 </div>
-                <div class="stat-card card-failed">
+                <div class="stat-card card-failed" style="cursor:pointer;" onclick="filterFlakiness('HIGH')" title="Filter to High Risk tests">
                     <div class="stat-top">
                         <span class="stat-label">High Risk Flaky</span>
                         <span class="status-badge status-failed">HIGH</span>
@@ -1212,7 +1215,7 @@
                     <div id="flaky-high" class="stat-value">0</div>
                     <div class="stat-meta">Intermittent failure rate &ge; 33%</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card" style="cursor:pointer;" onclick="filterFlakiness('WATCH')" title="Filter to Watch List tests">
                     <div class="stat-top">
                         <span class="stat-label">Watch List</span>
                         <span class="status-badge status-broken">WATCH</span>
@@ -1220,7 +1223,7 @@
                     <div id="flaky-watch" class="stat-value">0</div>
                     <div class="stat-meta">Failure rate between 10% - 33%</div>
                 </div>
-                <div class="stat-card card-passed">
+                <div class="stat-card card-passed" style="cursor:pointer;" onclick="filterFlakiness('STABLE')" title="Filter to Stable tests">
                     <div class="stat-top">
                         <span class="stat-label">Stable Tests</span>
                         <span class="status-badge status-passed">STABLE</span>
@@ -1279,7 +1282,12 @@ function showTab(tabId, el) {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     const target = document.getElementById('tab-' + tabId);
     if (target) target.classList.add('active');
-    if (el) el.classList.add('active');
+    if (el) {
+        el.classList.add('active');
+    } else {
+        const matchingNav = document.querySelector(`.nav-item[onclick*="'${tabId}'"]`);
+        if (matchingNav) matchingNav.classList.add('active');
+    }
     try { localStorage.setItem('testfly-active-tab', tabId); } catch(e) {}
 }
 
@@ -1728,7 +1736,10 @@ function renderHistoryTable() {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">No archived run history available yet.</td></tr>';
         return;
     }
-    tbody.innerHTML = list.map(h => `
+    const isInReports = window.location.pathname.includes('/reports/');
+    tbody.innerHTML = list.map(h => {
+        const link = isInReports ? (h.reportPath || '').replace('reports/', '') : (h.reportPath || '#');
+        return `
         <tr>
             <td><strong>${escapeHtml(h.timestamp || '')}</strong></td>
             <td><strong style="color:${h.passRate >= 80 ? 'var(--good)' : 'var(--bad)'}">${h.passRate}%</strong></td>
@@ -1737,15 +1748,55 @@ function renderHistoryTable() {
             <td style="color:var(--bad);">${h.failedTests}</td>
             <td style="color:var(--skipped);">${h.skippedTests}</td>
             <td style="font-family:var(--font-mono);">${h.totalTimeMs} ms</td>
-            <td><a href="${escapeHtml(h.reportPath || '#')}" target="_blank" style="color:var(--primary);font-weight:600;text-decoration:none;">View Report &rarr;</a></td>
+            <td><a href="${escapeHtml(link)}" target="_blank" style="color:var(--primary);font-weight:600;text-decoration:none;">View Report &rarr;</a></td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
+}
+
+let currentFlakinessFilter = 'ALL';
+
+function filterFlakiness(risk) {
+    currentFlakinessFilter = risk;
+    renderFlakinessTable();
+}
+
+function inspectTestCase(testId) {
+    if (!testId) return;
+    const navTests = document.querySelector(`.nav-item[onclick*="'tests'"]`);
+    showTab('tests', navTests);
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = testId;
+        applySearch();
+    }
+
+    setTimeout(() => {
+        const rows = document.querySelectorAll('#testTable tbody tr.group-member');
+        for (const row of rows) {
+            const rowTest = (row.getAttribute('data-test') || '').toLowerCase();
+            if (rowTest.includes(testId.toLowerCase())) {
+                const groupName = row.getAttribute('data-group');
+                if (groupName) {
+                    const icon = document.getElementById('gicon-' + groupName);
+                    if (icon && icon.classList.contains('closed')) {
+                        toggleGroup(groupName);
+                    }
+                }
+                row.style.display = '';
+                row.click();
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                break;
+            }
+        }
+    }, 120);
 }
 
 // ── Render Flakiness Radar Table ──
 function renderFlakinessTable() {
     const flakiness = reportData.flakiness || {};
-    const scores = flakiness.scores || [];
+    const allScores = flakiness.scores || [];
 
     const elTotal = document.getElementById('flaky-total');
     const elHigh = document.getElementById('flaky-high');
@@ -1756,7 +1807,7 @@ function renderFlakinessTable() {
     const highCount = flakiness.highRisk || 0;
     const watchCount = flakiness.watch || 0;
     const stableCount = flakiness.stable || 0;
-    const totalCount = flakiness.analysedTests || scores.length;
+    const totalCount = flakiness.analysedTests || allScores.length;
 
     if (elTotal) elTotal.innerText = totalCount;
     if (elHigh) elHigh.innerText = highCount;
@@ -1771,24 +1822,41 @@ function renderFlakinessTable() {
     const tbody = document.getElementById('flakinessTableBody');
     if (!tbody) return;
 
-    if (scores.length === 0) {
+    if (allScores.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);">No flakiness history data collected yet. Run test suites with flakiness enabled to build history.</td></tr>';
         return;
     }
 
-    tbody.innerHTML = scores.map(s => {
+    const filteredScores = (currentFlakinessFilter === 'ALL')
+        ? allScores
+        : allScores.filter(s => (s.risk || 'STABLE').toUpperCase() === currentFlakinessFilter);
+
+    if (filteredScores.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">No tests matching filter: <strong>${escapeHtml(currentFlakinessFilter)}</strong>. <a href="javascript:void(0)" onclick="filterFlakiness('ALL')" style="color:var(--primary);font-weight:600;">Show all</a></td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = filteredScores.map(s => {
         const risk = (s.risk || 'STABLE').toUpperCase();
         const badgeClass = risk === 'HIGH' ? 'risk-high' : risk === 'WATCH' ? 'risk-watch' : 'risk-stable';
         const rateColor = risk === 'HIGH' ? 'var(--bad)' : risk === 'WATCH' ? 'var(--flaky)' : 'var(--good)';
+        const safeTestId = escapeHtml(s.testId || '');
 
         return `
             <tr>
-                <td><strong>${escapeHtml(s.testId || '')}</strong></td>
+                <td>
+                    <a href="javascript:void(0)" onclick="inspectTestCase('${escapeHtml(s.testId || '')}')" style="color:var(--primary);font-weight:600;text-decoration:none;" title="Click to inspect this test case">
+                        ${safeTestId}
+                    </a>
+                </td>
                 <td style="text-align:center;"><span class="status-badge ${badgeClass}">${risk}</span></td>
                 <td style="text-align:right;font-family:var(--font-mono);font-weight:700;color:${rateColor};">${s.failureRate}%</td>
                 <td style="text-align:right;font-family:var(--font-mono);">${s.failCount || 0} / ${s.runsAnalysed || 0}</td>
                 <td style="text-align:center;">
-                    ${risk === 'HIGH' ? '<span style="color:var(--bad);font-weight:600;font-size:11px;">Quarantine Recommended</span>' : '<span style="color:var(--text-muted);font-size:11px;">Monitored</span>'}
+                    <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                        ${risk === 'HIGH' ? '<span style="color:var(--bad);font-weight:600;font-size:11px;">Quarantine Recommended</span>' : '<span style="color:var(--text-muted);font-size:11px;">Monitored</span>'}
+                        <button type="button" class="btn-copy" style="padding:2px 8px;font-size:11px;cursor:pointer;" onclick="inspectTestCase('${escapeHtml(s.testId || '')}')">Inspect &rarr;</button>
+                    </div>
                 </td>
             </tr>
         `;
