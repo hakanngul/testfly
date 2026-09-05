@@ -7,7 +7,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -22,7 +21,9 @@ import static org.testng.Assert.*;
  * Uses a local JDK {@link com.sun.net.httpserver.HttpServer} to stub
  * the TestRail v2 API — no external services required.
  *
- * <p>Run with:
+ * <p>
+ * Run with:
+ * 
  * <pre>
  * mvn verify -Preal-backends -Dit.test=TestRailIntegrationTest
  * </pre>
@@ -93,7 +94,7 @@ public class TestRailIntegrationTest {
 
     // ── Auth header construction ────────────────────────────────────────
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void createRun_sendsBasicAuthHeader() throws Exception {
         Object client = createTestRailClient("testuser@example.com", "api-key-123");
         invokeCreateRun(client, 1, 10, "Integration Test Run");
@@ -109,7 +110,7 @@ public class TestRailIntegrationTest {
                 "Auth header should encode username:apiKey");
     }
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void createRun_sendsJsonContentType() throws Exception {
         Object client = createTestRailClient("user@test.com", "key");
         invokeCreateRun(client, 1, 10, "Test Run");
@@ -120,7 +121,7 @@ public class TestRailIntegrationTest {
 
     // ── Result payload mapping ──────────────────────────────────────────
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void createRun_sendsCorrectPayload() throws Exception {
         Object client = createTestRailClient("user@test.com", "key");
         invokeCreateRun(client, 5, 10, "My Run");
@@ -135,7 +136,7 @@ public class TestRailIntegrationTest {
                 "Body should include all cases. Got: " + lastRequestBody);
     }
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void createRun_returnsRunId() throws Exception {
         Object client = createTestRailClient("user@test.com", "key");
         int runId = invokeCreateRun(client, 1, 10, "Test Run");
@@ -143,7 +144,7 @@ public class TestRailIntegrationTest {
         assertEquals(runId, 42, "Should parse run ID from response");
     }
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void addResult_sendsCorrectStatusMapping() throws Exception {
         Object client = createTestRailClient("user@test.com", "key");
 
@@ -155,7 +156,7 @@ public class TestRailIntegrationTest {
                 "PASSED should map to status_id 1. Got: " + lastRequestBody);
     }
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void addResult_failedMapsToStatusId5() throws Exception {
         Object client = createTestRailClient("user@test.com", "key");
 
@@ -166,7 +167,7 @@ public class TestRailIntegrationTest {
                 "Body should include comment. Got: " + lastRequestBody);
     }
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void addResult_skippedMapsToStatusId4() throws Exception {
         Object client = createTestRailClient("user@test.com", "key");
 
@@ -177,7 +178,7 @@ public class TestRailIntegrationTest {
 
     // ── Error handling ──────────────────────────────────────────────────
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void createRun_401Response_throwsClearException() throws Exception {
         // Start a server that returns 401
         HttpServer authServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -207,7 +208,7 @@ public class TestRailIntegrationTest {
         }
     }
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void addResult_500Response_throwsClearException() throws Exception {
         // Start a server that returns 500
         HttpServer errorServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);

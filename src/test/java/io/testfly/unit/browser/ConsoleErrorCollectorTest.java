@@ -27,9 +27,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.*;
 
 /**
  * Unit tests for {@link ConsoleErrorCollector}.
@@ -84,7 +82,7 @@ public class ConsoleErrorCollectorTest {
     public void collect_capturesSevereBrowserErrors() {
         LogEntry severeEntry = new LogEntry(Level.SEVERE, System.currentTimeMillis(),
                 "Uncaught TypeError: x is not a function");
-        LogEntries entries = new LogEntries(Arrays.asList(severeEntry));
+        LogEntries entries = new LogEntries(List.of(severeEntry));
         when(mockLogs.get(LogType.BROWSER)).thenReturn(entries);
 
         List<String> errors = ConsoleErrorCollector.collect();
@@ -127,7 +125,7 @@ public class ConsoleErrorCollectorTest {
     public void collect_emptyLog_returnsEmptyList() {
         LogEntries entries = new LogEntries(Collections.emptyList());
         when(mockLogs.get(LogType.BROWSER)).thenReturn(entries);
-        when(((JavascriptExecutor) mockDriver).executeScript(anyString()))
+        when(mockDriver.executeScript(anyString()))
                 .thenReturn(Collections.emptyList());
 
         List<String> errors = ConsoleErrorCollector.collect();
@@ -147,7 +145,7 @@ public class ConsoleErrorCollectorTest {
 
         // Strategy 2 returns errors via JS shim
         List<String> jsErrors = Arrays.asList("JS error 1", "JS error 2");
-        when(((JavascriptExecutor) mockDriver).executeScript(anyString()))
+        when(mockDriver.executeScript(anyString()))
                 .thenReturn(jsErrors);
 
         List<String> errors = ConsoleErrorCollector.collect();
@@ -177,7 +175,7 @@ public class ConsoleErrorCollectorTest {
 
     @Test
     public void injectShim_toleratesJsException() {
-        when(((JavascriptExecutor) mockDriver).executeScript(anyString()))
+        when(mockDriver.executeScript(anyString()))
                 .thenThrow(new RuntimeException("JS execution failed"));
 
         // Should not throw — exceptions are silently ignored
@@ -186,7 +184,7 @@ public class ConsoleErrorCollectorTest {
 
     @Test
     public void clear_toleratesJsException() {
-        when(((JavascriptExecutor) mockDriver).executeScript(anyString()))
+        when(mockDriver.executeScript(anyString()))
                 .thenThrow(new RuntimeException("JS execution failed"));
 
         // Should not throw
@@ -200,7 +198,7 @@ public class ConsoleErrorCollectorTest {
     @Test
     public void getErrors_delegatesToCollect() {
         LogEntry severe = new LogEntry(Level.SEVERE, System.currentTimeMillis(), "error via getErrors");
-        LogEntries entries = new LogEntries(Arrays.asList(severe));
+        LogEntries entries = new LogEntries(List.of(severe));
         when(mockLogs.get(LogType.BROWSER)).thenReturn(entries);
 
         List<String> errors = ConsoleErrorCollector.getErrors();
@@ -252,14 +250,14 @@ public class ConsoleErrorCollectorTest {
     public void collect_returnsUnmodifiableList() {
         LogEntries entries = new LogEntries(Collections.emptyList());
         when(mockLogs.get(LogType.BROWSER)).thenReturn(entries);
-        when(((JavascriptExecutor) mockDriver).executeScript(anyString()))
+        when(mockDriver.executeScript(anyString()))
                 .thenReturn(Collections.emptyList());
 
         List<String> errors = ConsoleErrorCollector.collect();
 
         try {
             errors.add("should not be allowed");
-            assertTrue(false, "collect() should return an unmodifiable list");
+            fail("collect() should return an unmodifiable list");
         } catch (UnsupportedOperationException e) {
             // expected
         }

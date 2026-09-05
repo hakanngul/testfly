@@ -3,7 +3,6 @@ package io.testfly.test;
 import io.testfly.api.TestFlyApi;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.shadow.ShadowDom;
-import io.testfly.steps.StepLogger;
 import io.testfly.test.support.AssertionSupport;
 import io.testfly.test.support.BrowserSupport;
 import io.testfly.test.support.LocatorSupport;
@@ -28,7 +27,8 @@ import java.time.Duration;
 /**
  * Base class for all page objects.
  *
- * <p>Provides safe, wait-backed helpers so page objects never call raw
+ * <p>
+ * Provides safe, wait-backed helpers so page objects never call raw
  * Selenium APIs directly. Extend this class instead of writing boilerplate
  * in every page object.
  *
@@ -36,9 +36,11 @@ import java.time.Duration;
  * public class LoginPage extends BasePage {
  *     private static final By USERNAME = By.id("username");
  *     private static final By PASSWORD = By.id("password");
- *     private static final By SUBMIT   = By.id("submit");
+ *     private static final By SUBMIT = By.id("submit");
  *
- *     public LoginPage(WebDriver driver) { super(driver); }
+ *     public LoginPage(WebDriver driver) {
+ *         super(driver);
+ *     }
  *
  *     public void login(String user, String pass) {
  *         type(USERNAME, user);
@@ -54,7 +56,10 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
 
     protected final WebDriver driver;
 
-    /** Tracks how many frames deep we are on this thread — used to decide parentFrame vs defaultContent. */
+    /**
+     * Tracks how many frames deep we are on this thread — used to decide
+     * parentFrame vs defaultContent.
+     */
     private static final ThreadLocal<Integer> FRAME_DEPTH = ThreadLocal.withInitial(() -> 0);
 
     protected BasePage(WebDriver driver) {
@@ -68,7 +73,9 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     /**
      * Pauses execution for the given number of milliseconds.
      *
-     * <p>Use sparingly — prefer explicit waits such as {@link WaitEngine#waitForVisible(By)}.
+     * <p>
+     * Use sparingly — prefer explicit waits such as
+     * {@link WaitEngine#waitForVisible(By)}.
      */
     protected void waitMillis(long milliseconds) {
         WaitEngine.waitMillis(milliseconds);
@@ -77,7 +84,9 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     /**
      * Pauses execution for the given number of seconds.
      *
-     * <p>Use sparingly — prefer explicit waits such as {@link WaitEngine#waitForVisible(By)}.
+     * <p>
+     * Use sparingly — prefer explicit waits such as
+     * {@link WaitEngine#waitForVisible(By)}.
      */
     protected void waitSeconds(int seconds) {
         WaitEngine.waitSeconds(seconds);
@@ -109,7 +118,8 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     }
 
     /**
-     * Waits for the element to be visible and returns the value of the given attribute.
+     * Waits for the element to be visible and returns the value of the given
+     * attribute.
      */
     protected String getAttribute(By locator, String attribute) {
         return find(locator).getAttribute(attribute);
@@ -130,7 +140,9 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     /**
      * Selects an option from a {@code <select>} element by its visible text.
      *
-     * <pre>selectByText(By.id("country"), "United Kingdom");</pre>
+     * <pre>
+     * selectByText(By.id("country"), "United Kingdom");
+     * </pre>
      */
     protected void selectByText(By locator, String text) {
         step("Select by text in " + locator);
@@ -138,9 +150,12 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     }
 
     /**
-     * Selects an option from a {@code <select>} element by its {@code value} attribute.
+     * Selects an option from a {@code <select>} element by its {@code value}
+     * attribute.
      *
-     * <pre>selectByValue(By.id("status"), "active");</pre>
+     * <pre>
+     * selectByValue(By.id("status"), "active");
+     * </pre>
      */
     protected void selectByValue(By locator, String value) {
         step("Select by value in " + locator);
@@ -150,7 +165,9 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     /**
      * Selects an option from a {@code <select>} element by its zero-based index.
      *
-     * <pre>selectByIndex(By.id("month"), 2);</pre>
+     * <pre>
+     * selectByIndex(By.id("month"), 2);
+     * </pre>
      */
     protected void selectByIndex(By locator, int index) {
         step("Select by index in " + locator);
@@ -158,7 +175,8 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     }
 
     /**
-     * Returns the visible text of the currently selected option in a {@code <select>} element.
+     * Returns the visible text of the currently selected option in a
+     * {@code <select>} element.
      */
     protected String getSelectedOption(By locator) {
         step("Get selected option from " + locator);
@@ -197,7 +215,9 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
      * Waits for a browser alert to be present, captures its text, accepts it,
      * and returns the text in one step.
      *
-     * <pre>String msg = getAndAcceptAlert();</pre>
+     * <pre>
+     * String msg = getAndAcceptAlert();
+     * </pre>
      */
     protected String getAndAcceptAlert() {
         step("Get and accept alert");
@@ -210,7 +230,9 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     /**
      * Waits for a prompt alert, types the given text into it, then accepts it.
      *
-     * <pre>typeInAlert("my input");</pre>
+     * <pre>
+     * typeInAlert("my input");
+     * </pre>
      */
     protected void typeInAlert(String text) {
         step("Type in alert");
@@ -232,7 +254,9 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     /**
      * Moves the mouse over the element (hover / mouse-over).
      *
-     * <pre>hover(By.id("menu-item"));</pre>
+     * <pre>
+     * hover(By.id("menu-item"));
+     * </pre>
      */
     protected void hover(By locator) {
         find(locator).hover();
@@ -263,7 +287,9 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     /**
      * Scrolls the element into the visible viewport.
      *
-     * <pre>scrollTo(By.id("footer"));</pre>
+     * <pre>
+     * scrollTo(By.id("footer"));
+     * </pre>
      */
     protected void scrollTo(By locator) {
         find(locator).scrollIntoView();
@@ -290,19 +316,25 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     // ----------------------------------------------------------
 
     /**
-     * Clicks the element via JavaScript — useful when a native click is blocked by an overlay.
+     * Clicks the element via JavaScript — useful when a native click is blocked by
+     * an overlay.
      *
-     * <pre>jsClick(By.id("hidden-trigger"));</pre>
+     * <pre>
+     * jsClick(By.id("hidden-trigger"));
+     * </pre>
      */
     protected void jsClick(By locator) {
         find(locator).jsClick();
     }
 
     /**
-     * Sets the element's {@code value} property via JavaScript — useful for read-only inputs
+     * Sets the element's {@code value} property via JavaScript — useful for
+     * read-only inputs
      * or custom components that block native {@code sendKeys}.
      *
-     * <pre>jsType(By.id("date-picker"), "2025-01-01");</pre>
+     * <pre>
+     * jsType(By.id("date-picker"), "2025-01-01");
+     * </pre>
      */
     protected void jsType(By locator, String text) {
         step("JS type into " + locator);
@@ -314,22 +346,22 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     // Soft assertions
     // ----------------------------------------------------------
 
-
-
     // ----------------------------------------------------------
     // SmartLocator helper
     // ----------------------------------------------------------
 
     /**
-     * Tries each locator in order and returns the first element that is found and displayed.
+     * Tries each locator in order and returns the first element that is found and
+     * displayed.
      *
-     * <p>Delegates to {@link SmartLocator#find(WebDriver, By...)} — no need to pass the driver manually.
+     * <p>
+     * Delegates to {@link SmartLocator#find(WebDriver, By...)} — no need to pass
+     * the driver manually.
      *
      * <pre>
      * WebElement btn = smartFind(
-     *     By.cssSelector(".submit-btn"),
-     *     By.xpath("//button[@type='submit']")
-     * );
+     *         By.cssSelector(".submit-btn"),
+     *         By.xpath("//button[@type='submit']"));
      * </pre>
      *
      * @param primary   the preferred locator strategy
@@ -349,8 +381,10 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     // ----------------------------------------------------------
 
     /**
-     * Switches into the given frame, runs the action, then restores the previous context.
-     * Safe to nest — inner frames restore to their parent frame, not default content.
+     * Switches into the given frame, runs the action, then restores the previous
+     * context.
+     * Safe to nest — inner frames restore to their parent frame, not default
+     * content.
      *
      * <pre>
      * withinFrame(By.id("outer-iframe"), () -> {
@@ -418,14 +452,16 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     // ----------------------------------------------------------
 
     /**
-     * Finds a single element inside the shadow root of the element at {@code hostLocator}.
+     * Finds a single element inside the shadow root of the element at
+     * {@code hostLocator}.
      *
      * <pre>
      * WebElement input = shadowFind(By.cssSelector("my-form"), "#email");
      * </pre>
      *
      * @param hostLocator locator for the shadow host element
-     * @param innerCss    CSS selector scoped to the shadow root (XPath not supported)
+     * @param innerCss    CSS selector scoped to the shadow root (XPath not
+     *                    supported)
      */
     protected WebElement shadowFind(By hostLocator, String innerCss) {
         step("Shadow find " + hostLocator + " / " + innerCss);
@@ -433,7 +469,8 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     }
 
     /**
-     * Finds all elements matching {@code innerCss} inside the shadow root of {@code hostLocator}.
+     * Finds all elements matching {@code innerCss} inside the shadow root of
+     * {@code hostLocator}.
      *
      * @return unmodifiable list; empty if nothing matches
      */
@@ -445,7 +482,9 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     /**
      * Clicks an element inside a shadow root.
      *
-     * <pre>shadowClick(By.cssSelector("my-form"), "#submit-btn");</pre>
+     * <pre>
+     * shadowClick(By.cssSelector("my-form"), "#submit-btn");
+     * </pre>
      */
     protected void shadowClick(By hostLocator, String innerCss) {
         step("Shadow click " + hostLocator + " / " + innerCss);
@@ -455,7 +494,9 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     /**
      * Clears and types text into an input inside a shadow root.
      *
-     * <pre>shadowType(By.cssSelector("my-form"), "#email", "user@example.com");</pre>
+     * <pre>
+     * shadowType(By.cssSelector("my-form"), "#email", "user@example.com");
+     * </pre>
      */
     protected void shadowType(By hostLocator, String innerCss, String text) {
         step("Shadow type into " + hostLocator + " / " + innerCss);
@@ -501,16 +542,19 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     /**
      * Sends the given file path to a file input element.
      *
-     * <p>The {@code filePath} is resolved in this order:
+     * <p>
+     * The {@code filePath} is resolved in this order:
      * <ol>
-     *   <li>Absolute path — used as-is if the file exists.</li>
-     *   <li>Classpath resource — resolved relative to {@code src/test/resources/}.</li>
-     *   <li>Project-root relative path — resolved from the current working directory.</li>
+     * <li>Absolute path — used as-is if the file exists.</li>
+     * <li>Classpath resource — resolved relative to
+     * {@code src/test/resources/}.</li>
+     * <li>Project-root relative path — resolved from the current working
+     * directory.</li>
      * </ol>
      *
      * <pre>
      * upload(By.id("file-input"), "testfiles/sample.pdf");
-     * upload(By.id("avatar"),     "/absolute/path/to/image.png");
+     * upload(By.id("avatar"), "/absolute/path/to/image.png");
      * </pre>
      */
     protected void upload(By inputLocator, String filePath) {
@@ -524,13 +568,15 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
     // Phase 14 — Network, Storage, GeoLocation, Clipboard
     // ----------------------------------------------------------
 
-    // networkMock(), localStorage(), sessionStorage(), cookies(), mockLocation(), clipboard() — via BrowserSupport
+    // networkMock(), localStorage(), sessionStorage(), cookies(), mockLocation(),
+    // clipboard() — via BrowserSupport
 
     // ----------------------------------------------------------
     // Fluent Locator API (find / $), Accessibility locators (getBy*),
     // Web-First Assertions (assertThat) — via support interfaces
     // ----------------------------------------------------------
-    // find(String/By), $(String/By), getByRole/Text/Label/Placeholder/TestId/AltText/Title
+    // find(String/By), $(String/By),
+    // getByRole/Text/Label/Placeholder/TestId/AltText/Title
     // and assertThat(By/Locator) are provided as default methods in
     // io.testfly.test.support.LocatorSupport and AssertionSupport.
 
@@ -552,7 +598,8 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
         if (resource != null) {
             try {
                 return Paths.get(resource.toURI()).toAbsolutePath().toString();
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         // 3. Project-root relative
@@ -562,10 +609,8 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
         }
 
         throw new IllegalArgumentException(
-            "File not found for upload: '" + filePath + "'. " +
-            "Checked: absolute path, classpath resources, and project-root relative path."
-        );
+                "File not found for upload: '" + filePath + "'. " +
+                        "Checked: absolute path, classpath resources, and project-root relative path.");
     }
 
-    
 }

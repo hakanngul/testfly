@@ -48,16 +48,20 @@ public interface NavigationSupport {
         if (ConsoleErrorCollector.isEnabled()) ConsoleErrorCollector.injectShim();
     }
 
-    /** Navigates to {@code baseUrl + path} with slash normalisation. */
+    /** Navigates to {@code baseUrl + path} with slash normalisation, or directly to {@code path} if it is an absolute URL. */
     default void open(String path) {
-        String base = baseUrl();
         String url;
-        if (base.endsWith("/") && path.startsWith("/")) {
-            url = base.substring(0, base.length() - 1) + path;
-        } else if (!base.endsWith("/") && !path.startsWith("/")) {
-            url = base + "/" + path;
+        if (path.startsWith("http://") || path.startsWith("https://")) {
+            url = path;
         } else {
-            url = base + path;
+            String base = baseUrl();
+            if (base.endsWith("/") && path.startsWith("/")) {
+                url = base.substring(0, base.length() - 1) + path;
+            } else if (!base.endsWith("/") && !path.startsWith("/")) {
+                url = base + "/" + path;
+            } else {
+                url = base + path;
+            }
         }
         StepLogger.step("Open " + url);
         getDriver().get(url);

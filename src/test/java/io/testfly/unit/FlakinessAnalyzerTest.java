@@ -62,23 +62,23 @@ public class FlakinessAnalyzerTest {
     @Test
     public void flakinessScore_storesAllFields() {
         FlakinessScore s = new FlakinessScore("com.example.LoginTest.login", 20, 5, 25.0, Risk.WATCH);
-        Assert.assertEquals(s.getTestId(),      "com.example.LoginTest.login");
-        Assert.assertEquals(s.getRunsAnalysed(), 20);
-        Assert.assertEquals(s.getFailCount(),    5);
-        Assert.assertEquals(s.getFailureRate(),  25.0, 0.001);
-        Assert.assertEquals(s.getRisk(),         Risk.WATCH);
+        Assert.assertEquals(s.testId(),      "com.example.LoginTest.login");
+        Assert.assertEquals(s.runsAnalysed(), 20);
+        Assert.assertEquals(s.failCount(),    5);
+        Assert.assertEquals(s.failureRate(),  25.0, 0.001);
+        Assert.assertEquals(s.risk(),         Risk.WATCH);
     }
 
     @Test
     public void flakinessScore_100PercentFail_isHigh() {
         FlakinessScore s = new FlakinessScore("t", 10, 10, 100.0, Risk.HIGH);
-        Assert.assertEquals(s.getRisk(), Risk.HIGH);
+        Assert.assertEquals(s.risk(), Risk.HIGH);
     }
 
     @Test
     public void flakinessScore_zeroFails_isStable() {
         FlakinessScore s = new FlakinessScore("t", 10, 0, 0.0, Risk.STABLE);
-        Assert.assertEquals(s.getRisk(), Risk.STABLE);
+        Assert.assertEquals(s.risk(), Risk.STABLE);
     }
 
     // ------------------------------------------------------------------

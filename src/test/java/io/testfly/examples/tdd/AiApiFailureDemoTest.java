@@ -1,43 +1,51 @@
 package io.testfly.examples.tdd;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.testfly.client.ApiClient;
 import io.testfly.client.ApiResponse;
 import io.testfly.test.BaseApiTest;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
-
 /**
- * Intentionally failing API tests that trigger AI Failure Analysis on HTTP/response issues.
+ * Intentionally failing API tests that trigger AI Failure Analysis on
+ * HTTP/response issues.
  *
- * <p>Each test demonstrates a different category of API failure — wrong status code,
+ * <p>
+ * Each test demonstrates a different category of API failure — wrong status
+ * code,
  * missing response fields, and incorrect data types.
  *
- * <p>Run with:
- * <pre>mvn test -Pexamples -Dtest=io.testfly.examples.tdd.AiApiFailureDemoTest</pre>
+ * <p>
+ * Run with:
+ * 
+ * <pre>
+ * mvn test -Pexamples -Dtest=io.testfly.examples.tdd.AiApiFailureDemoTest
+ * </pre>
  */
 public class AiApiFailureDemoTest extends BaseApiTest {
 
     /**
      * Wrong HTTP status — the endpoint returns 200, not 201.
-     * AI should detect the incorrect status expectation and suggest the correct one.
+     * AI should detect the incorrect status expectation and suggest the correct
+     * one.
      */
     @Test
     public void listProductsShouldReturn201Created() {
-        ApiResponse res = apiClient().get("/products").send();
+        ApiResponse res = ApiClient.get("/products").send();
         res.assertStatus(201);
     }
 
     /**
-     * Wrong JSON field name — the response uses {@code "data"}, not {@code "results"}.
+     * Wrong JSON field name — the response uses {@code "data"}, not
+     * {@code "results"}.
      * AI should compare the expected vs actual response structure.
      */
     @Test
     public void productsResponseShouldContainResultsArray() {
-        ApiResponse res = apiClient().get("/products?limit=3").send();
+        ApiResponse res = ApiClient.get("/products?limit=3").send();
         res.assertStatus(200);
 
-        assertNotNull(res.json("$.results"),
-                "Response should contain a 'results' array");
+        res.assertJsonExists("$.results");
     }
 
     /**
@@ -46,11 +54,10 @@ public class AiApiFailureDemoTest extends BaseApiTest {
      */
     @Test
     public void productPriceShouldBeString() {
-        ApiResponse res = apiClient().get("/products/1").send();
+        ApiResponse res = ApiClient.get("/products/1").send();
         res.assertStatus(200);
 
-        Object price = res.json("$.price");
-        assertTrue(price instanceof String,
+        res.assertJson("$.price", JsonNode::isTextual,
                 "Product price should be a string value");
     }
 
@@ -60,7 +67,7 @@ public class AiApiFailureDemoTest extends BaseApiTest {
      */
     @Test
     public void adminEndpointShouldBeAccessible() {
-        ApiResponse res = apiClient().get("/admin/dashboard").send();
+        ApiResponse res = ApiClient.get("/admin/dashboard").send();
         res.assertStatus(200);
     }
 
@@ -70,10 +77,9 @@ public class AiApiFailureDemoTest extends BaseApiTest {
      */
     @Test
     public void page999ShouldReturnProducts() {
-        ApiResponse res = apiClient().get("/products?page=999&limit=5").send();
+        ApiResponse res = ApiClient.get("/products?page=999&limit=5").send();
         res.assertStatus(200);
 
-        assertNotNull(res.json("$.data[0]"),
-                "Page 999 should still return product data");
+        res.assertJsonExists("$.data[0]");
     }
 }

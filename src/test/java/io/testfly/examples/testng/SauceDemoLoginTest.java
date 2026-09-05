@@ -4,9 +4,8 @@ import io.testfly.examples.pages.LoginPage;
 import io.testfly.examples.pages.ProductsPage;
 import io.testfly.precondition.PreCondition;
 import io.testfly.test.BaseTest;
+import org.openqa.selenium.By;
 import org.testng.annotations.Test;
-
-import static org.testng.Assert.*;
 
 /**
  * TestNG UI example for https://www.saucedemo.com.
@@ -29,8 +28,7 @@ public class SauceDemoLoginTest extends BaseTest {
         LoginPage loginPage = new LoginPage(getDriver());
         loginPage.login("standard_user", "secret_sauce");
 
-        ProductsPage productsPage = new ProductsPage(getDriver());
-        assertEquals(productsPage.getTitle(), "Products");
+        assertThat(By.className("title")).hasText("Products");
     }
 
     @Test
@@ -40,9 +38,9 @@ public class SauceDemoLoginTest extends BaseTest {
         LoginPage loginPage = new LoginPage(getDriver());
         loginPage.login("locked_out_user", "secret_sauce");
 
-        assertTrue(loginPage.isErrorDisplayed(), "Error message should be shown");
-        assertTrue(loginPage.getErrorText().contains("locked out"),
-                "Error text should mention locked out");
+        assertThat(By.cssSelector("[data-test='error']"))
+                .isVisible()
+                .containsText("locked out");
     }
 
     @PreCondition("sauce-login")
@@ -53,14 +51,13 @@ public class SauceDemoLoginTest extends BaseTest {
         ProductsPage productsPage = new ProductsPage(getDriver());
         productsPage.addFirstProductToCart();
 
-        assertEquals(productsPage.getCartCount(), "1");
+        assertThat(By.className("shopping_cart_badge")).hasText("1");
     }
 
     @PreCondition("sauce-login")
     @Test
     public void userCanSeeProductsAfterCachedLogin() {
         // Second consumer of the same condition — instant restore, no login replay
-        ProductsPage productsPage = new ProductsPage(getDriver());
-        assertEquals(productsPage.getTitle(), "Products");
+        assertThat(By.className("title")).hasText("Products");
     }
 }

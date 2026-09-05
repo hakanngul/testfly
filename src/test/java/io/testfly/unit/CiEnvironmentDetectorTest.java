@@ -105,8 +105,8 @@ public class CiEnvironmentDetectorTest {
     public void captureMetadata_genericCI_returnsProviderOnly() {
         Map<String, String> env = Map.of("CI", "true");
         CiMetadata meta = CiEnvironmentDetector.captureMetadata(env);
-        assertEquals(meta.getProvider(), "CI (generic)");
-        assertNull(meta.getBuildNumber());
+        assertEquals(meta.provider(), "CI (generic)");
+        assertNull(meta.buildNumber());
     }
 
     @Test
@@ -124,16 +124,16 @@ public class CiEnvironmentDetectorTest {
 
         CiMetadata meta = CiEnvironmentDetector.captureMetadata(env);
 
-        assertEquals(meta.getProvider(), "GitHub Actions");
-        assertEquals(meta.getBuildNumber(), "42");
-        assertEquals(meta.getBuildId(), "123456789");
-        assertEquals(meta.getBranch(), "feature/ci-meta");
-        assertEquals(meta.getCommitSha(), "abc123");
-        assertEquals(meta.getRepository(), "testfly/testfly");
-        assertEquals(meta.getActor(), "hagul");
-        assertEquals(meta.getJobName(), "unit-tests");
-        assertEquals(meta.getAgentName(), "GitHub Actions 1");
-        assertTrue(meta.getBuildUrl().contains("testfly/testfly/actions/runs/123456789"));
+        assertEquals(meta.provider(), "GitHub Actions");
+        assertEquals(meta.buildNumber(), "42");
+        assertEquals(meta.buildId(), "123456789");
+        assertEquals(meta.branch(), "feature/ci-meta");
+        assertEquals(meta.commitSha(), "abc123");
+        assertEquals(meta.repository(), "testfly/testfly");
+        assertEquals(meta.actor(), "hagul");
+        assertEquals(meta.jobName(), "unit-tests");
+        assertEquals(meta.agentName(), "GitHub Actions 1");
+        assertTrue(meta.buildUrl().contains("testfly/testfly/actions/runs/123456789"));
     }
 
     @Test
@@ -145,7 +145,7 @@ public class CiEnvironmentDetectorTest {
 
         CiMetadata meta = CiEnvironmentDetector.captureMetadata(env);
 
-        assertEquals(meta.getBranch(), "pr-branch");
+        assertEquals(meta.branch(), "pr-branch");
     }
 
     @Test
@@ -163,15 +163,15 @@ public class CiEnvironmentDetectorTest {
 
         CiMetadata meta = CiEnvironmentDetector.captureMetadata(env);
 
-        assertEquals(meta.getProvider(), "Jenkins");
-        assertEquals(meta.getBuildNumber(), "17");
-        assertEquals(meta.getBuildId(), "17");
-        assertEquals(meta.getBranch(), "main");
-        assertEquals(meta.getCommitSha(), "deadbeef");
-        assertEquals(meta.getBuildUrl(), "https://jenkins.example.com/job/myjob/17/");
-        assertEquals(meta.getJobName(), "myjob");
-        assertEquals(meta.getPullRequest(), "99");
-        assertEquals(meta.getAgentName(), "agent-01");
+        assertEquals(meta.provider(), "Jenkins");
+        assertEquals(meta.buildNumber(), "17");
+        assertEquals(meta.buildId(), "17");
+        assertEquals(meta.branch(), "main");
+        assertEquals(meta.commitSha(), "deadbeef");
+        assertEquals(meta.buildUrl(), "https://jenkins.example.com/job/myjob/17/");
+        assertEquals(meta.jobName(), "myjob");
+        assertEquals(meta.pullRequest(), "99");
+        assertEquals(meta.agentName(), "agent-01");
     }
 
     @Test
@@ -192,18 +192,18 @@ public class CiEnvironmentDetectorTest {
 
         CiMetadata meta = CiEnvironmentDetector.captureMetadata(env);
 
-        assertEquals(meta.getProvider(), "GitLab CI");
-        assertEquals(meta.getBuildNumber(), "5");
-        assertEquals(meta.getBuildId(), "1005");
-        assertEquals(meta.getBranch(), "develop");
-        assertEquals(meta.getCommitSha(), "gitlabsha");
-        assertEquals(meta.getCommitMessage(), "Add CI metadata");
-        assertEquals(meta.getBuildUrl(), "https://gitlab.example.com/pipelines/1005");
-        assertEquals(meta.getJobName(), "test");
-        assertEquals(meta.getPullRequest(), "12");
-        assertEquals(meta.getRepository(), "testfly/testfly");
-        assertEquals(meta.getActor(), "hagul");
-        assertEquals(meta.getAgentName(), "gitlab-runner-1");
+        assertEquals(meta.provider(), "GitLab CI");
+        assertEquals(meta.buildNumber(), "5");
+        assertEquals(meta.buildId(), "1005");
+        assertEquals(meta.branch(), "develop");
+        assertEquals(meta.commitSha(), "gitlabsha");
+        assertEquals(meta.commitMessage(), "Add CI metadata");
+        assertEquals(meta.buildUrl(), "https://gitlab.example.com/pipelines/1005");
+        assertEquals(meta.jobName(), "test");
+        assertEquals(meta.pullRequest(), "12");
+        assertEquals(meta.repository(), "testfly/testfly");
+        assertEquals(meta.actor(), "hagul");
+        assertEquals(meta.agentName(), "gitlab-runner-1");
     }
 
     @Test
@@ -221,15 +221,15 @@ public class CiEnvironmentDetectorTest {
 
         CiMetadata meta = CiEnvironmentDetector.captureMetadata(env);
 
-        assertEquals(meta.getProvider(), "CircleCI");
-        assertEquals(meta.getBuildNumber(), "88");
-        assertEquals(meta.getCommitSha(), "circle-sha");
-        assertEquals(meta.getBranch(), "main");
-        assertEquals(meta.getBuildUrl(), "https://circleci.com/gh/testfly/testfly/88");
-        assertEquals(meta.getJobName(), "build");
-        assertEquals(meta.getPullRequest(), "7");
-        assertEquals(meta.getRepository(), "https://github.com/hakanngul/testfly");
-        assertEquals(meta.getActor(), "hagul");
+        assertEquals(meta.provider(), "CircleCI");
+        assertEquals(meta.buildNumber(), "88");
+        assertEquals(meta.commitSha(), "circle-sha");
+        assertEquals(meta.branch(), "main");
+        assertEquals(meta.buildUrl(), "https://circleci.com/gh/testfly/testfly/88");
+        assertEquals(meta.jobName(), "build");
+        assertEquals(meta.pullRequest(), "7");
+        assertEquals(meta.repository(), "https://github.com/hakanngul/testfly");
+        assertEquals(meta.actor(), "hagul");
     }
 
     @Test
@@ -239,7 +239,7 @@ public class CiEnvironmentDetectorTest {
                 "CI_COMMIT_REF_NAME", "refs/heads/release/1.0"
         );
         CiMetadata meta = CiEnvironmentDetector.captureMetadata(env);
-        assertEquals(meta.getBranch(), "release/1.0");
+        assertEquals(meta.branch(), "release/1.0");
     }
 
     @Test

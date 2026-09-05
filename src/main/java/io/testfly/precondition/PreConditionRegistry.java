@@ -76,18 +76,13 @@ public final class PreConditionRegistry {
         return Collections.unmodifiableList(providers);
     }
 
-    /** Package-private — pairs a provider instance with its resolved method. */
-    static final class ProviderMethod {
-        final BaseConditions instance;
-        final Method method;
-
-        ProviderMethod(BaseConditions instance, Method method) {
-            this.instance = instance;
-            this.method = method;
-        }
+    /**
+     * Package-private — pairs a provider instance with its resolved method.
+     */
+        record ProviderMethod(BaseConditions instance, Method method) {
 
         void invoke() throws Exception {
-            method.invoke(instance);
+                method.invoke(instance);
+            }
         }
-    }
 }

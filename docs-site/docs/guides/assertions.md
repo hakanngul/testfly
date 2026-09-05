@@ -81,6 +81,28 @@ assertThat(By.cssSelector("table tbody tr")).count(5);
 assertThat($(".card")).count(3);
 ```
 
+### Page & URL (PageAssert)
+
+Assert on page title and URL with automatic wait retry — no manual `getDriver().getTitle()` or `getCurrentUrl()` with raw TestNG/JUnit assertions required:
+
+```java
+// Title checks
+assertThat(getDriver()).hasTitle("Dashboard");
+assertThat(getDriver()).titleContains("Sauce");
+assertThatPage().hasTitle("Products");
+
+// URL checks
+assertThat(getDriver()).hasUrl("https://example.com/dashboard");
+assertThat(getDriver()).urlContains("/inventory");
+assertThat(getDriver()).urlMatches(".*\\/orders\\/\\d+");
+
+// With custom message & timeout
+assertThat(getDriver())
+    .as("Should land on dashboard after login")
+    .within(Duration.ofSeconds(5))
+    .urlContains("/dashboard");
+```
+
 ---
 
 ## Modifiers & Customization

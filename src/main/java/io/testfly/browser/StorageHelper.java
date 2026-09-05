@@ -8,16 +8,17 @@ import org.openqa.selenium.WebDriver;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
  * Browser storage helpers — localStorage, sessionStorage, and cookies.
  *
- * <p>All localStorage / sessionStorage operations use pure JavaScript and work
+ * <p>
+ * All localStorage / sessionStorage operations use pure JavaScript and work
  * on every browser. Cookie operations use Selenium's built-in cookie API.
  *
- * <p>Obtain instances via the factory methods {@link #localStorage()},
+ * <p>
+ * Obtain instances via the factory methods {@link #localStorage()},
  * {@link #sessionStorage()}, and {@link #cookies()} — available as protected
  * methods in {@link io.testfly.test.BasePage} and
  * {@link io.testfly.test.BaseTest}.
@@ -110,7 +111,8 @@ public final class StorageHelper {
         public List<String> keys() {
             Object result = js.executeScript(
                     "return Object.keys(window.localStorage);");
-            if (result instanceof List) return (List<String>) result;
+            if (result instanceof List)
+                return (List<String>) result;
             return new ArrayList<>();
         }
     }
@@ -162,7 +164,8 @@ public final class StorageHelper {
         public List<String> keys() {
             Object result = js.executeScript(
                     "return Object.keys(window.sessionStorage);");
-            if (result instanceof List) return (List<String>) result;
+            if (result instanceof List)
+                return (List<String>) result;
             return new ArrayList<>();
         }
     }

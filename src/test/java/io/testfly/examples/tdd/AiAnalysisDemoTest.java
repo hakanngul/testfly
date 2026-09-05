@@ -3,8 +3,6 @@ package io.testfly.examples.tdd;
 import io.testfly.test.BaseTest;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
-
 /**
  * Intentionally failing test to demonstrate AI Failure Analysis.
  *
@@ -24,7 +22,8 @@ public class AiAnalysisDemoTest extends BaseTest {
         open();
 
         // This assertion will fail — the AI will analyze why
-        assertEquals(getDriver().getTitle(), "Nonexistent Page",
-                "This assertion intentionally fails to trigger AI analysis");
+        assertThat(getDriver())
+                .as("This assertion intentionally fails to trigger AI analysis")
+                .hasTitle("Nonexistent Page");
     }
 }
