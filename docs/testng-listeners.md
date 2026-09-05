@@ -27,9 +27,9 @@ Users must not manually register framework listeners.
 
 ---
 
-## Listener Set (MVP)
+## Core Listener Set
 
-The MVP uses three core listeners:
+TestFly uses three core TestNG listeners:
 
 1. SuiteExecutionListener  
 2. TestExecutionListener  

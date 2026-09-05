@@ -1,43 +1,27 @@
 # MCP Codegen Contract
 
-> **⚠️ The TestFly MCP server is currently under development and not yet publicly released.**
-> This contract document is kept as a forward-looking reference for when the MCP server launches.
-> The API surface described below is already part of the `@TestFlyApi` stable contract and
-> should be respected regardless.
+This document is the **contract between the TestFly framework and the TestFly MCP server** ([`testfly-mcp`](https://github.com/hakanngul/testfly-mcp)).
 
-This document is the **contract between the TestFly framework and the
-TestFly MCP server** (coming soon).
+The MCP server generates framework-native Java code from recorded browser sessions and AI prompt instructions (`framework="testfly"`). To ensure seamless compatibility, it mirrors key parts of the public API — locator factories, the `Role` enum, base-class helpers, and assertion methods.
 
-The MCP server will generate framework-native Java from a recorded browser session
-(`framework="testfly"`). To do that it hard-codes a mirror of parts of this
-framework's public API — the locator factories, the `Role` enum, the base-class
-helpers, and the assertion methods. **If you change any API listed here, update
-the MCP server's `codegen_tools.py` in the same change**, or generated code will
-stop compiling for users.
+> **Important**: If you modify any public API listed in this document, you must coordinate and update the MCP server's codegen tools accordingly so that generated Java code continues to compile cleanly.
 
-Everything below is part of the `@TestFlyApi` stable surface. Treat a change
-here as a breaking change that needs a coordinated MCP release.
+Everything below is part of the stable public surface.
 
 ---
 
-## 1. Accessibility-first locator factories
+## 1. Accessibility-First Locator Factories
 
-The MCP emits these in priority order. Two calling contexts exist:
+The MCP emits locators in priority order. Two calling contexts exist:
 
-| Context | Base class | Locator style the MCP emits |
+| Context | Base Class | Locator Style Emitted by MCP |
 |---|---|---|
-| `generate_java_page_object`, `generate_java_testng` | `BasePage` / `BaseTest` | **instance** methods: `getByRole(...)`, `getByLabel(...)`, `find(...)` |
-| `generate_java_junit5`, `generate_gherkin` | `BaseJUnit5Test` / `BaseCucumberSteps` | **static** factories: `Locator.byRole(...)`, `Locator.byLabel(...)`, `Locator.of(...)` |
+| `generate_java_page_object`, `generate_java_testng` | `BasePage` / `BaseTest` | **Instance** methods: `getByRole(...)`, `getByLabel(...)`, `find(...)` |
+| `generate_java_junit5`, `generate_gherkin` | `BaseJUnit5Test` / `BaseCucumberSteps` | **Static** factories: `Locator.byRole(...)`, `Locator.byLabel(...)`, `Locator.of(...)` |
 
-> ⚠️ `BaseJUnit5Test` and `BaseCucumberSteps` expose `$()` / `assertThat()` /
-> `open()` but **not** the `getBy*` instance methods. The MCP therefore uses the
-> static `Locator.by*` factories there. If you add the `getBy*` helpers to those
-> base classes, the MCP can switch them to instance style — until then, keep the
-> static factories.
+### Instance Method ↔ Static Factory Mapping
 
-Instance method → static factory equivalence the MCP relies on:
-
-| Instance (BaseTest/BasePage) | Static (Locator) |
+| Instance (`BaseTest` / `BasePage`) | Static (`Locator`) |
 |---|---|
 | `getByRole(Role.X, "name")` | `Locator.byRole(Role.X).withName("name")` |
 | `getByRole(Role.HEADING, "n").withLevel(k)` | `Locator.byRole(Role.HEADING).withName("n").withLevel(k)` |
@@ -47,71 +31,69 @@ Instance method → static factory equivalence the MCP relies on:
 | `getByTestId("s")` | `Locator.byTestId("s")` |
 | `getByAltText("s")` | `Locator.byAltText("s")` |
 | `getByTitle("s")` | `Locator.byTitle("s")` |
-| `$("css")` | `Locator.ofCss("css")` |
+| `find("css")` / `$("css")` | `Locator.ofCss("css")` |
 | `$(By.x(...))` | `Locator.of(By.x(...))` |
 
-### Locator selection priority (highest → lowest)
+### Locator Selection Priority (Highest → Lowest)
 
-The MCP picks the first that applies, from attributes it snapshots off the live
-DOM at interaction time:
+The MCP selects the most resilient locator based on the live DOM snapshot:
 
-1. `getByTestId` — `data-testid` / `data-test-id` / `data-test` / `data-cy`
-2. `getByRole(Role.BUTTON|LINK|HEADING, name)` — name from `aria-label` / text / `title`
-3. `getByLabel` — associated `<label>` (for/wrapping/`aria-labelledby`/`.labels`)
+1. `getByTestId` — matches `data-testid`, `data-test-id`, `data-test`, or `data-cy`
+2. `getByRole(Role.BUTTON|LINK|HEADING, name)` — matches ARIA role and accessible name (`aria-label`, text, `title`)
+3. `getByLabel` — associated `<label>` text (`for`, enclosing, or `aria-labelledby`)
 4. `getByPlaceholder` → `getByAltText` → `getByTitle`
-5. `$(By.id(...))` → (name attr, low confidence → SmartLocator)
-6. selector-based inference, else `$(...)` wrapping the raw `By`
+5. `find(By.id(...))`
+6. Resilient CSS / XPath selector via `find("...")`
 
-Low-confidence elements (no stable/accessible locator) with ≥2 distinct candidate
-strategies fall back to **`smartFind(By primary, By... fallbacks)`** (a `BasePage`
-method — page objects only).
-
-## 2. `Role` enum
-
-The MCP mirrors this enum in `codegen_tools._ROLE_ENUM` and `_role_enum_from`.
-It currently maps these to `Role.*`: `BUTTON, LINK, CHECKBOX, RADIO, SWITCH,
-TEXTBOX, SEARCHBOX, COMBOBOX, OPTION, HEADING, IMG, TAB, MENUITEM, SLIDER,
-SPINBUTTON`. Only `BUTTON`, `LINK`, `HEADING` are emitted with an accessible
-name today. The authoritative list of roles lives in
-[`Role.java`](../src/main/java/io/testfly/locator/Role.java) — if you add or
-rename a role that the MCP should target, update `_ROLE_ENUM`.
-
-## 3. `Locator` terminal actions used by generated code
-
-`type(String)`, `click()`, `hover()`, `scrollIntoView()`, `element()` (→
-`WebElement`, used to bridge to `Actions`/`Select` for double/right-click and
-`<select>`), `withName(String)`, `withLevel(int)`, `toBy()` (page objects bridge
-to `BasePage` helpers via this). Removing or renaming any of these breaks codegen.
-
-## 4. `assertThat(...)` — web-first assertions
-
-The MCP emits `assertThat(<locator>)` chained with:
-`isVisible()`, `isHidden()`, `hasText(String)`, `containsText(String)`,
-`hasAttribute(String, String)`, `count(int)`.
-Page-title and URL checks use `assertThat(getDriver())` or `assertThatPage()` ([`PageAssert.java`](../src/main/java/io/testfly/assertion/PageAssert.java)) with:
-`hasTitle(String)`, `titleContains(String)`, `hasUrl(String)`, `urlContains(String)`, `urlMatches(String)`.
-See [`LocatorAssert.java`](../src/main/java/io/testfly/assertion/LocatorAssert.java) and [`PageAssert.java`](../src/main/java/io/testfly/assertion/PageAssert.java).
-
-## 5. Base-class helpers the generated code calls
-
-| Base class | Helpers the MCP emits |
-|---|---|
-| `BaseTest` | `open()`, `open(String)`, `getDriver()`, `getBy*`, `$`, `assertThat` |
-| `BasePage` | `super(driver)`, `type/click/hover/scrollTo`, `doubleClick/rightClick(By)`, `selectByText/selectByValue(By, ...)`, `smartFind(By, By...)`, `getBy*`, `$`, `assertThat` |
-| `BaseJUnit5Test` | `open`, `getDriver`, `$`, `assertThat` (static `Locator.by*` for a11y) |
-| `BaseCucumberSteps` | `open`, `getDriver`, `$`, `assertThat` (static `Locator.by*` for a11y) |
-
-## 6. `open(path)` semantics
-
-Generated tests call `open("/path")`, which resolves against
-`execution.baseUrl` in `testfly.yml`. The MCP strips the origin from the
-recorded absolute URL; a cross-origin navigation falls back to
-`getDriver().get(absoluteUrl)`. Keep `open(String)` resolving relative to
-`execution.baseUrl`.
+When an element lacks a high-confidence locator, the generator falls back to `smartFind(By primary, By... fallbacks)` on Page Objects.
 
 ---
 
-**When you touch the public API, grep the MCP repo's `codegen_tools.py` for the
-symbol before merging.** The MCP's `detect_testfly` tool keys off
-`testfly.yml` and the `io.testfly` coordinates — keep those
-stable too.
+## 2. `Role` Enum
+
+The authoritative list of roles lives in [`Role.java`](../src/main/java/io/testfly/locator/Role.java). Supported roles include:
+
+`BUTTON, LINK, CHECKBOX, RADIO, SWITCH, TEXTBOX, SEARCHBOX, COMBOBOX, OPTION, HEADING, IMG, TAB, MENUITEM, SLIDER, SPINBUTTON`.
+
+---
+
+## 3. `Locator` Terminal Actions Used by Codegen
+
+- `click()`
+- `fill(String)` / `type(String)`
+- `hover()`
+- `scrollIntoView()`
+- `press(String)`
+- `element()` (retrieves raw `WebElement` for advanced `Actions` / `Select` operations)
+
+---
+
+## 4. `assertThat(...)` Web-First Assertions
+
+The MCP emits fluent assertions:
+
+### Element Assertions (`assertThat(Locator)`)
+- `isVisible()`
+- `isHidden()`
+- `hasText(String)`
+- `containsText(String)`
+- `hasAttribute(String, String)`
+- `hasValue(String)`
+- `count(int)`
+
+### Page Assertions (`assertThatPage()`)
+- `hasTitle(String)`
+- `titleContains(String)`
+- `hasUrl(String)`
+- `urlContains(String)`
+- `urlMatches(String)`
+
+---
+
+## 5. Base-Class Helpers Emitted by Codegen
+
+| Base Class | Helpers Emitted |
+|---|---|
+| `BaseTest` | `open()`, `open(String)`, `getDriver()`, `getBy*`, `find`, `assertThat`, `assertThatPage()` |
+| `BasePage` | `super(driver)`, `click`, `fill`, `hover`, `smartFind`, `getBy*`, `find`, `assertThat` |
+| `BaseJUnit5Test` | `open()`, `open(String)`, `getDriver()`, `assertThat`, `assertThatPage()`, static `Locator.by*` |
