@@ -23,14 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java
-        # Bu step GitHub Secrets'tan ~/.m2/settings.xml ve GPG key'i otomatik oluşturur.
-        # Gerekli Secrets: GitHub repo → Settings → Secrets and variables → Actions → New repository secret
-        #   MAVEN_USERNAME  → https://central.sonatype.com → View Account → Generate User Token → username
-        #   MAVEN_PASSWORD  → aynı token'ın password kısmı
-        #   GPG_PRIVATE_KEY → terminalde: gpg --export-secret-keys --armor hakanngul@icloud.com
-        #   GPG_PASSPHRASE  → GPG key oluştururken verdiğin passphrase
-        # pom.xml'deki <publishingServerId>central</publishingServerId> ile buradaki server-id eşleşmeli.
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: temurin
@@ -39,7 +32,11 @@ jobs:
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase: GPG_PASSPHRASE
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Set version from tag or input
         if: startsWith(github.ref, 'refs/tags/v') || inputs.version != ''
