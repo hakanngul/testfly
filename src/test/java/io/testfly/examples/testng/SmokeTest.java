@@ -6,8 +6,12 @@ import org.testng.annotations.Test;
 /**
  * Minimal smoke test used in the README quickstart.
  *
- * <p>Run explicitly with:
- * <pre>mvn test -Dtest=io.testfly.examples.testng.SmokeTest</pre>
+ * <p>
+ * Run explicitly with:
+ * 
+ * <pre>
+ * mvn test -Dtest=io.testfly.examples.testng.SmokeTest
+ * </pre>
  */
 public class SmokeTest extends BaseTest {
 

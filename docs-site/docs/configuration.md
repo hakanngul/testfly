@@ -186,8 +186,11 @@ reporting:
 # ── Screen Recording ─────────────────────────────────────────────────────────
 recording:
   enabled: false                    # record MP4 video of browser execution
-  fps: 2                            # frame rate (1-5 recommended for test traces)
-  maxDurationSeconds: 60            # maximum video length per test
+  mode: retain-on-failure          # retain-on-failure | on | off
+  format: mp4                      # mp4 (default, pure-Java H.264) | gif
+  fps: 5                           # frame rate (1-10 recommended)
+  maxDurationSeconds: 60           # maximum video length per test
+  cdp: true                        # use Chrome DevTools Protocol screencast on Chromium
 
 # ── Execution Tracing ────────────────────────────────────────────────────────
 tracing:
@@ -602,13 +605,18 @@ Pixel-based screenshot comparison and visual baseline management.
 
 ## Screen Recording & Tracing {#recording}
 
-Session capture for debugging and audit compliance.
+Session capture for debugging, failure analysis, and audit compliance. See the full [Video Recording Guide](guides/video-recording) for details.
 
-* **`recording.enabled`**: Capture full MP4 video recordings of test runs.
-* **`recording.fps`**: Frames per second (default `2`).
-* **`recording.maxDurationSeconds`**: Maximum recorded video length per test (default `60`).
-* **`tracing.enabled`**: Capture complete DOM states and network events for timeline replay.
-* **`tracing.captureOnPass`**: Also capture traces for passing tests (default `false`).
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `recording.enabled` | `boolean` | `false` | Master toggle to enable Web UI video recording. |
+| `recording.mode` | `string` | `retain-on-failure` | `retain-on-failure`: Discard on pass, compile on fail.<br/>`on`: Record all tests.<br/>`off`: Disable recording. |
+| `recording.format` | `string` | `mp4` | Video format: `mp4` (pure-Java H.264 video, default) or `gif` (animated GIF). |
+| `recording.fps` | `int` | `2` | Captured frames per second (recommended 2–5). |
+| `recording.maxDurationSeconds` | `int` | `60` | Maximum recording duration in seconds before capping. |
+| `recording.cdp` | `boolean` | `true` | When true, uses CDP screencast on Chrome/Edge without blocking execution. |
+| `tracing.enabled` | `boolean` | `false` | Capture complete DOM states and network events for timeline replay. |
+| `tracing.captureOnPass` | `boolean` | `false` | Also capture traces for passing tests. |
 
 ---
 

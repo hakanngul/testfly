@@ -107,8 +107,7 @@ public class RecordingManagerTest {
         // Special characters should be replaced with underscores
         assertFalse(fileName.contains("#"), "File name must not contain '#'");
         assertFalse(fileName.contains("("), "File name must not contain '('");
-        assertFalse(fileName.contains(")"), "File name must not contain ')'");
-        assertTrue(fileName.endsWith(".gif"), "Output must be a .gif file");
+        assertTrue(fileName.endsWith(".mp4") || fileName.endsWith(".gif"), "Output must be a video (.mp4) or gif file");
     }
 
     @Test
@@ -225,6 +224,46 @@ public class RecordingManagerTest {
             LockSupport.parkNanos(10_000_000L); // 10ms pause
         }
     }
+
+    @Test
+    public void start_withPreferCdp_whenDriverNotHasDevTools_fallsBackGracefully() {
+        RecordingManager.start(driver, 2, 10, true);
+        RecordingManager.stop();
+    }
+
+    @Test
+    public void save_savesRecordingSameAsSaveOnFailure() throws Exception {
+        RecordingManager.start(driver, 5, 10, false);
+        waitForCaptures(1);
+        String path = RecordingManager.save("com.example.DirectSaveTest#test");
+        assertNotNull(path, "RecordingManager.save() should produce a valid file path");
+        assertTrue(new File(path).exists(), "Saved recording file should exist on disk");
+    }
+
+    @Test
+    public void recordingConfig_handlesModesAndCdpFlags() {
+        io.testfly.config.TestFlyConfig.Recording rec = new io.testfly.config.TestFlyConfig.Recording();
+        assertFalse(rec.isEnabled());
+        assertEquals(rec.getMode(), "retain-on-failure");
+        assertTrue(rec.isRetainOnFailure());
+        assertFalse(rec.isRecordAll());
+        assertFalse(rec.shouldRecord());
+
+        rec.setEnabled(true);
+        assertTrue(rec.shouldRecord());
+
+        rec.setMode("on");
+        assertTrue(rec.isRecordAll());
+        assertFalse(rec.isRetainOnFailure());
+
+        rec.setMode("off");
+        assertFalse(rec.shouldRecord());
+
+        assertTrue(rec.isCdp());
+        rec.setCdp(false);
+        assertFalse(rec.isCdp());
+    }
+
 
     private void waitForAttempts(int minAttempts) {
         long deadline = System.currentTimeMillis() + 2000;

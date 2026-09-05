@@ -499,17 +499,43 @@ public final class TestFlyConfig {
 
     public static final class Recording {
         private boolean enabled            = false;
+        private String  mode               = "retain-on-failure";
+        private String  format             = "mp4";
+        private boolean cdp                = true;
         private int     fps                = 2;
         private int     maxDurationSeconds = 60;
 
         public boolean isEnabled()                    { return enabled; }
         public void    setEnabled(boolean enabled)    { this.enabled = enabled; }
 
+        public String  getMode()                      { return mode; }
+        public void    setMode(String mode)           { this.mode = mode != null ? mode : "retain-on-failure"; }
+
+        public String  getFormat()                    { return format; }
+        public void    setFormat(String format)       { this.format = format != null ? format : "mp4"; }
+
+        public boolean isMp4()                        { return "mp4".equalsIgnoreCase(format); }
+
+        public boolean isCdp()                        { return cdp; }
+        public void    setCdp(boolean cdp)            { this.cdp = cdp; }
+
         public int  getFps()                          { return fps; }
         public void setFps(int fps)                   { this.fps = fps; }
 
-        public int  getMaxDurationSeconds()                          { return maxDurationSeconds; }
-        public void setMaxDurationSeconds(int maxDurationSeconds)    { this.maxDurationSeconds = maxDurationSeconds; }
+        public int  getMaxDurationSeconds()                       { return maxDurationSeconds; }
+        public void setMaxDurationSeconds(int maxDurationSeconds) { this.maxDurationSeconds = maxDurationSeconds; }
+
+        public boolean isRetainOnFailure() {
+            return "retain-on-failure".equalsIgnoreCase(mode);
+        }
+
+        public boolean isRecordAll() {
+            return "on".equalsIgnoreCase(mode) || "always".equalsIgnoreCase(mode);
+        }
+
+        public boolean shouldRecord() {
+            return enabled && !"off".equalsIgnoreCase(mode);
+        }
     }
 
     private Visual visual;

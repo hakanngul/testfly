@@ -186,8 +186,11 @@ reporting:
 # ── Ekran Kaydı (Screen Recording) ───────────────────────────────────────────
 recording:
   enabled: false                    # tarayıcı oturumunu MP4 video olarak kaydet
-  fps: 2                            # saniyedeki kare sayısı (test kayıtları için 1-5 arası önerilir)
-  maxDurationSeconds: 60            # test başına maksimum video uzunluğu (saniye)
+  mode: retain-on-failure          # retain-on-failure | on | off
+  format: mp4                      # mp4 (varsayılan, saf Java H.264) | gif
+  fps: 5                           # saniyedeki kare sayısı (1-10 önerilir)
+  maxDurationSeconds: 60           # test başına maksimum video uzunluğu (saniye)
+  cdp: true                        # Chromium üzerinde Chrome DevTools Protocol screencast kullan
 
 # ── Yürütme İzleme (Execution Tracing) ───────────────────────────────────────
 tracing:
@@ -602,13 +605,18 @@ Piksel tabanlı ekran görüntüsü karşılaştırması ve referans görsel yö
 
 ## Ekran Kaydı ve İzleme {#recording}
 
-Hata ayıklama ve denetim uyumluluğu için oturum yakalama.
+Hata ayıklama, kök neden analizi ve denetim uyumluluğu için tarayıcı oturumu yakalama. Detaylar için [Video Kaydı Kılavuzu](guides/video-recording) sayfasına bakın.
 
-* **`recording.enabled`**: Test koşumunun MP4 video kaydını alır.
-* **`recording.fps`**: Saniyedeki kare sayısı (varsayılan `2`).
-* **`recording.maxDurationSeconds`**: Test başına maksimum video süresi (varsayılan `60` sn).
-* **`tracing.enabled`**: Adım adım DOM ve ağ olaylarını yakalar.
-* **`tracing.captureOnPass`**: Başarılı testlerde de izleme kaydeder (varsayılan `false`).
+| Özellik | Tip | Varsayılan | Açıklama |
+|---|---|---|---|
+| `recording.enabled` | `boolean` | `false` | Web UI video kaydını açıp kapatan ana anahtar. |
+| `recording.mode` | `string` | `retain-on-failure` | `retain-on-failure`: Test geçerse kareleri atar, kalırsa video üretir.<br/>`on`: Tüm testleri kaydeder.<br/>`off`: Video kaydını kapatır. |
+| `recording.format` | `string` | `mp4` | Video formatı: `mp4` (saf Java H.264 video, varsayılan) veya `gif` (hareketli GIF). |
+| `recording.fps` | `int` | `2` | Saniyede yakalanan kare hızı (önerilen 2–5). |
+| `recording.maxDurationSeconds` | `int` | `60` | Test başına izin verilen maksimum video uzunluğu (saniye). |
+| `recording.cdp` | `boolean` | `true` | True olduğunda Chrome/Edge üzerinde CDP screencast kullanarak test hızını düşürmeden kayıt alır. |
+| `tracing.enabled` | `boolean` | `false` | Zaman tüneli için adım adım DOM ve ağ olaylarını yakalar. |
+| `tracing.captureOnPass` | `boolean` | `false` | Başarılı testlerde de izleme kaydeder. |
 
 ---
 

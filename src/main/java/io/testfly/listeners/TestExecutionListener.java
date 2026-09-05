@@ -159,8 +159,15 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         }
         SoftAssertions.clear();
 
+        io.testfly.config.TestFlyConfig cfg = TestFlyContext.getConfig();
+        io.testfly.config.TestFlyConfig.Recording rec = cfg != null ? cfg.getRecording() : null;
+        if (rec != null && rec.isRecordAll() && !skipBrowser(result)) {
+            String recPath = RecordingManager.save(testId);
+            ExecutionMetrics.recordRecording(testId, recPath);
+        } else {
+            RecordingManager.stop(); // discard frames — test passed in retain-on-failure mode
+        }
         capturePerformanceIfEnabled(testId, result);
-        RecordingManager.stop(); // discard frames — test passed
         ExecutionMetrics.recordStatus(testId, "PASSED");
         ExecutionMetrics.markEnd(testId);
         saveTraceIfEnabled(testId, result.getMethod().getMethodName(), true);
@@ -193,10 +200,11 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         if (!skipBrowser(result) && ConsoleErrorCollector.isEnabled() && !jsErrorsLogged.get()) {
             ConsoleErrorCollector.collect().forEach(e -> StepLogger.step("[JS Error] " + e, StepStatus.WARN));
         }
-        jsErrorsLogged.set(false);
-
         String recordingPath = skipBrowser(result) ? null : RecordingManager.saveOnFailure(testId);
         ExecutionMetrics.recordRecording(testId, recordingPath);
+        if (recordingPath != null) {
+            System.out.println("[TestFly] 🎥 Video recording saved: " + recordingPath);
+        }
         ExecutionMetrics.recordStatus(testId, "FAILED");
         ExecutionMetrics.markEnd(testId);
         if (result.getThrowable() != null) {
@@ -280,13 +288,16 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
 
     private void startRecordingIfEnabled() {
         try {
-            io.testfly.config.TestFlyConfig.Recording rec =
-                    TestFlyContext.getConfig().getRecording();
-            if (rec == null || !rec.isEnabled()) return;
+            io.testfly.config.TestFlyConfig cfg = TestFlyContext.getConfig();
+            io.testfly.config.TestFlyConfig.Recording rec = cfg != null ? cfg.getRecording() : null;
+            if (rec == null || !rec.shouldRecord()) return;
             org.openqa.selenium.WebDriver driver = DriverManager.getDriver();
             if (driver == null) return;
-            RecordingManager.start(driver, rec.getFps(), rec.getMaxDurationSeconds());
-        } catch (Exception ignored) {}
+            RecordingManager.start(driver, rec.getFps(), rec.getMaxDurationSeconds(), rec.isCdp());
+            System.out.println("[TestFly] 🎥 Video recording started (mode=" + rec.getMode() + ", fps=" + rec.getFps() + ")");
+        } catch (Exception e) {
+            System.err.println("[TestFly] Failed to start video recording: " + e.getMessage());
+        }
     }
 
     private boolean isApiTest(ITestResult result) {
