@@ -1,11 +1,10 @@
 package io.testfly.examples.tdd;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.testfly.client.ApiClient;
 import io.testfly.client.ApiResponse;
 import io.testfly.test.BaseApiTest;
 import org.testng.annotations.Test;
-
-import static org.testng.Assert.*;
 
 /**
  * Intentionally failing API tests that trigger AI Failure Analysis on
@@ -46,8 +45,7 @@ public class AiApiFailureDemoTest extends BaseApiTest {
         ApiResponse res = ApiClient.get("/products?limit=3").send();
         res.assertStatus(200);
 
-        assertNotNull(res.json("$.results"),
-                "Response should contain a 'results' array");
+        res.assertJsonExists("$.results");
     }
 
     /**
@@ -59,8 +57,7 @@ public class AiApiFailureDemoTest extends BaseApiTest {
         ApiResponse res = ApiClient.get("/products/1").send();
         res.assertStatus(200);
 
-        Object price = res.json("$.price");
-        assertTrue(price instanceof String,
+        res.assertJson("$.price", JsonNode::isTextual,
                 "Product price should be a string value");
     }
 
@@ -83,7 +80,6 @@ public class AiApiFailureDemoTest extends BaseApiTest {
         ApiResponse res = ApiClient.get("/products?page=999&limit=5").send();
         res.assertStatus(200);
 
-        assertNotNull(res.json("$.data[0]"),
-                "Page 999 should still return product data");
+        res.assertJsonExists("$.data[0]");
     }
 }

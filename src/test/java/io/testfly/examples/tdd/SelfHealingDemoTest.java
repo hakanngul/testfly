@@ -1,13 +1,10 @@
 package io.testfly.examples.tdd;
 
 import io.testfly.examples.pages.LoginPage;
-import io.testfly.examples.pages.ProductsPage;
 import io.testfly.healing.HealLog;
 import io.testfly.test.BaseTest;
 import org.openqa.selenium.By;
 import org.testng.annotations.Test;
-
-import static org.testng.Assert.*;
 
 /**
  * Self-healing locator demo — tests that would normally fail due to broken selectors
@@ -45,8 +42,9 @@ public class SelfHealingDemoTest extends BaseTest {
         // Also broken: button#login-button (element is <input type="submit" id="login-button">)
         find(By.cssSelector("button#login-button")).click();
 
-        assertEquals(new ProductsPage(getDriver()).getTitle(), "Products",
-                "Should land on products page after login");
+        assertThat(By.className("title"))
+                .as("Should land on products page after login")
+                .hasText("Products");
     }
 
     /**
@@ -67,8 +65,9 @@ public class SelfHealingDemoTest extends BaseTest {
         // Self-healing extracts .shopping_cart_link → By.className("shopping_cart_link")
         find(By.cssSelector("nav.topbar > div.header-container .shopping_cart_link")).click();
 
-        assertTrue(getDriver().getCurrentUrl().contains("cart"),
-                "Should navigate to the cart page");
+        assertThat(getDriver())
+                .as("Should navigate to the cart page")
+                .urlContains("cart");
     }
 
     /**
@@ -77,7 +76,7 @@ public class SelfHealingDemoTest extends BaseTest {
      */
     @Test(dependsOnMethods = {"typeUsernameWithBrokenTagSelector", "clickLoginButtonWithBrokenCompoundSelector"})
     public void verifyHealEventsWereRecorded() {
-        assertFalse(HealLog.getAll().isEmpty(),
+        softAssert().that(!HealLog.getAll().isEmpty(),
                 "At least one locator should have been healed during this suite. "
                         + "Make sure locators.selfHealing: true is set in testfly.yml");
 

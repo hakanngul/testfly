@@ -3,8 +3,6 @@ package io.testfly.examples.testng;
 import io.testfly.test.BaseTest;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.assertTrue;
-
 /**
  * Minimal smoke test used in the README quickstart.
  *
@@ -16,6 +14,6 @@ public class SmokeTest extends BaseTest {
     @Test
     public void opensThePage() {
         open();
-        assertTrue(getDriver().getTitle().contains("Example Domain"));
+        assertThat(getDriver()).titleContains("Swag Labs");
     }
 }

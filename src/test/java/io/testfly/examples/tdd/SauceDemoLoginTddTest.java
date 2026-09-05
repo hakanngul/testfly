@@ -4,9 +4,8 @@ import io.testfly.examples.pages.LoginPage;
 import io.testfly.examples.pages.ProductsPage;
 import io.testfly.locator.Role;
 import io.testfly.test.BaseTest;
+import org.openqa.selenium.By;
 import org.testng.annotations.Test;
-
-import static org.testng.Assert.*;
 
 /**
  * TDD-style UI example for https://www.saucedemo.com.
@@ -36,7 +35,7 @@ public class SauceDemoLoginTddTest extends BaseTest {
         loginPage.login("standard_user", "secret_sauce");
 
         // Assert
-        assertEquals(new ProductsPage(getDriver()).getTitle(), "Products");
+        assertThat(By.className("title")).hasText("Products");
     }
 
     @Test
@@ -49,9 +48,9 @@ public class SauceDemoLoginTddTest extends BaseTest {
         loginPage.login("locked_out_user", "secret_sauce");
 
         // Assert
-        assertTrue(loginPage.isErrorDisplayed(), "Error message should be displayed");
-        assertTrue(loginPage.getErrorText().contains("locked out"),
-                "Error text should explain that the user is locked out");
+        assertThat(By.cssSelector("[data-test='error']"))
+                .isVisible()
+                .containsText("locked out");
     }
 
     @Test
@@ -65,6 +64,6 @@ public class SauceDemoLoginTddTest extends BaseTest {
         productsPage.addFirstProductToCart();
 
         // Assert
-        assertEquals(productsPage.getCartCount(), "1");
+        assertThat(By.className("shopping_cart_badge")).hasText("1");
     }
 }
