@@ -120,6 +120,17 @@ timeouts:
 | `explicit` | Default wait timeout used by `WaitEngine`, `Locator`, and `BasePage` helpers. |
 | `pageLoad` | Browser page-load timeout in seconds. |
 
+```yaml
+reporting:
+  mergeRuns: false
+  historyRuns: 10
+```
+
+| Key | What it does |
+|-----|--------------|
+| `mergeRuns` | When `true` (or via `-Dtestfly.merge=true`), sequential test executions merge test cases into a cumulative report instead of overwriting previous runs. |
+| `historyRuns` | Maximum number of timestamped historical run reports preserved in `target/reports/` and listed in the report's run switcher dropdown. |
+
 ---
 
 ## Environment profiles

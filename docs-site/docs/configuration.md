@@ -168,6 +168,8 @@ notifications:
 
 # ── Reporting ────────────────────────────────────────────────────────────────
 reporting:
+  mergeRuns: false                  # retain and merge sequential test runs into cumulative report (-Dtestfly.merge=true)
+  historyRuns: 10                   # number of historical test runs to preserve in report run switcher
   allure:
     enabled: false                  # export Allure 2 test results to target/allure-results/
   reportportal:
@@ -443,7 +445,16 @@ Controls CI environment detection and build pass/fail criteria.
 
 ## Reporting {#reporting}
 
-Integrations with third-party test dashboards and result portals.
+Settings for the built-in HTML dashboard report, run history archiving, and third-party test portals.
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `mergeRuns` | `boolean` | `false` | When `true`, sequential test executions merge their test results into a cumulative report instead of overwriting previous tests. Can also be toggled via CLI: `-Dtestfly.merge=true`. |
+| `historyRuns` | `int` | `10` | Maximum number of historical test runs to preserve in `target/reports/` and list in the interactive HTML report run switcher dropdown. |
+
+:::tip Run Archiving & History Switcher
+TestFly automatically archives every test execution to `target/reports/testfly-report-YYYYMMDD-HHmmss.html` alongside the primary `target/testfly-report.html`. The top header includes an interactive run switcher dropdown and a dedicated **Run History** tab to navigate past runs, timelines, and pass rates.
+:::
 
 #### `reportportal`
 

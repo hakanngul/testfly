@@ -238,6 +238,99 @@ public class ApiResponse {
 
     // ── JSON structure assertions ──────────────────────────────────────────────
 
+    /**
+     * Retrieves the {@link JsonNode} at the given path.
+     * Useful for custom assertions and inspection.
+     */
+    public JsonNode jsonNode(String path) {
+        try {
+            if (parsedBody == null) {
+                parsedBody = MAPPER.readTree(response.body());
+            }
+            String pointer = toPointer(path);
+            return parsedBody.at(pointer);
+        } catch (Exception e) {
+            throw new RuntimeException("[ApiResponse] Failed to parse JSON body. Body: " + truncate(response.body(), 200), e);
+        }
+    }
+
+    /**
+     * Asserts that the JSON value at {@code path} satisfies the given {@link java.util.function.Predicate}.
+     *
+     * <pre>
+     * res.assertJson("$.status", node -> node.asText().startsWith("ACT"), "Status should start with ACT");
+     * </pre>
+     */
+    public ApiResponse assertJson(String path, java.util.function.Predicate<JsonNode> predicate, String description) {
+        StepLogger.step("Assert API JSON '" + path + "': " + description);
+        JsonNode node = jsonNode(path);
+        if (node == null || node.isMissingNode() || !predicate.test(node)) {
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] JSON path '" + path + "' failed predicate check: " + description
+                            + " (actual value: " + (node == null ? "null" : node.toString()) + ")");
+        }
+        return this;
+    }
+
+    /** Fails the test if the JSON numeric value is not greater than {@code threshold}. */
+    public ApiResponse assertJsonGreaterThan(String path, double threshold) {
+        StepLogger.step("Assert API JSON '" + path + "' > " + threshold);
+        JsonNode node = jsonNode(path);
+        if (node == null || !node.isNumber() || node.asDouble() <= threshold) {
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] JSON path '" + path + "': expected > " + threshold + " but got "
+                            + (node == null ? "null" : node.asText()));
+        }
+        return this;
+    }
+
+    /** Fails the test if the JSON numeric value is not less than {@code threshold}. */
+    public ApiResponse assertJsonLessThan(String path, double threshold) {
+        StepLogger.step("Assert API JSON '" + path + "' < " + threshold);
+        JsonNode node = jsonNode(path);
+        if (node == null || !node.isNumber() || node.asDouble() >= threshold) {
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] JSON path '" + path + "': expected < " + threshold + " but got "
+                            + (node == null ? "null" : node.asText()));
+        }
+        return this;
+    }
+
+    /** Fails the test if the string representation of JSON value at {@code path} does not contain {@code fragment}. */
+    public ApiResponse assertJsonContains(String path, String fragment) {
+        StepLogger.step("Assert API JSON '" + path + "' contains '" + fragment + "'");
+        String actual = json(path);
+        if (actual == null || !actual.contains(fragment)) {
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] JSON path '" + path + "': expected to contain '" + fragment + "' but got '" + actual + "'");
+        }
+        return this;
+    }
+
+    /** Fails the test if the boolean value at {@code path} is not true. */
+    public ApiResponse assertJsonTrue(String path) {
+        StepLogger.step("Assert API JSON '" + path + "' is true");
+        JsonNode node = jsonNode(path);
+        if (node == null || !node.isBoolean() || !node.asBoolean()) {
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] JSON path '" + path + "': expected true but got "
+                            + (node == null ? "null" : node.asText()));
+        }
+        return this;
+    }
+
+    /** Fails the test if the boolean value at {@code path} is not false. */
+    public ApiResponse assertJsonFalse(String path) {
+        StepLogger.step("Assert API JSON '" + path + "' is false");
+        JsonNode node = jsonNode(path);
+        if (node == null || !node.isBoolean() || node.asBoolean()) {
+            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+                    "[ApiResponse] JSON path '" + path + "': expected false but got "
+                            + (node == null ? "null" : node.asText()));
+        }
+        return this;
+    }
+
     /** Fails the test if the JSON array at the given path does not have the expected size. */
     public ApiResponse assertJsonArraySize(String path, int expectedSize) {
         StepLogger.step("Assert API JSON array '" + path + "' size = " + expectedSize);
@@ -313,19 +406,7 @@ public class ApiResponse {
         return this;
     }
 
-    // ── Internal ─────────────────────────────────────────────────────────────
 
-    private JsonNode jsonNode(String path) {
-        try {
-            if (parsedBody == null) {
-                parsedBody = MAPPER.readTree(response.body());
-            }
-            String pointer = toPointer(path);
-            return parsedBody.at(pointer);
-        } catch (Exception e) {
-            throw new RuntimeException("[ApiResponse] Failed to parse JSON body. Body: " + truncate(response.body(), 200), e);
-        }
-    }
 
     /**
      * Converts JSONPath notation to Jackson JsonPointer.
