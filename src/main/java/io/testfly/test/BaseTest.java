@@ -16,7 +16,6 @@ import io.testfly.test.support.NavigationSupport;
 import io.testfly.test.support.PerformanceSupport;
 import io.testfly.test.support.SessionSupport;
 import io.testfly.test.support.SoftAssertSupport;
-import io.testfly.test.support.StepSupport;
 import io.testfly.test.support.TestDataSupport;
 import io.testfly.test.support.VisualSupport;
 import org.testng.annotations.Listeners;
@@ -33,28 +32,32 @@ import org.testng.annotations.Listeners;
  */
 @TestFlyApi(since = "0.1.0")
 @Listeners({
-        SuiteExecutionListener.class,
-        TestExecutionListener.class
+                SuiteExecutionListener.class,
+                TestExecutionListener.class
 })
-public abstract class BaseTest implements LocatorSupport, AssertionSupport, SessionSupport, StepSupport,
-        SoftAssertSupport, TestDataSupport, ApiSupport, ContextSupport, NavigationSupport,
-        BrowserSupport, VisualSupport, DbSupport, EmailSupport, AccessibilitySupport,
-        PerformanceSupport, ClockSupport {
+public abstract class BaseTest implements LocatorSupport, AssertionSupport, SessionSupport, SoftAssertSupport,
+                TestDataSupport, ApiSupport, ContextSupport, NavigationSupport,
+                BrowserSupport, VisualSupport, DbSupport, EmailSupport, AccessibilitySupport,
+                PerformanceSupport, ClockSupport {
 
-    // ----------------------------------------------------------
-    // Navigation (open / getDriver / getWait) — via NavigationSupport
-    // Fluent Locator API (find / $), Accessibility locators (getBy*),
-    // Web-First Assertions (assertThat) — via support interfaces
-    // Multi-session helpers session()/withSession() — via SessionSupport
-    // Step logging — via StepSupport
-    // Soft assertions, test data, API, context, browser, visual, DB, email, a11y — via support interfaces
-    // Performance (assertPerformance/collectPerformance) — via PerformanceSupport
-    // Clock mocking (clock) — via ClockSupport
-    // ----------------------------------------------------------
-    // find(String/By), $(String/By), getByRole/Text/Label/Placeholder/TestId/AltText/Title
-    // assertThat(By/Locator), session()/withSession(), step(), softAssert(),
-    // getTestData(), apiClient(), ctx()/suiteCtx(), networkMock()/localStorage()/cookies()/mockLocation()/clipboard(),
-    // assertScreenshot()/emulateDevice(), db(), mailbox()/to(), accessibility(),
-    // open(), open(String), getDriver(), getWait(), assertPerformance(), collectPerformance(), clock()
-    // are provided as default methods in io.testfly.test.support.*.
+        // ----------------------------------------------------------
+        // Navigation (open / getDriver / getWait) — via NavigationSupport
+        // Fluent Locator API (find / $), Accessibility locators (getBy*),
+        // Web-First Assertions (assertThat) — via support interfaces
+        // Multi-session helpers session()/withSession() — via SessionSupport
+        // Step logging — via StepSupport
+        // Soft assertions, test data, API, context, browser, visual, DB, email, a11y —
+        // via support interfaces
+        // Performance (assertPerformance/collectPerformance) — via PerformanceSupport
+        // Clock mocking (clock) — via ClockSupport
+        // ----------------------------------------------------------
+        // find(String/By), $(String/By),
+        // getByRole/Text/Label/Placeholder/TestId/AltText/Title
+        // assertThat(By/Locator), session()/withSession(), step(), softAssert(),
+        // getTestData(), apiClient(), ctx()/suiteCtx(),
+        // networkMock()/localStorage()/cookies()/mockLocation()/clipboard(),
+        // assertScreenshot()/emulateDevice(), db(), mailbox()/to(), accessibility(),
+        // open(), open(String), getDriver(), getWait(), assertPerformance(),
+        // collectPerformance(), clock()
+        // are provided as default methods in io.testfly.test.support.*.
 }

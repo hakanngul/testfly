@@ -83,7 +83,7 @@ retry:
 Serenity, driver'ları kendi `WebDriverManager` / `WebDriverFacade` aracılığıyla yönetir. TestFly, iş parçacığı yerel izolasyonu ile `DriverManager` kullanır:
 
 ```java
-protected WebDriver getDriver() { ... }   // BaseTest / BasePage'den
+protected WebDriver getDriver() { ... }   // from BaseTest / BasePage
 ```
 
 `@Managed` anotasyonları yok, `PageFactory` yok, driver alan enjeksiyonu yok.

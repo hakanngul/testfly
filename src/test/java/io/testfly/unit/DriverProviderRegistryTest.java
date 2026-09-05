@@ -1,6 +1,5 @@
 package io.testfly.unit;
 
-import io.testfly.driver.DriverProvider;
 import io.testfly.driver.DriverProviderRegistry;
 import io.testfly.driver.NamedDriverProvider;
 import org.openqa.selenium.WebDriver;
@@ -45,7 +44,7 @@ public class DriverProviderRegistryTest {
     @Test
     public void find_unknownBrowser_returnsNull() {
         assertNull(DriverProviderRegistry.find("safari"),
-            "Unregistered browser should return null, not throw");
+                "Unregistered browser should return null, not throw");
     }
 
     @Test
@@ -56,7 +55,7 @@ public class DriverProviderRegistryTest {
         DriverProviderRegistry.register(second);
 
         assertSame(DriverProviderRegistry.find("edge"), second,
-            "Second registration should overwrite the first");
+                "Second registration should overwrite the first");
     }
 
     @Test
@@ -75,12 +74,26 @@ public class DriverProviderRegistryTest {
     // ----------------------------------------------------------
 
     static class EdgeProvider implements NamedDriverProvider {
-        @Override public String browserName() { return "edge"; }
-        @Override public WebDriver createDriver() { return null; }
+        @Override
+        public String browserName() {
+            return "edge";
+        }
+
+        @Override
+        public WebDriver createDriver() {
+            return null;
+        }
     }
 
     static class SafariProvider implements NamedDriverProvider {
-        @Override public String browserName() { return "safari"; }
-        @Override public WebDriver createDriver() { return null; }
+        @Override
+        public String browserName() {
+            return "safari";
+        }
+
+        @Override
+        public WebDriver createDriver() {
+            return null;
+        }
     }
 }

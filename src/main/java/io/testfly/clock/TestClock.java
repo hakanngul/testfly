@@ -176,7 +176,7 @@ public final class TestClock {
                 return;
             }
 
-            if (!(driver instanceof ChromiumDriver)) {
+            if (!(driver instanceof ChromiumDriver chromiumDriver)) {
                 LOG.warning(
                     "[TestClock] Header injection requires a Chromium-based browser; skipping."
                 );
@@ -188,8 +188,6 @@ public final class TestClock {
                 headerName = "X-Mock-Date";
             }
             String isoValue = Instant.ofEpochMilli(timeMs).toString();
-
-            ChromiumDriver chromiumDriver = (ChromiumDriver) driver;
 
             // Enable the Network domain so header overrides take effect.
             chromiumDriver.executeCdpCommand("Network.enable", new HashMap<>());

@@ -6,8 +6,7 @@ import io.cucumber.java.en.When;
 import io.testfly.cucumber.BaseCucumberSteps;
 import io.testfly.examples.pages.LoginPage;
 import io.testfly.examples.pages.ProductsPage;
-
-import static org.testng.Assert.*;
+import org.openqa.selenium.By;
 
 /**
  * Step definitions for {@code saucedemo.feature}.
@@ -37,19 +36,18 @@ public class SauceDemoSteps extends BaseCucumberSteps {
 
     @Then("the products page is displayed")
     public void verifyProductsPage() {
-        assertEquals(new ProductsPage(getDriver()).getTitle(), "Products");
+        assertThat(By.className("title")).hasText("Products");
     }
 
     @Then("an error message containing {string} is displayed")
     public void verifyErrorMessage(String expectedText) {
-        LoginPage loginPage = new LoginPage(getDriver());
-        assertTrue(loginPage.isErrorDisplayed(), "Error message should be visible");
-        assertTrue(loginPage.getErrorText().contains(expectedText),
-                "Error text should contain: " + expectedText);
+        assertThat(By.cssSelector("[data-test='error']"))
+                .isVisible()
+                .containsText(expectedText);
     }
 
     @Then("the cart badge shows {string}")
     public void verifyCartBadge(String expectedCount) {
-        assertEquals(new ProductsPage(getDriver()).getCartCount(), expectedCount);
+        assertThat(By.className("shopping_cart_badge")).hasText(expectedCount);
     }
 }

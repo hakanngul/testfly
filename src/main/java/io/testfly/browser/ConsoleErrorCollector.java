@@ -11,20 +11,23 @@ import org.openqa.selenium.logging.LogType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 /**
  * Captures browser JavaScript console errors during test execution.
  *
- * <p>Enable in {@code testfly.yml}:
+ * <p>
+ * Enable in {@code testfly.yml}:
+ * 
  * <pre>
  * browser:
  *   captureConsoleErrors: true      # collect JS errors per test
  *   failOnConsoleErrors: false      # set true to fail test on any JS error
  * </pre>
  *
- * <p>Usage — manual capture in a test:
+ * <p>
+ * Usage — manual capture in a test:
+ * 
  * <pre>
  * ConsoleErrorCollector.clear();
  * click(By.id("submit"));
@@ -32,18 +35,20 @@ import java.util.logging.Level;
  * softAssert().that(errors.isEmpty(), "Unexpected JS errors: " + errors);
  * </pre>
  *
- * <p>When {@code captureConsoleErrors: true}, errors are automatically appended
+ * <p>
+ * When {@code captureConsoleErrors: true}, errors are automatically appended
  * to the test's step timeline in the HTML report.
  *
- * <p><b>Note:</b> Browser log capture requires Chrome with logging preferences configured.
+ * <p>
+ * <b>Note:</b> Browser log capture requires Chrome with logging preferences
+ * configured.
  * Firefox does not expose browser logs via WebDriver.
  */
 @TestFlyApi(since = "0.8.0")
 public final class ConsoleErrorCollector {
 
-    private static final ConcurrentHashMap<String, List<String>> errorsByTest = new ConcurrentHashMap<>();
-
-    private ConsoleErrorCollector() {}
+    private ConsoleErrorCollector() {
+    }
 
     /**
      * Captures current browser console errors for the calling thread's active test.
@@ -51,6 +56,7 @@ public final class ConsoleErrorCollector {
      *
      * @return list of error messages captured, empty if none
      */
+    @SuppressWarnings("null")
     public static List<String> collect() {
         WebDriver driver = DriverManager.getDriver();
         List<String> errors = new ArrayList<>();
@@ -58,9 +64,9 @@ public final class ConsoleErrorCollector {
         // Strategy 1: WebDriver browser logs (Chrome)
         try {
             driver.manage().logs().get(LogType.BROWSER).getAll().stream()
-                .filter(e -> e.getLevel().intValue() >= Level.SEVERE.intValue())
-                .map(LogEntry::getMessage)
-                .forEach(errors::add);
+                    .filter(e -> e.getLevel().intValue() >= Level.SEVERE.intValue())
+                    .map(LogEntry::getMessage)
+                    .forEach(errors::add);
         } catch (Exception ignored) {
             // Firefox and some drivers don't support browser logs
         }
@@ -69,11 +75,12 @@ public final class ConsoleErrorCollector {
         if (errors.isEmpty()) {
             try {
                 Object result = ((JavascriptExecutor) driver)
-                    .executeScript("return window.__testFlyErrors || []");
+                        .executeScript("return window.__testFlyErrors || []");
                 if (result instanceof List) {
                     ((List<?>) result).forEach(e -> errors.add(String.valueOf(e)));
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         return Collections.unmodifiableList(errors);
@@ -81,7 +88,8 @@ public final class ConsoleErrorCollector {
 
     /**
      * Injects a JS console error shim into the current page.
-     * Call this after page load if using Firefox or browsers without WebDriver log support.
+     * Call this after page load if using Firefox or browsers without WebDriver log
+     * support.
      *
      * <pre>
      * open("/dashboard");
@@ -93,16 +101,16 @@ public final class ConsoleErrorCollector {
     public static void injectShim() {
         try {
             ((JavascriptExecutor) DriverManager.getDriver()).executeScript(
-                "if (!window.__testFlyErrors) {" +
-                "  window.__testFlyErrors = [];" +
-                "  var _orig = console.error;" +
-                "  console.error = function() {" +
-                "    window.__testFlyErrors.push(Array.from(arguments).join(' '));" +
-                "    _orig.apply(console, arguments);" +
-                "  };" +
-                "}"
-            );
-        } catch (Exception ignored) {}
+                    "if (!window.__testFlyErrors) {" +
+                            "  window.__testFlyErrors = [];" +
+                            "  var _orig = console.error;" +
+                            "  console.error = function() {" +
+                            "    window.__testFlyErrors.push(Array.from(arguments).join(' '));" +
+                            "    _orig.apply(console, arguments);" +
+                            "  };" +
+                            "}");
+        } catch (Exception ignored) {
+        }
     }
 
     /**
@@ -112,8 +120,9 @@ public final class ConsoleErrorCollector {
     public static void clear() {
         try {
             ((JavascriptExecutor) DriverManager.getDriver())
-                .executeScript("if (window.__testFlyErrors) window.__testFlyErrors = [];");
-        } catch (Exception ignored) {}
+                    .executeScript("if (window.__testFlyErrors) window.__testFlyErrors = [];");
+        } catch (Exception ignored) {
+        }
     }
 
     /**

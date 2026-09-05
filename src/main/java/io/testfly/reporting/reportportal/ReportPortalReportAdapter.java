@@ -14,13 +14,16 @@ import java.util.Locale;
  * {@link ReportAdapter} that logs a ReportPortal launch summary after the
  * TestNG suite finishes.
  *
- * <p>The actual result upload is performed by the ReportPortal TestNG agent
+ * <p>
+ * The actual result upload is performed by the ReportPortal TestNG agent
  * listener, which reads the runtime properties produced by
  * {@link ReportPortalPropertiesWriter}. This adapter only validates that the
  * configuration is present and prints a human-readable summary containing the
  * ReportPortal dashboard URL.
  *
- * <p>Enable via {@code testfly.yml}:
+ * <p>
+ * Enable via {@code testfly.yml}:
+ * 
  * <pre>
  * reporting:
  *   reportportal:
@@ -99,7 +102,6 @@ public final class ReportPortalReportAdapter implements ReportAdapter {
                             summary.skipped++;
                             break;
                         default:
-                            summary.other++;
                             break;
                     }
                 }
@@ -124,6 +126,5 @@ public final class ReportPortalReportAdapter implements ReportAdapter {
         int passed;
         int failed;
         int skipped;
-        int other;
     }
 }

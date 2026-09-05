@@ -223,13 +223,6 @@ public final class SelfHealingLocator {
     // Inner value type
     // ------------------------------------------------------------------
 
-    public static final class FallbackEntry {
-        public final By     by;
-        public final String strategy;
-
-        public FallbackEntry(By by, String strategy) {
-            this.by       = by;
-            this.strategy = strategy;
-        }
+    public record FallbackEntry(By by, String strategy) {
     }
 }

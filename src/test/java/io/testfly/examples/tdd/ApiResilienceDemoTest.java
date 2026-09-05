@@ -4,8 +4,6 @@ import io.testfly.client.ApiResponse;
 import io.testfly.test.BaseApiTest;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
-
 /**
  * API resilience demo — tests that demonstrate how the framework handles
  * API failures gracefully with AI-powered failure analysis.
@@ -65,6 +63,6 @@ public class ApiResilienceDemoTest extends BaseApiTest {
 
         // Bug: fakeapi.net doesn't have a /products/search endpoint
         res.assertStatus(200);
-        assertNotNull(res.json("$.data[0]"), "Search should return results");
+        res.assertJsonExists("$.data[0]");
     }
 }

@@ -15,12 +15,17 @@ import java.util.Map;
 /**
  * Runs axe-core accessibility scans against the active browser page.
  *
- * <p>axe-core is bundled in the JAR — no internet connection or extra dependency required.
- * The library is injected once per page load; subsequent calls on the same page reuse the
+ * <p>
+ * axe-core is bundled in the JAR — no internet connection or extra dependency
+ * required.
+ * The library is injected once per page load; subsequent calls on the same page
+ * reuse the
  * already-injected instance.
  *
- * <p>Prefer the fluent API via {@link AccessibilityAssert} (accessed through
- * {@code accessibility()} in {@code BaseTest}) over calling this class directly.
+ * <p>
+ * Prefer the fluent API via {@link AccessibilityAssert} (accessed through
+ * {@code accessibility()} in {@code BaseTest}) over calling this class
+ * directly.
  */
 public final class AccessibilityChecker {
 
@@ -28,7 +33,8 @@ public final class AccessibilityChecker {
 
     private static volatile String axeSource;
 
-    private AccessibilityChecker() {}
+    private AccessibilityChecker() {
+    }
 
     /**
      * Runs an axe-core scan on the full page and returns the result.
@@ -40,33 +46,34 @@ public final class AccessibilityChecker {
     }
 
     /**
-     * Runs an axe-core scan scoped to {@code context} (a CSS selector or {@code null} for full page).
+     * Runs an axe-core scan scoped to {@code context} (a CSS selector or
+     * {@code null} for full page).
      */
     public static AccessibilityResult scan(String context) {
         return scan(context, Collections.emptyList(), Collections.emptyList());
     }
 
     /**
-     * Full scan with a CSS context scope, selectors to exclude, and WCAG tag filters.
+     * Full scan with a CSS context scope, selectors to exclude, and WCAG tag
+     * filters.
      *
-     * @param context         CSS selector to restrict the scan (null = full page)
+     * @param context          CSS selector to restrict the scan (null = full page)
      * @param excludeSelectors CSS selectors whose subtrees axe-core should skip
-     * @param tags            axe-core rule tags to run, e.g. {@code ["wcag2a", "wcag2aa"]};
-     *                        empty list runs all rules
+     * @param tags             axe-core rule tags to run, e.g.
+     *                         {@code ["wcag2a", "wcag2aa"]};
+     *                         empty list runs all rules
      */
     public static AccessibilityResult scan(String context,
-                                           List<String> excludeSelectors,
-                                           List<String> tags) {
+            List<String> excludeSelectors,
+            List<String> tags) {
         WebDriver driver = DriverManager.getDriver();
         if (driver == null) {
             throw new IllegalStateException(
-                "[Accessibility] No active WebDriver. Call accessibility() after open()."
-            );
+                    "[Accessibility] No active WebDriver. Call accessibility() after open().");
         }
         if (!(driver instanceof JavascriptExecutor)) {
             throw new UnsupportedOperationException(
-                "[Accessibility] Browser does not support JavaScript execution."
-            );
+                    "[Accessibility] Browser does not support JavaScript execution.");
         }
         JavascriptExecutor js = (JavascriptExecutor) driver;
 
@@ -85,22 +92,23 @@ public final class AccessibilityChecker {
 
     private static void injectAxeIfNeeded(JavascriptExecutor js) {
         Boolean alreadyLoaded = (Boolean) js.executeScript(
-            "return (typeof axe !== 'undefined' && typeof axe.run === 'function');"
-        );
-        if (Boolean.TRUE.equals(alreadyLoaded)) return;
+                "return (typeof axe !== 'undefined' && typeof axe.run === 'function');");
+        if (Boolean.TRUE.equals(alreadyLoaded))
+            return;
 
         js.executeScript(loadAxeSource());
     }
 
     private static String loadAxeSource() {
-        if (axeSource != null) return axeSource;
+        if (axeSource != null)
+            return axeSource;
         synchronized (AccessibilityChecker.class) {
-            if (axeSource != null) return axeSource;
+            if (axeSource != null)
+                return axeSource;
             try (InputStream in = AccessibilityChecker.class.getResourceAsStream(AXE_RESOURCE)) {
                 if (in == null) {
                     throw new IllegalStateException(
-                        "[Accessibility] axe.min.js not found in classpath at " + AXE_RESOURCE
-                    );
+                            "[Accessibility] axe.min.js not found in classpath at " + AXE_RESOURCE);
                 }
                 axeSource = new String(in.readAllBytes(), StandardCharsets.UTF_8);
             } catch (IOException e) {
@@ -117,8 +125,8 @@ public final class AccessibilityChecker {
      * axe.run() is async — we use the Selenium async callback pattern.
      */
     private static String buildRunScript(String context,
-                                         List<String> excludeSelectors,
-                                         List<String> tags) {
+            List<String> excludeSelectors,
+            List<String> tags) {
         StringBuilder sb = new StringBuilder();
         sb.append("var callback = arguments[arguments.length - 1];");
 
@@ -131,7 +139,8 @@ public final class AccessibilityChecker {
             if (!excludeSelectors.isEmpty()) {
                 sb.append("ctx.exclude = [");
                 for (int i = 0; i < excludeSelectors.size(); i++) {
-                    if (i > 0) sb.append(",");
+                    if (i > 0)
+                        sb.append(",");
                     sb.append("[").append(jsString(excludeSelectors.get(i))).append("]");
                 }
                 sb.append("];");
@@ -145,7 +154,8 @@ public final class AccessibilityChecker {
         if (!tags.isEmpty()) {
             sb.append("opts.runOnly = { type: 'tag', values: [");
             for (int i = 0; i < tags.size(); i++) {
-                if (i > 0) sb.append(",");
+                if (i > 0)
+                    sb.append(",");
                 sb.append(jsString(tags.get(i)));
             }
             sb.append("] };");
@@ -181,7 +191,7 @@ public final class AccessibilityChecker {
             }
         }
 
-        int passes    = sizeOf(raw.get("passes"));
+        int passes = sizeOf(raw.get("passes"));
         int incomplete = sizeOf(raw.get("incomplete"));
 
         return new AccessibilityResult(url, violations, passes, incomplete);
@@ -189,11 +199,11 @@ public final class AccessibilityChecker {
 
     @SuppressWarnings("unchecked")
     private static AccessibilityViolation parseViolation(Map<String, Object> v) {
-        String id          = str(v.get("id"));
+        String id = str(v.get("id"));
         String description = str(v.get("description"));
-        String help        = str(v.get("help"));
-        String helpUrl     = str(v.get("helpUrl"));
-        Impact impact      = Impact.fromString(str(v.get("impact")));
+        String help = str(v.get("help"));
+        String helpUrl = str(v.get("helpUrl"));
+        Impact impact = Impact.fromString(str(v.get("impact")));
 
         List<AccessibilityViolation.NodeDetail> nodes = new ArrayList<>();
         Object nodesObj = v.get("nodes");
@@ -210,10 +220,11 @@ public final class AccessibilityChecker {
 
     @SuppressWarnings("unchecked")
     private static AccessibilityViolation.NodeDetail parseNode(Map<String, Object> n) {
-        String html           = str(n.get("html"));
+        String html = str(n.get("html"));
         String failureSummary = str(n.get("failureSummary"));
 
-        // target is a List<List<String>> in axe-core — flatten to a single CSS path string
+        // target is a List<List<String>> in axe-core — flatten to a single CSS path
+        // string
         String target = "";
         Object targetObj = n.get("target");
         if (targetObj instanceof List) {
@@ -235,7 +246,8 @@ public final class AccessibilityChecker {
     private static String joinList(List<?> list, String sep) {
         StringBuilder sb = new StringBuilder();
         for (Object item : list) {
-            if (sb.length() > 0) sb.append(sep);
+            if (sb.length() > 0)
+                sb.append(sep);
             sb.append(item);
         }
         return sb.toString();
@@ -246,8 +258,10 @@ public final class AccessibilityChecker {
     }
 
     private static int sizeOf(Object o) {
-        if (o instanceof List) return ((List<?>) o).size();
-        if (o instanceof Number) return ((Number) o).intValue();
+        if (o instanceof List)
+            return ((List<?>) o).size();
+        if (o instanceof Number)
+            return ((Number) o).intValue();
         return 0;
     }
 }

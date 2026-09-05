@@ -1,8 +1,10 @@
 package io.testfly.assertion;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.driver.DriverManager;
 import io.testfly.locator.Locator;
 import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -55,6 +57,22 @@ public final class SoftAssertionCollector {
      */
     public LocatorAssert assertThat(Locator locator) {
         return new LocatorAssert(SeleniumAssert.extractBy(locator), locator.toString(), this);
+    }
+
+    /**
+     * Begins a fluent, auto-retrying soft assertion for the given {@link WebDriver} page state.
+     * Failures are recorded into this collector without throwing immediately.
+     */
+    public PageAssert assertThat(WebDriver driver) {
+        return new PageAssert(driver, this);
+    }
+
+    /**
+     * Begins a fluent, auto-retrying soft assertion for the current thread's {@link WebDriver} page state.
+     * Failures are recorded into this collector without throwing immediately.
+     */
+    public PageAssert assertThatPage() {
+        return new PageAssert(DriverManager.getDriver(), this);
     }
 
     /** Returns {@code true} if at least one {@code that()} call evaluated to {@code false}. */

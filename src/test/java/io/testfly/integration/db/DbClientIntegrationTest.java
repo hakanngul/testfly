@@ -10,7 +10,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -22,9 +21,12 @@ import static org.testng.Assert.*;
  * Integration tests for {@link DbClient} and {@link DbConnectionFactory}
  * using a real H2 in-memory database — no mocks required.
  *
- * <p>Requires H2 on the test classpath (test scope).
+ * <p>
+ * Requires H2 on the test classpath (test scope).
  *
- * <p>Run with:
+ * <p>
+ * Run with:
+ * 
  * <pre>
  * mvn verify -Preal-backends -Dit.test=DbClientIntegrationTest
  * </pre>
@@ -32,13 +34,14 @@ import static org.testng.Assert.*;
 @Test(singleThreaded = true)
 public class DbClientIntegrationTest {
 
-    private static final String H2_URL  = "jdbc:h2:mem:testfly_integration;DB_CLOSE_DELAY=-1";
+    private static final String H2_URL = "jdbc:h2:mem:testfly_integration;DB_CLOSE_DELAY=-1";
     private static final String H2_USER = "sa";
     private static final String H2_PASS = "";
 
     @BeforeClass
     public void setUp() throws Exception {
-        // Initialize TestFlyContext with H2 config so DbConnectionFactory can resolve it
+        // Initialize TestFlyContext with H2 config so DbConnectionFactory can resolve
+        // it
         TestFlyConfig config = new TestFlyConfig();
         TestFlyConfig.Database db = new TestFlyConfig.Database();
         db.setUrl(H2_URL);
@@ -57,7 +60,7 @@ public class DbClientIntegrationTest {
 
         // Create test schema via direct H2 connection
         try (Connection conn = DriverManager.getConnection(H2_URL, H2_USER, H2_PASS);
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
             stmt.execute("CREATE TABLE IF NOT EXISTS users ("
                     + "id INT PRIMARY KEY AUTO_INCREMENT, "
                     + "email VARCHAR(255) NOT NULL, "
@@ -77,15 +80,16 @@ public class DbClientIntegrationTest {
         TestFlyContext.reset();
         // Drop the in-memory database
         try (Connection conn = DriverManager.getConnection(H2_URL, H2_USER, H2_PASS);
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
             stmt.execute("DROP TABLE IF EXISTS users");
             stmt.execute("SHUTDOWN");
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     // ── Connection factory tests ────────────────────────────────────────
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void connectionFactory_createsConnectionFromConfig() {
         Connection conn = DbConnectionFactory.getConnection(DbConnectionFactory.DEFAULT);
         assertNotNull(conn, "Factory should return a non-null connection");
@@ -97,7 +101,7 @@ public class DbClientIntegrationTest {
         }
     }
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void connectionFactory_reusesCachedConnection() {
         Connection first = DbConnectionFactory.getConnection(DbConnectionFactory.DEFAULT);
         Connection second = DbConnectionFactory.getConnection(DbConnectionFactory.DEFAULT);
@@ -106,7 +110,7 @@ public class DbClientIntegrationTest {
 
     // ── Query execution tests ───────────────────────────────────────────
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void query_returnsResultsFromRealDatabase() {
         DbClient db = DbClient.forDefault();
         Object email = db.query("SELECT email FROM users WHERE name = ?", "Alice")
@@ -114,38 +118,38 @@ public class DbClientIntegrationTest {
         assertEquals(String.valueOf(email), "alice@example.com");
     }
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void assertRowExists_matchingRow_passes() {
         DbClient db = DbClient.forDefault();
         db.assertRowExists("users", Map.of("email", "alice@example.com"));
         // No exception = pass
     }
 
-    @Test(groups = {"integration"}, expectedExceptions = DbAssertException.class)
+    @Test(groups = { "integration" }, expectedExceptions = DbAssertException.class)
     public void assertRowExists_noMatch_throws() {
         DbClient db = DbClient.forDefault();
         db.assertRowExists("users", Map.of("email", "nobody@example.com"));
     }
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void assertNoRow_noMatch_passes() {
         DbClient db = DbClient.forDefault();
         db.assertNoRow("users", Map.of("email", "nobody@example.com"));
     }
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void assertRowCount_correctCount_passes() {
         DbClient db = DbClient.forDefault();
         db.assertRowCount("users", 3);
     }
 
-    @Test(groups = {"integration"}, expectedExceptions = DbAssertException.class)
+    @Test(groups = { "integration" }, expectedExceptions = DbAssertException.class)
     public void assertRowCount_wrongCount_throws() {
         DbClient db = DbClient.forDefault();
         db.assertRowCount("users", 999);
     }
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void scalar_returnsAggregateValue() {
         DbClient db = DbClient.forDefault();
         Object count = db.scalar("SELECT COUNT(*) FROM users WHERE active = ?", true);
@@ -154,7 +158,7 @@ public class DbClientIntegrationTest {
 
     // ── Connection cleanup on failure ───────────────────────────────────
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void connectionCleanup_closeAllClosesConnections() throws Exception {
         // Get a connection through the factory
         Connection conn = DbConnectionFactory.getConnection(DbConnectionFactory.DEFAULT);
@@ -172,14 +176,14 @@ public class DbClientIntegrationTest {
         assertFalse(fresh.isClosed(), "New connection should be open");
     }
 
-    @Test(groups = {"integration"})
+    @Test(groups = { "integration" })
     public void connectionFactory_invalidDatasource_throwsClearError() {
         try {
             DbConnectionFactory.getConnection("nonexistent-datasource");
             fail("Should have thrown for unknown datasource");
         } catch (IllegalStateException e) {
             assertTrue(e.getMessage().contains("nonexistent-datasource")
-                            || e.getMessage().contains("No database configuration"),
+                    || e.getMessage().contains("No database configuration"),
                     "Error should mention the datasource name or missing config. Got: " + e.getMessage());
         }
     }
