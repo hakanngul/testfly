@@ -4,49 +4,56 @@ import io.testfly.api.TestFlyApi;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Fluent accessibility assertion builder backed by axe-core.
  *
- * <p>Create an instance via {@code accessibility()} in {@code BaseTest} or
- * {@code BaseJUnit5Test}, then chain configuration methods and call {@link #run()}
+ * <p>
+ * Create an instance via {@code accessibility()} in {@code BaseTest} or
+ * {@code BaseJUnit5Test}, then chain configuration methods and call
+ * {@link #run()}
  * to execute the scan and assert no violations:
  *
  * <pre>
  * // Assert zero violations at SERIOUS or above (WCAG 2.1 AA)
  * accessibility()
- *     .withLevel(Impact.SERIOUS)
- *     .withTags("wcag2a", "wcag2aa")
- *     .excluding("#cookie-banner", "#chat-widget")
- *     .run();
+ *         .withLevel(Impact.SERIOUS)
+ *         .withTags("wcag2a", "wcag2aa")
+ *         .excluding("#cookie-banner", "#chat-widget")
+ *         .run();
  *
  * // Scope scan to a specific page section
  * accessibility()
- *     .withContext("#main-content")
- *     .run();
+ *         .withContext("#main-content")
+ *         .run();
  *
  * // Collect results without asserting (for custom inspection)
  * AccessibilityResult result = accessibility().collect();
  * softAssert().that(result.violationCount() == 0, "Expected zero violations: " + result);
  * </pre>
  *
- * <p>axe-core is bundled in the JAR — no internet connection or extra dependency needed.
- * The library is injected into the browser once and reused for subsequent scans on the same page.
+ * <p>
+ * axe-core is bundled in the JAR — no internet connection or extra dependency
+ * needed.
+ * The library is injected into the browser once and reused for subsequent scans
+ * on the same page.
  */
 @TestFlyApi(since = "2.5.0")
 public final class AccessibilityAssert {
 
-    private Impact minimumImpact      = Impact.MINOR;
-    private String context            = null;
+    private Impact minimumImpact = Impact.MINOR;
+    private String context = null;
     private final List<String> excludeSelectors = new ArrayList<>();
-    private final List<String> tags             = new ArrayList<>();
+    private final List<String> tags = new ArrayList<>();
 
-    private AccessibilityAssert() {}
+    private AccessibilityAssert() {
+    }
 
-    /** Creates a new {@code AccessibilityAssert} with default settings (all rules, all impacts). */
+    /**
+     * Creates a new {@code AccessibilityAssert} with default settings (all rules,
+     * all impacts).
+     */
     public static AccessibilityAssert create() {
         return new AccessibilityAssert();
     }
@@ -55,9 +62,12 @@ public final class AccessibilityAssert {
 
     /**
      * Sets the minimum {@link Impact} level that will cause a test failure.
-     * Violations below this level are reported in the result but do not fail the assertion.
+     * Violations below this level are reported in the result but do not fail the
+     * assertion.
      *
-     * <p>Example — fail only on {@code SERIOUS} or {@code CRITICAL} violations:
+     * <p>
+     * Example — fail only on {@code SERIOUS} or {@code CRITICAL} violations:
+     * 
      * <pre>
      * accessibility().withLevel(Impact.SERIOUS).run();
      * </pre>
@@ -104,7 +114,8 @@ public final class AccessibilityAssert {
 
     /**
      * Restricts which axe-core rules are run to those matching the given WCAG tags.
-     * Common tags: {@code wcag2a}, {@code wcag2aa}, {@code wcag2aaa}, {@code wcag21a},
+     * Common tags: {@code wcag2a}, {@code wcag2aa}, {@code wcag2aaa},
+     * {@code wcag21a},
      * {@code wcag21aa}, {@code wcag22aa}, {@code best-practice}.
      *
      * <pre>
@@ -123,8 +134,10 @@ public final class AccessibilityAssert {
     // ── terminal operations ───────────────────────────────────────────────────
 
     /**
-     * Executes the accessibility scan and returns the raw {@link AccessibilityResult}
-     * without asserting. Use this when you want to inspect violations programmatically
+     * Executes the accessibility scan and returns the raw
+     * {@link AccessibilityResult}
+     * without asserting. Use this when you want to inspect violations
+     * programmatically
      * or write custom assertions.
      *
      * <pre>
@@ -140,21 +153,24 @@ public final class AccessibilityAssert {
      * Executes the scan and asserts that there are no violations at or above the
      * configured {@link #withLevel(Impact) impact level}.
      *
-     * <p>Throws {@link AssertionError} with a detailed report if violations are found:
+     * <p>
+     * Throws {@link AssertionError} with a detailed report if violations are found:
      * <ul>
-     *   <li>Rule ID and severity</li>
-     *   <li>Plain-English fix guidance</li>
-     *   <li>CSS selector path to each offending element</li>
-     *   <li>Link to the axe-core rule documentation</li>
+     * <li>Rule ID and severity</li>
+     * <li>Plain-English fix guidance</li>
+     * <li>CSS selector path to each offending element</li>
+     * <li>Link to the axe-core rule documentation</li>
      * </ul>
      *
-     * @throws AssertionError if one or more violations are found at the configured level
+     * @throws AssertionError if one or more violations are found at the configured
+     *                        level
      */
     public void run() {
         AccessibilityResult result = collect();
         List<AccessibilityViolation> failing = result.violationsAtLevel(minimumImpact);
 
-        if (failing.isEmpty()) return;
+        if (failing.isEmpty())
+            return;
 
         String report = buildReport(result.url(), failing);
         throw new AssertionError(report);
@@ -165,12 +181,12 @@ public final class AccessibilityAssert {
     private String buildReport(String url, List<AccessibilityViolation> violations) {
         StringBuilder sb = new StringBuilder();
         sb.append("\n[Accessibility] ")
-          .append(violations.size())
-          .append(" violation")
-          .append(violations.size() == 1 ? "" : "s")
-          .append(" found on: ")
-          .append(url)
-          .append("\n");
+                .append(violations.size())
+                .append(" violation")
+                .append(violations.size() == 1 ? "" : "s")
+                .append(" found on: ")
+                .append(url)
+                .append("\n");
 
         if (!tags.isEmpty()) {
             sb.append("  Rules: ").append(String.join(", ", tags)).append("\n");
@@ -182,7 +198,7 @@ public final class AccessibilityAssert {
         for (int i = 0; i < violations.size(); i++) {
             AccessibilityViolation v = violations.get(i);
             sb.append("\n  ").append(i + 1).append(". [").append(v.impact()).append("] ")
-              .append(v.id()).append("\n");
+                    .append(v.id()).append("\n");
             sb.append("     ").append(v.description()).append("\n");
             sb.append("     Fix: ").append(v.help()).append("\n");
             if (!v.helpUrl().isEmpty()) {

@@ -7,10 +7,12 @@ import org.openqa.selenium.By;
 /**
  * Entry point for web-first assertions.
  *
- * <p>All assertions auto-retry until the condition is true or the configured
+ * <p>
+ * All assertions auto-retry until the condition is true or the configured
  * {@code timeouts.explicit} is exceeded — no manual waits required.
  *
- * <p>Available as a protected method in {@link io.testfly.test.BasePage}
+ * <p>
+ * Available as a protected method in {@link io.testfly.test.BasePage}
  * and {@link io.testfly.test.BaseTest} via {@code assertThat(By)} /
  * {@code assertThat(Locator)}.
  *
@@ -38,7 +40,8 @@ public final class SeleniumAssert {
 
     /**
      * Begin a fluent assertion chain for the given {@link Locator}.
-     * <p>Extracts the underlying {@link By} from the locator for polling.
+     * <p>
+     * Extracts the underlying {@link By} from the locator for polling.
      */
     public static LocatorAssert assertThat(Locator locator) {
         // Resolve the By from the Locator's string representation
@@ -49,7 +52,9 @@ public final class SeleniumAssert {
 
     /**
      * Begin a fluent soft assertion chain for the given {@link By} locator.
-     * <p>Failures are collected in {@link SoftAssertions} and will not terminate test execution immediately.
+     * <p>
+     * Failures are collected in {@link SoftAssertions} and will not terminate test
+     * execution immediately.
      */
     public static LocatorAssert softAssert(By locator) {
         return new LocatorAssert(locator, locator.toString(), true);
@@ -57,7 +62,9 @@ public final class SeleniumAssert {
 
     /**
      * Begin a fluent soft assertion chain for the given {@link Locator}.
-     * <p>Failures are collected in {@link SoftAssertions} and will not terminate test execution immediately.
+     * <p>
+     * Failures are collected in {@link SoftAssertions} and will not terminate test
+     * execution immediately.
      */
     public static LocatorAssert softAssert(Locator locator) {
         return new LocatorAssert(extractBy(locator), locator.toString(), true);
@@ -71,10 +78,11 @@ public final class SeleniumAssert {
      */
     static By extractBy(Locator locator) {
         // Locator.toString() = "Locator[css=.foo]" — parse out the By string.
-        // The inner By is the root locator; chain filters are evaluated by Locator itself.
+        // The inner By is the root locator; chain filters are evaluated by Locator
+        // itself.
         // For simple cases this works perfectly; for chained cases callers should use
         // locator.element() and assert on the WebElement directly.
-        String repr = locator.toString(); // "Locator[By.cssSelector: .foo]"
+        // String repr = locator.toString(); // "Locator[By.cssSelector: .foo]"
         // Strip wrapper prefix to get the By description for error messages only;
         // actual resolution goes through the Locator's own resolve path.
         // We re-expose the root as a CSS *if* it is a CSS selector, else pass through.
