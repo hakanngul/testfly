@@ -1,7 +1,7 @@
 package io.testfly.network;
 
 import io.testfly.api.TestFlyApi;
-import org.openqa.selenium.devtools.v144.fetch.model.RequestId;
+import org.openqa.selenium.devtools.v152.fetch.model.RequestId;
 
 import java.util.Map;
 import java.util.logging.Logger;

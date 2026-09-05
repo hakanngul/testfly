@@ -1,6 +1,6 @@
 package io.testfly.network;
 
-import org.openqa.selenium.devtools.v144.network.model.ErrorReason;
+import org.openqa.selenium.devtools.v152.network.model.ErrorReason;
 import org.testng.annotations.Test;
 
 import java.util.EnumSet;

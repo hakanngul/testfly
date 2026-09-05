@@ -107,11 +107,17 @@ public class NetworkMockIntegrationTest {
         return "http://127.0.0.1:" + port;
     }
 
-    /** Executes a fetch in the browser and returns the response text. */
+    /**
+     * Executes a fetch in the browser and returns the response text. Uses
+     * {@code executeAsyncScript} so the JS promise resolves before we read the
+     * result (a synchronous executeScript would return before fetch completes).
+     */
     private String fetchInBrowser(String url) {
-        Object result = ((JavascriptExecutor) driver).executeScript(
+        driver.manage().timeouts().scriptTimeout(java.time.Duration.ofSeconds(10));
+        Object result = ((JavascriptExecutor) driver).executeAsyncScript(
                 "var cb = arguments[arguments.length - 1];" +
-                "fetch('" + url + "').then(r => r.text()).then(t => cb(t)).catch(e => cb('ERR:'+e));");
+                "fetch(arguments[0]).then(r => r.text()).then(t => cb(t)).catch(e => cb('ERR:' + e));",
+                url);
         return result == null ? "" : result.toString();
     }
 

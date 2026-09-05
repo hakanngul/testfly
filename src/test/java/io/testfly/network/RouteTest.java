@@ -1,6 +1,6 @@
 package io.testfly.network;
 
-import org.openqa.selenium.devtools.v144.fetch.model.RequestId;
+import org.openqa.selenium.devtools.v152.fetch.model.RequestId;
 import org.testng.annotations.Test;
 
 import java.util.Map;

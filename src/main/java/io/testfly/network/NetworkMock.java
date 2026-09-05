@@ -7,11 +7,11 @@ import io.testfly.internal.TestFlyContext;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chromium.ChromiumDriver;
 import org.openqa.selenium.devtools.DevTools;
-import org.openqa.selenium.devtools.v144.fetch.Fetch;
-import org.openqa.selenium.devtools.v144.fetch.model.HeaderEntry;
-import org.openqa.selenium.devtools.v144.fetch.model.RequestId;
-import org.openqa.selenium.devtools.v144.fetch.model.RequestPattern;
-import org.openqa.selenium.devtools.v144.fetch.model.RequestStage;
+import org.openqa.selenium.devtools.v152.fetch.Fetch;
+import org.openqa.selenium.devtools.v152.fetch.model.HeaderEntry;
+import org.openqa.selenium.devtools.v152.fetch.model.RequestId;
+import org.openqa.selenium.devtools.v152.fetch.model.RequestPattern;
+import org.openqa.selenium.devtools.v152.fetch.model.RequestStage;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -297,7 +297,7 @@ public final class NetworkMock {
     }
 
     // Handles a single Fetch.requestPaused event (either REQUEST or RESPONSE stage).
-    private void handlePaused(org.openqa.selenium.devtools.v144.fetch.model.RequestPaused event) {
+    private void handlePaused(org.openqa.selenium.devtools.v152.fetch.model.RequestPaused event) {
         try {
             String    url    = event.getRequest().getUrl();
             String    method = safeUpper(event.getRequest().getMethod());
@@ -355,7 +355,7 @@ public final class NetworkMock {
     }
 
     private void dispatchHandler(RouteRule rule,
-                                 org.openqa.selenium.devtools.v144.fetch.model.RequestPaused event,
+                                 org.openqa.selenium.devtools.v152.fetch.model.RequestPaused event,
                                  String url, String method, RequestId reqId) {
         Map<String, String> reqHeaders = lowerCasedRequestHeaders(event);
         String reqBody = event.getRequest().getPostData().orElse(null);
@@ -425,7 +425,7 @@ public final class NetworkMock {
         return null;
     }
 
-    private void record(org.openqa.selenium.devtools.v144.fetch.model.RequestPaused event,
+    private void record(org.openqa.selenium.devtools.v152.fetch.model.RequestPaused event,
                         String url, String method) {
         Map<String, String> headers = lowerCasedRequestHeaders(event);
         String body = event.getRequest().getPostData().orElse(null);
@@ -534,7 +534,7 @@ public final class NetworkMock {
     // ------------------------------------------------------------------
 
     private static Map<String, String> lowerCasedRequestHeaders(
-            org.openqa.selenium.devtools.v144.fetch.model.RequestPaused event) {
+            org.openqa.selenium.devtools.v152.fetch.model.RequestPaused event) {
         Map<String, String> out = new LinkedHashMap<>();
         try {
             Map<String, Object> raw = event.getRequest().getHeaders();
@@ -553,7 +553,7 @@ public final class NetworkMock {
     }
 
     private static Map<String, String> lowerCasedResponseHeaders(
-            org.openqa.selenium.devtools.v144.fetch.model.RequestPaused event) {
+            org.openqa.selenium.devtools.v152.fetch.model.RequestPaused event) {
         Map<String, String> out = new LinkedHashMap<>();
         try {
             event.getResponseHeaders().ifPresent(list -> {
