@@ -17,7 +17,7 @@ const flagshipFeatures = [
       </svg>
     ),
     title: 'Sıfır Boilerplate',
-    description: 'BaseTest veya BaseJUnit5Test’i extend edin, testlerinizi yazın. Driver yaşam döngüsü, akıllı bekleme, otomatik retry, raporlar ve hata ekran görüntüleri sıfır konfigürasyonla hazır gelir.',
+    description: 'BaseTest’i extend edin, @Test metotları yazın ve ilerleyin. Driver yaşam döngüsü, bekleme, retry, raporlar ve ekran görüntüleri hepsi halledilir — kurulum kodu gerekmez.',
     code: `class CheckoutTest extends BaseTest {
 
   @Test
@@ -56,7 +56,7 @@ const flagshipFeatures = [
         <path d="M18 17V9M13 17V5M8 17v-3" />
       </svg>
     ),
-    title: 'Zengin & İnteraktif HTML Raporlama',
+    title: 'Paydaşların Gerçekten Okuduğu Rapor',
     visual: 'report',
     description: 'Zaman çizelgesi (timeline), adım adım ekran görüntüleri, Flakiness Radarı, video kaydı, arama filtreleri ve karanlık mod ile tüm ekibin anlayacağı şeffaf test sonuçları.',
   },
@@ -77,8 +77,8 @@ const flagshipFeatures = [
         <path d="m9 9 6 6M15 9l-6 6" />
       </svg>
     ),
-    title: 'Prompt’tan Test Üretimi (TestFly MCP)',
-    description: 'TestFly MCP sunucusu sayesinde AI asistanları (Claude Code, Copilot, Antigravity) gerçek tarayıcıyı kontrol ederek tek bir prompt’tan çalışmaya hazır TestFly testleri üretir.',
+    title: 'Prompt\'tan Test Üretin — Yakında',
+    description: 'TestFly MCP (yakında) üzerinden AI destekli test yazımı, Claude veya Copilot\'un gerçek bir tarayıcıyı sürmesine ve tek bir prompt\'tan çalışmaya hazır TestFly testleri üretmesine olanak tanıyacak.',
   },
 ];
 
