@@ -77,12 +77,9 @@ public final class EmailCriteria {
         if (subjectContains != null && !email.subject().contains(subjectContains)) {
             return false;
         }
-        if (bodyContains != null
-                && !email.body().contains(bodyContains)
-                && !email.htmlBody().contains(bodyContains)) {
-            return false;
-        }
-        return true;
+        return bodyContains == null
+                || email.body().contains(bodyContains)
+                || email.htmlBody().contains(bodyContains);
     }
 
     // ── Accessors ─────────────────────────────────────────────────────────

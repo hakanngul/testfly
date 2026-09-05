@@ -15,18 +15,16 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public final class ExecutionMetrics {
 
-    private static final ConcurrentHashMap<String, Long> START_TIMES =
-            new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Long> START_TIMES = new ConcurrentHashMap<>();
 
-    private static final ConcurrentHashMap<String, TestTiming> TIMINGS =
-            new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, TestTiming> TIMINGS = new ConcurrentHashMap<>();
 
-    private static final AtomicLong TOTAL_DURATION =
-            new AtomicLong(0);
+    private static final AtomicLong TOTAL_DURATION = new AtomicLong(0);
 
     private static volatile io.testfly.ci.CiMetadata CI_METADATA = null;
 
-    private ExecutionMetrics() {}
+    private ExecutionMetrics() {
+    }
 
     // ==========================================================
     // Test Start
@@ -49,12 +47,13 @@ public final class ExecutionMetrics {
     public static void recordStep(String testId, io.testfly.steps.StepRecord step) {
         TIMINGS.computeIfAbsent(testId,
                 id -> new TestTiming(id, Thread.currentThread().getName()))
-               .addStep(step);
+                .addStep(step);
     }
 
     public static void clearSteps(String testId) {
         TestTiming t = TIMINGS.get(testId);
-        if (t != null) t.clearSteps();
+        if (t != null)
+            t.clearSteps();
     }
 
     // ==========================================================
@@ -65,8 +64,7 @@ public final class ExecutionMetrics {
 
         TestTiming timing = TIMINGS.computeIfAbsent(
                 testId,
-                id -> new TestTiming(id, Thread.currentThread().getName())
-        );
+                id -> new TestTiming(id, Thread.currentThread().getName()));
 
         timing.setDriverStartupTime(duration);
     }
@@ -76,11 +74,11 @@ public final class ExecutionMetrics {
     // ==========================================================
 
     public static void recordScreenshot(String testId, String path) {
-        if (path == null) return;
+        if (path == null)
+            return;
         TestTiming timing = TIMINGS.computeIfAbsent(
                 testId,
-                id -> new TestTiming(id, Thread.currentThread().getName())
-        );
+                id -> new TestTiming(id, Thread.currentThread().getName()));
         timing.setScreenshotPath(path);
     }
 
@@ -89,32 +87,55 @@ public final class ExecutionMetrics {
     // ==========================================================
 
     public static void recordRecording(String testId, String path) {
-        if (path == null) return;
-        TIMINGS.computeIfPresent(testId, (k, v) -> { v.setRecordingPath(path); return v; });
+        if (path == null)
+            return;
+        TIMINGS.computeIfPresent(testId, (k, v) -> {
+            v.setRecordingPath(path);
+            return v;
+        });
     }
 
     public static void recordTracePath(String testId, String path) {
-        if (path == null) return;
-        TIMINGS.computeIfPresent(testId, (k, v) -> { v.setTracePath(path); return v; });
+        if (path == null)
+            return;
+        TIMINGS.computeIfPresent(testId, (k, v) -> {
+            v.setTracePath(path);
+            return v;
+        });
     }
 
     public static void recordPerformance(String testId, io.testfly.performance.PerformanceMetrics metrics) {
-        if (metrics == null) return;
-        TIMINGS.computeIfPresent(testId, (k, v) -> { v.setPerformanceMetrics(metrics); return v; });
+        if (metrics == null)
+            return;
+        TIMINGS.computeIfPresent(testId, (k, v) -> {
+            v.setPerformanceMetrics(metrics);
+            return v;
+        });
     }
 
     public static void recordSessionUrl(String testId, String url) {
-        if (url == null) return;
-        TIMINGS.computeIfPresent(testId, (k, v) -> { v.setSessionUrl(url); return v; });
+        if (url == null)
+            return;
+        TIMINGS.computeIfPresent(testId, (k, v) -> {
+            v.setSessionUrl(url);
+            return v;
+        });
     }
 
     public static void recordHeal(String testId) {
-        TIMINGS.computeIfPresent(testId, (k, v) -> { v.incrementHealed(); return v; });
+        TIMINGS.computeIfPresent(testId, (k, v) -> {
+            v.incrementHealed();
+            return v;
+        });
     }
 
     public static void recordAiAnalysis(String testId, String analysis) {
-        if (analysis == null) return;
-        TIMINGS.computeIfPresent(testId, (k, v) -> { v.setAiAnalysis(analysis); return v; });
+        if (analysis == null)
+            return;
+        TIMINGS.computeIfPresent(testId, (k, v) -> {
+            v.setAiAnalysis(analysis);
+            return v;
+        });
     }
 
     public static TestTiming getTiming(String testId) {
@@ -152,16 +173,17 @@ public final class ExecutionMetrics {
     }
 
     public static void recordDescription(String testId, String description) {
-        if (description == null || description.isEmpty()) return;
+        if (description == null || description.isEmpty())
+            return;
         TIMINGS.computeIfAbsent(testId,
                 id -> new TestTiming(id, Thread.currentThread().getName()))
-               .setDescription(description);
+                .setDescription(description);
     }
 
     public static void recordTestClass(String testId, String className) {
         TIMINGS.computeIfAbsent(testId,
                 id -> new TestTiming(id, Thread.currentThread().getName()))
-               .setTestClassName(className);
+                .setTestClassName(className);
     }
 
     private static String buildStackTrace(Throwable t) {
@@ -177,7 +199,7 @@ public final class ExecutionMetrics {
     public static void recordRetry(String testId) {
         TIMINGS.computeIfAbsent(testId,
                 id -> new TestTiming(id, Thread.currentThread().getName()))
-               .incrementRetryCount();
+                .incrementRetryCount();
     }
 
     // ==========================================================
@@ -187,7 +209,7 @@ public final class ExecutionMetrics {
     public static void recordBrowser(String testId, String browser) {
         TIMINGS.computeIfAbsent(testId,
                 id -> new TestTiming(id, Thread.currentThread().getName()))
-               .setBrowser(browser);
+                .setBrowser(browser);
     }
 
     public static String getBrowser(String testId) {
@@ -210,8 +232,7 @@ public final class ExecutionMetrics {
     public static void recordStatus(String testId, String status) {
         TestTiming timing = TIMINGS.computeIfAbsent(
                 testId,
-                id -> new TestTiming(id, Thread.currentThread().getName())
-        );
+                id -> new TestTiming(id, Thread.currentThread().getName()));
         timing.setStatus(status);
     }
 
@@ -222,14 +243,14 @@ public final class ExecutionMetrics {
     public static void markEnd(String testId) {
 
         Long start = START_TIMES.remove(testId);
-        if (start == null) return;
+        if (start == null)
+            return;
 
         long total = System.currentTimeMillis() - start;
 
         TestTiming timing = TIMINGS.computeIfAbsent(
                 testId,
-                id -> new TestTiming(id, Thread.currentThread().getName())
-        );
+                id -> new TestTiming(id, Thread.currentThread().getName()));
 
         timing.setTotalTime(total);
 
@@ -248,8 +269,8 @@ public final class ExecutionMetrics {
         int totalTests = TIMINGS.size();
         long totalTime = TOTAL_DURATION.get();
 
-        long passed  = TIMINGS.values().stream().filter(t -> "PASSED".equals(t.getStatus())).count();
-        long failed  = TIMINGS.values().stream().filter(t -> "FAILED".equals(t.getStatus())).count();
+        long passed = TIMINGS.values().stream().filter(t -> "PASSED".equals(t.getStatus())).count();
+        long failed = TIMINGS.values().stream().filter(t -> "FAILED".equals(t.getStatus())).count();
         long skipped = TIMINGS.values().stream().filter(t -> "SKIPPED".equals(t.getStatus())).count();
 
         System.out.println("\n===== TestFly Execution Metrics =====");
@@ -363,7 +384,8 @@ public final class ExecutionMetrics {
 
         Map<String, Map<String, Object>> allTests = new LinkedHashMap<>();
 
-        // If merge is enabled and previous metrics file exists, load existing tests first
+        // If merge is enabled and previous metrics file exists, load existing tests
+        // first
         if (isMergeEnabled()) {
             File primary = io.testfly.reporting.ReportPaths.metricsJson();
             if (primary.exists() && primary.length() > 0) {
@@ -380,7 +402,8 @@ public final class ExecutionMetrics {
                         }
                     }
                 } catch (Exception e) {
-                    System.err.println("[TestFly] Warning: Failed to load previous metrics for merge: " + e.getMessage());
+                    System.err
+                            .println("[TestFly] Warning: Failed to load previous metrics for merge: " + e.getMessage());
                 }
             }
         }
@@ -397,7 +420,8 @@ public final class ExecutionMetrics {
 
         for (Map<String, Object> t : allTests.values()) {
             long tot = t.get("totalMs") instanceof Number ? ((Number) t.get("totalMs")).longValue() : 0L;
-            long drv = t.get("driverStartupMs") instanceof Number ? ((Number) t.get("driverStartupMs")).longValue() : 0L;
+            long drv = t.get("driverStartupMs") instanceof Number ? ((Number) t.get("driverStartupMs")).longValue()
+                    : 0L;
             totalDurations.add(tot);
             driverDurations.add(drv);
             calculatedTotalTime += tot;
@@ -486,8 +510,7 @@ public final class ExecutionMetrics {
             }
             mapper.writeValue(
                     new File(historyDir, "testfly-metrics-" + timestamp + ".json"),
-                    report
-            );
+                    report);
 
             System.out.println("[TestFly] Metrics exported → " + primary.getPath());
             System.out.println("[TestFly] History copy     → "
@@ -495,8 +518,7 @@ public final class ExecutionMetrics {
 
         } catch (IOException e) {
             throw new RuntimeException(
-                    "Failed to export metrics JSON", e
-            );
+                    "Failed to export metrics JSON", e);
         }
     }
 
@@ -516,15 +538,16 @@ public final class ExecutionMetrics {
     // ==========================================================
 
     public static long percentile(List<Long> values, double percentile) {
-        if (values.isEmpty()) {
+        if (values == null || values.isEmpty()) {
             return 0;
         }
-        Collections.sort(values);
+        List<Long> sorted = new ArrayList<>(values);
+        Collections.sort(sorted);
 
-        int index = (int) Math.ceil(percentile / 100.0 * values.size());
+        int index = (int) Math.ceil(percentile / 100.0 * sorted.size());
 
-        index = Math.max(0, Math.min(index - 1, values.size() - 1));
+        index = Math.max(0, Math.min(index - 1, sorted.size() - 1));
 
-        return values.get(index);
+        return sorted.get(index);
     }
 }

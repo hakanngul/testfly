@@ -9,42 +9,30 @@ import java.util.regex.Pattern;
  * Represents a received email. Returned by {@link MailboxClient#waitForEmail}.
  */
 @TestFlyApi(since = "2.0.0")
-public final class Email {
-
-    private final String subject;
-    private final String body;
-    private final String htmlBody;
-    private final String from;
-    private final String to;
+public record Email(String subject, String body, String htmlBody, String from, String to) {
 
     public Email(String subject, String body, String htmlBody, String from, String to) {
-        this.subject  = subject  != null ? subject  : "";
-        this.body     = body     != null ? body     : "";
+        this.subject = subject != null ? subject : "";
+        this.body = body != null ? body : "";
         this.htmlBody = htmlBody != null ? htmlBody : "";
-        this.from     = from     != null ? from     : "";
-        this.to       = to       != null ? to       : "";
+        this.from = from != null ? from : "";
+        this.to = to != null ? to : "";
     }
-
-    public String subject()  { return subject; }
-    public String body()     { return body; }
-    public String htmlBody() { return htmlBody; }
-    public String from()     { return from; }
-    public String to()       { return to; }
 
     // ── Assertions ────────────────────────────────────────────────────────
 
     public void assertSubject(String expected) {
         if (!subject.equals(expected)) {
             throw new AssertionError(
-                "[Email] Expected subject [" + expected + "] but was [" + subject + "]");
+                    "[Email] Expected subject [" + expected + "] but was [" + subject + "]");
         }
     }
 
     public void assertBodyContains(String text) {
         if (!body.contains(text) && !htmlBody.contains(text)) {
             throw new AssertionError(
-                "[Email] Expected body to contain [" + text + "] but it did not.\n" +
-                "Plain body: " + body);
+                    "[Email] Expected body to contain [" + text + "] but it did not.\n" +
+                            "Plain body: " + body);
         }
     }
 
@@ -68,8 +56,8 @@ public final class Email {
         }
         // Match <a ... href="url" ...>text</a> or <a ... href='url' ...>text</a>
         Pattern p = Pattern.compile(
-            "<a[^>]+href=[\"']([^\"']+)[\"'][^>]*>(.*?)</a>",
-            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+                "<a[^>]+href=[\"']([^\"']+)[\"'][^>]*>(.*?)</a>",
+                Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
         Matcher m = p.matcher(source);
         while (m.find()) {
             String anchorText = m.group(2).replaceAll("<[^>]+>", "").trim();
@@ -78,7 +66,7 @@ public final class Email {
             }
         }
         throw new AssertionError(
-            "[Email] No link with text '" + linkText + "' found in email body");
+                "[Email] No link with text '" + linkText + "' found in email body");
     }
 
     @Override

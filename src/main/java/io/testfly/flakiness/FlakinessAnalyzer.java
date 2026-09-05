@@ -97,9 +97,9 @@ public final class FlakinessAnalyzer {
 
             // Sort: HIGH first, then by failureRate desc
             scores.sort(Comparator
-                    .comparingInt((FlakinessScore s) -> s.getRisk() == FlakinessScore.Risk.HIGH ? 0
-                            : s.getRisk() == FlakinessScore.Risk.WATCH ? 1 : 2)
-                    .thenComparingDouble(s -> -s.getFailureRate()));
+                    .comparingInt((FlakinessScore s) -> s.risk() == FlakinessScore.Risk.HIGH ? 0
+                            : s.risk() == FlakinessScore.Risk.WATCH ? 1 : 2)
+                    .thenComparingDouble(s -> -s.failureRate()));
 
             lastResult = Collections.unmodifiableList(scores);
             export(scores);
@@ -107,7 +107,7 @@ public final class FlakinessAnalyzer {
             // CI gate
             if (cfg != null && cfg.isFailOnHighFlakiness()) {
                 long highCount = scores.stream()
-                        .filter(s -> s.getRisk() == FlakinessScore.Risk.HIGH).count();
+                        .filter(s -> s.risk() == FlakinessScore.Risk.HIGH).count();
                 if (highCount > 0) {
                     throw new IllegalStateException(
                             "[TestFly] " + highCount + " high-risk flaky test(s) found "
@@ -147,24 +147,24 @@ public final class FlakinessAnalyzer {
             File out = new File("target/flakiness-report.json");
             List<Map<String, Object>> entries = scores.stream().map(s -> {
                 Map<String, Object> m = new LinkedHashMap<>();
-                m.put("testId",       s.getTestId());
-                m.put("runsAnalysed", s.getRunsAnalysed());
-                m.put("failCount",    s.getFailCount());
-                m.put("failureRate",  Math.round(s.getFailureRate() * 10.0) / 10.0);
-                m.put("risk",         s.getRisk().name());
+                m.put("testId",       s.testId());
+                m.put("runsAnalysed", s.runsAnalysed());
+                m.put("failCount",    s.failCount());
+                m.put("failureRate",  Math.round(s.failureRate() * 10.0) / 10.0);
+                m.put("risk",         s.risk().name());
                 return m;
             }).collect(Collectors.toList());
 
             Map<String, Object> root = new LinkedHashMap<>();
             root.put("analysedTests", scores.size());
-            root.put("highRisk",  scores.stream().filter(s -> s.getRisk() == FlakinessScore.Risk.HIGH).count());
-            root.put("watch",     scores.stream().filter(s -> s.getRisk() == FlakinessScore.Risk.WATCH).count());
-            root.put("stable",    scores.stream().filter(s -> s.getRisk() == FlakinessScore.Risk.STABLE).count());
+            root.put("highRisk",  scores.stream().filter(s -> s.risk() == FlakinessScore.Risk.HIGH).count());
+            root.put("watch",     scores.stream().filter(s -> s.risk() == FlakinessScore.Risk.WATCH).count());
+            root.put("stable",    scores.stream().filter(s -> s.risk() == FlakinessScore.Risk.STABLE).count());
             root.put("scores",    entries);
 
             new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValue(out, root);
             System.out.println("[TestFly] Flakiness report → " + out.getPath()
-                    + " (" + scores.stream().filter(s -> s.getRisk() == FlakinessScore.Risk.HIGH).count()
+                    + " (" + scores.stream().filter(s -> s.risk() == FlakinessScore.Risk.HIGH).count()
                     + " high-risk)");
         } catch (IOException e) {
             LOG.warning("[FlakinessAnalyzer] Failed to export flakiness report: " + e.getMessage());

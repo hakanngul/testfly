@@ -22,7 +22,8 @@ import static org.testng.Assert.*;
 
 /**
  * Unit tests for {@link ExecutionMetrics}.
- * Thread-safe for parallel=methods via singleThreaded + global file + context locks.
+ * Thread-safe for parallel=methods via singleThreaded + global file + context
+ * locks.
  */
 @Test(singleThreaded = true)
 public class ExecutionMetricsTest {
@@ -39,11 +40,14 @@ public class ExecutionMetricsTest {
                 ExecutionMetrics.reset();
                 resetTestFlyContext();
                 File json = ReportPaths.metricsJson();
-                if (json.exists()) json.delete();
+                if (json.exists())
+                    json.delete();
                 File history = ReportPaths.metricsHistoryDir();
                 if (history.exists()) {
                     File[] files = history.listFiles();
-                    if (files != null) for (File f : files) f.delete();
+                    if (files != null)
+                        for (File f : files)
+                            f.delete();
                 }
             }
         }
@@ -57,7 +61,8 @@ public class ExecutionMetricsTest {
                 ExecutionMetrics.reset();
                 resetTestFlyContext();
                 File json = ReportPaths.metricsJson();
-                if (json.exists()) json.delete();
+                if (json.exists())
+                    json.delete();
             }
         }
     }
@@ -72,7 +77,8 @@ public class ExecutionMetricsTest {
             Field ciField = ExecutionMetrics.class.getDeclaredField("ciMetadata");
             ciField.setAccessible(true);
             ciField.set(null, null);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     private static TestFlyConfig minimalConfig(boolean captureMetadata) {
@@ -165,8 +171,8 @@ public class ExecutionMetricsTest {
 
     @Test
     public void percentile_singleValue_returnsThatValue() {
-        assertEquals(100L, ExecutionMetrics.percentile(Arrays.asList(100L), 50));
-        assertEquals(100L, ExecutionMetrics.percentile(Arrays.asList(100L), 99));
+        assertEquals(100L, ExecutionMetrics.percentile(List.of(100L), 50));
+        assertEquals(100L, ExecutionMetrics.percentile(List.of(100L), 99));
     }
 
     @Test
@@ -276,7 +282,7 @@ public class ExecutionMetricsTest {
                 ExecutionMetrics.exportToJson();
                 File jsonFile = ReportPaths.metricsJson();
                 String json = Files.readString(jsonFile.toPath());
-                assertTrue(json.contains("\"flakyTests\""),     "JSON must include top-level flakyTests");
+                assertTrue(json.contains("\"flakyTests\""), "JSON must include top-level flakyTests");
                 assertTrue(json.contains("\"recoveredTests\""), "JSON must include top-level recoveredTests");
             }
         }

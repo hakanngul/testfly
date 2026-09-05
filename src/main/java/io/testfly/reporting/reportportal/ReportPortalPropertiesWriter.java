@@ -369,7 +369,7 @@ public final class ReportPortalPropertiesWriter {
             return java.net.InetAddress.getLocalHost().getHostName();
         } catch (Exception e) {
             String hostname = System.getenv("HOSTNAME");
-            return hostname != null ? hostname : null;
+            return hostname;
         }
     }
 
