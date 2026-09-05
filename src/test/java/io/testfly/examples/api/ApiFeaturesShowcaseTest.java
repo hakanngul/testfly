@@ -214,7 +214,8 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
     public void differentBaseUrl_overridePerRequest() {
         // Call a completely different API
         ApiResponse res = ApiClient.to("https://httpbin.org")
-                .get("/status/200")
+                .path("/status/200")
+                .get()
                 .timeout(15)
                 .send();
 

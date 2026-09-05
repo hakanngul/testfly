@@ -270,6 +270,69 @@ public class ApiClient {
         return this;
     }
 
+    // ── Polling ───────────────────────────────────────────────────────────────
+
+    /**
+     * Repeatedly executes this API request until {@code condition} returns true or {@code maxTimeout} expires.
+     * Uses a default polling interval of 1 second.
+     *
+     * <pre>
+     * ApiResponse res = apiClient().get("/orders/123")
+     *         .pollUntil(r -> "COMPLETED".equals(r.json("$.status")), Duration.ofSeconds(30));
+     * </pre>
+     *
+     * @param condition predicate evaluated against each received response
+     * @param maxTimeout maximum duration to continue polling
+     * @return the successful {@link ApiResponse} meeting the condition
+     */
+    public ApiResponse pollUntil(java.util.function.Predicate<ApiResponse> condition, Duration maxTimeout) {
+        return pollUntil(condition, maxTimeout, Duration.ofSeconds(1));
+    }
+
+    /**
+     * Repeatedly executes this API request until {@code condition} returns true or {@code maxTimeout} expires.
+     *
+     * @param condition predicate evaluated against each received response
+     * @param maxTimeout maximum duration to continue polling
+     * @param pollInterval interval between subsequent polling attempts
+     * @return the successful {@link ApiResponse} meeting the condition
+     */
+    public ApiResponse pollUntil(java.util.function.Predicate<ApiResponse> condition, Duration maxTimeout, Duration pollInterval) {
+        long start = System.currentTimeMillis();
+        long maxMs = maxTimeout.toMillis();
+        long intervalMs = Math.max(50, pollInterval.toMillis());
+        int attempt = 0;
+        ApiResponse lastResponse = null;
+
+        StepLogger.step("[API Polling] Started polling " + method + " " + (path != null ? path : "") + " (timeout: " + maxTimeout.getSeconds() + "s)");
+
+        while ((System.currentTimeMillis() - start) < maxMs) {
+            attempt++;
+            try {
+                lastResponse = send();
+                if (condition.test(lastResponse)) {
+                    StepLogger.step("[API Polling] Condition satisfied on attempt " + attempt + " (" + (System.currentTimeMillis() - start) + "ms)");
+                    return lastResponse;
+                }
+            } catch (Exception e) {
+                StepLogger.step("[API Polling] Attempt " + attempt + " failed with error: " + e.getMessage(), StepStatus.WARN);
+            }
+
+            long elapsed = System.currentTimeMillis() - start;
+            if (elapsed + intervalMs >= maxMs) {
+                break;
+            }
+            sleep(intervalMs);
+        }
+
+        long totalElapsed = System.currentTimeMillis() - start;
+        String errMsg = "[ApiClient] Polling timeout exceeded (" + totalElapsed + "ms, " + attempt + " attempts) for "
+                + method + " " + (path != null ? path : "")
+                + (lastResponse != null ? " — Last status: " + lastResponse.status() + ", body: " + truncate(lastResponse.body(), 200) : "");
+        StepLogger.step(errMsg, StepStatus.FAIL);
+        throw new ApiException(method, buildUrl(), lastResponse != null ? lastResponse.status() : 0, lastResponse != null ? lastResponse.body() : null, errMsg);
+    }
+
     // ── Execute ───────────────────────────────────────────────────────────────
 
     public ApiResponse send() {

@@ -2,6 +2,7 @@ package io.testfly.reporting;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
 
@@ -10,55 +11,253 @@ import java.io.FileWriter;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
+/**
+ * Generates an Allure-style single-page interactive HTML report driven by JSON data.
+ *
+ * <p>The report computes cumulative totals across sequential and historical test runs
+ * so that tests are never lost when running new tests, and exports both a standalone
+ * {@code testfly-report-data.json} and a self-contained {@code testfly-report.html}
+ * with embedded JSON for seamless offline viewing.</p>
+ */
 public final class HtmlReportGenerator {
 
     private HtmlReportGenerator() {}
 
     public static void generate() {
-
         try {
-
             File jsonFile = ReportPaths.metricsJson();
-
             if (!jsonFile.exists()) {
-                System.err.println(
-                        "[TestFly] Metrics JSON not found. Skipping HTML report."
-                );
+                System.err.println("[TestFly] Metrics JSON not found. Skipping HTML report.");
                 return;
             }
 
             ObjectMapper mapper = new ObjectMapper();
+            mapper.enable(SerializationFeature.INDENT_OUTPUT);
             JsonNode root = mapper.readTree(jsonFile);
 
-            String html = buildHtml(root);
+            // 1. Build environment / build metadata map and HTML block
+            Map<String, Object> envMap = buildEnvironmentMap(root);
+            String metadataSection = buildMetadataSection(root);
+
+            // 2. Load run history from metrics-history directory
+            List<Map<String, Object>> runHistory = loadRunHistory(mapper);
+
+            // 3. Collect unique cumulative tests across history + current run
+            Map<String, Map<String, Object>> cumulativeTestsMap = new LinkedHashMap<>();
+
+            // Historical tests first
+            File historyDir = ReportPaths.metricsHistoryDir();
+            if (historyDir.exists() && historyDir.isDirectory()) {
+                File[] histFiles = historyDir.listFiles((dir, name) -> name.startsWith("testfly-metrics-") && name.endsWith(".json"));
+                if (histFiles != null) {
+                    Arrays.sort(histFiles, Comparator.comparing(File::getName));
+                    for (File hf : histFiles) {
+                        try {
+                            JsonNode hRoot = mapper.readTree(hf);
+                            if (hRoot.has("tests") && hRoot.get("tests").isArray()) {
+                                for (JsonNode t : hRoot.get("tests")) {
+                                    if (t.has("testId")) {
+                                        @SuppressWarnings("unchecked")
+                                        Map<String, Object> tMap = mapper.convertValue(t, Map.class);
+                                        cumulativeTestsMap.put(t.get("testId").asText(), tMap);
+                                    }
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+
+            // Current run tests (updates latest status and attaches base64 screenshot if present)
+            List<Map<String, Object>> currentRunTests = new ArrayList<>();
+            if (root.has("tests") && root.get("tests").isArray()) {
+                for (JsonNode t : root.get("tests")) {
+                    if (t.has("testId")) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> tMap = mapper.convertValue(t, Map.class);
+                        if (t.has("screenshotPath")) {
+                            File scFile = new File(t.get("screenshotPath").asText());
+                            if (scFile.exists()) {
+                                try {
+                                    byte[] bytes = Files.readAllBytes(scFile.toPath());
+                                    tMap.put("screenshotBase64", "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes));
+                                } catch (Exception ignored) {}
+                            }
+                        }
+                        currentRunTests.add(tMap);
+                        cumulativeTestsMap.put(t.get("testId").asText(), tMap);
+                    }
+                }
+            }
+
+            // 4. Calculate Cumulative Suite Totals
+            int cumTotal = cumulativeTestsMap.size();
+            long cumPassed, cumFailed, cumSkipped, cumFlaky, cumDuration;
+            double cumPassRate;
+
+            if (cumTotal > 0) {
+                cumPassed = cumulativeTestsMap.values().stream().filter(t -> "PASSED".equals(t.get("status"))).count();
+                cumFailed = cumulativeTestsMap.values().stream().filter(t -> "FAILED".equals(t.get("status"))).count();
+                cumSkipped = cumulativeTestsMap.values().stream().filter(t -> "SKIPPED".equals(t.get("status"))).count();
+                cumFlaky = cumulativeTestsMap.values().stream().filter(t -> {
+                    Object r = t.get("retryCount");
+                    return r instanceof Number && ((Number) r).intValue() > 0;
+                }).count();
+                cumDuration = cumulativeTestsMap.values().stream().mapToLong(t -> t.get("totalMs") instanceof Number ? ((Number) t.get("totalMs")).longValue() : 0L).sum();
+                cumPassRate = Math.round((cumPassed * 1000.0) / cumTotal) / 10.0;
+            } else {
+                // Fallback to summary root metrics when tests array was empty or omitted
+                cumTotal = root.has("totalTests") ? root.get("totalTests").asInt() : 0;
+                cumPassed = root.has("passedTests") ? root.get("passedTests").asLong() : 0L;
+                cumFailed = root.has("failedTests") ? root.get("failedTests").asLong() : 0L;
+                cumSkipped = root.has("skippedTests") ? root.get("skippedTests").asLong() : 0L;
+                cumFlaky = root.has("flakyTests") ? root.get("flakyTests").asLong() : 0L;
+                cumDuration = root.has("totalTimeMs") ? root.get("totalTimeMs").asLong() : 0L;
+                cumPassRate = root.has("passRate") ? root.get("passRate").asDouble() : (cumTotal == 0 ? 0.0 : Math.round((cumPassed * 1000.0) / cumTotal) / 10.0);
+            }
+
+            Map<String, Object> cumulativeTotals = new LinkedHashMap<>();
+            cumulativeTotals.put("totalTests", cumTotal);
+            cumulativeTotals.put("passedTests", cumPassed);
+            cumulativeTotals.put("failedTests", cumFailed);
+            cumulativeTotals.put("skippedTests", cumSkipped);
+            cumulativeTotals.put("flakyTests", cumFlaky);
+            cumulativeTotals.put("totalTimeMs", cumDuration);
+            cumulativeTotals.put("averageTimeMs", cumTotal == 0 ? 0 : cumDuration / cumTotal);
+            cumulativeTotals.put("passRate", cumPassRate);
+
+            String timestamp = java.time.LocalDateTime.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+            // 5. Build full reportData JSON payload
+            Map<String, Object> reportData = new LinkedHashMap<>();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> summaryMap = mapper.convertValue(root, Map.class);
+            reportData.put("summary", summaryMap);
+            reportData.put("cumulativeTotals", cumulativeTotals);
+            reportData.put("environment", envMap);
+            reportData.put("tests", new ArrayList<>(cumulativeTestsMap.values()));
+            reportData.put("currentRunTests", currentRunTests);
+            // Flakiness scores
+            Map<String, Object> flakinessData = new LinkedHashMap<>();
+            try {
+                File flakinessFile = new File("target/flakiness-report.json");
+                if (flakinessFile.exists()) {
+                    flakinessData = mapper.readValue(flakinessFile, Map.class);
+                } else {
+                    List<io.testfly.flakiness.FlakinessScore> scores = io.testfly.flakiness.FlakinessAnalyzer.getLastResult();
+                    if (scores != null && !scores.isEmpty()) {
+                        List<Map<String, Object>> scoreList = new ArrayList<>();
+                        long high = 0, watch = 0, stable = 0;
+                        for (io.testfly.flakiness.FlakinessScore s : scores) {
+                            Map<String, Object> sm = new LinkedHashMap<>();
+                            sm.put("testId", s.getTestId());
+                            sm.put("runsAnalysed", s.getRunsAnalysed());
+                            sm.put("failCount", s.getFailCount());
+                            sm.put("failureRate", Math.round(s.getFailureRate() * 10.0) / 10.0);
+                            sm.put("risk", s.getRisk().name());
+                            scoreList.add(sm);
+                            if (s.getRisk() == io.testfly.flakiness.FlakinessScore.Risk.HIGH) high++;
+                            else if (s.getRisk() == io.testfly.flakiness.FlakinessScore.Risk.WATCH) watch++;
+                            else stable++;
+                        }
+                        flakinessData.put("analysedTests", scores.size());
+                        flakinessData.put("highRisk", high);
+                        flakinessData.put("watch", watch);
+                        flakinessData.put("stable", stable);
+                        flakinessData.put("scores", scoreList);
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            reportData.put("flakiness", flakinessData);
+            reportData.put("history", runHistory);
+            reportData.put("runTimestamp", timestamp);
+
+            String reportDataJson = mapper.writeValueAsString(reportData);
+
+            // 6. Export standalone testfly-report-data.json
+            File dataJsonFile = ReportPaths.reportDataJson();
+            File dataJsonDir = dataJsonFile.getParentFile();
+            if (dataJsonDir != null && !dataJsonDir.exists()) {
+                dataJsonDir.mkdirs();
+            }
+            try (FileWriter dataWriter = new FileWriter(dataJsonFile)) {
+                dataWriter.write(reportDataJson);
+            }
+
+            // 7. Render HTML report
+            String html = buildHtml(reportDataJson, metadataSection, cumulativeTotals, timestamp, runHistory.size(), mapper.writeValueAsString(runHistory));
 
             File reportFile = ReportPaths.htmlReport();
             File reportDir = reportFile.getParentFile();
             if (reportDir != null && !reportDir.exists()) {
                 reportDir.mkdirs();
             }
-
             try (FileWriter writer = new FileWriter(reportFile)) {
                 writer.write(html);
             }
 
-            System.out.println(
-                    "[TestFly] HTML report generated at " + reportFile.getPath()
-            );
+            // 8. Archive a timestamped copy in target/reports/
+            String fileTimestamp = java.time.LocalDateTime.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+            File reportsHistoryDir = ReportPaths.reportsHistoryDir();
+            if (!reportsHistoryDir.exists()) {
+                reportsHistoryDir.mkdirs();
+            }
+            File archiveFile = new File(reportsHistoryDir, "testfly-report-" + fileTimestamp + ".html");
+            try (FileWriter archiveWriter = new FileWriter(archiveFile)) {
+                archiveWriter.write(html);
+            }
+
+            System.out.println("[TestFly] HTML report generated at " + reportFile.getPath());
+            System.out.println("[TestFly] JSON report data at      " + dataJsonFile.getPath());
+            System.out.println("[TestFly] HTML report archived at  " + archiveFile.getPath());
 
         } catch (Exception e) {
-            System.err.println(
-                    "[TestFly] HTML report generation failed: "
-                            + e.getMessage()
-            );
+            System.err.println("[TestFly] HTML report generation failed: " + e.getMessage());
         }
+    }
+
+    private static Map<String, Object> buildEnvironmentMap(JsonNode root) {
+        String profile = System.getProperty("testfly.profile", "default");
+        TestFlyConfig config = TestFlyContext.getConfig();
+
+        TestFlyConfig.Browser browserCfg = config.getBrowser();
+        TestFlyConfig.Execution executionCfg = config.getExecution();
+        TestFlyConfig.Retry retryCfg = config.getRetry();
+        TestFlyConfig.Timeouts timeoutsCfg = config.getTimeouts();
+
+        Map<String, Object> env = new LinkedHashMap<>();
+        env.put("profile", profile);
+        env.put("browser", (browserCfg != null ? browserCfg.getName() : "unknown") + (browserCfg != null && browserCfg.isHeadless() ? " (headless)" : ""));
+        env.put("executionMode", executionCfg != null ? executionCfg.getMode() : "unknown");
+        env.put("baseUrl", executionCfg != null && executionCfg.getBaseUrl() != null ? executionCfg.getBaseUrl() : "—");
+        env.put("gridUrl", executionCfg != null && executionCfg.getGridUrl() != null ? executionCfg.getGridUrl() : "—");
+        env.put("parallel", executionCfg != null ? executionCfg.getParallel() : "none");
+        env.put("threadCount", executionCfg != null ? executionCfg.getThreadCount() : 1);
+        env.put("maxSessions", executionCfg != null ? executionCfg.getMaxActiveSessions() : 5);
+        env.put("retry", retryCfg != null && retryCfg.isEnabled() ? "Enabled (max " + retryCfg.getMaxAttempts() + ")" : "Disabled");
+        env.put("explicitTimeout", (timeoutsCfg != null ? timeoutsCfg.getExplicit() : 10) + "s");
+        env.put("pageLoadTimeout", (timeoutsCfg != null ? timeoutsCfg.getPageLoad() : 30) + "s");
+
+        if (root.has("ci")) {
+            env.put("ci", root.get("ci"));
+        }
+        return env;
     }
 
     private static String buildMetadataSection(JsonNode root) {
         String profile = System.getProperty("testfly.profile", "default");
-
         TestFlyConfig config = TestFlyContext.getConfig();
 
         TestFlyConfig.Browser browserCfg = config.getBrowser();
@@ -141,25 +340,6 @@ public final class HtmlReportGenerator {
         return value != null && !value.isBlank() ? value : null;
     }
 
-    private static String buildScreenshotCell(JsonNode test) {
-        if (!test.has("screenshotPath")) {
-            return "<span class=\"no-screenshot\">—</span>";
-        }
-        File screenshotFile = new File(test.get("screenshotPath").asText());
-        if (!screenshotFile.exists()) {
-            return "<span class=\"no-screenshot\">—</span>";
-        }
-        try {
-            byte[] bytes = Files.readAllBytes(screenshotFile.toPath());
-            String base64 = Base64.getEncoder().encodeToString(bytes);
-            String src = "data:image/png;base64," + base64;
-            return "<img src=\"" + src + "\" class=\"screenshot-thumb\" "
-                   + "onclick=\"openLightbox(this.src)\" title=\"Click to view full size\" />";
-        } catch (java.io.IOException e) {
-            return "<span class=\"screenshot-error\">load error</span>";
-        }
-    }
-
     private static void appendMetaItem(StringBuilder sb, String label, String value) {
         sb.append("      <div class=\"meta-item\">\n");
         sb.append("        <span class=\"meta-label\">").append(label).append("</span>\n");
@@ -167,474 +347,129 @@ public final class HtmlReportGenerator {
         sb.append("      </div>\n");
     }
 
-    private static String buildHtml(JsonNode root) {
-
-        String executionPercentiles =
-                root.has("executionPercentilesMs")
-                        ? root.get("executionPercentilesMs").toString()
-                        : "{}";
-
-        String metadataSection = buildMetadataSection(root);
-
-        int totalTests    = root.has("totalTests")    ? root.get("totalTests").asInt()    : 0;
-        int passedTests   = root.has("passedTests")   ? root.get("passedTests").asInt()   : 0;
-        int failedTests   = root.has("failedTests")   ? root.get("failedTests").asInt()   : 0;
-        int skippedTests  = root.has("skippedTests")  ? root.get("skippedTests").asInt()  : 0;
-        long totalTimeMs   = root.has("totalTimeMs")   ? root.get("totalTimeMs").asLong()  : 0L;
-        long averageTimeMs = root.has("averageTimeMs") ? root.get("averageTimeMs").asLong(): 0L;
-        double passRate    = root.has("passRate")       ? root.get("passRate").asDouble()   : 0.0;
-        int flakyTests     = root.has("flakyTests")     ? root.get("flakyTests").asInt()    : 0;
-        int recoveredTests = root.has("recoveredTests") ? root.get("recoveredTests").asInt(): 0;
-
-        String passRateClass = passRate >= 80 ? "rate-good" : passRate >= 60 ? "rate-warn" : "rate-bad";
-        String passRateStr   = String.format("%.1f", passRate);
-
-        String donutData = String.format(
-                "{\"passed\":%d,\"failed\":%d,\"skipped\":%d}", passedTests, failedTests, skippedTests);
-
-        JsonNode tests = root.has("tests") ? root.get("tests") : null;
-
-        // Detect matrix run: any test entry with a non-null "browser" field
-        boolean isMatrixRun = false;
-        if (tests != null) {
-            for (JsonNode test : tests) {
-                if (test.has("browser") && !test.get("browser").asText("").isEmpty()) {
-                    isMatrixRun = true;
-                    break;
-                }
-            }
+    private static List<Map<String, Object>> loadRunHistory(ObjectMapper mapper) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        File historyDir = ReportPaths.metricsHistoryDir();
+        if (!historyDir.exists() || !historyDir.isDirectory()) {
+            return list;
         }
-
-        StringBuilder rows = new StringBuilder();
-        if (tests != null) {
-            // Group tests by class name (+ browser when matrix) preserving insertion order
-            java.util.Map<String, java.util.List<JsonNode>> byGroup = new java.util.LinkedHashMap<>();
-            for (JsonNode test : tests) {
-                String cls = test.has("testClassName") ? test.get("testClassName").asText() : "";
-                if (cls.isEmpty()) cls = "Unknown";
-                String groupKey = isMatrixRun
-                        ? cls + " [" + capitalize(test.has("browser") ? test.get("browser").asText("") : "") + "]"
-                        : cls;
-                byGroup.computeIfAbsent(groupKey, k -> new java.util.ArrayList<>()).add(test);
-            }
-            int rowIndex = 0;
-            for (java.util.Map.Entry<String, java.util.List<JsonNode>> entry : byGroup.entrySet()) {
-                String groupId  = entry.getKey();
-                java.util.List<JsonNode> members = entry.getValue();
-                long groupPassed  = members.stream().filter(t -> "PASSED".equals(t.has("status") ? t.get("status").asText() : "")).count();
-                long groupFailed  = members.stream().filter(t -> "FAILED".equals(t.has("status") ? t.get("status").asText() : "")).count();
-                long groupSkipped = members.stream().filter(t -> "SKIPPED".equals(t.has("status") ? t.get("status").asText() : "")).count();
-                rows.append(buildGroupHeader(groupId, members.size(), groupPassed, groupFailed, groupSkipped, true, isMatrixRun));
-                for (JsonNode test : members) {
-                    rows.append(buildRow(test, rowIndex++, groupId, true, isMatrixRun));
-                }
-            }
+        File[] files = historyDir.listFiles((dir, name) -> name.startsWith("testfly-metrics-") && name.endsWith(".json"));
+        if (files == null || files.length == 0) {
+            return list;
         }
+        Arrays.sort(files, Comparator.comparing(File::getName).reversed());
 
-        String retrySection     = buildRetrySection(flakyTests, recoveredTests);
-        String slowestSection   = tests != null ? buildSlowestTests(tests) : "";
-        String flakinessSection = buildFlakinessSection();
-        String failureRows    = buildFailureRows(tests, isMatrixRun);
-        String failureBadge   = failedTests > 0
-                ? "<span class=\"nav-count nav-count-fail\">" + failedTests + "</span>"
-                : "";
-
-        String template = loadTemplate();
-
-        return template
-                .replace("{{METADATA}}", metadataSection)
-                .replace("{{PASSED}}", String.valueOf(passedTests))
-                .replace("{{FAILED}}", String.valueOf(failedTests))
-                .replace("{{SKIPPED}}", String.valueOf(skippedTests))
-                .replace("{{TOTAL_TESTS}}", String.valueOf(totalTests))
-                .replace("{{TOTAL_TIME_MS}}", String.valueOf(totalTimeMs))
-                .replace("{{AVG_TIME_MS}}", String.valueOf(averageTimeMs))
-                .replace("{{PASS_RATE}}", passRateStr)
-                .replace("{{PASS_RATE_CLASS}}", passRateClass)
-                .replace("{{FLAKY_TESTS}}", String.valueOf(flakyTests))
-                .replace("{{RECOVERED_TESTS}}", String.valueOf(recoveredTests))
-                .replace("{{RETRY_SECTION}}", retrySection)
-                .replace("{{SLOWEST_TESTS}}", slowestSection)
-                .replace("{{FLAKINESS_SECTION}}", flakinessSection)
-                .replace("{{DONUT_DATA}}", donutData)
-                .replace("{{ROWS}}", rows.toString())
-                .replace("{{FAILURE_ROWS}}", failureRows)
-                .replace("{{FAILURE_BADGE}}", failureBadge)
-                .replace("{{EXECUTION_PERCENTILES}}", executionPercentiles.replace("'", "\\'"));
-    }
-
-    private static String capitalize(String s) {
-        if (s == null || s.isEmpty()) return s;
-        return Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase();
-    }
-
-    private static String buildGroupHeader(String groupId, int total, long passed, long failed, long skipped, boolean collapsed) {
-        return buildGroupHeader(groupId, total, passed, failed, skipped, collapsed, false);
-    }
-
-    private static String buildGroupHeader(String groupId, int total, long passed, long failed, long skipped, boolean collapsed, boolean showBrowser) {
-        String groupKey = escapeHtml(groupId);
-        String badges = "";
-        if (passed  > 0) badges += "<span class=\"status-badge status-passed\">"  + passed  + " passed</span> ";
-        if (failed  > 0) badges += "<span class=\"status-badge status-failed\">"  + failed  + " failed</span> ";
-        if (skipped > 0) badges += "<span class=\"status-badge status-skipped\">" + skipped + " skipped</span>";
-        String iconClass = collapsed ? "group-icon closed" : "group-icon";
-        int colspan = showBrowser ? 8 : 7;
-        return "<tr class=\"group-header\" data-group=\"" + groupKey + "\" onclick=\"toggleGroup('" + groupKey + "')\">"
-                + "<td colspan=\"" + colspan + "\">"
-                + "<span class=\"" + iconClass + "\" id=\"gicon-" + groupKey + "\">&#x25BC;</span> "
-                + "<strong>" + groupKey + "</strong>"
-                + "<span class=\"group-count\"> &mdash; " + total + " test" + (total != 1 ? "s" : "") + "</span>"
-                + " &nbsp;" + badges
-                + "</td>"
-                + "</tr>";
-    }
-
-    private static String buildRow(JsonNode test, int rowIndex, String groupId, boolean collapsed) {
-        return buildRow(test, rowIndex, groupId, collapsed, false);
-    }
-
-    private static String buildRow(JsonNode test, int rowIndex, String groupId, boolean collapsed, boolean showBrowser) {
-        String status      = test.has("status")      ? test.get("status").asText()      : "UNKNOWN";
-        String statusClass = "status-" + status.toLowerCase();
-        String rawTestId   = test.has("testId")      ? test.get("testId").asText()      : "";
-        int lastDot        = rawTestId.lastIndexOf('.');
-        String methodName  = escapeHtml(lastDot >= 0 ? rawTestId.substring(lastDot + 1) : rawTestId);
-        String description = test.has("description") ? escapeHtml(test.get("description").asText()) : "";
-        long   logicMs     = test.has("testLogicMs") ? test.get("testLogicMs").asLong() : 0L;
-        long   totalMs     = test.has("totalMs")     ? test.get("totalMs").asLong()     : 0L;
-        int    retryCount  = test.has("retryCount")  ? test.get("retryCount").asInt()   : 0;
-        String errorMsg      = test.has("errorMessage")  ? test.get("errorMessage").asText()  : null;
-        String stackTrace    = test.has("stackTrace")    ? test.get("stackTrace").asText()    : null;
-        String recordingPath = test.has("recordingPath") ? test.get("recordingPath").asText() : null;
-        String tracePath     = test.has("tracePath")     ? test.get("tracePath").asText()     : null;
-        String sessionUrl    = test.has("sessionUrl")    ? test.get("sessionUrl").asText()    : null;
-        int    healedCount   = test.has("healedCount")   ? test.get("healedCount").asInt()    : 0;
-        String aiAnalysis    = test.has("aiAnalysis")    ? test.get("aiAnalysis").asText()    : null;
-        String browser     = test.has("browser")      ? capitalize(test.get("browser").asText()) : "";
-        String screenshotCell = buildScreenshotCell(test);
-        String groupKey    = escapeHtml(groupId);
-        int colspan        = showBrowser ? 8 : 7;
-
-        String retryBadge  = retryCount > 0
-                ? "<span class=\"retry-badge\">&#x21bb; " + retryCount + "x</span> "
-                : "";
-        String healedBadge = healedCount > 0
-                ? "<span class=\"healed-badge\" title=\"" + healedCount
-                  + " locator(s) auto-healed\">&#x26A0; healed</span> "
-                : "";
-
-        com.fasterxml.jackson.databind.JsonNode perfNode =
-                test.has("performanceMetrics") && !test.get("performanceMetrics").isNull()
-                ? test.get("performanceMetrics") : null;
-
-        String stepsHtml   = buildStepTimeline(test);
-        boolean hasDetail  = errorMsg != null || stackTrace != null || !stepsHtml.isEmpty()
-                             || recordingPath != null || aiAnalysis != null || perfNode != null;
-        String detailRow   = "";
-        if (hasDetail) {
-            String errorHtml     = errorMsg      != null ? "<div class=\"error-msg\">"      + escapeHtml(errorMsg)   + "</div>" : "";
-            String traceHtml     = stackTrace    != null ? "<pre class=\"stack-trace\">"    + escapeHtml(stackTrace) + "</pre>" : "";
-            String recordingHtml = recordingPath != null ? buildRecordingCell(recordingPath) : "";
-            String traceLink     = tracePath     != null ? buildTraceLink(tracePath) : "";
-            String sessionLink   = sessionUrl    != null ? buildSessionLink(sessionUrl) : "";
-            String aiHtml        = aiAnalysis    != null ? buildAiAnalysisPanel(aiAnalysis) : "";
-            String perfHtml      = perfNode      != null ? buildPerformancePanel(perfNode) : "";
-            String stepsSection = !stepsHtml.isEmpty()
-                    ? "<div class=\"step-timeline-section\"><div class=\"step-timeline-header\">Steps (" + test.get("steps").size() + ")</div>"
-                      + "<div class=\"step-timeline\">" + stepsHtml + "</div></div>"
-                    : "";
-            String detailDisplay = collapsed ? " style=\"display:none\"" : "";
-            detailRow = "<tr class=\"detail-row group-member\" data-group=\"" + groupKey + "\" id=\"detail-" + rowIndex + "\"" + detailDisplay + ">"
-                    + "<td colspan=\"" + colspan + "\"><div class=\"detail-panel\">"
-                    + perfHtml + sessionLink + traceLink + stepsSection + recordingHtml + aiHtml + errorHtml + traceHtml
-                    + "</div></td>"
-                    + "</tr>";
-        }
-
-        String rowClass    = "group-member" + (hasDetail ? " expandable" : "");
-        String clickAttr   = hasDetail ? " onclick=\"toggleDetail(" + rowIndex + ")\"" : "";
-        String memberStyle = collapsed ? " style=\"display:none\"" : "";
-        String iconOpen    = (!collapsed && hasDetail) ? " open" : "";
-
-        String browserCell = showBrowser ? "<td class=\"browser-cell\">" + escapeHtml(browser) + "</td>" : "";
-
-        return "<tr class=\"" + rowClass + "\""
-                + clickAttr
-                + memberStyle
-                + " data-group=\"" + groupKey + "\""
-                + " data-status=\"" + status + "\""
-                + " data-test=\"" + methodName.toLowerCase() + "\">"
-                + "<td class=\"test-id\">" + retryBadge + healedBadge + methodName + "</td>"
-                + "<td class=\"desc-cell\">" + description + "</td>"
-                + browserCell
-                + "<td><span class=\"status-badge " + statusClass + "\">" + status + "</span></td>"
-                + "<td class=\"numeric\">" + logicMs + "</td>"
-                + "<td class=\"numeric\">" + totalMs + "</td>"
-                + "<td>" + screenshotCell + "</td>"
-                + "<td>" + (hasDetail ? "<span class=\"expand-icon" + iconOpen + "\" id=\"icon-" + rowIndex + "\">&#x25BC;</span>" : "") + "</td>"
-                + "</tr>"
-                + detailRow;
-    }
-
-    private static String buildFailureRows(JsonNode tests) {
-        return buildFailureRows(tests, false);
-    }
-
-    private static String buildFailureRows(JsonNode tests, boolean showBrowser) {
-        if (tests == null) return noFailuresRow();
-        java.util.Map<String, java.util.List<JsonNode>> byClass = new java.util.LinkedHashMap<>();
-        for (JsonNode test : tests) {
-            if (!"FAILED".equals(test.has("status") ? test.get("status").asText() : "")) continue;
-            String cls = test.has("testClassName") ? test.get("testClassName").asText() : "";
-            if (cls.isEmpty()) cls = "Unknown";
-            String groupKey = showBrowser
-                    ? cls + " [" + capitalize(test.has("browser") ? test.get("browser").asText("") : "") + "]"
-                    : cls;
-            byClass.computeIfAbsent(groupKey, k -> new java.util.ArrayList<>()).add(test);
-        }
-        if (byClass.isEmpty()) return noFailuresRow();
-
-        int colspan = showBrowser ? 8 : 7;
-        StringBuilder rows = new StringBuilder();
-        int rowIndex = 50000; // offset avoids ID conflicts with the test-cases table
-        for (java.util.Map.Entry<String, java.util.List<JsonNode>> entry : byClass.entrySet()) {
-            String groupKey = escapeHtml(entry.getKey());
-            int total = entry.getValue().size();
-            // Non-collapsible group header for failures (always expanded)
-            rows.append("<tr class=\"group-header\">"
-                    + "<td colspan=\"" + colspan + "\">"
-                    + "<span class=\"group-icon\">&#x25BC;</span> "
-                    + "<strong>" + groupKey + "</strong>"
-                    + "<span class=\"group-count\"> &mdash; " + total + " failure" + (total != 1 ? "s" : "") + "</span>"
-                    + "</td></tr>");
-            for (JsonNode test : entry.getValue()) {
-                rows.append(buildRow(test, rowIndex++, entry.getKey(), false, showBrowser));
-            }
-        }
-        return rows.toString();
-    }
-
-    private static String noFailuresRow() {
-        return "<tr><td colspan=\"7\" class=\"no-failures-msg\">&#10003; No failures in this run</td></tr>";
-    }
-
-    private static String buildRetrySection(int flakyTests, int recoveredTests) {
-        if (flakyTests == 0) return "";
-        int stillFailing = flakyTests - recoveredTests;
-        return "<div class=\"card section-mb\">"
-                + "<div class=\"card-header\">Retry Summary</div>"
-                + "<div class=\"card-body\">"
-                + "<div class=\"summary-row retry-summary-row\">"
-                + "<div class=\"card stat-card\"><div class=\"stat-value stat-value-warn\">" + flakyTests + "</div><div class=\"stat-label\">Retried</div></div>"
-                + "<div class=\"card stat-card\"><div class=\"stat-value stat-value-good\">" + recoveredTests + "</div><div class=\"stat-label\">Recovered</div></div>"
-                + "<div class=\"card stat-card\"><div class=\"stat-value stat-value-bad\">"  + stillFailing + "</div><div class=\"stat-label\">Still Failing</div></div>"
-                + "</div></div></div>";
-    }
-
-    private static String buildSlowestTests(JsonNode tests) {
-        java.util.List<JsonNode> list = new java.util.ArrayList<>();
-        tests.forEach(list::add);
-        list.sort((a, b) -> Long.compare(
-                b.has("totalMs") ? b.get("totalMs").asLong() : 0L,
-                a.has("totalMs") ? a.get("totalMs").asLong() : 0L));
-        int count = Math.min(5, list.size());
-        long max = count > 0 && list.get(0).has("totalMs") ? list.get(0).get("totalMs").asLong() : 1L;
-        if (max == 0) max = 1L;
-
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < count; i++) {
-            JsonNode t = list.get(i);
-            String rawId = t.has("testId") ? t.get("testId").asText() : "unknown";
-            int dot      = rawId.lastIndexOf('.');
-            String name  = escapeHtml(dot >= 0 ? rawId.substring(dot + 1) : rawId);
-            long   ms    = t.has("totalMs") ? t.get("totalMs").asLong() : 0L;
-            int    pct   = (int) (ms * 100 / max);
-            sb.append("<div class=\"slow-item\">")
-              .append("<span class=\"slow-name\">").append(name).append("</span>")
-              .append("<div class=\"slow-bar-wrap\"><div class=\"slow-bar\" style=\"width:").append(pct).append("%\"></div></div>")
-              .append("<span class=\"slow-ms\">").append(ms).append(" ms</span>")
-              .append("</div>");
-        }
-        return sb.toString();
-    }
-
-    private static String buildRecordingCell(String recordingPath) {
-        File gif = new File(recordingPath);
-        String label = gif.getName();
-        if (!gif.exists()) {
-            return "<div class=\"recording-section\"><span class=\"recording-label\">&#x1F3A5; Recording:</span> "
-                    + "<span class=\"recording-missing\">" + escapeHtml(label) + " (file not found)</span></div>";
-        }
+        int limit = 10;
         try {
-            byte[] bytes = java.nio.file.Files.readAllBytes(gif.toPath());
-            String base64 = java.util.Base64.getEncoder().encodeToString(bytes);
-            // Only embed if under 3 MB; otherwise show a path hint
-            if (bytes.length < 3 * 1024 * 1024) {
-                return "<div class=\"recording-section\">"
-                        + "<div class=\"recording-label\">&#x1F3A5; Recording</div>"
-                        + "<img src=\"data:image/gif;base64," + base64 + "\" class=\"recording-gif\" />"
-                        + "</div>";
+            TestFlyConfig cfg = TestFlyContext.getConfig();
+            if (cfg != null && cfg.getReporting() != null) {
+                limit = cfg.getReporting().getHistoryRuns();
             }
-        } catch (java.io.IOException ignored) {}
-        // Fallback: show path
-        return "<div class=\"recording-section\"><span class=\"recording-label\">&#x1F3A5; Recording:</span> "
-                + "<span class=\"recording-path\">" + escapeHtml(recordingPath) + "</span></div>";
-    }
+        } catch (Exception ignored) {}
 
-    private static String buildPerformancePanel(com.fasterxml.jackson.databind.JsonNode perf) {
-        double lcp     = perf.has("lcp")      ? perf.get("lcp").asDouble(-1)      : -1;
-        double fcp     = perf.has("fcp")      ? perf.get("fcp").asDouble(-1)      : -1;
-        double ttfb    = perf.has("ttfb")     ? perf.get("ttfb").asDouble(-1)     : -1;
-        double cls     = perf.has("cls")      ? perf.get("cls").asDouble(-1)      : -1;
-        double domLoad = perf.has("domLoad")  ? perf.get("domLoad").asDouble(-1)  : -1;
-        double pgLoad  = perf.has("pageLoad") ? perf.get("pageLoad").asDouble(-1) : -1;
+        for (int i = 0; i < Math.min(files.length, limit); i++) {
+            File f = files[i];
+            try {
+                JsonNode h = mapper.readTree(f);
+                String fileName = f.getName();
+                String rawTs = fileName.replace("testfly-metrics-", "").replace(".json", "");
+                String formattedTs = formatHistoryTimestamp(rawTs);
 
-        // Return nothing if all metrics are unavailable
-        if (lcp < 0 && fcp < 0 && ttfb < 0 && cls < 0 && domLoad < 0 && pgLoad < 0) return "";
+                int tot = h.has("totalTests") ? h.get("totalTests").asInt() : 0;
+                int p = h.has("passedTests") ? h.get("passedTests").asInt() : 0;
+                int fail = h.has("failedTests") ? h.get("failedTests").asInt() : 0;
+                int skip = h.has("skippedTests") ? h.get("skippedTests").asInt() : 0;
+                double rate = h.has("passRate") ? h.get("passRate").asDouble() : 0.0;
+                long dur = h.has("totalTimeMs") ? h.get("totalTimeMs").asLong() : 0L;
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("<div class=\"perf-metrics\"><span class=\"perf-label\">&#x26A1; Performance</span>");
-        if (lcp     >= 0) sb.append(perfChip("LCP",     formatMs(lcp),    lcpClass(lcp)));
-        if (fcp     >= 0) sb.append(perfChip("FCP",     formatMs(fcp),    fcpClass(fcp)));
-        if (ttfb    >= 0) sb.append(perfChip("TTFB",    formatMs(ttfb),   ttfbClass(ttfb)));
-        if (cls     >= 0) sb.append(perfChip("CLS",     String.format("%.3f", cls), clsClass(cls)));
-        if (domLoad >= 0) sb.append(perfChip("DOM",     formatMs(domLoad), "perf-na"));
-        if (pgLoad  >= 0) sb.append(perfChip("Load",    formatMs(pgLoad),  "perf-na"));
-        sb.append("</div>");
-        return sb.toString();
-    }
-
-    private static String perfChip(String label, String value, String cls) {
-        return "<span class=\"perf-chip " + cls + "\">" + label + " " + value + "</span>";
-    }
-
-    private static String formatMs(double ms) {
-        return ms >= 1000
-            ? String.format("%.2fs", ms / 1000)
-            : String.format("%.0fms", ms);
-    }
-
-    private static String lcpClass(double ms) {
-        return ms < 2500 ? "perf-good" : ms < 4000 ? "perf-warn" : "perf-bad";
-    }
-
-    private static String fcpClass(double ms) {
-        return ms < 1800 ? "perf-good" : ms < 3000 ? "perf-warn" : "perf-bad";
-    }
-
-    private static String ttfbClass(double ms) {
-        return ms < 800 ? "perf-good" : ms < 1800 ? "perf-warn" : "perf-bad";
-    }
-
-    private static String clsClass(double score) {
-        return score < 0.1 ? "perf-good" : score < 0.25 ? "perf-warn" : "perf-bad";
-    }
-
-    private static String buildAiAnalysisPanel(String analysis) {
-        return "<div class=\"ai-analysis-section\">"
-                + "<div class=\"ai-analysis-header\">&#x1F916; AI Failure Analysis</div>"
-                + "<div class=\"ai-analysis-body\">" + escapeHtml(analysis) + "</div>"
-                + "</div>";
-    }
-
-    private static String buildFlakinessSection() {
-        java.util.List<io.testfly.flakiness.FlakinessScore> scores =
-                io.testfly.flakiness.FlakinessAnalyzer.getLastResult();
-        java.util.List<io.testfly.flakiness.FlakinessScore> risky = scores.stream()
-                .filter(s -> s.getRisk() != io.testfly.flakiness.FlakinessScore.Risk.STABLE)
-                .collect(java.util.stream.Collectors.toList());
-        if (risky.isEmpty()) return "";
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("<div class=\"card section-mb\">\n");
-        sb.append("  <div class=\"card-header\">&#x26A0; Flakiness Radar</div>\n");
-        sb.append("  <div class=\"card-body flakiness-section\">\n");
-        for (io.testfly.flakiness.FlakinessScore s : risky) {
-            String riskClass = s.getRisk() == io.testfly.flakiness.FlakinessScore.Risk.HIGH
-                    ? "risk-high" : "risk-watch";
-            String riskLabel = s.getRisk().name();
-            int lastDot = s.getTestId().lastIndexOf('.');
-            String shortName = lastDot >= 0 ? s.getTestId().substring(lastDot + 1) : s.getTestId();
-            sb.append("    <div class=\"flakiness-item\">\n");
-            sb.append("      <span class=\"").append(riskClass).append("\">").append(riskLabel).append("</span>\n");
-            sb.append("      <span class=\"flakiness-name\" title=\"").append(escapeHtml(s.getTestId())).append("\">")
-              .append(escapeHtml(shortName)).append("</span>\n");
-            sb.append("      <span class=\"flakiness-rate\">")
-              .append(String.format("%.1f", s.getFailureRate())).append("% fail")
-              .append(" (").append(s.getRunsAnalysed()).append(" runs)")
-              .append("</span>\n");
-            sb.append("    </div>\n");
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("rawTimestamp", rawTs);
+                item.put("timestamp", formattedTs);
+                item.put("totalTests", tot);
+                item.put("passedTests", p);
+                item.put("failedTests", fail);
+                item.put("skippedTests", skip);
+                item.put("passRate", rate);
+                item.put("totalTimeMs", dur);
+                item.put("reportPath", "reports/testfly-report-" + rawTs + ".html");
+                list.add(item);
+            } catch (Exception ignored) {}
         }
-        sb.append("  </div>\n</div>\n");
-        return sb.toString();
+        return list;
     }
 
-    private static String buildSessionLink(String url) {
-        return "<div class=\"trace-link-section\">"
-                + "<a href=\"" + escapeHtml(url) + "\" target=\"_blank\" class=\"trace-link\">"
-                + "&#x2601; View Session</a></div>";
-    }
-
-    private static String buildTraceLink(String tracePath) {
-        // tracePath is relative to target/ — the report is also at target/, so the href is correct
-        return "<div class=\"trace-link-section\">"
-                + "<a href=\"" + escapeHtml(tracePath) + "\" target=\"_blank\" class=\"trace-link\">"
-                + "&#x1F50D; View Trace</a></div>";
-    }
-
-    private static String buildStepTimeline(JsonNode test) {
-        if (!test.has("steps") || test.get("steps").size() == 0) return "";
-        StringBuilder sb = new StringBuilder();
-        int i = 1;
-        for (JsonNode step : test.get("steps")) {
-            String name     = step.has("name")     ? escapeHtml(step.get("name").asText())   : "";
-            String status   = step.has("status")   ? step.get("status").asText().toUpperCase() : "INFO";
-            long   offsetMs = step.has("offsetMs") ? step.get("offsetMs").asLong()            : 0L;
-            String badgeClass = "step-badge-info";
-            if ("PASS".equals(status)) badgeClass = "step-badge-pass";
-            else if ("FAIL".equals(status)) badgeClass = "step-badge-fail";
-
-            String thumbHtml = "";
-            if (step.has("screenshotBase64")) {
-                String src = "data:image/png;base64," + step.get("screenshotBase64").asText();
-                thumbHtml = "<img src=\"" + src + "\" class=\"step-thumb\" "
-                          + "onclick=\"openLightbox(this.src)\" title=\"Click to view full size\" />";
-            }
-
-            sb.append("<div class=\"step-item\">")
-              .append("<span class=\"step-num\">").append(i++).append("</span>")
-              .append("<span class=\"step-name\">").append(name).append("</span>")
-              .append("<span class=\"step-offset\">+").append(offsetMs).append("ms</span>")
-              .append("<span class=\"step-badge ").append(badgeClass).append("\">").append(status).append("</span>")
-              .append(thumbHtml)
-              .append("</div>");
+    private static String formatHistoryTimestamp(String raw) {
+        if (raw == null || raw.length() < 15) return raw;
+        try {
+            String y = raw.substring(0, 4);
+            String m = raw.substring(4, 6);
+            String d = raw.substring(6, 8);
+            String hr = raw.substring(9, 11);
+            String min = raw.substring(11, 13);
+            String sec = raw.substring(13, 15);
+            return y + "-" + m + "-" + d + " " + hr + ":" + min + ":" + sec;
+        } catch (Exception e) {
+            return raw;
         }
-        return sb.toString();
     }
 
-    private static String escapeHtml(String value) {
-        if (value == null) return "";
-        return value.replace("&", "&amp;")
-                    .replace("<", "&lt;")
-                    .replace(">", "&gt;")
-                    .replace("\"", "&quot;");
-    }
+    private static String buildHtml(String reportDataJson, String metadataSection, Map<String, Object> cumTotals, String timestamp, int historyCount, String runHistoryJson) {
+        int cumTotal = (int) cumTotals.getOrDefault("totalTests", 0);
+        long cumPassed = (long) cumTotals.getOrDefault("passedTests", 0L);
+        long cumFailed = (long) cumTotals.getOrDefault("failedTests", 0L);
+        long cumSkipped = (long) cumTotals.getOrDefault("skippedTests", 0L);
+        double cumPassRate = (double) cumTotals.getOrDefault("passRate", 0.0);
+        long cumDuration = (long) cumTotals.getOrDefault("totalTimeMs", 0L);
+        long cumAvg = (long) cumTotals.getOrDefault("averageTimeMs", 0L);
 
-    private static String safeStr(JsonNode node, String field) {
-        return node.has(field) ? node.get(field).asText("") : "";
-    }
+        String passRateClass = cumPassRate >= 80 ? "rate-good" : cumPassRate >= 60 ? "rate-warn" : "rate-bad";
+        String passRateStr = String.format("%.1f", cumPassRate);
 
-    private static String loadTemplate() {
-        try (InputStream is = HtmlReportGenerator.class
-                .getClassLoader()
-                .getResourceAsStream("report-template.html")) {
+        try (InputStream is = HtmlReportGenerator.class.getResourceAsStream("/report-template.html")) {
             if (is == null) {
-                throw new IllegalStateException("report-template.html not found in classpath");
+                throw new RuntimeException("report-template.html not found in classpath");
             }
-            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (java.io.IOException e) {
-            throw new IllegalStateException("Failed to load report-template.html", e);
+            String template = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+
+            String failureBadge = cumFailed > 0
+                    ? "<span class=\"nav-count status-failed\">" + cumFailed + "</span>"
+                    : "";
+
+            return template
+                    .replace("{{TESTFLY_DATA_JSON}}", reportDataJson)
+                    .replace("{{RUN_HISTORY_JSON}}", runHistoryJson)
+                    .replace("{{TOTAL_TESTS}}", String.valueOf(cumTotal))
+                    .replace("{{PASSED}}", String.valueOf(cumPassed))
+                    .replace("{{FAILED}}", String.valueOf(cumFailed))
+                    .replace("{{SKIPPED}}", String.valueOf(cumSkipped))
+                    .replace("{{PASS_RATE}}", passRateStr)
+                    .replace("{{PASS_RATE_CLASS}}", passRateClass)
+                    .replace("{{TOTAL_TIME_MS}}", String.valueOf(cumDuration))
+                    .replace("{{AVG_TIME_MS}}", String.valueOf(cumAvg))
+                    .replace("{{METADATA}}", metadataSection)
+                    .replace("{{RUN_TIMESTAMP}}", timestamp)
+                    .replace("{{HISTORY_COUNT}}", String.valueOf(historyCount))
+                    .replace("{{FAILURE_BADGE}}", failureBadge)
+                    .replace("{{ROWS}}", "")
+                    .replace("{{FAILURE_ROWS}}", "")
+                    .replace("{{SLOWEST_TESTS}}", "")
+                    .replace("{{RUN_HISTORY_SECTION}}", "")
+                    .replace("{{RETRY_SECTION}}", "")
+                    .replace("{{FLAKINESS_SECTION}}", "")
+                    .replace("{{DONUT_DATA}}", String.format("{\"passed\":%d,\"failed\":%d,\"skipped\":%d}", cumPassed, cumFailed, cumSkipped))
+                    .replace("{{EXECUTION_PERCENTILES}}", "{}");
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to render HTML report template", e);
         }
+    }
+
+    private static String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 }

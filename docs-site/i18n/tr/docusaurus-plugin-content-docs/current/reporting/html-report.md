@@ -1,5 +1,5 @@
 ---
-description: "TestFly HTML raporu: başarı yüzdesi göstergesi, yeniden denemeler, ekran görüntüleri, tutarsızlık radarı ve karanlık mod içeren, sunucu gerektirmeyen bağımsız bir paneldir."
+description: "TestFly HTML raporu: kümülatif suite toplamları, koşum geçmişi arşivleme, AI hata analizi ve karanlık mod içeren Allure tarzı bağımsız bir gösterge panelidir."
 id: html-report
 title: Selenium HTML Raporu
 sidebar_label: HTML Raporu
@@ -8,125 +8,97 @@ sidebar_position: 1
 
 # HTML Raporu
 
-TestFly, her test çalıştırmasından sonra `target/testfly-report.html` konumunda bağımsız bir HTML raporu üretir. Bu rapor sunucu ya da ek araç gerektirmez — dosyayı bir tarayıcıda açmanız yeterlidir.
+TestFly, her test yürütmesinden sonra interaktif, Allure tarzı tek sayfalık (SPA) bir HTML raporu üretir. Harici bir sunucu veya veritabanı gerektirmez — `target/testfly-report.html` dosyasını herhangi bir web tarayıcısında çift tıklayarak açmanız yeterlidir.
 
 ---
 
-## Rapor konumu
+## Mimari ve Dosya Konumları
+
+Rapor, **JSON-driven (Allure tarzı)** bir mimari kullanır. Test çalıştırma metrikleri yapılandırılmış JSON olarak dışa aktarılır ve %100 çevrimdışı bağımsız kullanım için HTML dosyası içine gömülür.
 
 ```
 target/
-└── testfly-report.html   ← bunu açın
+├── testfly-report.html           ← Ana interaktif HTML raporu
+├── testfly-report-data.json      ← Bağımsız JSON veri dosyası
+├── testfly-metrics.json          ← Ham çalıştırma metrikleri verisi
+├── reports/
+│   └── testfly-report-*.html     ← Zaman damgalı arşivlenmiş geçmiş koşumlar
+└── metrics-history/
+    └── testfly-metrics-*.json    ← Geçmiş metrik JSON anlık görüntüleri
 ```
 
 ---
 
-## Sekmeler
+## Öne Çıkan Özellikler
 
-Raporun sol kenar çubuğunda üç sekme bulunur:
+### 1. Dashboard Kısmında Kümülatif "TOTAL" Gösterimi
+Yalnızca son tekil koşumu gösteren geleneksel test raporlarının aksine, TestFly paneli test paketinde kaydedilen tüm testler için **Kümülatif Suite Toplamlarını (TOTAL)** belirgin şekilde sergiler:
 
-### Panel sekmesi
+- **Total Tests** — Test paketindeki toplam benzersiz test senaryosu sayısı
+- **Total Passed** — Kümülatif başarılı tamamlanan testler
+- **Total Failed** — Kümülatif müdahale gerektiren başarısız testler
+- **Total Skipped** — Kümülatif atlanan testler
+- **Overall Pass Rate** — Kümülatif genel başarı yüzdesi
+- **Total Duration** — Toplam kümülatif çalışma süresi
 
-Çalıştırmanın üst düzey özeti:
-
-- **Toplam / Geçti / Kaldı / Atlandı** sayıları
-- **Süre** — toplam duvar saati (geçen gerçek) süresi
-- **Başarı Oranı** — geçen testlerin yüzdesi, renk kodlu (yeşil / turuncu / kırmızı)
-- **Yeniden Deneme Özeti** — yeniden denenmiş, kurtarılmış, hâlâ başarısız olan sayıları (yalnızca yeniden denemeler olduğunda gösterilir)
-- **En Yavaş 5 Test** — toplam süreye göre sıralanmış
-- **Sürücü Başlatma** yüzdelik grafiği
-
-### Test Durumları sekmesi
-
-Tüm testleri içeren tam tablo:
-
-| Sütun | Açıklama |
-|---|---|
-| Sınıf | Basit sınıf adı |
-| Test | Test yöntemi adı |
-| Durum | GEÇTİ / KALDI / ATLANDI rozeti |
-| Süre | ms |
-| Yeniden Denemeler | Yeniden deneme sayısını gösteren rozet (0 olduğunda gizlenir) |
-
-Herhangi bir satıra tıklayarak **ayrıntı panelini** genişletebilirsiniz:
-- Hata mesajı (kırmızı, kalın)
-- Tam yığın izi (sabit genişlikli, kaydırılabilir)
-- Zaman damgaları, durum rozetleri ve satır içi ekran görüntüleriyle adım zaman çizelgesi
-
-### Hatalar sekmesi
-
-Test Durumları sekmesindeki ile aynı ayrıntı panelleri, ancak yalnızca başarısız testler için. Ayrıntı panelleri önceden genişletilmiştir; böylece neyin ters gittiğini tıklamadan hemen görebilirsiniz.
+:::tip Kümülatif Test Birleştirme (Merge Runs)
+Testleri farklı sınıf veya paketler halinde ardışık koşturduğunuzda `reporting.mergeRuns: true` yapın veya `-Dtestfly.merge=true` parametresi geçin. TestFly önceki test sonuçlarını silmek yerine otomatik olarak korur ve kümülatif tek raporda birleştirir.
+:::
 
 ---
 
-## Bağımsız format
+### 2. Allure Renk Paleti
+Rapor arayüzü Allure'un ikonik QA renk tasarımını benimser:
 
-Tüm ekran görüntüleri Base64 ile kodlanır ve satır içine gömülür. Rapor tek bir dosyadır; bunu:
+| Durum | Renk | Hex | Açıklama |
+|---|---|---|---|
+| **Passed** | Allure Yeşili | `#97cc64` | Başarılı test çalıştırması |
+| **Failed** | Allure Kırmızısı | `#fd5a3e` | Doğrulama veya beklenmeyen hata |
+| **Broken / Warning** | Allure Sarı/Kehribar | `#ffb238` | Ortam veya başlangıç hatası |
+| **Skipped** | Allure Gri | `#8c8c8c` | Atlanan veya yok sayılan test |
+| **Primary / Brand** | Allure Mavi | `#1890ff` | Menü vurguları ve aktif sekmeler |
 
-- Bir paydaşa e-postayla gönderebilir
-- Bir Jira biletine ekleyebilir
-- Bir CI yapıtı olarak arşivleyebilir
-- Paylaşılan bir klasörde saklayabilir
+---
 
-Görsel klasörü, varlık referansı veya sunucu gerekmez.
+### 3. Koşum Geçmişi ve İnteraktif Seçici (Run Switcher)
+Her test çalıştırması otomatik olarak `target/reports/testfly-report-YYYYMMDD-HHmmss.html` adıyla zaman damgalı olarak arşivlenir.
+
+- **Run Switcher Açılır Menüsü:** Üst başlıkta bulunur; **Suite Total (All Tests)**, **Latest Run** ve geçmiş arşivlenmiş koşumlar arasında tek tıkla geçiş yapmayı sağlar.
+- **Run History Sekmesi:** Kalite trend çizelgesi, geçmiş başarı oranları, test sayıları, süreler ve arşiv raporlarına doğrudan bağlantılar görüntüler.
 
 ---
 
-## Adım zaman çizelgesi
+### 4. Tanılama ve Hata İnceleme Araçları
+Herhangi bir test satırını genişletmek, şu özelliklerle donatılmış bir detay paneli açar:
 
-Testler `StepLogger` kullandığında her adım ayrıntı panelinde görünür:
-
-```
- 1  Açık oturum açma sayfası        +0ms     INFO
- 2  Kimlik bilgilerini gir          +312ms   INFO
- 3  Panelin görünür olduğunu doğrula  +891ms   PASS  [ekran görüntüsü]
-```
-
-Küçük resimler tıklanabilir — ışık kutusu (lightbox) katmanında tam boyutta açılırlar.
+- **Adım Zaman Çizelgesi (Step Timeline):** `StepLogger` ile kaydedilen adım zaman farklarını (`+56ms`), adım durumlarını (`PASS`, `INFO`, `FAIL`) ve açıklamaları gösterir.
+- **API İstek İzi ve cURL İncelemesi:** HTTP metodu, uç nokta, durum kodu, gecikme süresi, kopyalanabilir cURL komutları ve istek/yanıt JSON gövdelerini doğrudan adım çekmecesinde gösterir.
+- **Tek Tıkla Stack Trace Kopyalama:** Biçimlendirilmiş hata yığın izini tek butonla panoya kopyalar.
+- **AI Hata Analiz Kartı (AI Failure Analysis):** AI analizi aktif olduğunda hatanın kök nedenini ve önerilen çözüm adımlarını sunar.
+- **Ekran Görüntüsü Lightbox:** Base64 gömülü küçük resimler tıklandığında yüksek çözünürlüklü pencerede (lightbox) açılır.
 
 ---
+
+### 5. Flakiness Radarı ve Risk Analizi
+Özel **Flakiness Radar** sekmesi, geçmiş koşumlardaki yürütme eğilimlerini analiz eder:
+
+- **Yüksek Risk (High Risk):** CI hattını bozma potansiyeline sahip, karantinaya alınması tavsiye edilen (`@Quarantine`) dengesiz testler.
+- **İzleme Listesi (Watch List):** Ara sıra başarısızlık sergileyen ve inceleme gerektiren testler.
+- **Kararlı (Stable):** Tutarlı bir şekilde %100 başarı oranına sahip güvenilir testler.
+- **Özet KPI Kartları:** Değerlendirilen test sayısı, Yüksek Risk, İzleme Listesi ve Kararlı test adetlerini anında gösterir.
+- **İnteraktif Risk Tablosu:** Testleri başarısızlık yüzdesine, toplam koşum sayısına ve karantina önerisine göre sıralayıp filtreleme imkanı sunar.
+
+---
+
 
 ## Yapılandırma
 
-Rapor yolu ve adı şu anda yapılandırılabilir değildir — dosya her zaman `target/testfly-report.html` olarak yazılır.
+Raporlama davranışını [`testfly.yml`](../guides/testfly-yml-guide.md) dosyasından yapılandırın:
 
----
-
-## Derleme Meta Verileri
-
-Rapor, çalışma zamanında yakalanan CI bağlamını gösteren bir **Derleme Meta Verileri** kartı görüntüler:
-
-| Alan | Kaynak |
-|---|---|
-| CI Sağlayıcısı | Ortam değişkenlerinden algılanır (`GITHUB_ACTIONS`, `JENKINS_URL`, `GITLAB_CI` vb.) |
-| Derleme Numarası / Derleme Kimliği | Sağlayıcıya özgü çalıştırma tanımlayıcıları |
-| Dal / Commit | Geçerli dal ve SHA |
-| Depo / Eylemci | Depo kısa adı ve derlemeyi tetikleyen kullanıcı |
-| İş Adı / Aracı Adı | CI işi ve çalıştırıcı/aracı adı |
-| Derleme URL'si | Pipeline çalıştırmasına dönüş bağlantısı |
-
-Meta veri yakalama, tanınan CI ortamlarında otomatiktir ve `testfly.yml` içinde devre dışı bırakılabilir:
-
-```yaml title="testfly.yml"
-ci:
-  captureMetadata: false
+```yaml
+reporting:
+  mergeRuns: false                  # ardışık testleri kümülatif birleştirmek için true yapın veya -Dtestfly.merge=true geçin
+  historyRuns: 10                   # koşum seçicide saklanacak maksimum geçmiş rapor sayısı (varsayılan: 10)
+  allure:
+    enabled: false                  # target/allure-results/ dizinine Allure 2 çıktıları üret
 ```
-
-Desteklenen sağlayıcıların ve değişkenlerin tam listesi için [CI Meta Verileri](../ci/ci-metadata) bölümüne bakın.
-
----
-
-## CI kullanımı
-
-Raporu, CI çalışma alanı temizlendikten sonra korumak için bir yapıt olarak yükleyin:
-
-```yaml title="GitHub Actions"
-- name: Raporu yükle
-  if: always()
-  uses: actions/upload-artifact@v4
-  with:
-    name: testfly-report
-    path: target/testfly-report.html
-```
-
-`if: always()` kuralı, testler başarısız olsa bile raporun yüklenmesini sağlar.
