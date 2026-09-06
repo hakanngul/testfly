@@ -592,31 +592,37 @@ export default function Home() {
             aria-hidden
           />
           <div className={`container ${styles.heroContainer}`}>
-            <div className={styles.heroInner}>
-              <div className={styles.heroText}>
+            <div className={styles.heroContent}>
+              <div className={styles.heroHeader}>
                 <span className={styles.heroEyebrow}>
                   Java 17 · Selenium 4 · TestNG · JUnit 5 · Cucumber · AI/MCP
                 </span>
                 <h1 className={styles.heroTitle}>
                   {isTr ? (
                     <>
-                      Gürültüsüz, otonom ve
-                      <br />
+                      Gürültüsüz, otonom ve{' '}
                       <span className={styles.heroTitleAccent}>kurumsal test otomasyonu</span>
                     </>
                   ) : (
                     <>
-                      Test automation
-                      <br />
+                      Test automation{' '}
                       <span className={styles.heroTitleAccent}>without the noise</span>
                     </>
                   )}
                 </h1>
-                <p className={styles.heroSubtitle}>
-                  {isTr
-                    ? "Selenium'un Spring Boot'u: Otonom Agentic Testing, kendi kendini onaran seçiciler (Self-Healing), sıfır boilerplate ve 88 yerleşik MCP aracı."
-                    : 'The Spring Boot of Selenium with next-gen Agentic Testing. Zero boilerplate, self-healing locators, natural language goals, and 88 built-in MCP tools.'}
-                </p>
+              </div>
+
+              <div className={styles.heroShowcaseWrap}>
+                <HeroCodeShowcase />
+              </div>
+
+              <p className={styles.heroSubtitle}>
+                {isTr
+                  ? "Selenium'un Spring Boot'u: Otonom Agentic Testing, kendi kendini onaran seçiciler (Self-Healing), sıfır boilerplate ve 88 yerleşik MCP aracı."
+                  : 'The Spring Boot of Selenium with next-gen Agentic Testing. Zero boilerplate, self-healing locators, natural language goals, and 88 built-in MCP tools.'}
+              </p>
+
+              <div className={styles.heroBottom}>
                 <div className={styles.heroActions}>
                   <Link className={styles.buttonPrimary} to="/docs/getting-started">
                     {isTr ? 'Hemen Başlayın' : 'Get Started'}
@@ -628,20 +634,6 @@ export default function Home() {
                     GitHub
                   </Link>
                 </div>
-                <CodeWindow
-                  filename="pom.xml"
-                  language="xml"
-                  className={styles.heroSnippet}
-                  code={`<dependency>
-  <groupId>io.github.hakanngul</groupId>
-  <artifactId>testfly</artifactId>
-  <version>1.0.2</version>
-</dependency>`}
-                />
-              </div>
-
-              <div className={styles.heroVisual}>
-                <HeroCodeShowcase />
               </div>
             </div>
           </div>
@@ -791,6 +783,53 @@ assertThat(find("h1"))
               ))}
             </div>
 
+            {/* ── Maven Central Dependency Banner ──────────────────────────────── */}
+            <div className={styles.installBanner} data-reveal>
+              <div className={styles.installText}>
+                <span className={styles.sectionEyebrow}>
+                  {isTr ? 'Maven Central · Sıfır Konfigürasyon' : 'Maven Central · Zero Boilerplate'}
+                </span>
+                <h3 className={styles.installTitle}>
+                  {isTr ? 'Tek Bir Bağımlılıkla Tüm Gücü Açın' : 'One Dependency to Power Your Entire Stack'}
+                </h3>
+                <p className={styles.installSubtitle}>
+                  {isTr
+                    ? 'Bağımlılık karmaşasına ve versiyon çakışmalarına son: Selenium 4, akıllı beklemeler, native CDP video kaydı, AI analiz motoru ve test çalıştırıcı köprüleri tek bir standart JAR altında çakışmasız gelir.'
+                    : 'No dependency conflicts or classpath bloat. TestFly bundles Selenium 4, smart waits, native CDP screencast, AI engine, and test runner bridges in a single verified artifact.'}
+                </p>
+                <div className={styles.installBadges}>
+                  <span className={styles.installBadge}>
+                    <span className={styles.installBadgeDot} />
+                    Java 17+
+                  </span>
+                  <span className={styles.installBadge}>
+                    <span className={styles.installBadgeDot} />
+                    Maven Central v1.0.2
+                  </span>
+                  <span className={styles.installBadge}>
+                    <span className={styles.installBadgeDot} />
+                    {isTr ? 'Sıfır Çakışma' : 'Zero Conflicts'}
+                  </span>
+                  <span className={styles.installBadge}>
+                    <span className={styles.installBadgeDot} />
+                    Apache 2.0
+                  </span>
+                </div>
+              </div>
+              <div className={styles.installCodeWrap}>
+                <CodeWindow
+                  filename="pom.xml"
+                  language="xml"
+                  className={styles.installCode}
+                  code={`<dependency>
+  <groupId>io.github.hakanngul</groupId>
+  <artifactId>testfly</artifactId>
+  <version>1.0.2</version>
+</dependency>`}
+                />
+              </div>
+            </div>
+
             <div className={styles.moreHeader} data-reveal>
               <h3 className={styles.moreTitle}>
                 {isTr ? 'Eksiksiz Test Araç Seti' : 'The Complete Toolkit'}
@@ -826,30 +865,85 @@ assertThat(find("h1"))
           <div className="container">
             <div className={styles.quickInner}>
               <div className={styles.quickText} data-reveal>
-                <span className={styles.sectionEyebrow}>{isTr ? 'Hızlı Başlangıç' : 'Quick Start'}</span>
+                <span className={styles.sectionEyebrow}>
+                  {isTr ? 'Deklaratif Test Orkestrasyonu' : 'Declarative Orchestration'}
+                </span>
                 <h2 className={styles.quickTitle}>
                   {isTr ? (
                     <>
-                      3 dakikada
+                      Tek bir YAML dosyası,
                       <br />
-                      çalışır durumda
+                      <span className={styles.quickTitleAccent}>tüm kurumsal test gücü</span>
                     </>
                   ) : (
                     <>
-                      Up and running
+                      One unified config,
                       <br />
-                      in 3 minutes
+                      <span className={styles.quickTitleAccent}>complete test orchestration</span>
                     </>
                   )}
                 </h2>
                 <p className={styles.quickSubtitle}>
                   {isTr
-                    ? 'Bağımlılığı ekleyin, kurumsal YAML konfigürasyonunuzu belirleyin ve BaseTest ile ilk otonom veya klasik testinizi çalıştırın.'
-                    : 'Add the dependency, define your enterprise YAML config, and run your first test with full reporting, self-healing, and AI assistance.'}
+                    ? 'Yüzlerce satırlık kırılgan driver fabrikaları ve dağınık setup script’leri yazmaya son. ThreadLocal paralel thread yönetimi, native Chromium CDP MP4 video kaydı, Allure ve ReportPortal senkronizasyonu, DeepSeek/OpenAI kök neden tespiti ve kendi kendini onaran seçicileri tek bir standart YAML ile canlı yönetin.'
+                    : 'Stop writing fragile framework plumbing. Configure ThreadLocal driver isolation, native Chromium CDP MP4 recordings, live Allure & ReportPortal sync, DeepSeek/OpenAI failure diagnosis, and self-healing locators—all driven by a single, type-safe configuration.'}
                 </p>
-                <Link className={styles.buttonPrimary} to="/docs/getting-started">
-                  {isTr ? 'Başlangıç Rehberini Oku' : 'Read the Guide'}
-                </Link>
+
+                <div className={styles.quickPills}>
+                  <div className={styles.quickPill}>
+                    <span className={styles.quickPillIcon}>⚡</span>
+                    <div>
+                      <strong>{isTr ? 'ThreadLocal Paralel İzolasyon' : 'ThreadLocal Parallel Engine'}</strong>
+                      <span>
+                        {isTr
+                          ? 'Methods veya classes düzeyinde güvenli paralelleştirme'
+                          : 'Safe concurrent test execution at method/class level'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={styles.quickPill}>
+                    <span className={styles.quickPillIcon}>🎥</span>
+                    <div>
+                      <strong>{isTr ? 'Native Chromium CDP MP4 Screencast' : 'Native CDP MP4 Screencast'}</strong>
+                      <span>
+                        {isTr
+                          ? 'Yalnızca hata anında saklanan sıfır ek yükte video kaydı'
+                          : 'Zero-overhead video, retained only on test failure'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={styles.quickPill}>
+                    <span className={styles.quickPillIcon}>🧠</span>
+                    <div>
+                      <strong>{isTr ? 'DeepSeek & OpenAI AI Analiz Motoru' : 'DeepSeek & OpenAI AI Engine'}</strong>
+                      <span>
+                        {isTr
+                          ? 'Hata kök-neden tespiti ve otomatik git patch üretimi'
+                          : 'Plain-English root-cause triage and auto-PR patches'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={styles.quickPill}>
+                    <span className={styles.quickPillIcon}>📊</span>
+                    <div>
+                      <strong>{isTr ? 'Allure & ReportPortal Entegrasyonu' : 'Unified Enterprise Reporting'}</strong>
+                      <span>
+                        {isTr
+                          ? 'HTML zaman çizelgesi, JUnit XML ve canlı dashboard akışı'
+                          : 'Interactive HTML timeline, JUnit XML, and live dashboard sync'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.quickActions}>
+                  <Link className={styles.buttonPrimary} to="/docs/configuration">
+                    {isTr ? 'Konfigürasyon Rehberini İncele' : 'Explore Config Reference'}
+                  </Link>
+                  <Link className={styles.buttonSecondary} to="/docs/getting-started">
+                    {isTr ? 'Hızlı Başlangıç Rehberi' : 'Quickstart Guide'}
+                  </Link>
+                </div>
               </div>
 
               <div className={styles.quickCode} data-reveal style={{ '--i': 1 }}>
@@ -884,16 +978,16 @@ ai:
   baseUrl: https://api.deepseek.com
   apiKey: "\${AI_API_KEY}"
   model: deepseek-v4-flash
-  language: \${isTr ? 'tr' : 'en'}
+  language: ${isTr ? 'tr' : 'en'}
   timeoutSeconds: 20
 
 recording:
-  enabled: true                    # Video kaydı (Chromium native CDP screencast)
+  enabled: true                    ${isTr ? "# Video kaydını aktif eder (varsayılan: false)" : "# Enables test video recording"}
   mode: retain-on-failure          # 'retain-on-failure' | 'on' | 'off'
   format: mp4                      # 'mp4' (H.264 video) | 'gif'
-  fps: 5                           # Saniyedeki kare sayısı (2-10)
-  maxDurationSeconds: 60           # Maksimum kayıt süresi sınırı
-  cdp: true                        # Native CDP screencast kullanımı
+  fps: 5                           ${isTr ? "# Saniyedeki kare sayısı (2-10)" : "# Frames per second (2-10)"}
+  maxDurationSeconds: 60           ${isTr ? "# Bellek güvenliği için maksimum kayıt süresi" : "# Max duration safety limit"}
+  cdp: true                        ${isTr ? "# Chromium native CDP screencast kullanımı" : "# Native Chromium CDP screencast"}
 
 reporting:
   allureEnabled: true
