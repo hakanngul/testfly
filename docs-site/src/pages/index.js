@@ -312,6 +312,92 @@ function getMoreFeatures(isTr) {
   ];
 }
 
+const compareScenarios = [
+  {
+    id: 'dynamic',
+    labelEn: '⚡ Dynamic Wait & Actionability',
+    labelTr: '⚡ Dinamik Bekleme & Aksiyon',
+    taglineEn: 'Explicit waits, stale elements, and JS scroll hacks vs. instant auto-waiting & actionability checks',
+    taglineTr: 'Explicit wait karmaşası, stale element hataları ve JS executor yerine akıllı bekleme ve aksiyon kontrolü',
+    filename: 'CheckoutTest.java',
+    before: `// Plain Selenium: Flaky explicit wait & JS scroll hack
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+WebElement btn = wait.until(
+    ExpectedConditions.elementToBeClickable(By.id("checkout")));
+((JavascriptExecutor) driver).executeScript(
+    "arguments[0].scrollIntoView(true);", btn);
+btn.click();
+
+// Brittle XPath text match with manual visibility check
+WebElement status = wait.until(
+    ExpectedConditions.visibilityOfElementLocated(
+        By.xpath("//span[contains(@class,'order-badge')]")));
+Assert.assertEquals(status.getText().trim(), "Confirmed");`,
+    after: `// TestFly: Auto-scroll, actionability check & self-healing
+find("#checkout").click();
+
+// Web-first semantic assertion with built-in auto-retry
+assertThat(getByRole(Role.STATUS))
+    .isVisible()
+    .hasText("Confirmed");`,
+    badgeBeforeEn: '14 lines · 2 explicit waits · StaleElement prone',
+    badgeBeforeTr: '14 satır · 2 explicit wait · StaleElement riski',
+    badgeAfterEn: '2 lines · Zero-flakiness auto-waiting',
+    badgeAfterTr: '2 satır · Sıfır kırılganlıkta akıllı bekleme',
+  },
+  {
+    id: 'healing',
+    labelEn: '🪄 Self-Healing Locators',
+    labelTr: '🪄 Kendi Kendini Onaran Seçiciler',
+    taglineEn: 'Broken locators that crash CI builds vs. automated runtime semantic healing',
+    taglineTr: 'CI/CD pipeline’ını çökerten kırık seçiciler yerine çalışma anında otonom onarım',
+    filename: 'PaymentTest.java',
+    before: `// Frontend changed button ID: '#pay-now' -> '#submit-order-v2'
+// ❌ FAILS with NoSuchElementException:
+WebElement pay = driver.findElement(By.id("pay-now"));
+pay.click();
+
+// CI build fails, pull request blocked, engineer must fix manually...`,
+    after: `// Button ID changed? TestFly recovers it dynamically:
+// 🪄 [HEALED] '#pay-now' -> 'button[name="submit-order-v2"]' (confidence: 96%)
+find("#pay-now").click();
+
+// Test passes smoothly. Remediation patch exported in HTML report!`,
+    badgeBeforeEn: 'Pipeline broken · Manual PR needed',
+    badgeBeforeTr: 'Pipeline çöker · Manuel kod düzeltmesi şart',
+    badgeAfterEn: 'Healed in 42ms · Auto-PR patch ready',
+    badgeAfterTr: '42ms’de onarıldı · Otomatik PR yaması hazır',
+  },
+  {
+    id: 'session',
+    labelEn: '🔐 Session Caching (@PreCondition)',
+    labelTr: '🔐 Oturum Önbelleği (@PreCondition)',
+    taglineEn: 'Re-logging in on every single test vs. instant cookie & storage hydration',
+    taglineTr: 'Her testte tekrar tekrar login olmak yerine anında oturum enjeksiyonu',
+    filename: 'BillingTest.java',
+    before: `// Plain Selenium: 100 tests re-logging in over slow UI
+driver.get("https://app.com/login");
+driver.findElement(By.id("user")).sendKeys("admin");
+driver.findElement(By.id("pass")).sendKeys("secret");
+driver.findElement(By.id("submit")).click();
+wait.until(ExpectedConditions.urlContains("/dashboard"));
+
+// 8-15 seconds wasted per test · Flaky login rate-limits`,
+    after: `// TestFly: Login once, cache session state for entire suite
+@PreCondition(AdminSession.class)
+@Test
+void verifyInvoiceSummary() {
+    open("/dashboard/billing"); // Instant authenticated landing!
+    assertThat(find("#invoice-table")).hasRowCount(5);
+}`,
+    badgeBeforeEn: '12s wasted per test · Fragile UI logins',
+    badgeBeforeTr: 'Her testte 12s kayıp · Kırılgan UI login',
+    badgeAfterEn: '0.1s instant restore · 80% faster suites',
+    badgeAfterTr: '0.1s anında oturum · %80 daha hızlı koşan suite',
+  },
+];
+
 function getFaqs(isTr) {
   if (isTr) {
     return [
@@ -557,10 +643,13 @@ export default function Home() {
   const { siteConfig, i18n } = useDocusaurusContext();
   const isTr = i18n.currentLocale === 'tr';
   const [openFaq, setOpenFaq] = useState(0);
+  const [activeCompareTab, setActiveCompareTab] = useState('dynamic');
 
   const flagshipFeatures = getFlagshipFeatures(isTr);
   const moreFeatures = getMoreFeatures(isTr);
   const faqs = getFaqs(isTr);
+  const currentScenario =
+    compareScenarios.find((s) => s.id === activeCompareTab) || compareScenarios[0];
 
   useEffect(() => {
     const els = document.querySelectorAll('[data-reveal]');
@@ -671,42 +760,63 @@ export default function Home() {
               <h2 className={styles.sectionTitle}>
                 {isTr ? (
                   <>
-                    Aynı test.
+                    Tesisat kodları değil,
                     <br />
-                    Tesisat kodları olmadan.
+                    <span className={styles.sectionTitleAccent}>gerçek testler yazın</span>
                   </>
                 ) : (
                   <>
-                    Same test.
+                    Write tests,
                     <br />
-                    None of the plumbing.
+                    <span className={styles.sectionTitleAccent}>not framework plumbing</span>
                   </>
                 )}
               </h2>
               <p className={styles.sectionSubtitle}>
                 {isTr
-                  ? 'TestFly ekibinizin altyapı kodlarıyla boğuşmasını engeller. Beklemeler, driver yönetimi, hata analizleri ve retry mekanizmaları çerçevenin içinde hazır gelir.'
-                  : 'TestFly lets your team focus on testing, not framework engineering. Waits, driver lifecycles, healing, and retry are all managed.'}
+                  ? "TestFly'ın kırılgan explicit wait'leri, çöken seçici yamalarını ve saatler alan oturum kurulumlarını nasıl tek satırlık temiz ve dirençli otomasyona dönüştürdüğünü görün."
+                  : 'See how TestFly replaces hundreds of lines of fragile waits, broken locator workarounds, and repetitive setup with clean, self-healing automation.'}
+              </p>
+            </div>
+
+            {/* Scenario Tabs */}
+            <div className={styles.compareTabsWrap} data-reveal>
+              <div className={styles.compareTabs} role="tablist">
+                {compareScenarios.map((sc) => {
+                  const isActive = sc.id === currentScenario.id;
+                  return (
+                    <button
+                      key={sc.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      className={`${styles.compareTab} ${isActive ? styles.compareTabActive : ''}`}
+                      onClick={() => setActiveCompareTab(sc.id)}
+                    >
+                      {isTr ? sc.labelTr : sc.labelEn}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className={styles.compareTagline}>
+                {isTr ? currentScenario.taglineTr : currentScenario.taglineEn}
               </p>
             </div>
 
             <div className={styles.compareGrid} data-reveal>
               <div className={styles.compareCol}>
-                <span className={styles.compareLabel} data-kind="before">
-                  {isTr ? 'Geleneksel Selenium' : 'Plain Selenium'}
-                </span>
+                <div className={styles.compareColHeader}>
+                  <span className={styles.compareLabel} data-kind="before">
+                    {isTr ? 'Geleneksel Selenium' : 'Plain Selenium'}
+                  </span>
+                  <span className={styles.compareBadgeBefore}>
+                    {isTr ? currentScenario.badgeBeforeTr : currentScenario.badgeBeforeEn}
+                  </span>
+                </div>
                 <CodeWindow
-                  filename="LoginTest.java"
+                  filename={currentScenario.filename}
                   className={styles.compareWindow}
-                  code={`WebDriverWait wait = new WebDriverWait(
-    driver, Duration.ofSeconds(10));
-
-wait.until(ExpectedConditions
-    .elementToBeClickable(By.id("login")))
-    .click();
-
-wait.until(ExpectedConditions.textToBe(
-    By.cssSelector("h1"), "Dashboard"));`}
+                  code={currentScenario.before}
                 />
               </div>
 
@@ -716,16 +826,18 @@ wait.until(ExpectedConditions.textToBe(
               </div>
 
               <div className={styles.compareCol}>
-                <span className={styles.compareLabel} data-kind="after">
-                  TestFly
-                </span>
+                <div className={styles.compareColHeader}>
+                  <span className={styles.compareLabel} data-kind="after">
+                    TestFly
+                  </span>
+                  <span className={styles.compareBadgeAfter}>
+                    {isTr ? currentScenario.badgeAfterTr : currentScenario.badgeAfterEn}
+                  </span>
+                </div>
                 <CodeWindow
-                  filename="LoginTest.java"
+                  filename={currentScenario.filename}
                   className={styles.compareWindow}
-                  code={`find("#login").click();   // Auto-waiting + Self-healing
-
-assertThat(find("h1"))
-    .hasText("Dashboard"); // Web-first assertion`}
+                  code={currentScenario.after}
                 />
               </div>
             </div>
