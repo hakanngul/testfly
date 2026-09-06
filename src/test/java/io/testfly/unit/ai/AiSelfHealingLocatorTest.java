@@ -100,7 +100,7 @@ public class AiSelfHealingLocatorTest {
             TestFlyConfig.Locators locators = new TestFlyConfig.Locators();
             locators.setAiHealing(false);
             config.setLocators(locators);
-            TestFlyContext.initialize(config);
+            TestFlyContext.setConfig(config);
 
             WebDriver driver = Mockito.mock(WebDriver.class);
             WebElement healed = AiHealingEngine.heal(driver, By.id("missing-btn"), "test_01");
@@ -123,7 +123,7 @@ public class AiSelfHealingLocatorTest {
             ai.setApiKey("mock-key");
             ai.setModel("mock-model");
             config.setAi(ai);
-            TestFlyContext.initialize(config);
+            TestFlyContext.setConfig(config);
 
             // Register mock AI provider
             AiProvider mockProvider = Mockito.mock(AiProvider.class);
@@ -164,7 +164,7 @@ public class AiSelfHealingLocatorTest {
             ai.setProvider("mock-ai-hidden");
             ai.setApiKey("mock-key");
             config.setAi(ai);
-            TestFlyContext.initialize(config);
+            TestFlyContext.setConfig(config);
 
             AiProvider mockProvider = Mockito.mock(AiProvider.class);
             Mockito.when(mockProvider.name()).thenReturn("mock-ai-hidden");
@@ -198,7 +198,7 @@ public class AiSelfHealingLocatorTest {
             ai.setProvider("mock-ai-error");
             ai.setApiKey("mock-key");
             config.setAi(ai);
-            TestFlyContext.initialize(config);
+            TestFlyContext.setConfig(config);
 
             AiProvider mockProvider = Mockito.mock(AiProvider.class);
             Mockito.when(mockProvider.name()).thenReturn("mock-ai-error");

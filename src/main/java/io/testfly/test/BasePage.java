@@ -3,6 +3,7 @@ package io.testfly.test;
 import io.testfly.api.TestFlyApi;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.shadow.ShadowDom;
+import io.testfly.test.support.ActionSupport;
 import io.testfly.test.support.AssertionSupport;
 import io.testfly.test.support.BrowserSupport;
 import io.testfly.test.support.LocatorSupport;
@@ -51,7 +52,7 @@ import java.time.Duration;
  * </pre>
  */
 @TestFlyApi(since = "0.8.0")
-public abstract class BasePage implements LocatorSupport, AssertionSupport, StepSupport,
+public abstract class BasePage implements LocatorSupport, AssertionSupport, ActionSupport, StepSupport,
         SoftAssertSupport, BrowserSupport, VisualSupport {
 
     protected final WebDriver driver;
@@ -611,6 +612,16 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Step
         throw new IllegalArgumentException(
                 "File not found for upload: '" + filePath + "'. " +
                         "Checked: absolute path, classpath resources, and project-root relative path.");
+    }
+
+    /**
+     * Executes a goal-oriented agent action sequence on this page.
+     *
+     * @param goal natural language goal
+     */
+    @Override
+    public void act(String goal) {
+        io.testfly.agent.ActionCompiler.execute(driver != null ? driver : io.testfly.driver.DriverManager.getDriver(), goal);
     }
 
 }

@@ -4,6 +4,7 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.listeners.SuiteExecutionListener;
 import io.testfly.listeners.TestExecutionListener;
 import io.testfly.test.support.AccessibilitySupport;
+import io.testfly.test.support.ActionSupport;
 import io.testfly.test.support.ApiSupport;
 import io.testfly.test.support.AssertionSupport;
 import io.testfly.test.support.BrowserSupport;
@@ -35,7 +36,7 @@ import org.testng.annotations.Listeners;
                 SuiteExecutionListener.class,
                 TestExecutionListener.class
 })
-public abstract class BaseTest implements LocatorSupport, AssertionSupport, SessionSupport, SoftAssertSupport,
+public abstract class BaseTest implements LocatorSupport, AssertionSupport, ActionSupport, SessionSupport, SoftAssertSupport,
                 TestDataSupport, ApiSupport, ContextSupport, NavigationSupport,
                 BrowserSupport, VisualSupport, DbSupport, EmailSupport, AccessibilitySupport,
                 PerformanceSupport, ClockSupport {

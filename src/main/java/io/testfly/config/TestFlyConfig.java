@@ -606,6 +606,10 @@ public final class TestFlyConfig {
 
         public int     getTimeoutSeconds()               { return timeoutSeconds; }
         public void    setTimeoutSeconds(int v)          { this.timeoutSeconds = v; }
+
+        private boolean actionCache = true;
+        public boolean isActionCache()                   { return actionCache; }
+        public void    setActionCache(boolean v)         { this.actionCache = v; }
     }
 
     private Flakiness flakiness;

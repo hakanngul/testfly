@@ -1,6 +1,7 @@
 package io.testfly.cucumber;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.test.support.ActionSupport;
 import io.testfly.test.support.ApiSupport;
 import io.testfly.test.support.AssertionSupport;
 import io.testfly.test.support.LocatorSupport;
@@ -34,7 +35,7 @@ import io.cucumber.java.Scenario;
  * {@code CucumberContext} ThreadLocals.
  */
 @TestFlyApi(since = "1.9.0")
-public abstract class BaseCucumberSteps implements LocatorSupport, AssertionSupport, StepSupport, NavigationSupport, ApiSupport {
+public abstract class BaseCucumberSteps implements LocatorSupport, AssertionSupport, ActionSupport, StepSupport, NavigationSupport, ApiSupport {
 
     // ----------------------------------------------------------
     // Navigation (open / getDriver / getWait) — via NavigationSupport
