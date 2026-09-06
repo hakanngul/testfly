@@ -575,6 +575,7 @@ public final class TestFlyConfig {
 
     public static final class Ai {
         private boolean failureAnalysis = false;
+        private boolean generatePatch   = false;
         private String  provider        = "claude";
         private String  baseUrl         = null;
         private String  apiKey          = null;
@@ -584,6 +585,9 @@ public final class TestFlyConfig {
 
         public boolean isFailureAnalysis()               { return failureAnalysis; }
         public void    setFailureAnalysis(boolean v)     { this.failureAnalysis = v; }
+
+        public boolean isGeneratePatch()                 { return generatePatch; }
+        public void    setGeneratePatch(boolean v)       { this.generatePatch = v; }
 
         public String  getProvider()                     { return provider; }
         public void    setProvider(String v)             { this.provider = v; }

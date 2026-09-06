@@ -86,7 +86,7 @@ public final class AiFailureAnalyzer {
     public static void analyze(String testId, String pageUrl, String pageTitle) {
         try {
             TestFlyConfig.Ai aiCfg = config();
-            if (aiCfg == null || !aiCfg.isFailureAnalysis())
+            if (aiCfg == null || (!aiCfg.isFailureAnalysis() && !aiCfg.isGeneratePatch()))
                 return;
 
             String apiKey = resolveApiKey(aiCfg.getApiKey());
@@ -106,13 +106,28 @@ public final class AiFailureAnalyzer {
             if (timing == null)
                 return;
 
-            String prompt = buildPrompt(timing, pageUrl, pageTitle);
-            String analysis = provider.call(apiKey, aiCfg.getModel(), prompt, aiCfg.getTimeoutSeconds());
-            if (analysis != null && !analysis.isBlank()) {
-                String cleanAnalysis = analysis.strip();
-                ExecutionMetrics.recordAiAnalysis(testId, cleanAnalysis);
-                LOG.info("[AiFailureAnalyzer] Analysis recorded for: " + testId
-                        + " (provider: " + provider.name() + ", model: " + aiCfg.getModel() + ")");
+            if (aiCfg.isFailureAnalysis()) {
+                String prompt = buildPrompt(timing, pageUrl, pageTitle);
+                String analysis = provider.call(apiKey, aiCfg.getModel(), prompt, aiCfg.getTimeoutSeconds());
+                if (analysis != null && !analysis.isBlank()) {
+                    String cleanAnalysis = analysis.strip();
+                    ExecutionMetrics.recordAiAnalysis(testId, cleanAnalysis);
+                    LOG.info("[AiFailureAnalyzer] Analysis recorded for: " + testId
+                            + " (provider: " + provider.name() + ", model: " + aiCfg.getModel() + ")");
+                }
+            }
+
+            if (aiCfg.isGeneratePatch()) {
+                try {
+                    io.testfly.ai.remediation.SourceCodeLocator.SourceSnippet snippet =
+                            io.testfly.ai.remediation.SourceCodeLocator.findFailureSnippet(timing.getStackTrace());
+                    if (snippet != null) {
+                        io.testfly.ai.remediation.RemediationPatchGenerator.generateAndSave(
+                                testId, snippet, timing, pageUrl, pageTitle);
+                    }
+                } catch (Exception px) {
+                    LOG.fine("[AiFailureAnalyzer] Patch generation skipped or failed: " + px.getMessage());
+                }
             }
         } catch (Exception e) {
             LOG.warning("[AiFailureAnalyzer] Analysis failed (non-critical): " + e.getMessage());
