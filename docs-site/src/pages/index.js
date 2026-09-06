@@ -320,7 +320,7 @@ const compareScenarios = [
     taglineEn: 'Explicit waits, stale elements, and JS scroll hacks vs. instant auto-waiting & actionability checks',
     taglineTr: 'Explicit wait karmaşası, stale element hataları ve JS executor yerine akıllı bekleme ve aksiyon kontrolü',
     filename: 'CheckoutTest.java',
-    before: `// Plain Selenium: Flaky explicit wait & JS scroll hack
+    beforeEn: `// Plain Selenium: Flaky explicit wait & JS scroll hack
 WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
 WebElement btn = wait.until(
@@ -334,10 +334,31 @@ WebElement status = wait.until(
     ExpectedConditions.visibilityOfElementLocated(
         By.xpath("//span[contains(@class,'order-badge')]")));
 Assert.assertEquals(status.getText().trim(), "Confirmed");`,
-    after: `// TestFly: Auto-scroll, actionability check & self-healing
+    beforeTr: `// Geleneksel Selenium: Kırılgan explicit wait ve JS scroll hilesi
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+WebElement btn = wait.until(
+    ExpectedConditions.elementToBeClickable(By.id("checkout")));
+((JavascriptExecutor) driver).executeScript(
+    "arguments[0].scrollIntoView(true);", btn);
+btn.click();
+
+// Kırılgan XPath metin eşleşmesi ve manuel görünürlük kontrolü
+WebElement status = wait.until(
+    ExpectedConditions.visibilityOfElementLocated(
+        By.xpath("//span[contains(@class,'order-badge')]")));
+Assert.assertEquals(status.getText().trim(), "Confirmed");`,
+    afterEn: `// TestFly: Auto-scroll, actionability check & self-healing
 find("#checkout").click();
 
 // Web-first semantic assertion with built-in auto-retry
+assertThat(getByRole(Role.STATUS))
+    .isVisible()
+    .hasText("Confirmed");`,
+    afterTr: `// TestFly: Otomatik kaydırma, aksiyon kontrolü ve akıllı bekleme
+find("#checkout").click();
+
+// Otomatik bekleyen web öncelikli semantik doğrulama
 assertThat(getByRole(Role.STATUS))
     .isVisible()
     .hasText("Confirmed");`,
@@ -353,17 +374,28 @@ assertThat(getByRole(Role.STATUS))
     taglineEn: 'Broken locators that crash CI builds vs. automated runtime semantic healing',
     taglineTr: 'CI/CD pipeline’ını çökerten kırık seçiciler yerine çalışma anında otonom onarım',
     filename: 'PaymentTest.java',
-    before: `// Frontend changed button ID: '#pay-now' -> '#submit-order-v2'
+    beforeEn: `// Frontend changed button ID: '#pay-now' -> '#submit-order-v2'
 // ❌ FAILS with NoSuchElementException:
 WebElement pay = driver.findElement(By.id("pay-now"));
 pay.click();
 
 // CI build fails, pull request blocked, engineer must fix manually...`,
-    after: `// Button ID changed? TestFly recovers it dynamically:
+    beforeTr: `// Arayüz ekibi buton ID'sini değiştirdi: '#pay-now' -> '#submit-order-v2'
+// ❌ NoSuchElementException ile ÇÖKER:
+WebElement pay = driver.findElement(By.id("pay-now"));
+pay.click();
+
+// CI hattı kırılır, PR engellenir, mühendis manuel kod düzeltmek zorunda kalır...`,
+    afterEn: `// Button ID changed? TestFly recovers it dynamically:
 // 🪄 [HEALED] '#pay-now' -> 'button[name="submit-order-v2"]' (confidence: 96%)
 find("#pay-now").click();
 
 // Test passes smoothly. Remediation patch exported in HTML report!`,
+    afterTr: `// Buton ID'si mi değişti? TestFly çalışma anında dinamik onarır:
+// 🪄 [ONARILDI] '#pay-now' -> 'button[name="submit-order-v2"]' (güven: %96)
+find("#pay-now").click();
+
+// Test kesintisiz geçer. target/remediations/*.patch dosyası hazır üretilir!`,
     badgeBeforeEn: 'Pipeline broken · Manual PR needed',
     badgeBeforeTr: 'Pipeline çöker · Manuel kod düzeltmesi şart',
     badgeAfterEn: 'Healed in 42ms · Auto-PR patch ready',
@@ -376,7 +408,7 @@ find("#pay-now").click();
     taglineEn: 'Re-logging in on every single test vs. instant cookie & storage hydration',
     taglineTr: 'Her testte tekrar tekrar login olmak yerine anında oturum enjeksiyonu',
     filename: 'BillingTest.java',
-    before: `// Plain Selenium: 100 tests re-logging in over slow UI
+    beforeEn: `// Plain Selenium: 100 tests re-logging in over slow UI
 driver.get("https://app.com/login");
 driver.findElement(By.id("user")).sendKeys("admin");
 driver.findElement(By.id("pass")).sendKeys("secret");
@@ -384,11 +416,26 @@ driver.findElement(By.id("submit")).click();
 wait.until(ExpectedConditions.urlContains("/dashboard"));
 
 // 8-15 seconds wasted per test · Flaky login rate-limits`,
-    after: `// TestFly: Login once, cache session state for entire suite
+    beforeTr: `// Geleneksel Selenium: 100 testin her biri yavaş UI'dan tekrar tekrar giriş yapar
+driver.get("https://app.com/login");
+driver.findElement(By.id("user")).sendKeys("admin");
+driver.findElement(By.id("pass")).sendKeys("secret");
+driver.findElement(By.id("submit")).click();
+wait.until(ExpectedConditions.urlContains("/dashboard"));
+
+// Her testte 8-15 saniye kayıp · Kırılgan login rate-limit hataları`,
+    afterEn: `// TestFly: Login once, cache session state for entire suite
 @PreCondition(AdminSession.class)
 @Test
 void verifyInvoiceSummary() {
     open("/dashboard/billing"); // Instant authenticated landing!
+    assertThat(find("#invoice-table")).hasRowCount(5);
+}`,
+    afterTr: `// TestFly: Bir kez giriş yapın, oturumu tüm test paketine önbellekleyin
+@PreCondition(AdminSession.class)
+@Test
+void verifyInvoiceSummary() {
+    open("/dashboard/billing"); // Oturumu anında açık başlar!
     assertThat(find("#invoice-table")).hasRowCount(5);
 }`,
     badgeBeforeEn: '12s wasted per test · Fragile UI logins',
@@ -816,7 +863,7 @@ export default function Home() {
                 <CodeWindow
                   filename={currentScenario.filename}
                   className={styles.compareWindow}
-                  code={currentScenario.before}
+                  code={isTr ? currentScenario.beforeTr : currentScenario.beforeEn}
                 />
               </div>
 
@@ -837,7 +884,7 @@ export default function Home() {
                 <CodeWindow
                   filename={currentScenario.filename}
                   className={styles.compareWindow}
-                  code={currentScenario.after}
+                  code={isTr ? currentScenario.afterTr : currentScenario.afterEn}
                 />
               </div>
             </div>
