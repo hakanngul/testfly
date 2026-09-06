@@ -103,27 +103,28 @@ Responsibilities:
 
 ## Execution Flow
 
-```mermaid
-sequenceDiagram
-    participant Runner as Test Runner (TestNG / JUnit 5)
-    participant CFG as Config Manager
-    participant DM as Driver Manager
-    participant Test as Test Method
-    participant CDP as DevTools / NetworkMock
-    participant Rep as HTML Reporter
-
-    Runner->>CFG: Load and validate testfly.yml
-    Runner->>DM: Request ThreadLocal WebDriver
-    DM->>DM: Provision browser (Chrome/Edge/Firefox)
-    Runner->>CDP: Attach CDP v152 session (if Chromium)
-    Runner->>Test: Execute test logic
-    Test->>Test: Perform actions & fluent assertions
-    alt Test Fails
-        Runner->>Rep: Capture failure screenshot & DOM snapshot
-        Runner->>Test: Trigger retry attempt (if configured)
-    end
-    Runner->>DM: Quit WebDriver and release thread
-    Runner->>Rep: Compile target/testfly-report.html
+```text
+Test Runner             Config Manager        Driver Manager         CDP / DevTools         Test Method           HTML Reporter
+    │                         │                     │                      │                     │                      │
+ 1. │─── Load testfly.yml ───>│                     │                      │                     │                      │
+    │                         │                     │                      │                     │                      │
+ 2. │─── Request WebDriver ────────────────────────>│                      │                     │                      │
+    │                                               │ (Provision Browser)  │                     │                      │
+    │                                               │                      │                     │                      │
+ 3. │─── Attach CDP Session (if Chromium) ────────────────────────────────>│                     │                      │
+    │                                                                      │                     │                      │
+ 4. │─── Execute Test Logic ────────────────────────────────────────────────────────────────────>│                      │
+    │                                                                                            │                      │
+    │                                                                                            │ (Actions & Asserts)  │
+    │                                                                                            │                      │
+    │   [ If Test Fails ]                                                                        │                      │
+ 5. │─── Capture Screenshot & DOM Snapshot ─────────────────────────────────────────────────────────────────────────────>│
+ 6. │─── Trigger Retry (if configured) ─────────────────────────────────────────────────────────>│                      │
+    │                                                                                                                   │
+ 7. │─── Quit WebDriver & Release Thread ──────────>│                                                                   │
+    │                                               │                                                                   │
+ 8. │─── Compile target/testfly-report.html ───────────────────────────────────────────────────────────────────────────>│
+    │                                                                                                                   │
 ```
 
 ---
