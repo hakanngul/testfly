@@ -38,16 +38,32 @@ public final class OpenAiCompatibleProvider implements AiProvider {
     private static final Logger LOG = Logger.getLogger(OpenAiCompatibleProvider.class.getName());
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final String baseUrl;
+    private final String endpointUrl;
 
     /**
-     * @param baseUrl API base URL, e.g. {@code https://api.deepseek.com}.
-     *                {@code /v1/chat/completions} is appended automatically.
+     * @param baseUrl API base URL, e.g. {@code https://api.deepseek.com} or
+     *                {@code https://.../compatible-mode/v1}.
+     *                Handles {@code /v1} and {@code /chat/completions} intelligently.
      */
     public OpenAiCompatibleProvider(String baseUrl) {
-        this.baseUrl = baseUrl != null && baseUrl.endsWith("/")
-                ? baseUrl.substring(0, baseUrl.length() - 1)
-                : baseUrl;
+        this.endpointUrl = buildEndpointUrl(baseUrl);
+    }
+
+    public static String buildEndpointUrl(String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            return "https://api.openai.com/v1/chat/completions";
+        }
+        String clean = baseUrl.trim();
+        while (clean.endsWith("/")) {
+            clean = clean.substring(0, clean.length() - 1);
+        }
+        if (clean.endsWith("/chat/completions")) {
+            return clean;
+        }
+        if (clean.endsWith("/v1")) {
+            return clean + "/chat/completions";
+        }
+        return clean + "/v1/chat/completions";
     }
 
     @Override
@@ -58,7 +74,7 @@ public final class OpenAiCompatibleProvider implements AiProvider {
     @Override
     public String call(String apiKey, String model, String prompt, int timeoutSeconds) {
         try {
-            String url = baseUrl + "/v1/chat/completions";
+            String url = endpointUrl;
             String body = buildRequestBody(model, prompt);
 
             HttpClient client = HttpClient.newBuilder()

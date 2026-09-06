@@ -1,0 +1,31 @@
+# TestFly Configuration
+# Documentation: https://testfly.io/docs/configuration
+
+execution:
+  mode: local
+  baseUrl: https://www.saucedemo.com
+
+browser:
+  name: chrome
+  headless: false
+  lifecycle: per-test
+
+timeouts:
+  explicit: 10
+  pageLoad: 30
+
+retry:
+  enabled: true
+  maxAttempts: 2
+
+ai:
+  provider: openai-compatible
+  baseUrl: https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1
+  model: qwen3.8-flash
+  apiKey: ${AI_API_KEY}
+  timeoutSeconds: 30
+  actionCache: true
+
+reporting:
+  screenshotOnFailure: true
+  htmlReport: true

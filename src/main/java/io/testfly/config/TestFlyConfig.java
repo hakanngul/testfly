@@ -422,7 +422,15 @@ public final class TestFlyConfig {
         private boolean allureEnabled = false;
         private boolean mergeRuns = false;
         private int historyRuns = 10;
+        private boolean screenshotOnFailure = true;
+        private boolean htmlReport = true;
         private ReportPortal reportPortal = new ReportPortal();
+
+        public boolean isScreenshotOnFailure()                { return screenshotOnFailure; }
+        public void    setScreenshotOnFailure(boolean val)    { this.screenshotOnFailure = val; }
+
+        public boolean isHtmlReport()                         { return htmlReport; }
+        public void    setHtmlReport(boolean val)             { this.htmlReport = val; }
 
         public boolean isAllureEnabled()                      { return allureEnabled; }
         public void    setAllureEnabled(boolean allureEnabled) { this.allureEnabled = allureEnabled; }

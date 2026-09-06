@@ -16,8 +16,35 @@ import java.util.logging.Logger;
 public final class ClaudeProvider implements AiProvider {
 
     private static final Logger LOG = Logger.getLogger(ClaudeProvider.class.getName());
-    private static final String API_URL = "https://api.anthropic.com/v1/messages";
+    private static final String DEFAULT_URL = "https://api.anthropic.com/v1/messages";
     private static final String API_VERSION = "2023-06-01";
+
+    private final String endpointUrl;
+
+    public ClaudeProvider() {
+        this(null);
+    }
+
+    public ClaudeProvider(String baseUrl) {
+        this.endpointUrl = buildEndpointUrl(baseUrl);
+    }
+
+    public static String buildEndpointUrl(String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            return DEFAULT_URL;
+        }
+        String clean = baseUrl.trim();
+        while (clean.endsWith("/")) {
+            clean = clean.substring(0, clean.length() - 1);
+        }
+        if (clean.endsWith("/messages")) {
+            return clean;
+        }
+        if (clean.endsWith("/v1")) {
+            return clean + "/messages";
+        }
+        return clean + "/v1/messages";
+    }
 
     @Override
     public String name() {
@@ -34,8 +61,9 @@ public final class ClaudeProvider implements AiProvider {
                     .build();
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(API_URL))
+                    .uri(URI.create(endpointUrl))
                     .header("x-api-key", apiKey)
+                    .header("Authorization", "Bearer " + apiKey)
                     .header("anthropic-version", API_VERSION)
                     .header("content-type", "application/json")
                     .timeout(Duration.ofSeconds(timeoutSeconds))
@@ -62,7 +90,7 @@ public final class ClaudeProvider implements AiProvider {
         String selectedModel = (model != null && !model.isBlank()) ? model : DEFAULT_MODEL;
         String escaped = escapeJson(prompt);
         return "{\"model\":\"" + selectedModel + "\","
-                + "\"max_tokens\":512,"
+                + "\"max_tokens\":2048,"
                 + "\"messages\":[{\"role\":\"user\",\"content\":\"" + escaped + "\"}]"
                 + "}";
     }

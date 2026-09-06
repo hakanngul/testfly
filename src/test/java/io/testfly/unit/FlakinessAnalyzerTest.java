@@ -111,6 +111,25 @@ public class FlakinessAnalyzerTest {
     }
 
     @Test
+    public void buildEndpointUrl_handlesTokenPlanAndStandardUrls() {
+        // Alibaba Cloud Token Plan baseUrl
+        Assert.assertEquals(
+                io.testfly.ai.ClaudeProvider.buildEndpointUrl("https://token-plan.ap-southeast-1.maas.aliyuncs.com/apps/anthropic"),
+                "https://token-plan.ap-southeast-1.maas.aliyuncs.com/apps/anthropic/v1/messages"
+        );
+        // BaseUrl with trailing slash
+        Assert.assertEquals(
+                io.testfly.ai.ClaudeProvider.buildEndpointUrl("https://token-plan.ap-southeast-1.maas.aliyuncs.com/apps/anthropic/"),
+                "https://token-plan.ap-southeast-1.maas.aliyuncs.com/apps/anthropic/v1/messages"
+        );
+        // Default when null
+        Assert.assertEquals(
+                io.testfly.ai.ClaudeProvider.buildEndpointUrl(null),
+                "https://api.anthropic.com/v1/messages"
+        );
+    }
+
+    @Test
     public void extractContent_emptyJson_returnsNull() {
         Assert.assertNull(io.testfly.ai.ClaudeProvider.extractContent("{}"));
     }
