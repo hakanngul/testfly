@@ -1,6 +1,8 @@
 package io.testfly.assertion;
 
+import io.testfly.ai.DomPruner;
 import io.testfly.api.TestFlyApi;
+import io.testfly.assertion.ai.AiAssertEngine;
 import io.testfly.driver.DriverManager;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.steps.StepLogger;
@@ -167,6 +169,58 @@ public final class PageAssert {
         poll(ExpectedConditions.urlMatches(regex),
                 "Expected page URL to match regex [" + regex + "]");
         return this;
+    }
+
+    // ------------------------------------------------------------------
+    // Semantic AI Assertions
+    // ------------------------------------------------------------------
+
+    /**
+     * Asserts that the current page state semantically satisfies the given natural language condition.
+     *
+     * <p>Anti-throttle guarantee: does not poll every 500ms. Extracts pruned DOM and performs a bounded
+     * LLM reasoning evaluation.
+     *
+     * @param expectedCondition natural language expectation (e.g. "Order was placed successfully")
+     * @return this assertion for chaining
+     */
+    public PageAssert satisfiesAi(String expectedCondition) {
+        StepLogger.step("Assert page satisfies condition (AI): " + expectedCondition);
+        evaluateAi(expectedCondition, true);
+        return this;
+    }
+
+    /**
+     * Asserts that the current page state does NOT violate or contain the given forbidden condition.
+     *
+     * @param forbiddenCondition natural language forbidden condition (e.g. "Error 500 or red alert banner")
+     * @return this assertion for chaining
+     */
+    public PageAssert violatesAi(String forbiddenCondition) {
+        StepLogger.step("Assert page does not violate condition (AI): " + forbiddenCondition);
+        evaluateAi(forbiddenCondition, false);
+        return this;
+    }
+
+    private void evaluateAi(String condition, boolean expectSatisfaction) {
+        WebDriver currentDriver = driver != null ? driver : DriverManager.getDriver();
+        String prunedDom = DomPruner.prune(currentDriver);
+
+        AiAssertEngine.AiAssertionResult result =
+                AiAssertEngine.verify(currentDriver, prunedDom, condition, expectSatisfaction);
+
+        if (!result.isPassed()) {
+            String prefix = customMessage != null && !customMessage.isBlank() ? "[" + customMessage + "] " : "";
+            String modeStr = expectSatisfaction ? "satisfy" : "not violate";
+            String err = prefix + "Expected page to " + modeStr + " AI condition: \"" + condition + "\". Reason: " + result.reason();
+
+            if (soft) {
+                SoftAssertionCollector target = collector != null ? collector : SoftAssertions.get();
+                target.that(false, err);
+            } else {
+                throw new AssertionError(err);
+            }
+        }
     }
 
     // ------------------------------------------------------------------

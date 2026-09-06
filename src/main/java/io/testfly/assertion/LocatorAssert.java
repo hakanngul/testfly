@@ -15,6 +15,8 @@ import org.openqa.selenium.TimeoutException;
 
 import java.time.Duration;
 import java.util.List;
+import io.testfly.ai.DomPruner;
+import io.testfly.assertion.ai.AiAssertEngine;
 
 /**
  * Fluent, auto-retrying assertion for a specific locator.
@@ -276,6 +278,77 @@ public final class LocatorAssert {
         poll(ExpectedConditions.numberOfElementsToBe(by, expected),
                 "Expected " + expected + " element(s) for: " + description);
         return this;
+    }
+
+    // ------------------------------------------------------------------
+    // Semantic AI Assertions
+    // ------------------------------------------------------------------
+
+    /**
+     * Asserts that the element semantically satisfies the given natural language condition.
+     *
+     * <p>Anti-throttle guarantee: does not poll repeatedly. Extracts element HTML and performs a bounded
+     * LLM reasoning evaluation.
+     *
+     * @param expectedCondition natural language expectation (e.g. "Displays active subscription status")
+     * @return this assertion for chaining
+     */
+    public LocatorAssert satisfiesAi(String expectedCondition) {
+        StepLogger.step("Assert element satisfies condition (AI): \"" + expectedCondition + "\" for: " + description);
+        evaluateAi(expectedCondition, true);
+        return this;
+    }
+
+    /**
+     * Asserts that the element does NOT violate or contain the given forbidden condition.
+     *
+     * @param forbiddenCondition natural language forbidden condition (e.g. "Contains error banner or expired tag")
+     * @return this assertion for chaining
+     */
+    public LocatorAssert violatesAi(String forbiddenCondition) {
+        StepLogger.step("Assert element does not violate condition (AI): \"" + forbiddenCondition + "\" for: " + description);
+        evaluateAi(forbiddenCondition, false);
+        return this;
+    }
+
+    private void evaluateAi(String condition, boolean expectSatisfaction) {
+        WebDriver driver = DriverManager.getDriver();
+        List<WebElement> els = driver.findElements(by);
+        if (els.isEmpty()) {
+            String prefix = customMessage != null && !customMessage.isBlank() ? "[" + customMessage + "] " : "";
+            String err = prefix + "Cannot evaluate AI condition: element not found for " + description;
+            if (soft) {
+                SoftAssertionCollector target = collector != null ? collector : SoftAssertions.get();
+                target.that(false, err);
+            } else {
+                throw new AssertionError(err);
+            }
+            return;
+        }
+
+        String rawHtml;
+        try {
+            rawHtml = els.get(0).getAttribute("outerHTML");
+        } catch (Exception e) {
+            rawHtml = els.get(0).getText();
+        }
+
+        String pruned = DomPruner.prune(rawHtml);
+        AiAssertEngine.AiAssertionResult result =
+                AiAssertEngine.verify(driver, pruned, condition, expectSatisfaction);
+
+        if (!result.isPassed()) {
+            String prefix = customMessage != null && !customMessage.isBlank() ? "[" + customMessage + "] " : "";
+            String modeStr = expectSatisfaction ? "satisfy" : "not violate";
+            String err = prefix + "Expected element [" + description + "] to " + modeStr + " AI condition: \"" + condition + "\". Reason: " + result.reason();
+
+            if (soft) {
+                SoftAssertionCollector target = collector != null ? collector : SoftAssertions.get();
+                target.that(false, err);
+            } else {
+                throw new AssertionError(err);
+            }
+        }
     }
 
     // ------------------------------------------------------------------

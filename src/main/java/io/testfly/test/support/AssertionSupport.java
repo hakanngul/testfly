@@ -36,4 +36,14 @@ public interface AssertionSupport {
     default PageAssert assertThatPage() {
         return SeleniumAssert.assertThatPage();
     }
+
+    /**
+     * Asserts that the current page state semantically satisfies the natural language condition via AI.
+     *
+     * @param expectedCondition natural language expectation (e.g. "Order was placed successfully")
+     * @return page assertion chain
+     */
+    default PageAssert assertWithAi(String expectedCondition) {
+        return assertThatPage().satisfiesAi(expectedCondition);
+    }
 }
