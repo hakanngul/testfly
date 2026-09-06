@@ -45,10 +45,11 @@ graph TD
 
 ## Ekosistem Bileşenleri
 
-TestFly AI ekosistemi 4 ana bileşenden oluşur:
+TestFly AI ekosistemi 5 ana bileşenden oluşur:
 
 | Bileşen | Görevi | Nasıl Erişilir |
 | :--- | :--- | :--- |
+| **Agentic Testing Çalışma Zamanı** | Doğal dil hedefleri (`act()`), semantik doğrulamalar (`assertWithAi()`), niyet seçicileri (`byIntent()`), AI self-healing ve otomatik yama (auto-PR) motoru. | Yerleşik Java kütüphanesi: `io.testfly:testfly` |
 | **`testfly-mcp` Sunucusu** | AI asistanlarına standart I/O üzerinden 88 araç sunan Python MCP sunucusu. | `pip install -e .` veya CLI: `testfly-mcp` |
 | **IntelliJ IDEA Eklentisi** | JetBrains AI Assistant ile sıfır konfigürasyonlu kayıt, sistem teşhisi ve proje başlatma. | Diskten kurulum: `testfly-mcp-jetbrains-1.0.0.zip` |
 | **VS Code Eklentisi** | Claude Code & GitHub Copilot için otomatik kayıt, durum çubuğu menüsü. | VSIX kurulumu: `testfly-mcp-1.0.0.vsix` |
@@ -58,6 +59,7 @@ TestFly AI ekosistemi 4 ana bileşenden oluşur:
 
 ## Sonraki Adımlar
 
+- [Agentic Testing & Otonom AI](./agentic-testing) — Hedef odaklı test adımları, Compile & Freeze önbelleği, semantik doğrulamalar ve otomatik hata yamaları.
 - [TestFly MCP Sunucusu ve CLI](./testfly-mcp) — Kurulum, 88 MCP aracı ve komut satırı kullanımı.
 - [IDE Eklentileri](./ide-plugins) — IntelliJ IDEA ve VS Code eklentilerinin kurulumu.
 - [Etkileşimli Web Stüdyosu](./interactive-studio) — Görsel tarayıcı denetimi ve anlık kod üretimi.

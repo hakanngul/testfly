@@ -173,3 +173,24 @@ You can still use raw boolean soft assertions when needed:
 ```java
 softAssert().that(items.size() > 0, "Item list should not be empty");
 ```
+
+---
+
+## Semantic AI Assertions (`satisfiesAi` & `violatesAi`)
+
+For complex page states, dynamic messages, or visual flows where exact string matching is brittle, TestFly provides LLM-evaluated semantic assertions:
+
+```java
+// Page-level semantic check
+assertThatPage().satisfiesAi("Shopping cart summary displays total price and at least 1 item");
+assertThatPage().violatesAi("Error banner, access denied, or 500 server notice");
+
+// Convenience shortcut in BaseTest/BasePage
+assertWithAi("The user profile shows active subscription status");
+
+// Element-level semantic check
+assertThat(find(".status-pill")).satisfiesAi("Indicates a successful payment");
+```
+
+For full details, anti-throttle guarantees, and examples, see the [Agentic Testing & Autonomous AI Guide](../ai/agentic-testing#2-semantic-assertions-satisfiesai--violatesai).
+

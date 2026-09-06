@@ -67,6 +67,7 @@ const sidebars = {
       collapsed: false,
       items: [
         'ai/overview',
+        'ai/agentic-testing',
         'ai/testfly-mcp',
         'ai/ide-plugins',
         'ai/interactive-studio',
