@@ -600,8 +600,8 @@ export default function Home() {
                 <h1 className={styles.heroTitle}>
                   {isTr ? (
                     <>
-                      Gürültüsüz, otonom ve{' '}
-                      <span className={styles.heroTitleAccent}>kurumsal test otomasyonu</span>
+                      Gürültüden uzak{' '}
+                      <span className={styles.heroTitleAccent}>test otomasyonu</span>
                     </>
                   ) : (
                     <>
@@ -618,8 +618,8 @@ export default function Home() {
 
               <p className={styles.heroSubtitle}>
                 {isTr
-                  ? "Selenium'un Spring Boot'u: Otonom Agentic Testing, kendi kendini onaran seçiciler (Self-Healing), sıfır boilerplate ve 88 yerleşik MCP aracı."
-                  : 'The Spring Boot of Selenium with next-gen Agentic Testing. Zero boilerplate, self-healing locators, natural language goals, and 88 built-in MCP tools.'}
+                  ? "Modern mühendislik ekipleri için geliştirilmiş, sıfır ek yüklü Java test otomasyon SDK'sı. TestFly; Selenium 4 altyapısını otonom Agentic AI, kendi kendini onaran seçiciler ve 88 yerleşik MCP aracıyla tek bir konfigürasyonsuz mimaride birleştirir."
+                  : 'An opinionated, zero-overhead Java test automation SDK engineered for modern teams. TestFly unifies convention-over-configuration Selenium 4 with autonomous Agentic AI, self-healing locators, and 88 protocol-native MCP tools.'}
               </p>
 
               <div className={styles.heroBottom}>
