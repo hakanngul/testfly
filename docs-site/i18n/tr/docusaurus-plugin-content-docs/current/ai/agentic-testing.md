@@ -12,18 +12,52 @@ Geleneksel test otomasyonunda mühendislerin arayüzdeki her adımı, tıklamay�
 
 **TestFly Agentic Testing**, otonom yapay zeka yeteneklerini doğrudan test çalışma zamanına entegre ederken Java 17 performansını, deterministik yürütmeyi ve `@TestFlyApi` geriye dönük kararlılığını korur.
 
-```mermaid
-graph TD
-    A[Doğal Dil Hedefi / Test Adımı] --> B{Aksiyon Önbelleği Var mı?}
-    B -->|Cache Hit| C[50ms Altında Deterministik Yeniden Oynatma]
-    B -->|Cache Miss| D[DomPruner: Gürültüyü Temizle ve Token Optimize Et]
-    D --> E[LLM Aksiyon Derleyici]
-    E --> F[.testfly/action-cache.json Dosyasına Derle ve Dondur]
-    F --> C
-    C --> G[WaitEngine ile Selenium Yürütme]
-    G -->|Hata / Kırık Seçici| H[AiHealingEngine]
-    H --> I[Onarılan Seçiciyi .testfly/healed-locators.json Kaydet]
-    G -->|Doğrulama Hatası| J[RemediationPatchGenerator: target/remediations/*.patch]
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│                    Doğal Dil Hedefi / Test Adımı                       │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+                      ┌───────────────────────────┐
+                      │ Aksiyon Önbelleği Var mı? │
+                      └─────────────┬─────────────┘
+                       Evet (Hit)   │    Hayır (Miss)
+            ┌───────────────────────┴────────────────────────┐
+            ▼                                                ▼
+┌───────────────────────┐                        ┌───────────────────────┐
+│ Deterministik Yeniden │                        │       DomPruner       │
+│   Oynatma (< 50ms)    │                        │  Token Optimizasyonu  │
+└───────────┬───────────┘                        └───────────┬───────────┘
+            │                                                │
+            │  ┌─────────────────────────────────────────────┘
+            │  ▼
+            │  ┌─────────────────────────────────────────┐
+            │  │           LLM Aksiyon Derleyici         │
+            │  └────────────────────┬────────────────────┘
+            │                       │ Derle ve Dondur (Compile & Freeze)
+            │                       ▼
+            │  ┌─────────────────────────────────────────┐
+            │  │  .testfly/action-cache.json Dosyasına   │
+            │  │           Kalıcı Olarak Kaydet          │
+            │  └────────────────────┬────────────────────┘
+            │                       │
+            ├───────────────────────┘
+            ▼
+┌────────────────────────────────────────────────────────┐
+│          WaitEngine ile Selenium Test Yürütme          │
+└───────────┬────────────────────────────────┬───────────┘
+            │                                │
+            │ Kırık Seçici (Broken Locator)  │ Doğrulama Hatası (Assertion Fail)
+            ▼                                ▼
+┌───────────────────────┐        ┌───────────────────────┐
+│    AiHealingEngine    │        │   Auto-PR Yamalayıcı  │
+│  (Semantik Onarma)    │        │  (Remediation Patch)  │
+└───────────┬───────────┘        └───────────┬───────────┘
+            ▼                                ▼
+┌───────────────────────┐        ┌───────────────────────┐
+│ .testfly/healed-      │        │ target/remediations/  │
+│ locators.json (0 ms)  │        │ *.patch (git apply)   │
+└───────────────────────┘        └───────────────────────┘
 ```
 
 ---

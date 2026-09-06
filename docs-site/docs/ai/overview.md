@@ -21,13 +21,26 @@ Modern AI coding assistants (such as **JetBrains AI Assistant**, **Claude Code**
 
 **TestFly MCP** is a Python-based server implementing the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). It bridges your IDE's AI assistant with live, real-world browser execution:
 
-```mermaid
-graph TD
-    A[IDE: IntelliJ IDEA / VS Code] -->|MCP Protocol / JSON-RPC| B(TestFly MCP Server)
-    B -->|Selenium WebDriver| C[Live Browser: Chrome / Firefox]
-    C -->|DOM & A11y Tree Snapshot| B
-    B -->|Emits Validated Java Code| D[TestFly Java Project]
-    D -->|Compiles & Executes| E[Reliable Test Automation]
+```text
+┌──────────────────────────────┐
+│  IDE: IntelliJ IDEA / VSCode │
+└──────────────┬───────────────┘
+               │ MCP Protocol / JSON-RPC
+               ▼
+┌──────────────────────────────┐
+│    TestFly MCP Server        │
+└──────┬────────────────▲──────┘
+       │                │ DOM & A11y
+       │ Selenium       │ Tree Snapshot
+       ▼                │
+┌──────────────────────┴───────┐
+│ Live Browser: Chrome/Firefox │
+└──────────────────────────────┘
+               │ Emits Validated TestFly Code
+               ▼
+┌──────────────────────────────┐
+│   TestFly Java Test Suite    │
+└──────────────────────────────┘
 ```
 
 ### Key Capabilities

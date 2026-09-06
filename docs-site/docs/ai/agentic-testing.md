@@ -12,18 +12,52 @@ Traditional test automation requires test engineers to imperatively script every
 
 **TestFly Agentic Testing** introduces autonomous AI capabilities directly into the test runtime while preserving strict Java 17 performance, deterministic execution, and `@TestFlyApi` stability.
 
-```mermaid
-graph TD
-    A[Natural Language Goal / Test Step] --> B{Action Cache?}
-    B -->|Cache Hit| C[Deterministic Replay under 50ms]
-    B -->|Cache Miss| D[DomPruner: Strip Noise &amp; Optimize Tokens]
-    D --> E[LLM Action Compiler]
-    E --> F[Compile &amp; Freeze to .testfly/action-cache.json]
-    F --> C
-    C --> G[Selenium Execution via WaitEngine]
-    G -->|Failure / Broken Locator| H[AiHealingEngine]
-    H --> I[Healed Locator Saved to .testfly/healed-locators.json]
-    G -->|Assertion Failure| J[RemediationPatchGenerator: target/remediations/*.patch]
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│                   Natural Language Goal / Test Step                    │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+                      ┌───────────────────────────┐
+                      │    Action Cache Hit?      │
+                      └─────────────┬─────────────┘
+                        Hit (Yes)   │    Miss (No)
+            ┌───────────────────────┴────────────────────────┐
+            ▼                                                ▼
+┌───────────────────────┐                        ┌───────────────────────┐
+│ Deterministic Replay  │                        │       DomPruner       │
+│   under 50ms          │                        │ (Strip Noise, <8k Tok)│
+└───────────┬───────────┘                        └───────────┬───────────┘
+            │                                                │
+            │  ┌─────────────────────────────────────────────┘
+            │  ▼
+            │  ┌─────────────────────────────────────────┐
+            │  │           LLM Action Compiler           │
+            │  └────────────────────┬────────────────────┘
+            │                       │ Compile & Freeze
+            │                       ▼
+            │  ┌─────────────────────────────────────────┐
+            │  │       Persist Action Plan to            │
+            │  │     .testfly/action-cache.json          │
+            │  └────────────────────┬────────────────────┘
+            │                       │
+            ├───────────────────────┘
+            ▼
+┌────────────────────────────────────────────────────────┐
+│         Selenium Test Execution via WaitEngine         │
+└───────────┬────────────────────────────────┬───────────┘
+            │                                │
+            │ Broken Selector / Timeout      │ Assertion Failure
+            ▼                                ▼
+┌───────────────────────┐        ┌───────────────────────┐
+│    AiHealingEngine    │        │ Remediation Generator │
+│ (Semantic Resynthesis)│        │   (Auto-PR Engine)    │
+└───────────┬───────────┘        └───────────┬───────────┘
+            ▼                                ▼
+┌───────────────────────┐        ┌───────────────────────┐
+│ .testfly/healed-      │        │ target/remediations/  │
+│ locators.json (0 ms)  │        │ *.patch (git apply)   │
+└───────────────────────┘        └───────────────────────┘
 ```
 
 ---
