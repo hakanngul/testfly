@@ -1,7 +1,9 @@
 package io.testfly.agent;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.config.TestFlyConfig;
 import io.testfly.driver.DriverManager;
+import io.testfly.internal.TestFlyContext;
 import io.testfly.steps.StepLogger;
 import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.By;
@@ -9,16 +11,19 @@ import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.Select;
 
 import java.time.Duration;
 
 /**
- * Executes compiled action steps using safe WebDriver waits and StepLogger integration.
+ * Executes compiled action steps using safe WebDriver waits and StepLogger
+ * integration.
  */
 @TestFlyApi(since = "1.9.0")
 public final class ActionExecutor {
 
-    private ActionExecutor() {}
+    private ActionExecutor() {
+    }
 
     /**
      * Executes all steps of an ActionPlan sequentially with explicit timeouts.
@@ -53,6 +58,13 @@ public final class ActionExecutor {
 
         StepLogger.step("AI Step " + index + "/" + total + " [" + step.action() + "]: " + desc);
 
+        // NAVIGATE targets a URL rather than an element, so it bypasses locator parsing
+        // entirely.
+        if (step.action() == ActionType.NAVIGATE) {
+            driver.get(resolveTargetUrl(step.value()));
+            return;
+        }
+
         By by = parseLocator(step.locator());
 
         switch (step.action()) {
@@ -82,7 +94,50 @@ public final class ActionExecutor {
                 WebElement el = waitVisible(driver, by, timeout);
                 el.sendKeys(Keys.ENTER);
             }
+            case SELECT -> {
+                WebElement el = waitVisible(driver, by, timeout);
+                if (step.value() == null || step.value().isBlank()) {
+                    throw new IllegalArgumentException("SELECT step requires a non-empty value (visible option text)");
+                }
+                new Select(el).selectByVisibleText(step.value());
+            }
+            case NAVIGATE -> {
+                // Already handled above, before locator parsing.
+            }
         }
+    }
+
+    /**
+     * Resolves a NAVIGATE target. Absolute URLs pass through unchanged; anything
+     * else is
+     * resolved against {@code execution.baseUrl}.
+     *
+     * @param urlOrPath absolute URL ({@code https://...}) or path ({@code /cart},
+     *                  {@code cart})
+     * @return fully qualified URL to navigate to
+     */
+    public static String resolveTargetUrl(String urlOrPath) {
+        if (urlOrPath == null || urlOrPath.isBlank()) {
+            throw new IllegalArgumentException("NAVIGATE step requires a non-empty value (URL or path)");
+        }
+        String target = stripQuotes(urlOrPath.trim());
+        String lower = target.toLowerCase();
+        if (lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("file://")) {
+            return target;
+        }
+
+        TestFlyConfig config = TestFlyContext.getConfig();
+        String baseUrl = (config != null && config.getExecution() != null) ? config.getExecution().getBaseUrl() : null;
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalArgumentException("NAVIGATE step got relative path '" + target
+                    + "' but execution.baseUrl is not configured");
+        }
+
+        String base = baseUrl.trim();
+        while (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        return target.startsWith("/") ? base + target : base + "/" + target;
     }
 
     private static WebElement waitClickable(WebDriver driver, By by, Duration timeout) {
@@ -102,8 +157,10 @@ public final class ActionExecutor {
     }
 
     /**
-     * Parses a locator string into an appropriate Selenium {@link By} (CSS, XPath, ID, or Name).
-     * Handles common prefixes and formatting emitted by LLMs (e.g. {@code css=}, {@code xpath=}, {@code id=}, quotes/backticks).
+     * Parses a locator string into an appropriate Selenium {@link By} (CSS, XPath,
+     * ID, or Name).
+     * Handles common prefixes and formatting emitted by LLMs (e.g. {@code css=},
+     * {@code xpath=}, {@code id=}, quotes/backticks).
      */
     public static By parseLocator(String locatorStr) {
         if (locatorStr == null || locatorStr.isBlank()) {
@@ -143,7 +200,8 @@ public final class ActionExecutor {
     }
 
     private static String stripQuotes(String s) {
-        if (s == null) return "";
+        if (s == null)
+            return "";
         String trimmed = s.trim();
         if ((trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2)
                 || (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length() >= 2)) {

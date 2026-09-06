@@ -12,5 +12,12 @@ public enum ActionType {
     CLEAR,
     HOVER,
     WAIT_VISIBLE,
-    PRESS_ENTER
+    PRESS_ENTER,
+    /** Chooses an option from a {@code <select>} dropdown by its visible text. */
+    SELECT,
+    /**
+     * Navigates the browser to an absolute URL or a path relative to
+     * {@code execution.baseUrl}.
+     */
+    NAVIGATE
 }

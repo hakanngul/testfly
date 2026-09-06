@@ -150,6 +150,8 @@ AI derleyicisi doğal dille verilen hedefleri deterministik `ActionStep` adımla
 - `HOVER`: Fareyi gezinme menülerinin üzerine getirir.
 - `WAIT_VISIBLE`: Asenkron yüklenen bileşenlerin görünür olmasını bekler.
 - `PRESS_ENTER`: Arama ve form alanlarında Enter tuşuna basar.
+- `SELECT`: Bir `<select>` dropdown'ından görünen metnine göre opsiyon seçer (`value` alanı opsiyon etiketini tutar).
+- `NAVIGATE`: Mutlak bir URL'e ya da `execution.baseUrl` ile çözümlenen bir path'e gider. Bu adım locator gerektirmez.
 
 ---
 
@@ -377,7 +379,7 @@ post {
 
 ```yaml
 ai:
-  provider: claude        # Desteklenenler: "claude", "gemini", "openai", "deepseek"
+  provider: claude        # Desteklenenler: "claude", "anthropic", "gemini", "openai-compatible", "openai"
   apiKey: "${AI_API_KEY}" # Ortam değişkeninden enjekte edilir
   model: claude-haiku-4-5-20251001
   timeoutSeconds: 20
@@ -393,7 +395,7 @@ locators:
 
 | Parametre | Tip | Varsayılan | Açıklama |
 | :--- | :--- | :--- | :--- |
-| `ai.provider` | `String` | `"claude"` | LLM sağlayıcısı (`claude`, `gemini`, `openai`, `deepseek`). |
+| `ai.provider` | `String` | `"claude"` | LLM sağlayıcısı (`claude`, `anthropic`, `gemini`, `openai-compatible`, `openai`). DeepSeek, Qwen, Groq ve Ollama için `openai-compatible` + `baseUrl` kullanın. |
 | `ai.apiKey` | `String` | `""` | API anahtarı (`${AI_API_KEY}` formatında). |
 | `ai.model` | `String` | sağlayıcı varsayılanı | Model adı (ör. `claude-haiku-4-5-20251001`, `gemini-1.5-flash`). |
 | `ai.failureAnalysis` | `Boolean` | `false` | HTML raporunda kök neden analizi üretir. |

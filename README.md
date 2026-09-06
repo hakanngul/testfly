@@ -96,6 +96,18 @@ Next: [the full Getting Started walkthrough](#getting-started) adds page objects
 > 🤖 **AI-Powered Test Automation with TestFly MCP**
 > TestFly includes a first-class Model Context Protocol (MCP) server — **[TestFly MCP](https://github.com/hakanngul/testfly-mcp)** — allowing AI coding agents (Claude Desktop, Cursor, Antigravity, VS Code) to inspect live browsers, execute actions, capture DOM snapshots, and automatically author production-ready TestFly Java tests.
 
+> 🧠 **Agentic Testing Runtime (Built-in)**
+> Beyond MCP, TestFly embeds autonomous AI capabilities directly into your test runtime:
+> - **Goal-Oriented Actions**: `act("Delete first item in cart")` compiles natural language into deterministic Selenium steps
+> - **Compile & Freeze Caching**: Action plans persist to `.testfly/action-cache.json` for **0ms replay** on subsequent runs
+> - **Semantic Assertions**: `assertThatPage().satisfiesAi("Order confirmation is displayed")` evaluates conditions via LLM reasoning
+> - **AI Self-Healing**: When selectors break, `AiHealingEngine` synthesizes new locators using pruned DOM context
+> - **Auto-PR Patches**: Permanent failures generate Unified Git Diff `.patch` files in `target/remediations/` for instant `git apply`
+>
+> Supported `ai.provider` values: `claude`, `anthropic`, `gemini`, `openai-compatible`, `openai`. DeepSeek, Qwen (Alibaba Cloud), Groq and Ollama work through `openai-compatible` with their own `baseUrl`.
+>
+> 📖 [Full Agentic Testing Documentation](https://hakanngul.github.io/testfly/docs/ai/agentic-testing)
+
 ---
 
 ## Overview

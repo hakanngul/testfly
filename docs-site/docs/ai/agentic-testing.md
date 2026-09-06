@@ -150,6 +150,8 @@ The AI compiler maps natural language goals into concrete, deterministic `Action
 - `HOVER`: Moves mouse cursor over hoverable navigation menus.
 - `WAIT_VISIBLE`: Waits for asynchronous elements to render.
 - `PRESS_ENTER`: Submits search boxes or form fields.
+- `SELECT`: Chooses an option from a `<select>` dropdown by its visible text (`value` holds the option label).
+- `NAVIGATE`: Goes to an absolute URL, or to a path resolved against `execution.baseUrl`. This step needs no locator.
 
 ---
 
@@ -377,7 +379,7 @@ Add these blocks to your `testfly.yml`:
 
 ```yaml
 ai:
-  provider: claude        # Supported: "claude", "gemini", "openai", "deepseek"
+  provider: claude        # Supported: "claude", "anthropic", "gemini", "openai-compatible", "openai"
   apiKey: "${AI_API_KEY}" # Injected from environment variable
   model: claude-haiku-4-5-20251001
   timeoutSeconds: 20
@@ -393,7 +395,7 @@ locators:
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `ai.provider` | `String` | `"claude"` | LLM provider (`claude`, `gemini`, `openai`, `deepseek`). |
+| `ai.provider` | `String` | `"claude"` | LLM provider (`claude`, `anthropic`, `gemini`, `openai-compatible`, `openai`). DeepSeek, Qwen, Groq and Ollama work through `openai-compatible` + `baseUrl`. |
 | `ai.apiKey` | `String` | `""` | API key (use `${AI_API_KEY}` format). |
 | `ai.model` | `String` | provider default | Model name (e.g. `claude-haiku-4-5-20251001`, `gemini-1.5-flash`). |
 | `ai.failureAnalysis` | `Boolean` | `false` | Explains failures in HTML report. |

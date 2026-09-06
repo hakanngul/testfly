@@ -19,7 +19,8 @@ import java.util.List;
 import java.util.logging.Logger;
 
 /**
- * Compiles high-level natural language goals into sequential, deterministic Selenium steps
+ * Compiles high-level natural language goals into sequential, deterministic
+ * Selenium steps
  * with "Compile &amp; Freeze" caching.
  */
 @TestFlyApi(since = "1.9.0")
@@ -28,13 +29,16 @@ public final class ActionCompiler {
     private static final Logger LOG = Logger.getLogger(ActionCompiler.class.getName());
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private ActionCompiler() {}
+    private ActionCompiler() {
+    }
 
     /**
-     * Executes the natural language goal on the driver, compiling via AI or replaying from cache.
+     * Executes the natural language goal on the driver, compiling via AI or
+     * replaying from cache.
      *
      * @param driver active WebDriver session
-     * @param goal   natural language goal (e.g. "Click delete on first item in cart")
+     * @param goal   natural language goal (e.g. "Click delete on first item in
+     *               cart")
      */
     public static void execute(WebDriver driver, String goal) {
         if (goal == null || goal.isBlank()) {
@@ -43,19 +47,23 @@ public final class ActionCompiler {
 
         TestFlyConfig config = TestFlyContext.getConfig();
         int explicitSeconds = (config != null && config.getTimeouts() != null)
-                ? config.getTimeouts().getExplicit() : 10;
+                ? config.getTimeouts().getExplicit()
+                : 10;
         Duration timeout = Duration.ofSeconds(explicitSeconds);
 
         ActionPlan plan = compile(driver, goal);
         try {
             ActionExecutor.execute(driver, plan, timeout);
         } catch (Exception e) {
-            LOG.warning("[ActionCompiler] Action execution failed for goal: \"" + goal + "\". Invalidating cache and retrying... Reason: " + e.getMessage());
+            LOG.warning("[ActionCompiler] Action execution failed for goal: \"" + goal
+                    + "\". Invalidating cache and retrying... Reason: " + e.getMessage());
             // Invalidate cache and retry once
             String currentUrl = "";
             try {
-                if (driver != null) currentUrl = driver.getCurrentUrl();
-            } catch (Exception ignored) {}
+                if (driver != null)
+                    currentUrl = driver.getCurrentUrl();
+            } catch (Exception ignored) {
+            }
 
             ActionCache.invalidate(currentUrl, goal);
             ActionPlan freshPlan = compileFromAi(driver, goal, config);
@@ -75,8 +83,10 @@ public final class ActionCompiler {
 
         String currentUrl = "";
         try {
-            if (driver != null) currentUrl = driver.getCurrentUrl();
-        } catch (Exception ignored) {}
+            if (driver != null)
+                currentUrl = driver.getCurrentUrl();
+        } catch (Exception ignored) {
+        }
 
         if (useCache) {
             ActionPlan cached = ActionCache.get(currentUrl, goal);
@@ -122,7 +132,8 @@ public final class ActionCompiler {
             try {
                 currentUrl = driver.getCurrentUrl();
                 currentTitle = driver.getTitle();
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         int maxTokens = (config.getLocators() != null) ? config.getLocators().getMaxDomTokens() : 8000;
@@ -144,15 +155,18 @@ public final class ActionCompiler {
     public static String buildPrompt(String url, String title, String html, String goal) {
         StringBuilder sb = new StringBuilder();
         sb.append("You are an automated web QA action compiler.\n");
-        sb.append("Given the current page state, compile the following user goal into an ordered sequence of executable actions.\n\n");
+        sb.append(
+                "Given the current page state, compile the following user goal into an ordered sequence of executable actions.\n\n");
 
         sb.append("## Page Context\n");
-        if (url != null && !url.isBlank()) sb.append("- URL:   ").append(url).append("\n");
-        if (title != null && !title.isBlank()) sb.append("- Title: ").append(title).append("\n");
+        if (url != null && !url.isBlank())
+            sb.append("- URL:   ").append(url).append("\n");
+        if (title != null && !title.isBlank())
+            sb.append("- Title: ").append(title).append("\n");
 
         sb.append("\n## Pruned DOM Content\n```html\n")
-          .append(html != null ? html : "")
-          .append("\n```\n\n");
+                .append(html != null ? html : "")
+                .append("\n```\n\n");
 
         sb.append("## Goal\n\"").append(goal).append("\"\n\n");
 
@@ -162,7 +176,9 @@ public final class ActionCompiler {
         sb.append("- CLEAR: clear text input (locator)\n");
         sb.append("- HOVER: mouse hover over element (locator)\n");
         sb.append("- WAIT_VISIBLE: wait for element (locator)\n");
-        sb.append("- PRESS_ENTER: press enter key on element (locator)\n\n");
+        sb.append("- PRESS_ENTER: press enter key on element (locator)\n");
+        sb.append("- SELECT: choose an option from a <select> dropdown (locator, value = exact visible option text)\n");
+        sb.append("- NAVIGATE: go to another URL or path (value = absolute URL or path; leave locator empty)\n\n");
 
         sb.append("## Schema\n");
         sb.append("Respond ONLY with a JSON object in this exact schema (no additional prose or markdown fences):\n");
@@ -171,7 +187,8 @@ public final class ActionCompiler {
         sb.append("  \"steps\": [\n");
         sb.append("    {\n");
         sb.append("      \"action\": \"CLICK\",\n");
-        sb.append("      \"locator\": \"CSS selector (e.g. #submit-btn, .cart-icon) or XPath without 'css=' prefix\",\n");
+        sb.append(
+                "      \"locator\": \"CSS selector (e.g. #submit-btn, .cart-icon) or XPath without 'css=' prefix\",\n");
         sb.append("      \"value\": null,\n");
         sb.append("      \"description\": \"Description of step\"\n");
         sb.append("    }\n");
@@ -204,7 +221,8 @@ public final class ActionCompiler {
                     ActionType actionType = ActionType.valueOf(actionStr.toUpperCase());
                     String locator = stepNode.has("locator") ? stepNode.get("locator").asText() : "";
                     String value = (stepNode.has("value") && !stepNode.get("value").isNull())
-                            ? stepNode.get("value").asText() : null;
+                            ? stepNode.get("value").asText()
+                            : null;
                     String description = stepNode.has("description") ? stepNode.get("description").asText() : "";
                     steps.add(new ActionStep(actionType, locator, value, description));
                 }
@@ -216,7 +234,8 @@ public final class ActionCompiler {
     }
 
     /**
-     * Resolves a semantic element intent (e.g. "shopping cart icon") to a Selenium By locator.
+     * Resolves a semantic element intent (e.g. "shopping cart icon") to a Selenium
+     * By locator.
      */
     public static By resolveIntent(WebDriver driver, String intent) {
         if (intent == null || intent.isBlank()) {
