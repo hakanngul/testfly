@@ -1140,3 +1140,101 @@ table td {
 [data-theme='dark'] .prism-code .token.plain {
   color: #f5f5f7 !important;
 }
+
+/* ── Cucumber / Gherkin BDD Syntax Highlighting ──────────────────────────── */
+/* Light Mode */
+.language-gherkin .token.feature,
+.language-gherkin .token.scenario {
+  color: #8944ab;
+  font-weight: 700;
+}
+
+.language-gherkin .token.feature > .token.keyword,
+.language-gherkin .token.scenario > .token.keyword,
+.language-gherkin .token.keyword {
+  color: #af52de !important;
+  font-weight: 700;
+}
+
+.language-gherkin .token.feature > .token.important,
+.language-gherkin .token.scenario > .token.important {
+  color: #1d1d1f !important;
+  font-weight: 600;
+}
+
+/* Given, When, Then, And, But step keywords */
+.language-gherkin .token.atrule {
+  color: #0071e3 !important;
+  font-weight: 700;
+}
+
+/* Cucumber Tags e.g. @Agentic, @Smoke */
+.language-gherkin .token.tag {
+  color: #00a3bf !important;
+  font-weight: 600;
+}
+
+/* Quoted Strings "standard_user" */
+.language-gherkin .token.string {
+  color: #248a3d !important;
+}
+
+/* Punctuation (pipes |, colons :) */
+.language-gherkin .token.punctuation {
+  color: #6e6e73 !important;
+}
+
+/* Comments */
+.language-gherkin .token.comment {
+  color: #8e8e93 !important;
+  font-style: italic;
+}
+
+/* Dark Mode */
+[data-theme='dark'] .language-gherkin .token.feature,
+[data-theme='dark'] .language-gherkin .token.scenario {
+  color: #da8fff;
+  font-weight: 700;
+}
+
+[data-theme='dark'] .language-gherkin .token.feature > .token.keyword,
+[data-theme='dark'] .language-gherkin .token.scenario > .token.keyword,
+[data-theme='dark'] .language-gherkin .token.keyword {
+  color: #bf5af2 !important;
+  font-weight: 700;
+}
+
+[data-theme='dark'] .language-gherkin .token.feature > .token.important,
+[data-theme='dark'] .language-gherkin .token.scenario > .token.important {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+/* Given, When, Then, And, But step keywords in Dark Mode */
+[data-theme='dark'] .language-gherkin .token.atrule {
+  color: #0a84ff !important;
+  font-weight: 700;
+}
+
+/* Cucumber Tags e.g. @Agentic in Dark Mode */
+[data-theme='dark'] .language-gherkin .token.tag {
+  color: #5ac8fa !important;
+  font-weight: 600;
+}
+
+/* Quoted Strings in Dark Mode */
+[data-theme='dark'] .language-gherkin .token.string {
+  color: #30d158 !important;
+}
+
+/* Punctuation in Dark Mode */
+[data-theme='dark'] .language-gherkin .token.punctuation {
+  color: #8e8e93 !important;
+}
+
+/* Comments in Dark Mode */
+[data-theme='dark'] .language-gherkin .token.comment {
+  color: #8e8e93 !important;
+  font-style: italic;
+}
+
