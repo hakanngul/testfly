@@ -36,6 +36,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
@@ -109,6 +110,29 @@ public class ActionAgentTest {
 
         By xpathParen = ActionExecutor.parseLocator("(//input)[1]");
         assertTrue(xpathParen.toString().contains("(//input)[1]"));
+
+        // Prefixed locators from LLMs
+        By cssPrefixed = ActionExecutor.parseLocator("css=#add-to-cart-sauce-labs-backpack");
+        assertTrue(cssPrefixed.toString().contains("#add-to-cart-sauce-labs-backpack"));
+        assertFalse(cssPrefixed.toString().contains("css="));
+
+        By xpathPrefixed = ActionExecutor.parseLocator("xpath=//a[@class='shopping_cart_link']");
+        assertTrue(xpathPrefixed.toString().contains("//a[@class='shopping_cart_link']"));
+        assertFalse(xpathPrefixed.toString().contains("xpath="));
+
+        By idPrefixed = ActionExecutor.parseLocator("id=user-name");
+        assertTrue(idPrefixed.toString().contains("user-name"));
+
+        By namePrefixed = ActionExecutor.parseLocator("name=password");
+        assertTrue(namePrefixed.toString().contains("password"));
+
+        // Quotes and backticks
+        By backtickCss = ActionExecutor.parseLocator("`css=#checkout`");
+        assertTrue(backtickCss.toString().contains("#checkout"));
+        assertFalse(backtickCss.toString().contains("`"));
+
+        By quotedCss = ActionExecutor.parseLocator("\"css='#checkout'\"");
+        assertTrue(quotedCss.toString().contains("#checkout"));
     }
 
     @Test

@@ -50,7 +50,7 @@ public final class ActionCompiler {
         try {
             ActionExecutor.execute(driver, plan, timeout);
         } catch (Exception e) {
-            LOG.warning("[ActionCompiler] Cached action execution failed for goal: \"" + goal + "\". Invalidating cache and retrying...");
+            LOG.warning("[ActionCompiler] Action execution failed for goal: \"" + goal + "\". Invalidating cache and retrying... Reason: " + e.getMessage());
             // Invalidate cache and retry once
             String currentUrl = "";
             try {
@@ -171,7 +171,7 @@ public final class ActionCompiler {
         sb.append("  \"steps\": [\n");
         sb.append("    {\n");
         sb.append("      \"action\": \"CLICK\",\n");
-        sb.append("      \"locator\": \"css or xpath\",\n");
+        sb.append("      \"locator\": \"CSS selector (e.g. #submit-btn, .cart-icon) or XPath without 'css=' prefix\",\n");
         sb.append("      \"value\": null,\n");
         sb.append("      \"description\": \"Description of step\"\n");
         sb.append("    }\n");

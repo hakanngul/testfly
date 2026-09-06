@@ -102,16 +102,53 @@ public final class ActionExecutor {
     }
 
     /**
-     * Parses a locator string into either a CSS or XPath {@link By}.
+     * Parses a locator string into an appropriate Selenium {@link By} (CSS, XPath, ID, or Name).
+     * Handles common prefixes and formatting emitted by LLMs (e.g. {@code css=}, {@code xpath=}, {@code id=}, quotes/backticks).
      */
     public static By parseLocator(String locatorStr) {
         if (locatorStr == null || locatorStr.isBlank()) {
             throw new IllegalArgumentException("Step locator string cannot be empty");
         }
         String trimmed = locatorStr.trim();
+
+        // Strip surrounding quotes or backticks if present
+        if ((trimmed.startsWith("`") && trimmed.endsWith("`") && trimmed.length() >= 2)
+                || (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2)
+                || (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length() >= 2)) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
+        }
+
+        String lower = trimmed.toLowerCase();
+        if (lower.startsWith("css=") || lower.startsWith("css:")) {
+            String css = trimmed.substring(4).trim();
+            return By.cssSelector(stripQuotes(css));
+        }
+        if (lower.startsWith("xpath=") || lower.startsWith("xpath:")) {
+            String xpath = trimmed.substring(6).trim();
+            return By.xpath(stripQuotes(xpath));
+        }
+        if (lower.startsWith("id=") || lower.startsWith("id:")) {
+            String id = trimmed.substring(3).trim();
+            return By.id(stripQuotes(id));
+        }
+        if (lower.startsWith("name=") || lower.startsWith("name:")) {
+            String name = trimmed.substring(5).trim();
+            return By.name(stripQuotes(name));
+        }
+
         if (trimmed.startsWith("//") || trimmed.startsWith("(") || trimmed.startsWith("./")) {
             return By.xpath(trimmed);
         }
         return By.cssSelector(trimmed);
+    }
+
+    private static String stripQuotes(String s) {
+        if (s == null) return "";
+        String trimmed = s.trim();
+        if ((trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2)
+                || (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length() >= 2)) {
+            return trimmed.substring(1, trimmed.length() - 1).trim();
+        }
+        return trimmed;
     }
 }

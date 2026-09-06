@@ -50,8 +50,23 @@ public final class ActionCache {
      */
     public static void invalidate(String url, String goal) {
         load();
-        CACHE.remove(buildKey(url, goal));
-        save();
+        String key = buildKey(url, goal);
+        CACHE.remove(key);
+        synchronized (ActionCache.class) {
+            File file = cacheFile();
+            if (file.exists()) {
+                try {
+                    Map<String, ActionPlan> existing = MAPPER.readValue(file,
+                            new TypeReference<Map<String, ActionPlan>>() {});
+                    if (existing != null && existing.containsKey(key)) {
+                        existing.remove(key);
+                        MAPPER.writeValue(file, existing);
+                    }
+                } catch (IOException e) {
+                    LOG.warning("[ActionCache] Failed to invalidate cache on disk: " + e.getMessage());
+                }
+            }
+        }
     }
 
     /**
