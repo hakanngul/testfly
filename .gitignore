@@ -4,6 +4,7 @@ target/
 !**/src/test/**/target/
 .kotlin
 .agents
+.agent
 GEMINI.md
 .kiro
 .mcp.json

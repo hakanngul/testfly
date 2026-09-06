@@ -1,5 +1,6 @@
 package io.testfly.healing;
 
+import io.testfly.ai.AiHealingEngine;
 import io.testfly.api.TestFlyApi;
 import io.testfly.internal.TestFlyContext;
 import org.openqa.selenium.By;
@@ -47,7 +48,18 @@ public final class SelfHealingLocator {
         try {
             io.testfly.config.TestFlyConfig.Locators loc =
                     TestFlyContext.getConfig().getLocators();
-            return loc != null && loc.isSelfHealing();
+            return loc != null && (loc.isSelfHealing() || loc.isAiHealing());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Returns {@code true} if AI-driven self-healing is enabled in config. */
+    public static boolean isAiHealingEnabled() {
+        try {
+            io.testfly.config.TestFlyConfig.Locators loc =
+                    TestFlyContext.getConfig().getLocators();
+            return loc != null && loc.isAiHealing();
         } catch (Exception e) {
             return false;
         }
@@ -95,6 +107,15 @@ public final class SelfHealingLocator {
                 return visible;
             }
         }
+
+        // AI path: if static fallbacks fail and AI healing is enabled, consult LLM
+        if (isAiHealingEnabled()) {
+            WebElement aiHealed = AiHealingEngine.heal(driver, original, testId);
+            if (aiHealed != null) {
+                return aiHealed;
+            }
+        }
+
         return null;
     }
 

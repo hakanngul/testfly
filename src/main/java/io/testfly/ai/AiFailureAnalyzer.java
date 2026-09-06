@@ -208,7 +208,7 @@ public final class AiFailureAnalyzer {
         }
     }
 
-    private static String resolveApiKey(String raw) {
+    public static String resolveApiKey(String raw) {
         if (raw == null)
             return null;
 

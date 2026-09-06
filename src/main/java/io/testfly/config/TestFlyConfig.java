@@ -552,10 +552,18 @@ public final class TestFlyConfig {
 
     public static final class Locators {
         private boolean selfHealing = false;
+        private boolean aiHealing = false;
+        private int     maxDomTokens = 8000;
         private String  testIdAttribute = "data-testid";
 
         public boolean isSelfHealing()           { return selfHealing; }
         public void    setSelfHealing(boolean v) { this.selfHealing = v; }
+
+        public boolean isAiHealing()             { return aiHealing; }
+        public void    setAiHealing(boolean v)   { this.aiHealing = v; }
+
+        public int     getMaxDomTokens()               { return maxDomTokens; }
+        public void    setMaxDomTokens(int maxDomTokens) { this.maxDomTokens = maxDomTokens; }
 
         public String  getTestIdAttribute()             { return testIdAttribute; }
         public void    setTestIdAttribute(String value) { this.testIdAttribute = value; }
