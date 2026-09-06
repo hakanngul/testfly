@@ -42,6 +42,17 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+      - name: Upload AI Remediations and Healing Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-agentic-artifacts
+          path: |
+            target/remediations/
+            .testfly/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Publish unit test results
         if: always()
         uses: dorny/test-reporter@v2

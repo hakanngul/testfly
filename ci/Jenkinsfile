@@ -51,6 +51,10 @@ pipeline {
                     // Archive metrics JSON + history
                     archiveArtifacts artifacts: 'target/testfly-metrics.json, target/metrics-history/**',
                                      allowEmptyArchive: true
+
+                    // Archive AI patches and healed locators
+                    archiveArtifacts artifacts: 'target/remediations/*.patch, .testfly/**',
+                                     allowEmptyArchive: true
                 }
             }
         }

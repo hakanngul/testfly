@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Added — Agentic Testing & Autonomous AI
+
+- **AI-Driven Advanced Self-Healing** — `DomPruner` compresses complex web DOM trees to under 8K tokens by stripping non-semantic and decorative nodes. `AiHealingEngine` synthesizes replacement locators with LLM reasoning when static fallbacks are exhausted, caching healed locators to `.testfly/healed-locators.json` for 0 ms replay latency.
+- **AI-Powered Self-Remediation & Auto-PR Patches** — `SourceCodeLocator` maps runtime failures back to consumer test and page object sources. `RemediationPatchGenerator` generates clean, unified git diff `.patch` files into `target/remediations/` for single-command `git apply` resolution.
+- **Semantic Natural Language Assertions** — `satisfiesAi(condition)` and `violatesAi(condition)` on `PageAssert` and `LocatorAssert`, plus `assertWithAi(condition)` convenience method in `AssertionSupport`. Features single-evaluation anti-throttle guard and soft-assertion compatibility.
+- **Goal-Oriented Dynamic Steps (`act`) & Compile & Freeze Caching** — High-level natural language goal execution via `act(String goal)` in `ActionSupport` (`BaseTest`, `BasePage`, `BaseJUnit5Test`, `BaseCucumberSteps`) and `byIntent(String intent)` in `LocatorSupport`. Compiles user intents into deterministic Selenium action plans and freezes them into `.testfly/action-cache.json` for instant replay.
+
 ### Changed
 - **SessionCache rename** — `browser.SessionCache` → `BrowserSessionCache`, `precondition.SessionCache` → `PreconditionSessionCache` to eliminate naming ambiguity
 
