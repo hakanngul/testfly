@@ -10,6 +10,7 @@ GEMINI.md
 .mcp.json
 reportportal.lock
 reportportal.sync
+.playwright-*
 
 ### IntelliJ IDEA ###
 .idea/modules.xml

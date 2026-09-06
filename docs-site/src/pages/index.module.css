@@ -195,13 +195,17 @@
   }
 }
 
+.heroContainer {
+  max-width: min(1380px, 94vw);
+}
+
 .heroInner {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  grid-template-columns: minmax(440px, 480px) minmax(0, 1fr);
   align-items: center;
-  gap: clamp(3rem, 6vw, 6rem);
+  gap: clamp(2rem, 3.5vw, 3.5rem);
 }
 
 .heroText {
@@ -386,6 +390,49 @@
   font-size: 0.68rem;
   font-weight: 550;
   letter-spacing: 0.01em;
+}
+
+.codeTabList {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.75rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.codeTabList::-webkit-scrollbar {
+  display: none;
+}
+
+.codeTab {
+  padding: 0.22rem 0.62rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--tf-text-secondary);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.70rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.codeTab:hover {
+  color: var(--tf-text);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='dark'] .codeTab:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.codeTabActive {
+  color: var(--tf-accent) !important;
+  background: var(--tf-accent-soft) !important;
+  border-color: rgba(0, 113, 227, 0.25) !important;
 }
 
 .codeWindowBody {
@@ -1126,7 +1173,8 @@
 
 @media (max-width: 1100px) {
   .heroInner {
-    gap: 3rem;
+    grid-template-columns: minmax(380px, 440px) minmax(0, 1fr);
+    gap: 2rem;
   }
 
   .bentoGrid {
