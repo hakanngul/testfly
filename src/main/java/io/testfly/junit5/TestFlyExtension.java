@@ -312,7 +312,9 @@ public class TestFlyExtension
                 lastFailure = t;
             }
         }
-        throw lastFailure;
+        if (lastFailure != null) {
+            throw lastFailure;
+        }
     }
 
     private int resolveMaxRetries(ExtensionContext context) {

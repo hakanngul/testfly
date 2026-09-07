@@ -14,9 +14,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.nio.file.Files;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Test(singleThreaded = true)
 public class RemediationPatchGeneratorTest {
@@ -45,14 +43,14 @@ public class RemediationPatchGeneratorTest {
     @Test
     public void sanitizePatch_stripsMarkdownCodeFences() {
         String fenced = """
-            ```diff
-            --- a/LoginPage.java
-            +++ b/LoginPage.java
-            @@ -12,3 +12,3 @@
-            -    private By btn = By.id("old");
-            +    private By btn = By.id("new");
-            ```
-            """;
+                ```diff
+                --- a/LoginPage.java
+                +++ b/LoginPage.java
+                @@ -12,3 +12,3 @@
+                -    private By btn = By.id("old");
+                +    private By btn = By.id("new");
+                ```
+                """;
 
         String clean = RemediationPatchGenerator.sanitizePatch(fenced);
         Assert.assertFalse(clean.contains("```"));
@@ -66,15 +64,13 @@ public class RemediationPatchGeneratorTest {
         SourceCodeLocator.SourceSnippet snippet = new SourceCodeLocator.SourceSnippet(
                 dummyFile, "src/test/java/com/example/MyTest.java", 42, 32, 52,
                 "42: -> find(By.id(\"submit\")).click();\n",
-                "find(By.id(\"submit\")).click();"
-        );
+                "find(By.id(\"submit\")).click();");
 
         TestTiming timing = new TestTiming("com.example.MyTest#testLogin", "chrome");
         timing.setErrorMessage("NoSuchElementException: Element not found #submit");
 
         String prompt = RemediationPatchGenerator.buildPatchPrompt(
-                "com.example.MyTest#testLogin", snippet, timing, "https://example.com/login", "Login"
-        );
+                "com.example.MyTest#testLogin", snippet, timing, "https://example.com/login", "Login");
 
         Assert.assertTrue(prompt.contains("com.example.MyTest#testLogin"));
         Assert.assertTrue(prompt.contains("src/test/java/com/example/MyTest.java"));
@@ -95,8 +91,7 @@ public class RemediationPatchGeneratorTest {
 
             File dummyFile = new File("src/test/java/com/example/MyTest.java");
             SourceCodeLocator.SourceSnippet snippet = new SourceCodeLocator.SourceSnippet(
-                    dummyFile, "src/test/java/com/example/MyTest.java", 10, 1, 20, "code", "line"
-            );
+                    dummyFile, "src/test/java/com/example/MyTest.java", 10, 1, 20, "code", "line");
             TestTiming timing = new TestTiming("test1", "chrome");
 
             File patch = RemediationPatchGenerator.generateAndSave("test1", snippet, timing, null, null);
@@ -117,31 +112,30 @@ public class RemediationPatchGeneratorTest {
             TestFlyContext.setConfig(config);
 
             String mockDiff = """
-                ```diff
-                --- a/src/test/java/com/example/MyTest.java
-                +++ b/src/test/java/com/example/MyTest.java
-                @@ -42,3 +42,3 @@
-                -    find(By.id("old")).click();
-                +    find(By.cssSelector("button.submit-new")).click();
-                ```
-                """;
+                    ```diff
+                    --- a/src/test/java/com/example/MyTest.java
+                    +++ b/src/test/java/com/example/MyTest.java
+                    @@ -42,3 +42,3 @@
+                    -    find(By.id("old")).click();
+                    +    find(By.cssSelector("button.submit-new")).click();
+                    ```
+                    """;
 
             AiProvider mockProvider = Mockito.mock(AiProvider.class);
             Mockito.when(mockProvider.name()).thenReturn("mock-patch-ai");
-            Mockito.when(mockProvider.call(Mockito.anyString(), Mockito.nullable(String.class), Mockito.anyString(), Mockito.anyInt()))
+            Mockito.when(mockProvider.call(Mockito.anyString(), Mockito.nullable(String.class), Mockito.anyString(),
+                    Mockito.anyInt()))
                     .thenReturn(mockDiff);
             AiProviderRegistry.register(mockProvider);
 
             File dummyFile = new File("src/test/java/com/example/MyTest.java");
             SourceCodeLocator.SourceSnippet snippet = new SourceCodeLocator.SourceSnippet(
-                    dummyFile, "src/test/java/com/example/MyTest.java", 42, 32, 52, "code", "line"
-            );
+                    dummyFile, "src/test/java/com/example/MyTest.java", 42, 32, 52, "code", "line");
             TestTiming timing = new TestTiming("com.example.MyTest#testLogin", "chrome");
             timing.setErrorMessage("Element not found");
 
             createdPatchFile = RemediationPatchGenerator.generateAndSave(
-                    "com.example.MyTest#testLogin", snippet, timing, "https://example.com", "Test"
-            );
+                    "com.example.MyTest#testLogin", snippet, timing, "https://example.com", "Test");
 
             Assert.assertNotNull(createdPatchFile, "Should return the created patch file");
             Assert.assertTrue(createdPatchFile.exists(), "Patch file must exist on disk");
@@ -166,14 +160,14 @@ public class RemediationPatchGeneratorTest {
 
             AiProvider mockProvider = Mockito.mock(AiProvider.class);
             Mockito.when(mockProvider.name()).thenReturn("mock-error-patch");
-            Mockito.when(mockProvider.call(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyInt()))
+            Mockito.when(
+                    mockProvider.call(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyInt()))
                     .thenThrow(new RuntimeException("Simulated AI error"));
             AiProviderRegistry.register(mockProvider);
 
             File dummyFile = new File("src/test/java/com/example/MyTest.java");
             SourceCodeLocator.SourceSnippet snippet = new SourceCodeLocator.SourceSnippet(
-                    dummyFile, "src/test/java/com/example/MyTest.java", 42, 32, 52, "code", "line"
-            );
+                    dummyFile, "src/test/java/com/example/MyTest.java", 42, 32, 52, "code", "line");
             TestTiming timing = new TestTiming("testError", "chrome");
 
             File patch = RemediationPatchGenerator.generateAndSave("testError", snippet, timing, null, null);

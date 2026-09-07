@@ -27,7 +27,6 @@ import java.lang.reflect.Method;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.testng.Assert.*;
 
 /**
  * Unit tests for {@link TestExecutionListener}.

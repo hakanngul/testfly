@@ -13,14 +13,48 @@ All notable changes to TestFly are documented here.
 
 ## Unreleased
 
+_Nothing yet._
+
+---
+
+## [1.0.4] — 2026-09-07
+
+### Added — Agentic Testing & Autonomous AI
+
+- **AI-Driven Advanced Self-Healing** — `DomPruner` compresses complex web DOM trees to under 8K tokens by stripping non-semantic and decorative nodes. `AiHealingEngine` synthesizes replacement locators with LLM reasoning when static fallbacks are exhausted, caching healed locators to `.testfly/healed-locators.json` for 0 ms replay latency.
+- **AI-Powered Self-Remediation & Auto-PR Patches** — `SourceCodeLocator` maps runtime failures back to consumer test and page object sources. `RemediationPatchGenerator` generates clean, unified git diff `.patch` files into `target/remediations/` for single-command `git apply` resolution.
+- **Semantic Natural Language Assertions** — `satisfiesAi(condition)` and `violatesAi(condition)` on `PageAssert` and `LocatorAssert`, plus `assertWithAi(condition)` convenience method in `AssertionSupport`. Features single-evaluation anti-throttle guard and soft-assertion compatibility.
+- **Goal-Oriented Dynamic Steps (`act`) & Compile & Freeze Caching** — High-level natural language goal execution via `act(String goal)` in `ActionSupport` (`BaseTest`, `BasePage`, `BaseJUnit5Test`, `BaseCucumberSteps`) and `byIntent(String intent)` in `LocatorSupport`. Compiles user intents into deterministic Selenium action plans and freezes them into `.testfly/action-cache.json` for instant replay.
+- **Dropdown & Navigation Action Primitives** — `ActionType.SELECT` picks a `<select>` option by visible text through Selenium's `Select`; `ActionType.NAVIGATE` calls `driver.get()`, passing absolute URLs through and resolving relative paths against `execution.baseUrl`. `NAVIGATE` bypasses locator parsing, so agent plans can move between pages without a target element. Both are advertised to the LLM by `ActionCompiler.buildPrompt`.
+
+### Added — Video Recording
+
+- **Playwright-style retain-on-failure recording** — Web UI tests are recorded to MP4 and kept only when a test fails; passing tests discard the video automatically
+- **Real MP4 encoding** — videos encoded as H.264 MP4 and embedded as HTML5 `<video>` players in both TestFly HTML report and Allure report
+- **Headless viewport auto-config** — 1920×1080 viewport automatically applied for headless Chrome/Edge when `startMaximized` is set
+
+### Added — Network Mocking Framework
+
+- **Comprehensive network mocking and assertions** — CDP-based request interception with pattern matching, response stubbing, and assertion API for verifying captured requests
+
+### Changed
+
+- **SessionCache rename** — `browser.SessionCache` → `BrowserSessionCache`, `precondition.SessionCache` → `PreconditionSessionCache` to eliminate naming ambiguity
+- **`.env` resolution priority** — `DotEnvLoader` now resolves `${VAR}` placeholders with explicit priority: `.env` file > shell environment > system property (`-D`). Added `DotEnvLoader.fromDotEnv(key)` to query `.env` values directly. Removed `dotenv-java` dependency; `.env` parsing is handled internally.
+
 ### Added — API Testing Improvements
 
-- **HTTP-level retry** (`api.retry.*`) — config-driven retry for transient network failures and configurable status codes (502/503/504 by default); exponential backoff; `retryOnException` toggle
-- **Per-request timeout override** — `apiClient().get("/slow-report").timeout(120).send()`
-- **Query parameter builder** — `.queryParam("page", 1).queryParam("limit", 10)` with automatic URL encoding
+- **HTTP-level retry** (`api.retry.*`) — config-driven retry for transient failures and status codes (502/503/504); exponential backoff; step-logged with `WARN`
+- **Per-request timeout override** — `apiClient().get("/report").timeout(120).send()`
+- **Query parameter builder** — `.queryParam("page", 1).queryParam("limit", 10)` with URL encoding
 - **Request/Response interceptors** — `ApiClient.addRequestInterceptor()` and `addResponseInterceptor()`; global, thread-safe
-- **Cookie jar** — `.withCookies()` captures and auto-sends cookies across requests
-- **New assertions** — `assertDurationLessThan`, `assertHeader`, `assertHeaderPresent`, `assertBodyMatches`, `assertJsonExists`, `assertJsonNull`, `assertJsonArraySize`
+- **Cookie jar** — `.withCookies()` captures and auto-sends cookies across requests; thread-local
+- **Response time assertion** — `res.assertDurationLessThan(500)` and `assertDurationLessThan(2, TimeUnit.SECONDS)`
+- **Header assertions** — `assertHeader("Content-Type", "application/json")`, `assertHeaderPresent("X-Request-Id")`
+- **Body regex assertion** — `assertBodyMatches("\\d{4}-\\d{2}-\\d{2}")` with dotall mode
+- **JSON structure assertions** — `assertJsonExists("$.path")`, `assertJsonNull("$.field")`, `assertJsonArraySize("$.items", 3)`
+- **Configurable truncation limit** — `api.truncationLimit: 1000` (default 300)
+- **Self-healing locator cache** — healed locators persisted across runs for faster recovery
 
 ```yaml
 api:
@@ -32,12 +66,13 @@ api:
     retryOnException: true
 ```
 
-### Added — Report Portal Launch Enrichment
+### Added — Report Portal Enhancements
 
-- **Auto run type detection** — suite test classes scanned; `BaseApiTest` → "API", otherwise → "Web"
+- **Auto run type detection** — suite test classes scanned; `BaseApiTest` → "API", otherwise → "Web"; `reporting.reportportal.type: api|web|auto`
 - **Enriched launch name** — `<name> — <API|Web> | <env> | <timestamp>`
-- **Enriched description** — run type, context-aware base URL, environment, user@hostname, CI info
-- **New config field** — `reporting.reportportal.type` (auto/api/web)
+- **Enriched description** — run type, context-aware base URL (Web→execution.baseUrl, API→api.baseUrl), environment, user@hostname, CI platform + build info
+- **CI platform detection** — GitHub Actions, Jenkins, GitLab CI, CircleCI, Travis CI, Bitbucket Pipelines, Azure Pipelines
+- **JUnit 5 → Report Portal** — `agent-java-junit5` dependency + `ReportPortalJUnit5Bridge` reflection bridge; JUnit 5 tests push results to RP automatically
 
 ```yaml
 reporting:
@@ -47,21 +82,18 @@ reporting:
     type: auto
 ```
 
-### Added — JUnit 5 → Report Portal
-
-- **`agent-java-junit5`** dependency + `ReportPortalJUnit5Bridge` reflection bridge
-- JUnit 5 tests now push results to Report Portal automatically
-
 ### Fixed
 
-- OAuth2 token cache race condition (double-checked locking)
-- Dark theme code block text visibility (Prism token CSS safety nets)
-- Dark theme component overrides (search, tabs, badges, footer)
-- AI model defaults and validation (`ai.model` optional, provider-specific defaults, input sanitization)
-- Session cache isolation and script safety (clearing localStorage prior to restore, safe script argument passing)
-- PreCondition retry vs DataProvider isolation (prevent premature cache invalidation during multi-row DataProvider runs)
-- LocatorAssert failure propagation (narrow caught wait exceptions to `TimeoutException`)
-- Locator withText matching (case-insensitive substring default with exact-match support)
+- **OAuth2 token cache race condition** — double-checked locking prevents thundering herd on expired tokens
+- **RP launch naming** — context-aware base URL selection based on run type (Web vs API)
+- **Dark theme text visibility** — CSS safety nets for all Prism token types; fixed invisible code block text; dark mode overrides for search dropdown, tabs, collapsible, badges, footer
+- **AI model defaults and validation** — `ai.model` is optional and defaults per provider (`claude-haiku-4-5-20251001` for Claude, `gemini-2.5-flash` for Gemini); sanitized Gemini model names against injection
+- **Session cache isolation & script safety** — `BrowserSessionCache` and `PreconditionSessionCache` clear localStorage before restore and pass items safely via WebDriver script arguments
+- **PreCondition retry vs DataProvider isolation** — fixed premature session cache invalidation during multi-row `@DataProvider` runs; cache is now only invalidated on true retries (`result.wasRetried()`)
+- **LocatorAssert failure propagation** — restrict caught wait exceptions to `TimeoutException` so unexpected browser/WebDriver faults are not masked
+- **Locator withText matching** — `Locator.withText` defaults to case-insensitive substring matching and respects the exact-match parameter
+- **ReportPortal credential guard** — skip RP registration when credentials are missing instead of failing the suite
+- **Headless viewport** — automatically configure 1920×1080 viewport for headless Chrome/Edge when `startMaximized` is set
 
 ---
 

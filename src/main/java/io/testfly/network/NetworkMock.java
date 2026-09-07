@@ -12,6 +12,7 @@ import org.openqa.selenium.devtools.v152.fetch.model.HeaderEntry;
 import org.openqa.selenium.devtools.v152.fetch.model.RequestId;
 import org.openqa.selenium.devtools.v152.fetch.model.RequestPattern;
 import org.openqa.selenium.devtools.v152.fetch.model.RequestStage;
+import org.openqa.selenium.devtools.v152.network.model.PostDataEntry;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -24,31 +25,34 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
 /**
  * CDP-backed network interception, request mocking, and traffic recording.
  *
- * <p>Supported on Chrome and Edge (Chromium-based). On Firefox or other browsers
+ * <p>
+ * Supported on Chrome and Edge (Chromium-based). On Firefox or other browsers
  * a single warning is logged and all interception is skipped — tests continue.
  *
- * <p>Two DSLs are available and interoperate (rules apply in registration order):
+ * <p>
+ * Two DSLs are available and interoperate (rules apply in registration order):
  * <ul>
- *   <li><b>Legacy stubs</b> ({@code @TestFlyApi(since = "1.5.0")}):
- *       {@code networkMock().stub(pattern).returnJson(...)}</li>
- *   <li><b>Route DSL</b> ({@code @TestFlyApi(since = "1.6.0")}):
- *       {@code mockRoute(pattern, Response.json(...))} and
- *       {@code mockRoute(pattern, route -> ...)} for mutation/spy.</li>
+ * <li><b>Legacy stubs</b> ({@code @TestFlyApi(since = "1.5.0")}):
+ * {@code networkMock().stub(pattern).returnJson(...)}</li>
+ * <li><b>Route DSL</b> ({@code @TestFlyApi(since = "1.6.0")}):
+ * {@code mockRoute(pattern, Response.json(...))} and
+ * {@code mockRoute(pattern, route -> ...)} for mutation/spy.</li>
  * </ul>
  *
  * <pre>
- * networkMock().stub("**&#47;api/users").returnJson("{\"users\":[]}");   // legacy
- * mockRoute("**&#47;api/me", Response.json(200, "{\"role\":\"ADMIN\"}"));  // new
- * mockRoute("**&#47;api/settings", route -&gt; {                           // mutate
+ * networkMock().stub("**&#47;api/users").returnJson("{\"users\":[]}"); // legacy
+ * mockRoute("**&#47;api/me", Response.json(200, "{\"role\":\"ADMIN\"}")); // new
+ * mockRoute("**&#47;api/settings", route -&gt; { // mutate
  *     var original = route.fetchOriginal();
- *     route.fulfill(Response.json(200, original.body().replace("false","true")));
+ *     route.fulfill(Response.json(200, original.body().replace("false", "true")));
  * });
- * assertThatNetwork().request("**&#47;api/checkout").hasCount(1);          // assert
+ * assertThatNetwork().request("**&#47;api/checkout").hasCount(1); // assert
  * </pre>
  */
 @TestFlyApi(since = "1.5.0")
@@ -56,8 +60,7 @@ public final class NetworkMock {
 
     private static final Logger LOG = Logger.getLogger(NetworkMock.class.getName());
 
-    private static final ThreadLocal<NetworkMock> INSTANCE =
-            ThreadLocal.withInitial(NetworkMock::new);
+    private static final ThreadLocal<NetworkMock> INSTANCE = ThreadLocal.withInitial(NetworkMock::new);
 
     // Legacy stubs kept for source compatibility; also mirrored into routes.
     private final List<StubBuilder> stubs = new CopyOnWriteArrayList<>();
@@ -80,10 +83,13 @@ public final class NetworkMock {
         return INSTANCE.get();
     }
 
-    /** Removes the per-thread instance (called by the framework after each test). */
+    /**
+     * Removes the per-thread instance (called by the framework after each test).
+     */
     public static void cleanup() {
         NetworkMock mock = INSTANCE.get();
-        if (mock != null) mock.clear();
+        if (mock != null)
+            mock.clear();
         INSTANCE.remove();
     }
 
@@ -94,11 +100,12 @@ public final class NetworkMock {
     /**
      * Begins a stub for requests whose URL matches the given pattern.
      *
-     * <p>Pattern syntax:
+     * <p>
+     * Pattern syntax:
      * <ul>
-     *   <li>{@code *}  — matches any characters except {@code /}</li>
-     *   <li>{@code **} — matches any characters including {@code /}</li>
-     *   <li>Exact URL — e.g. {@code https://api.example.com/users}</li>
+     * <li>{@code *} — matches any characters except {@code /}</li>
+     * <li>{@code **} — matches any characters including {@code /}</li>
+     * <li>Exact URL — e.g. {@code https://api.example.com/users}</li>
      * </ul>
      *
      * @param urlPattern glob-style URL pattern
@@ -109,7 +116,8 @@ public final class NetworkMock {
     }
 
     /**
-     * Removes all registered stubs/routes and disables CDP interception for this thread.
+     * Removes all registered stubs/routes and disables CDP interception for this
+     * thread.
      * Called automatically by the framework after each test.
      */
     public void clear() {
@@ -132,7 +140,10 @@ public final class NetworkMock {
     // Route DSL (1.6.0)
     // ------------------------------------------------------------------
 
-    /** Mock any-method requests matching {@code pattern} with a fixed {@link Response}. */
+    /**
+     * Mock any-method requests matching {@code pattern} with a fixed
+     * {@link Response}.
+     */
     @TestFlyApi(since = "1.6.0")
     public NetworkMock mockRoute(String pattern, Response response) {
         routes.add(new RouteRule(pattern, "*", response, null, RouteRule.Source.ROUTE));
@@ -140,7 +151,10 @@ public final class NetworkMock {
         return this;
     }
 
-    /** Mock any-method requests matching {@code pattern} with a programmatic handler. */
+    /**
+     * Mock any-method requests matching {@code pattern} with a programmatic
+     * handler.
+     */
     @TestFlyApi(since = "1.6.0")
     public NetworkMock mockRoute(String pattern, Consumer<Route> handler) {
         routes.add(new RouteRule(pattern, "*", null, handler, RouteRule.Source.ROUTE));
@@ -148,7 +162,10 @@ public final class NetworkMock {
         return this;
     }
 
-    /** Mock requests matching {@code method} + {@code pattern} with a fixed {@link Response}. */
+    /**
+     * Mock requests matching {@code method} + {@code pattern} with a fixed
+     * {@link Response}.
+     */
     @TestFlyApi(since = "1.6.0")
     public NetworkMock mockRoute(String method, String pattern, Response response) {
         routes.add(new RouteRule(pattern, method, response, null, RouteRule.Source.ROUTE));
@@ -156,7 +173,10 @@ public final class NetworkMock {
         return this;
     }
 
-    /** Mock requests matching {@code method} + {@code pattern} with a programmatic handler. */
+    /**
+     * Mock requests matching {@code method} + {@code pattern} with a programmatic
+     * handler.
+     */
     @TestFlyApi(since = "1.6.0")
     public NetworkMock mockRoute(String method, String pattern, Consumer<Route> handler) {
         routes.add(new RouteRule(pattern, method, null, handler, RouteRule.Source.ROUTE));
@@ -181,11 +201,14 @@ public final class NetworkMock {
      */
     @TestFlyApi(since = "1.6.0")
     public void activateBlocklistIfConfigured() {
-        if (blocklistActivated) return;
+        if (blocklistActivated)
+            return;
         List<String> block = configBlockUrls();
-        if (block == null || block.isEmpty()) return;
+        if (block == null || block.isEmpty())
+            return;
         for (String pattern : block) {
-            if (pattern == null || pattern.isBlank()) continue;
+            if (pattern == null || pattern.isBlank())
+                continue;
             routes.add(new RouteRule(pattern, "*",
                     Response.abort(AbortReason.BLOCKED_BY_CLIENT), null,
                     RouteRule.Source.BLOCKLIST));
@@ -219,7 +242,9 @@ public final class NetworkMock {
         return new ArrayList<>(recorded);
     }
 
-    /** Package-private test hook: seed a recorded request without a live browser. */
+    /**
+     * Package-private test hook: seed a recorded request without a live browser.
+     */
     void recordForTest(RecordedRequest request) {
         recorded.add(request);
     }
@@ -249,7 +274,8 @@ public final class NetworkMock {
     // ------------------------------------------------------------------
 
     private void ensureCdpAttached() {
-        if (cdpAttached) return;
+        if (cdpAttached)
+            return;
 
         WebDriver driver = DriverManager.getDriver();
         if (!(driver instanceof ChromiumDriver)) {
@@ -272,8 +298,7 @@ public final class NetworkMock {
                     new RequestPattern(Optional.of("*"), Optional.empty(),
                             Optional.of(RequestStage.REQUEST)),
                     new RequestPattern(Optional.of("*"), Optional.empty(),
-                            Optional.of(RequestStage.RESPONSE))
-            );
+                            Optional.of(RequestStage.RESPONSE)));
             dt.send(Fetch.enable(Optional.of(patterns), Optional.empty()));
             dt.addListener(Fetch.requestPaused(), event -> handlePaused(event));
 
@@ -296,13 +321,14 @@ public final class NetworkMock {
         }
     }
 
-    // Handles a single Fetch.requestPaused event (either REQUEST or RESPONSE stage).
+    // Handles a single Fetch.requestPaused event (either REQUEST or RESPONSE
+    // stage).
     private void handlePaused(org.openqa.selenium.devtools.v152.fetch.model.RequestPaused event) {
         try {
-            String    url    = event.getRequest().getUrl();
-            String    method = safeUpper(event.getRequest().getMethod());
-            RequestId reqId  = event.getRequestId();
-            boolean   atResponseStage = event.getResponseStatusCode().isPresent();
+            String url = event.getRequest().getUrl();
+            String method = safeUpper(event.getRequest().getMethod());
+            RequestId reqId = event.getRequestId();
+            boolean atResponseStage = event.getResponseStatusCode().isPresent();
 
             // Record every request exactly once, at the REQUEST stage.
             if (!atResponseStage) {
@@ -350,16 +376,25 @@ public final class NetworkMock {
         } catch (Exception e) {
             LOG.fine("[TestFly] Network listener error: " + e.getMessage());
             // Best-effort: never leave a request hanging.
-            try { continueRequest(event.getRequestId()); } catch (Exception ignored) {}
+            try {
+                continueRequest(event.getRequestId());
+            } catch (Exception ignored) {
+            }
         }
     }
 
     private void dispatchHandler(RouteRule rule,
-                                 org.openqa.selenium.devtools.v152.fetch.model.RequestPaused event,
-                                 String url, String method, RequestId reqId) {
+            org.openqa.selenium.devtools.v152.fetch.model.RequestPaused event,
+            String url, String method, RequestId reqId) {
         Map<String, String> reqHeaders = lowerCasedRequestHeaders(event);
-        String reqBody = event.getRequest().getPostData().orElse(null);
-        int    respStatus  = event.getResponseStatusCode().orElse(0);
+        String reqBody = event.getRequest().getPostDataEntries()
+                .map(entries -> entries.stream()
+                        .map(PostDataEntry::getBytes)
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .collect(Collectors.joining()))
+                .orElse(null);
+        int respStatus = event.getResponseStatusCode().orElse(0);
         Map<String, String> respHeaders = lowerCasedResponseHeaders(event);
 
         Route route = new Route(this, reqId.toString(), url, method, reqHeaders, reqBody);
@@ -370,7 +405,8 @@ public final class NetworkMock {
         } catch (Exception e) {
             LOG.warning("[TestFly] Route '" + rule.pattern + "' handler threw: "
                     + e.getMessage() + " — defaulting to passthrough.");
-            if (!route.isTerminated()) route.passthrough();
+            if (!route.isTerminated())
+                route.passthrough();
             return;
         }
 
@@ -387,13 +423,16 @@ public final class NetworkMock {
 
     /**
      * Finds the matching non-blocklist rule for a URL + method.
-     * Returns an exact-method match immediately; otherwise the first any-method match.
+     * Returns an exact-method match immediately; otherwise the first any-method
+     * match.
      */
     private RouteRule findMatch(String url, String method) {
         RouteRule wildcardFallback = null;
         for (RouteRule r : routes) {
-            if (r.source == RouteRule.Source.BLOCKLIST) continue;
-            if (!NetworkMock.matches(r.pattern, url)) continue;
+            if (r.source == RouteRule.Source.BLOCKLIST)
+                continue;
+            if (!NetworkMock.matches(r.pattern, url))
+                continue;
             if (r.isExactMethod() && r.method.equalsIgnoreCase(method)) {
                 return r; // exact method wins immediately
             }
@@ -406,29 +445,41 @@ public final class NetworkMock {
 
     /**
      * Package-private test hook: resolves the rule that would apply to a request,
-     * mirroring the listener's precedence (explicit route/stub first, then blocklist).
+     * mirroring the listener's precedence (explicit route/stub first, then
+     * blocklist).
      * Returns {@code null} if nothing matches. Used by unit tests to verify routing
      * precedence without mocking CDP events.
      */
     RouteRule resolveRuleForTest(String url, String method) {
         RouteRule explicit = findMatch(url, method);
-        if (explicit != null) return explicit;
+        if (explicit != null)
+            return explicit;
         return findBlocklistMatch(url, method);
     }
 
-    /** Blocklist is lowest priority: only consulted when no explicit rule matched. */
+    /**
+     * Blocklist is lowest priority: only consulted when no explicit rule matched.
+     */
     private RouteRule findBlocklistMatch(String url, String method) {
         for (RouteRule r : routes) {
-            if (r.source != RouteRule.Source.BLOCKLIST) continue;
-            if (r.matches(url, method)) return r;
+            if (r.source != RouteRule.Source.BLOCKLIST)
+                continue;
+            if (r.matches(url, method))
+                return r;
         }
         return null;
     }
 
     private void record(org.openqa.selenium.devtools.v152.fetch.model.RequestPaused event,
-                        String url, String method) {
+            String url, String method) {
         Map<String, String> headers = lowerCasedRequestHeaders(event);
-        String body = event.getRequest().getPostData().orElse(null);
+        String body = event.getRequest().getPostDataEntries()
+                .map(entries -> entries.stream()
+                        .map(PostDataEntry::getBytes)
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .collect(Collectors.joining()))
+                .orElse(null);
         recorded.add(new RecordedRequest(url, method, headers, body, Instant.now()));
     }
 
@@ -509,7 +560,10 @@ public final class NetworkMock {
         }
     }
 
-    /** Fetch the real response body at RESPONSE stage — used by {@link Route#fetchOriginal()}. */
+    /**
+     * Fetch the real response body at RESPONSE stage — used by
+     * {@link Route#fetchOriginal()}.
+     */
     OriginalResponse fetchResponseBody(RequestId reqId, int status, Map<String, String> headers) {
         try {
             Fetch.GetResponseBodyResponse b = devTools.send(Fetch.getResponseBody(reqId));
@@ -520,8 +574,9 @@ public final class NetworkMock {
         } catch (Exception e) {
             throw new NetworkMockException(
                     "fetchOriginal() failed — the response body was unavailable "
-                    + "(request may not have reached the RESPONSE stage, or the browser "
-                    + "is not Chromium). Interception was not left hanging.", e);
+                            + "(request may not have reached the RESPONSE stage, or the browser "
+                            + "is not Chromium). Interception was not left hanging.",
+                    e);
         }
     }
 
@@ -587,7 +642,8 @@ public final class NetworkMock {
 
     /**
      * Glob-style URL matching.
-     * {@code **} matches anything including slashes; {@code *} matches within a path segment.
+     * {@code **} matches anything including slashes; {@code *} matches within a
+     * path segment.
      */
     public static boolean matches(String pattern, String url) {
         return url.matches(globToRegex(pattern));
@@ -601,7 +657,8 @@ public final class NetworkMock {
             if (c == '*' && i + 1 < glob.length() && glob.charAt(i + 1) == '*') {
                 sb.append(".*");
                 i += 2;
-                if (i < glob.length() && glob.charAt(i) == '/') i++; // skip trailing /
+                if (i < glob.length() && glob.charAt(i) == '/')
+                    i++; // skip trailing /
             } else if (c == '*') {
                 sb.append("[^/]*");
                 i++;

@@ -8,10 +8,11 @@ import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.remote.RemoteWebDriver;
 
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
 
-public class RemoteDriverProvider implements DriverProvider{
+public class RemoteDriverProvider implements DriverProvider {
     @Override
     public WebDriver createDriver() {
         TestFlyConfig config = TestFlyContext.getConfig();
@@ -28,7 +29,7 @@ public class RemoteDriverProvider implements DriverProvider{
         CapabilityValidator.validate(browser, config.getBrowser().getCapabilities());
 
         try {
-            URL url = new URL(gridUrl);
+            URL url = URI.create(gridUrl).toURL();
 
             if ("chrome".equalsIgnoreCase(browser)) {
                 ChromeOptions options = new ChromeOptions();

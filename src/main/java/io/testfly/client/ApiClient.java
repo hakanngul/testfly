@@ -501,7 +501,8 @@ public class ApiClient {
                 }
             }
         }
-        throw lastException;
+        throw lastException != null ? lastException
+                : new ApiException(method, url, 0, null, "Request failed without exception");
     }
 
     // ── Internal: execute single request ──────────────────────────────────────
@@ -625,7 +626,12 @@ public class ApiClient {
             TestFlyConfig.Api api = config.getApi();
             if (api != null && api.getBaseUrl() != null)
                 return api.getBaseUrl();
-            return config.getExecution().getBaseUrl();
+            String executionBase = config.getExecution().getBaseUrl();
+            if (executionBase == null) {
+                throw new IllegalStateException(
+                        "[ApiClient] No baseUrl configured. Set execution.baseUrl or api.baseUrl in testfly.yml");
+            }
+            return executionBase;
         } catch (Exception e) {
             throw new IllegalStateException(
                     "[ApiClient] No baseUrl configured. Set execution.baseUrl or api.baseUrl in testfly.yml");

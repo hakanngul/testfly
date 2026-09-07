@@ -18,9 +18,7 @@ import java.time.Duration;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
-import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertSame;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
@@ -57,9 +55,12 @@ public class PageAssertTest {
 
     @AfterMethod
     public void tearDown() {
-        if (driverManagerMock != null) driverManagerMock.close();
-        if (contextMock != null) contextMock.close();
-        if (stepLoggerMock != null) stepLoggerMock.close();
+        if (driverManagerMock != null)
+            driverManagerMock.close();
+        if (contextMock != null)
+            contextMock.close();
+        if (stepLoggerMock != null)
+            stepLoggerMock.close();
         SoftAssertions.clear();
     }
 

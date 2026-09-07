@@ -9,15 +9,20 @@ import java.lang.reflect.Method;
 /**
  * Controls retry behavior for failed test methods.
  *
- * <p>Decision logic (evaluated in order):
+ * <p>
+ * Decision logic (evaluated in order):
  * <ol>
- *   <li>{@code retry.enabled=false} in config → never retry (global kill switch)</li>
- *   <li>{@code retry.enabled=true} → retry ALL tests up to {@code maxAttempts}</li>
- *   <li>Method is annotated with {@link Retryable} → retry up to {@code maxAttempts}
- *       (allows per-method opt-in when global retry is off)</li>
+ * <li>{@code retry.enabled=false} in config → never retry (global kill
+ * switch)</li>
+ * <li>{@code retry.enabled=true} → retry ALL tests up to
+ * {@code maxAttempts}</li>
+ * <li>Method is annotated with {@link Retryable} → retry up to
+ * {@code maxAttempts}
+ * (allows per-method opt-in when global retry is off)</li>
  * </ol>
  *
- * <p>Rules:
+ * <p>
+ * Rules:
  * <li>Retry count comes from configuration</li>
  * <li>Retries apply only to test methods</li>
  * <li>No infinite retries — final failure always surfaces</li>
@@ -40,7 +45,8 @@ public final class RetryListener implements IRetryAnalyzer {
 
         var retryConfig = TestFlyContext.getConfig().getRetry();
 
-        // Master kill switch — if retry is disabled nothing retries, including @Retryable
+        // Master kill switch — if retry is disabled nothing retries, including
+        // @Retryable
         if (retryConfig == null || !retryConfig.isEnabled()) {
             return false;
         }
@@ -56,7 +62,7 @@ public final class RetryListener implements IRetryAnalyzer {
 
         // Per-method @Retryable.maxAttempts overrides global config
         int maxAttempts = retryConfig.getMaxAttempts();
-        if (isAnnotated) {
+        if (isAnnotated && method != null) {
             Retryable annotation = method.getAnnotation(Retryable.class);
             if (annotation != null && annotation.maxAttempts() >= 0) {
                 maxAttempts = annotation.maxAttempts();

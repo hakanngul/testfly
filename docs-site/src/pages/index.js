@@ -505,7 +505,7 @@ function getFaqs(isTr) {
 
 const stats = [
   { value: '1', label: 'Single Maven Dependency' },
-  { value: '1.0.2', label: 'Latest Stable Release' },
+  { value: '1.0.4', label: 'Latest Stable Release' },
   { value: '<50ms', label: 'Frozen AI Action Replay' },
   { value: '88', label: 'Built-in MCP Tools' },
 ];
@@ -787,10 +787,10 @@ export default function Home() {
                       ? i === 0
                         ? 'Tek Maven Bağımlılığı'
                         : i === 1
-                        ? 'Güncel Sürüm'
-                        : i === 2
-                        ? 'Dondurulmuş AI Oynatma Hızı'
-                        : 'Yerleşik MCP Aracı'
+                          ? 'Güncel Sürüm'
+                          : i === 2
+                            ? 'Dondurulmuş AI Oynatma Hızı'
+                            : 'Yerleşik MCP Aracı'
                       : s.label}
                   </span>
                 </div>
@@ -963,7 +963,7 @@ export default function Home() {
                   </span>
                   <span className={styles.installBadge}>
                     <span className={styles.installBadgeDot} />
-                    Maven Central v1.0.2
+                    Maven Central v1.0.4
                   </span>
                   <span className={styles.installBadge}>
                     <span className={styles.installBadgeDot} />
@@ -983,7 +983,7 @@ export default function Home() {
                   code={`<dependency>
   <groupId>io.github.hakanngul</groupId>
   <artifactId>testfly</artifactId>
-  <version>1.0.2</version>
+  <version>1.0.4</version>
 </dependency>`}
                 />
               </div>
