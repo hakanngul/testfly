@@ -1,7 +1,7 @@
 package io.testfly.ai;
 
-import io.github.cdimascio.dotenv.Dotenv;
 import io.testfly.api.TestFlyApi;
+import io.testfly.config.DotEnvLoader;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
@@ -64,11 +64,9 @@ import java.util.logging.Logger;
 public final class AiFailureAnalyzer {
 
     private static final Logger LOG = Logger.getLogger(AiFailureAnalyzer.class.getName());
-    Dotenv dotenv;
+
     private AiFailureAnalyzer() {
-        dotenv = Dotenv.configure()
-        .ignoreIfMissing()
-        .load();
+        // utility class
     }
 
     // ------------------------------------------------------------------
@@ -119,8 +117,8 @@ public final class AiFailureAnalyzer {
 
             if (aiCfg.isGeneratePatch()) {
                 try {
-                    io.testfly.ai.remediation.SourceCodeLocator.SourceSnippet snippet =
-                            io.testfly.ai.remediation.SourceCodeLocator.findFailureSnippet(timing.getStackTrace());
+                    io.testfly.ai.remediation.SourceCodeLocator.SourceSnippet snippet = io.testfly.ai.remediation.SourceCodeLocator
+                            .findFailureSnippet(timing.getStackTrace());
                     if (snippet != null) {
                         io.testfly.ai.remediation.RemediationPatchGenerator.generateAndSave(
                                 testId, snippet, timing, pageUrl, pageTitle);
@@ -228,28 +226,7 @@ public final class AiFailureAnalyzer {
             return null;
 
         if (raw.startsWith("${") && raw.endsWith("}")) {
-            String var = raw.substring(2, raw.length() - 1);
-
-            Dotenv dotenv = Dotenv.configure()
-                    .ignoreIfMissing()
-                    .load();
-
-            String val = dotenv.get(var);
-            if (val != null && !val.isBlank()) {
-                return val;
-            }
-
-            val = System.getenv(var);
-            if (val != null && !val.isBlank()) {
-                return val;
-            }
-
-            val = System.getProperty(var);
-            if (val != null && !val.isBlank()) {
-                return val;
-            }
-
-            return null;
+            return DotEnvLoader.resolve(raw);
         }
 
         return raw;

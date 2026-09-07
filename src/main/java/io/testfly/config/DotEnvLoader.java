@@ -6,22 +6,38 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Loads environment variables from a {@code .env} file in the project root
- * into {@link System#getProperties()} so that {@code ${VAR}} placeholders
- * in {@code testfly.yml} are resolved even when the shell environment
- * has not been sourced.
+ * Loads environment variables from a {@code .env} file in the project root so
+ * that
+ * {@code ${VAR}} placeholders in {@code testfly.yml} are resolved even when the
+ * shell
+ * environment has not been sourced.
  *
- * <p>Resolution priority (highest → lowest):
+ * <p>
+ * Resolution priority (highest → lowest):
  * <ol>
- *   <li>Shell environment variable ({@code System.getenv})</li>
- *   <li>System property (set here from {@code .env}, or via {@code -D})</li>
+ * <li>{@code .env} file in the working directory</li>
+ * <li>Shell environment variable ({@code System.getenv})</li>
+ * <li>System property ({@code -D})</li>
+ * <li>The {@code ${VAR:-default}} fallback, when present</li>
  * </ol>
  *
- * <p>Supported syntax:
+ * <p>
+ * {@code .env} deliberately wins over the shell so that a stale exported
+ * credential
+ * cannot silently override the project's checked-out configuration. Values read
+ * from
+ * {@code .env} are also published as system properties when the shell has not
+ * already
+ * set them, which keeps {@code -DVAR} style access working for downstream
+ * consumers.
+ *
+ * <p>
+ * Supported syntax:
+ * 
  * <pre>
  *   # comment
  *   KEY=value
@@ -30,11 +46,18 @@ import java.util.List;
  *   KEY=value  # inline comment
  * </pre>
  *
- * <p>The loader is idempotent — calling it more than once is a no-op.
+ * <p>
+ * The loader is idempotent — calling it more than once is a no-op.
  */
 public final class DotEnvLoader {
 
     private static volatile boolean loaded;
+
+    /**
+     * Values read from {@code .env}, kept separate from system properties so they
+     * can win over the shell.
+     */
+    private static final Map<String, String> DOTENV_VARS = new ConcurrentHashMap<>();
 
     private DotEnvLoader() {
         // utility class
@@ -45,14 +68,16 @@ public final class DotEnvLoader {
      * Safe to call multiple times — subsequent calls are no-ops.
      */
     public static void load() {
-        if (loaded) return;
+        if (loaded)
+            return;
         synchronized (DotEnvLoader.class) {
-            if (loaded) return;
+            if (loaded)
+                return;
             Path envFile = Paths.get(System.getProperty("user.dir"), ".env");
             if (Files.exists(envFile) && Files.isRegularFile(envFile)) {
-                List<String> vars = parse(envFile);
-                if (!vars.isEmpty()) {
-                    System.out.println("[TestFly] Loaded " + vars.size()
+                int count = parse(envFile);
+                if (count > 0) {
+                    System.out.println("[TestFly] Loaded " + count
                             + " variable(s) from .env");
                 }
             }
@@ -61,8 +86,25 @@ public final class DotEnvLoader {
     }
 
     /**
-     * Resolves a {@code ${VAR}} or {@code ${VAR:-default}} placeholder
-     * against the environment + system properties.
+     * Returns the value declared in {@code .env} for {@code key}, or {@code null}
+     * when the
+     * key is absent. Never consults the shell environment or system properties,
+     * which makes
+     * this the way to ask "what does the project's .env say?" explicitly.
+     *
+     * @param key variable name, e.g. {@code AI_API_KEY}
+     * @return the {@code .env} value, or {@code null}
+     */
+    public static String fromDotEnv(String key) {
+        if (key == null)
+            return null;
+        load();
+        return DOTENV_VARS.get(key);
+    }
+
+    /**
+     * Resolves a {@code ${VAR}} or {@code ${VAR:-default}} placeholder against
+     * {@code .env}, the shell environment, and system properties, in that order.
      *
      * @param value the raw string from YAML config; may be {@code null}
      * @return the resolved value, or the original string if no placeholder is found
@@ -84,27 +126,38 @@ public final class DotEnvLoader {
             varName = inner.trim();
         }
 
-        // Priority: env var > system property > default
-        String resolved = System.getenv(varName);
-        if (resolved == null) {
+        load();
+
+        // Priority: .env > shell environment > system property > default
+        String resolved = DOTENV_VARS.get(varName);
+        if (isBlank(resolved)) {
+            resolved = System.getenv(varName);
+        }
+        if (isBlank(resolved)) {
             resolved = System.getProperty(varName);
         }
-        if (resolved == null) {
+        if (isBlank(resolved)) {
             resolved = defaultValue;
         }
         return resolved;
     }
 
-    private static List<String> parse(Path envFile) {
-        List<String> loadedVars = new ArrayList<>();
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
+    private static int parse(Path envFile) {
+        int count = 0;
         try (BufferedReader reader = Files.newBufferedReader(envFile, StandardCharsets.UTF_8)) {
             String line;
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
-                if (line.isEmpty() || line.startsWith("#")) continue;
+                if (line.isEmpty() || line.startsWith("#"))
+                    continue;
 
                 int eq = line.indexOf('=');
-                if (eq <= 0) continue;
+                if (eq <= 0)
+                    continue;
 
                 String key = line.substring(0, eq).trim();
                 String value = line.substring(eq + 1).trim();
@@ -112,7 +165,7 @@ public final class DotEnvLoader {
                 // Strip quotes
                 if (value.length() >= 2
                         && ((value.startsWith("\"") && value.endsWith("\""))
-                        || (value.startsWith("'") && value.endsWith("'")))) {
+                                || (value.startsWith("'") && value.endsWith("'")))) {
                     value = value.substring(1, value.length() - 1);
                 }
 
@@ -122,15 +175,18 @@ public final class DotEnvLoader {
                     value = value.substring(0, hashIdx).trim();
                 }
 
-                // Only set if the env var is not already set in the shell
+                DOTENV_VARS.put(key, value);
+                count++;
+
+                // Publish as a system property too, unless the shell already defines it,
+                // so that System.getProperty / -D style access keeps working.
                 if (System.getenv(key) == null) {
                     System.setProperty(key, value);
-                    loadedVars.add(key);
                 }
             }
         } catch (IOException e) {
             System.err.println("[TestFly] Warning: failed to read .env file: " + e.getMessage());
         }
-        return loadedVars;
+        return count;
     }
 }

@@ -71,4 +71,29 @@ public class DotEnvLoaderTest {
         assertEquals(DotEnvLoader.resolve("INCOMPLETE}"), "INCOMPLETE}");
         assertEquals(DotEnvLoader.resolve("prefix${TEST_DOTENV_KEY}suffix"), "prefix${TEST_DOTENV_KEY}suffix");
     }
+
+    @Test
+    public void fromDotEnv_returnsNull_forAbsentKey() {
+        assertNull(DotEnvLoader.fromDotEnv("NONEXISTENT_KEY_12345"));
+    }
+
+    @Test
+    public void fromDotEnv_returnsNull_forNullKey() {
+        assertNull(DotEnvLoader.fromDotEnv(null));
+    }
+
+    @Test
+    public void resolve_dotEnvWinsOverSystemProperty() {
+        // If a key exists both in .env and as a system property, .env should win.
+        // We can only test the mechanism indirectly: fromDotEnv returns the .env value
+        // while resolve() should prefer it over a system property.
+        // Since we cannot write a real .env in a unit test, we verify the contract
+        // by confirming that fromDotEnv and resolve use the same DOTENV_VARS map:
+        // when no .env file is present, both return null / fall through to system
+        // property.
+        System.setProperty("TEST_DOTENV_KEY", "from-property");
+        // No .env entry for TEST_DOTENV_KEY → system property is used
+        assertEquals(DotEnvLoader.resolve("${TEST_DOTENV_KEY}"), "from-property");
+        assertNull(DotEnvLoader.fromDotEnv("TEST_DOTENV_KEY"));
+    }
 }

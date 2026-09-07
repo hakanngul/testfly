@@ -44,9 +44,26 @@ api:
       token: ${API_TOKEN}
 ```
 
-* If the environment variable exists, its value replaces `${VAR_NAME}` at load time.
-* If the variable is unset, TestFly checks Java system properties (`System.getProperty("VAR_NAME")`).
-* If neither is set, `${VAR_NAME}` remains as a literal string or resolves to an empty string depending on context.
+TestFly resolves `${VAR_NAME}` placeholders using the following priority (highest → lowest):
+
+1. **`.env` file** — A `.env` file in the project root (next to `pom.xml`). Values here deliberately win over the shell so that a stale exported credential cannot silently override the project's checked-out configuration.
+2. **Shell environment variable** — `System.getenv("VAR_NAME")`
+3. **System property** — `-DVAR_NAME=value` or `System.getProperty("VAR_NAME")`
+4. **Default fallback** — `${VAR_NAME:-default}` syntax provides a fallback when no source defines the variable.
+
+Supported `.env` syntax:
+
+```dotenv
+# comment
+API_KEY=sk-abc123
+SECRET="quoted value"
+TOKEN='single quoted'
+URL=https://example.com  # inline comment
+```
+
+:::tip Programmatic access
+Use `DotEnvLoader.fromDotEnv("API_KEY")` to read a value exclusively from the `.env` file, bypassing the shell and system properties.
+:::
 
 ### Environment Profiles (`-Dtestfly.profile`)
 

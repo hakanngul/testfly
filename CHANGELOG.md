@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - **SessionCache rename** — `browser.SessionCache` → `BrowserSessionCache`, `precondition.SessionCache` → `PreconditionSessionCache` to eliminate naming ambiguity
+- **`.env` resolution priority** — `DotEnvLoader` now resolves `${VAR}` placeholders with explicit priority: `.env` file > shell environment > system property (`-D`). Added `DotEnvLoader.fromDotEnv(key)` to query `.env` values directly. Removed `dotenv-java` dependency; `.env` parsing is handled internally.
 
 ### Added — API Testing Improvements
 
