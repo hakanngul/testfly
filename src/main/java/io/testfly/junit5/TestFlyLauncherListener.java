@@ -1,6 +1,7 @@
 package io.testfly.junit5;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.ci.BuildQualityGateException;
 import io.testfly.ci.BuildThresholdEnforcer;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.flakiness.FlakinessAnalyzer;
@@ -19,10 +20,12 @@ import org.junit.platform.launcher.TestPlan;
  * the entire test plan finishes — the JUnit 5 equivalent of
  * {@code SuiteExecutionListener.onFinish()} in TestNG.
  *
- * <p>Registered automatically via ServiceLoader:
+ * <p>
+ * Registered automatically via ServiceLoader:
  * {@code META-INF/services/org.junit.platform.launcher.TestExecutionListener}
  *
- * <p>Fires {@code testPlanExecutionFinished} once when all test classes have run,
+ * <p>
+ * Fires {@code testPlanExecutionFinished} once when all test classes have run,
  * regardless of how many classes were in the plan.
  */
 @TestFlyApi(since = "1.9.0")
@@ -46,8 +49,10 @@ public class TestFlyLauncherListener implements TestExecutionListener {
             if (config != null) {
                 BuildThresholdEnforcer.enforce(config, ExecutionMetrics.getTimings());
             }
+        } catch (BuildQualityGateException e) {
+            throw e; // re-throw CI quality gate failures (pass-rate / flakiness)
         } catch (IllegalStateException e) {
-            throw e;  // re-throw CI gate failures (pass-rate / flakiness)
+            throw e;
         } catch (Exception e) {
             System.err.println("[TestFly] Report generation failed: " + e.getMessage());
         }

@@ -3,6 +3,8 @@ package io.testfly.visual;
 import io.testfly.api.TestFlyApi;
 import io.testfly.driver.DriverManager;
 import io.testfly.internal.TestFlyContext;
+import io.testfly.steps.StepLogger;
+import io.testfly.steps.StepStatus;
 import org.openqa.selenium.By;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
@@ -12,22 +14,32 @@ import org.openqa.selenium.WebElement;
 import javax.imageio.ImageIO;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Base64;
 import java.util.logging.Logger;
 
 /**
  * Visual regression assertion using pixel-by-pixel comparison.
  *
- * <p><b>First run</b> — no baseline exists: screenshot is saved as the baseline and
+ * <p>
+ * <b>First run</b> — no baseline exists: screenshot is saved as the baseline
+ * and
  * the test passes with a warning. Inspect the baseline before committing.
  *
- * <p><b>Subsequent runs</b> — baseline exists: current screenshot is compared against
- * the baseline. If the pixel difference exceeds the configured tolerance the test fails;
+ * <p>
+ * <b>Subsequent runs</b> — baseline exists: current screenshot is compared
+ * against
+ * the baseline. If the pixel difference exceeds the configured tolerance the
+ * test fails;
  * a diff image is saved to {@code target/visual-diffs/}.
  *
- * <p><b>Updating baselines</b> — run with {@code -DupdateBaselines=true} to force
- * all screenshots to overwrite the baseline (useful after intentional UI changes).
+ * <p>
+ * <b>Updating baselines</b> — run with {@code -DupdateBaselines=true} to force
+ * all screenshots to overwrite the baseline (useful after intentional UI
+ * changes).
  *
  * <pre>
  * // Full-page comparison, exact match
@@ -49,15 +61,21 @@ public final class VisualAssert {
     private static final Logger LOG = Logger.getLogger(VisualAssert.class.getName());
 
     /**
-     * Returns {@code true} when baselines should be overwritten instead of compared.
+     * Returns {@code true} when baselines should be overwritten instead of
+     * compared.
      * <ol>
-     *   <li>System property {@code -DupdateBaselines=true|false} takes precedence.</li>
-     *   <li>Otherwise the YAML config value {@code visual.updateBaselines} is used.</li>
-     *   <li>If neither is set, defaults to {@code false}.</li>
+     * <li>System property {@code -DupdateBaselines=true|false} takes
+     * precedence.</li>
+     * <li>Otherwise the YAML config value {@code visual.updateBaselines} is
+     * used.</li>
+     * <li>If neither is set, defaults to {@code false}.</li>
      * </ol>
      */
     private static boolean isUpdateBaselines() {
-        String sysProp = System.getProperty("updateBaselines");
+        String sysProp = System.getProperty("testfly.visual.updateBaselines");
+        if (sysProp == null) {
+            sysProp = System.getProperty("updateBaselines");
+        }
         if (sysProp != null) {
             return Boolean.parseBoolean(sysProp);
         }
@@ -66,7 +84,8 @@ public final class VisualAssert {
             if (config.getVisual() != null) {
                 return config.getVisual().isUpdateBaselines();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return false;
     }
 
@@ -144,9 +163,20 @@ public final class VisualAssert {
             // Save diff image
             File diffFile = diffFile(name);
             saveDiff(diffFile, result.diffImage());
+
+            // Attach diff image to HTML report
+            try {
+                byte[] diffBytes = Files.readAllBytes(diffFile.toPath());
+                String base64 = Base64.getEncoder().encodeToString(diffBytes);
+                String stepMessage = String.format("Visual diff for '%s' (%.2f%% difference)", name, diffPercent);
+                StepLogger.stepWithScreenshot(stepMessage, StepStatus.FAIL, base64);
+            } catch (Exception e) {
+                LOG.warning("[VisualAssert] Failed to attach diff image to report: " + e.getMessage());
+            }
+
             throw new AssertionError(String.format(
                     "[VisualAssert] '%s' differs by %.2f%% (tolerance: %.2f%%). " +
-                    "Diff image: %s",
+                            "Diff image: %s",
                     name, diffPercent, tolerance.getPercent(), diffFile.getAbsolutePath()));
         }
     }
@@ -164,19 +194,21 @@ public final class VisualAssert {
             throw new RuntimeException("[VisualAssert] Failed to read screenshot: " + e.getMessage(), e);
         }
 
-        if (region == null) return full;
+        if (region == null)
+            return full;
 
         // Crop to element bounds
         WebElement el = driver.findElement(region);
-        org.openqa.selenium.Point loc  = el.getLocation();
+        org.openqa.selenium.Point loc = el.getLocation();
         org.openqa.selenium.Dimension sz = el.getSize();
 
         int x = Math.max(0, loc.getX());
         int y = Math.max(0, loc.getY());
-        int w = Math.min(sz.getWidth(),  full.getWidth()  - x);
+        int w = Math.min(sz.getWidth(), full.getWidth() - x);
         int h = Math.min(sz.getHeight(), full.getHeight() - y);
 
-        if (w <= 0 || h <= 0) return full;
+        if (w <= 0 || h <= 0)
+            return full;
         return full.getSubimage(x, y, w, h);
     }
 
@@ -185,7 +217,7 @@ public final class VisualAssert {
     // ------------------------------------------------------------------
 
     public static DiffResult diff(BufferedImage base, BufferedImage current) {
-        int width  = base.getWidth();
+        int width = base.getWidth();
         int height = base.getHeight();
         long diffPixels = 0;
 
@@ -193,7 +225,7 @@ public final class VisualAssert {
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                int baseRgb    = base.getRGB(x, y);
+                int baseRgb = base.getRGB(x, y);
                 int currentRgb = current.getRGB(x, y);
 
                 if (baseRgb != currentRgb) {
@@ -202,8 +234,8 @@ public final class VisualAssert {
                 } else {
                     // Dim matching pixels to make diffs stand out
                     int r = (baseRgb >> 16) & 0xFF;
-                    int g = (baseRgb >>  8) & 0xFF;
-                    int b =  baseRgb        & 0xFF;
+                    int g = (baseRgb >> 8) & 0xFF;
+                    int b = baseRgb & 0xFF;
                     diffImage.setRGB(x, y, new Color(r / 3, g / 3, b / 3).getRGB());
                 }
             }
@@ -263,7 +295,8 @@ public final class VisualAssert {
             if (config.getVisual() != null && config.getVisual().getBaselineDir() != null) {
                 return config.getVisual().getBaselineDir();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return "src/test/resources/baselines";
     }
 
@@ -273,7 +306,8 @@ public final class VisualAssert {
             if (config.getVisual() != null && config.getVisual().getDiffDir() != null) {
                 return config.getVisual().getDiffDir();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return "target/visual-diffs";
     }
 
@@ -283,7 +317,8 @@ public final class VisualAssert {
             if (config.getVisual() != null) {
                 return VisualTolerance.of(config.getVisual().getDefaultTolerance());
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return VisualTolerance.exact();
     }
 
@@ -297,18 +332,27 @@ public final class VisualAssert {
         private final BufferedImage diffImage;
 
         public DiffResult(long diffPixels, long totalPixels, BufferedImage diffImage) {
-            this.diffPixels  = diffPixels;
+            this.diffPixels = diffPixels;
             this.totalPixels = totalPixels;
-            this.diffImage   = diffImage;
+            this.diffImage = diffImage;
         }
 
         public double diffPercent() {
-            if (totalPixels == 0) return 0;
+            if (totalPixels == 0)
+                return 0;
             return (diffPixels * 100.0) / totalPixels;
         }
 
-        public BufferedImage diffImage()  { return diffImage; }
-        public long          diffPixels() { return diffPixels; }
-        public long          totalPixels(){ return totalPixels; }
+        public BufferedImage diffImage() {
+            return diffImage;
+        }
+
+        public long diffPixels() {
+            return diffPixels;
+        }
+
+        public long totalPixels() {
+            return totalPixels;
+        }
     }
 }

@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Loads environment variables from a {@code .env} file in the project root so
@@ -106,6 +108,12 @@ public final class DotEnvLoader {
      * Resolves a {@code ${VAR}} or {@code ${VAR:-default}} placeholder against
      * {@code .env}, the shell environment, and system properties, in that order.
      *
+     * <p>
+     * This method only resolves when the <em>entire</em> string is a single
+     * {@code ${...}} placeholder. For strings that contain one or more embedded
+     * placeholders (e.g. {@code "https://${HOST}:${PORT}/api"}), use
+     * {@link #resolveAll(String)} instead.
+     *
      * @param value the raw string from YAML config; may be {@code null}
      * @return the resolved value, or the original string if no placeholder is found
      */
@@ -140,6 +148,66 @@ public final class DotEnvLoader {
             resolved = defaultValue;
         }
         return resolved;
+    }
+
+    /** Pattern that matches {@code ${VAR}} or {@code ${VAR:-default}} tokens. */
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\$\\{([^}]+)}");
+
+    /**
+     * Resolves <em>all</em> {@code ${VAR}} and {@code ${VAR:-default}} placeholders
+     * embedded anywhere within {@code value}. Unlike {@link #resolve(String)},
+     * which only handles a string that is entirely a single placeholder, this
+     * method handles mixed content such as
+     * {@code "https://${HOST}:${PORT:-8080}/api"}.
+     *
+     * <p>
+     * If a variable cannot be resolved and no default is provided, the
+     * original {@code ${...}} token is left in place so the caller can detect
+     * unresolved references.
+     *
+     * @param value the raw string; may be {@code null}
+     * @return the string with all resolvable placeholders replaced, or {@code null}
+     */
+    public static String resolveAll(String value) {
+        if (value == null || !value.contains("${")) {
+            return value;
+        }
+
+        load();
+
+        Matcher matcher = PLACEHOLDER.matcher(value);
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            String inner = matcher.group(1);
+            String varName;
+            String defaultValue = null;
+            int defaultIdx = inner.indexOf(":-");
+            if (defaultIdx >= 0) {
+                varName = inner.substring(0, defaultIdx).trim();
+                defaultValue = inner.substring(defaultIdx + 2).trim();
+            } else {
+                varName = inner.trim();
+            }
+
+            // Priority: .env > shell environment > system property > default
+            String resolved = DOTENV_VARS.get(varName);
+            if (isBlank(resolved)) {
+                resolved = System.getenv(varName);
+            }
+            if (isBlank(resolved)) {
+                resolved = System.getProperty(varName);
+            }
+            if (isBlank(resolved)) {
+                resolved = defaultValue;
+            }
+
+            if (resolved != null) {
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(resolved));
+            }
+            // If still null, leave the original ${...} token untouched
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
     }
 
     private static boolean isBlank(String s) {

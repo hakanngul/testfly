@@ -10,11 +10,14 @@ import java.util.logging.Logger;
 /**
  * Google Gemini provider.
  *
- * <p>Uses the Google Generative AI REST API
+ * <p>
+ * Uses the Google Generative AI REST API
  * ({@code https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent}).
  * Default model: {@code gemini-2.0-flash}.
  *
- * <p>Usage in {@code testfly.yml}:
+ * <p>
+ * Usage in {@code testfly.yml}:
+ * 
  * <pre>
  * ai:
  *   failureAnalysis: true
@@ -76,20 +79,24 @@ public final class GeminiProvider implements AiProvider {
     public static String buildRequestBody(String prompt) {
         String escaped = escapeJson(prompt);
         return "{\"contents\":[{\"parts\":[{\"text\":\"" + escaped + "\"}]}],"
-                + "\"generationConfig\":{\"maxOutputTokens\":512}}";
+                + "\"generationConfig\":{\"maxOutputTokens\":2048}}";
     }
 
     /** Extracts text content from a Gemini generateContent API JSON response. */
     public static String extractContent(String json) {
-        if (json == null) return null;
+        if (json == null)
+            return null;
         int partsIdx = json.indexOf("\"parts\"");
         int searchStart = partsIdx >= 0 ? partsIdx : 0;
         int textIdx = json.indexOf("\"text\"", searchStart);
-        if (textIdx < 0) return null;
+        if (textIdx < 0)
+            return null;
         int colon = json.indexOf(':', textIdx);
-        if (colon < 0) return null;
+        if (colon < 0)
+            return null;
         int start = json.indexOf('"', colon + 1);
-        if (start < 0) return null;
+        if (start < 0)
+            return null;
         StringBuilder sb = new StringBuilder();
         int i = start + 1;
         while (i < json.length()) {
@@ -97,15 +104,34 @@ public final class GeminiProvider implements AiProvider {
             if (c == '\\' && i + 1 < json.length()) {
                 char next = json.charAt(i + 1);
                 switch (next) {
-                    case '"':  sb.append('"');  i += 2; continue;
-                    case '\\': sb.append('\\'); i += 2; continue;
-                    case 'n':  sb.append('\n'); i += 2; continue;
-                    case 'r':  sb.append('\r'); i += 2; continue;
-                    case 't':  sb.append('\t'); i += 2; continue;
-                    default:   sb.append(next); i += 2; continue;
+                    case '"':
+                        sb.append('"');
+                        i += 2;
+                        continue;
+                    case '\\':
+                        sb.append('\\');
+                        i += 2;
+                        continue;
+                    case 'n':
+                        sb.append('\n');
+                        i += 2;
+                        continue;
+                    case 'r':
+                        sb.append('\r');
+                        i += 2;
+                        continue;
+                    case 't':
+                        sb.append('\t');
+                        i += 2;
+                        continue;
+                    default:
+                        sb.append(next);
+                        i += 2;
+                        continue;
                 }
             }
-            if (c == '"') break;
+            if (c == '"')
+                break;
             sb.append(c);
             i++;
         }
@@ -114,7 +140,8 @@ public final class GeminiProvider implements AiProvider {
     }
 
     public static String escapeJson(String s) {
-        if (s == null) return "";
+        if (s == null)
+            return "";
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
                 .replace("\n", "\\n")

@@ -21,6 +21,7 @@ public final class TestFlyConfig {
     public Execution getExecution() {
         return execution;
     }
+
     public Retry getRetry() {
         return retry;
     }
@@ -41,6 +42,7 @@ public final class TestFlyConfig {
     public Timeouts getTimeouts() {
         return timeouts;
     }
+
     public void setTimeouts(Timeouts timeouts) {
         this.timeouts = timeouts;
     }
@@ -48,22 +50,41 @@ public final class TestFlyConfig {
     public Ci getCi() {
         return ci;
     }
+
     public void setCi(Ci ci) {
         this.ci = ci;
     }
 
     private Network network;
-    public Network getNetwork() { return network; }
-    public void setNetwork(Network network) { this.network = network; }
+
+    public Network getNetwork() {
+        return network;
+    }
+
+    public void setNetwork(Network network) {
+        this.network = network;
+    }
 
     private TestManagement testManagement;
-    public TestManagement getTestManagement() { return testManagement; }
-    public void setTestManagement(TestManagement testManagement) { this.testManagement = testManagement; }
+
+    public TestManagement getTestManagement() {
+        return testManagement;
+    }
+
+    public void setTestManagement(TestManagement testManagement) {
+        this.testManagement = testManagement;
+    }
 
     public static final class Network {
         private boolean interceptEnabled = false;
-        public boolean isInterceptEnabled() { return interceptEnabled; }
-        public void setInterceptEnabled(boolean interceptEnabled) { this.interceptEnabled = interceptEnabled; }
+
+        public boolean isInterceptEnabled() {
+            return interceptEnabled;
+        }
+
+        public void setInterceptEnabled(boolean interceptEnabled) {
+            this.interceptEnabled = interceptEnabled;
+        }
 
         /**
          * Glob URL patterns to abort globally (trackers, ads) without a per-test
@@ -71,7 +92,11 @@ public final class TestFlyConfig {
          * matching the same URL always wins. Defaults to an empty list.
          */
         private java.util.List<String> blockUrls = new java.util.ArrayList<>();
-        public java.util.List<String> getBlockUrls() { return blockUrls; }
+
+        public java.util.List<String> getBlockUrls() {
+            return blockUrls;
+        }
+
         public void setBlockUrls(java.util.List<String> blockUrls) {
             this.blockUrls = (blockUrls != null) ? blockUrls : new java.util.ArrayList<>();
         }
@@ -88,10 +113,10 @@ public final class TestFlyConfig {
         /**
          * Controls when the WebDriver session is closed.
          * <ul>
-         *   <li>{@code per-test}  (default) — browser closes after every test method</li>
-         *   <li>{@code per-suite} — browser stays open for the entire suite; one instance
-         *       per thread, closed only when the suite finishes. Saves startup time on
-         *       large sequential suites.</li>
+         * <li>{@code per-test} (default) — browser closes after every test method</li>
+         * <li>{@code per-suite} — browser stays open for the entire suite; one instance
+         * per thread, closed only when the suite finishes. Saves startup time on
+         * large sequential suites.</li>
          * </ul>
          */
         private String lifecycle = "per-test";
@@ -99,22 +124,47 @@ public final class TestFlyConfig {
         private boolean captureConsoleErrors = false;
         private boolean failOnConsoleErrors = false;
         private List<String> matrix = Collections.emptyList();
-        private String device;   // optional device profile name, e.g. "iPhone 14"
+        private String device; // optional device profile name, e.g. "iPhone 14"
 
-        public String getDevice()              { return device; }
-        public void   setDevice(String device) { this.device = device; }
+        public String getDevice() {
+            return device;
+        }
 
-        public String getDownloadDir() { return downloadDir; }
-        public void setDownloadDir(String downloadDir) { this.downloadDir = downloadDir; }
+        public void setDevice(String device) {
+            this.device = device;
+        }
 
-        public boolean isCaptureConsoleErrors() { return captureConsoleErrors; }
-        public void setCaptureConsoleErrors(boolean captureConsoleErrors) { this.captureConsoleErrors = captureConsoleErrors; }
+        public String getDownloadDir() {
+            return downloadDir;
+        }
 
-        public boolean isFailOnConsoleErrors() { return failOnConsoleErrors; }
-        public void setFailOnConsoleErrors(boolean failOnConsoleErrors) { this.failOnConsoleErrors = failOnConsoleErrors; }
+        public void setDownloadDir(String downloadDir) {
+            this.downloadDir = downloadDir;
+        }
 
-        public List<String> getMatrix() { return matrix; }
-        public void setMatrix(List<String> matrix) { this.matrix = matrix != null ? matrix : Collections.emptyList(); }
+        public boolean isCaptureConsoleErrors() {
+            return captureConsoleErrors;
+        }
+
+        public void setCaptureConsoleErrors(boolean captureConsoleErrors) {
+            this.captureConsoleErrors = captureConsoleErrors;
+        }
+
+        public boolean isFailOnConsoleErrors() {
+            return failOnConsoleErrors;
+        }
+
+        public void setFailOnConsoleErrors(boolean failOnConsoleErrors) {
+            this.failOnConsoleErrors = failOnConsoleErrors;
+        }
+
+        public List<String> getMatrix() {
+            return matrix;
+        }
+
+        public void setMatrix(List<String> matrix) {
+            this.matrix = matrix != null ? matrix : Collections.emptyList();
+        }
 
         public List<String> getArguments() {
             return arguments;
@@ -149,8 +199,13 @@ public final class TestFlyConfig {
             this.headless = headless;
         }
 
-        public String getLifecycle() { return lifecycle; }
-        public void setLifecycle(String lifecycle) { this.lifecycle = lifecycle; }
+        public String getLifecycle() {
+            return lifecycle;
+        }
+
+        public void setLifecycle(String lifecycle) {
+            this.lifecycle = lifecycle;
+        }
     }
 
     public static final class Execution {
@@ -211,74 +266,179 @@ public final class TestFlyConfig {
         }
 
         private BrowserStack browserstack = new BrowserStack();
-        private SauceLabs    saucelabs    = new SauceLabs();
+        private SauceLabs saucelabs = new SauceLabs();
 
-        public BrowserStack getBrowserstack()                  { return browserstack; }
-        public void         setBrowserstack(BrowserStack v)    { this.browserstack = v; }
-        public SauceLabs    getSaucelabs()                     { return saucelabs; }
-        public void         setSaucelabs(SauceLabs v)          { this.saucelabs = v; }
+        public BrowserStack getBrowserstack() {
+            return browserstack;
+        }
+
+        public void setBrowserstack(BrowserStack v) {
+            this.browserstack = v;
+        }
+
+        public SauceLabs getSaucelabs() {
+            return saucelabs;
+        }
+
+        public void setSaucelabs(SauceLabs v) {
+            this.saucelabs = v;
+        }
 
         public static final class BrowserStack {
-            private String  username;
-            private String  accessKey;
-            private String  os;
-            private String  osVersion;
-            private String  browser        = "chrome";
-            private String  browserVersion = "latest";
-            private String  device;
-            private boolean realMobile     = true;
+            private String username;
+            private String accessKey;
+            private String os;
+            private String osVersion;
+            private String browser = "chrome";
+            private String browserVersion = "latest";
+            private String device;
+            private boolean realMobile = true;
             private java.util.Map<String, Object> capabilities = new java.util.LinkedHashMap<>();
 
-            public String  getUsername()              { return username; }
-            public void    setUsername(String v)      { this.username = v; }
-            public String  getAccessKey()             { return accessKey; }
-            public void    setAccessKey(String v)     { this.accessKey = v; }
-            public String  getOs()                    { return os; }
-            public void    setOs(String v)            { this.os = v; }
-            public String  getOsVersion()             { return osVersion; }
-            public void    setOsVersion(String v)     { this.osVersion = v; }
-            public String  getBrowser()               { return browser; }
-            public void    setBrowser(String v)       { this.browser = v; }
-            public String  getBrowserVersion()        { return browserVersion; }
-            public void    setBrowserVersion(String v){ this.browserVersion = v; }
-            public String  getDevice()                { return device; }
-            public void    setDevice(String v)        { this.device = v; }
-            public boolean isRealMobile()             { return realMobile; }
-            public void    setRealMobile(boolean v)   { this.realMobile = v; }
-            public java.util.Map<String, Object> getCapabilities() { return capabilities; }
-            public void setCapabilities(java.util.Map<String, Object> v) { this.capabilities = v != null ? v : new java.util.LinkedHashMap<>(); }
+            public String getUsername() {
+                return username;
+            }
+
+            public void setUsername(String v) {
+                this.username = v;
+            }
+
+            public String getAccessKey() {
+                return accessKey;
+            }
+
+            public void setAccessKey(String v) {
+                this.accessKey = v;
+            }
+
+            public String getOs() {
+                return os;
+            }
+
+            public void setOs(String v) {
+                this.os = v;
+            }
+
+            public String getOsVersion() {
+                return osVersion;
+            }
+
+            public void setOsVersion(String v) {
+                this.osVersion = v;
+            }
+
+            public String getBrowser() {
+                return browser;
+            }
+
+            public void setBrowser(String v) {
+                this.browser = v;
+            }
+
+            public String getBrowserVersion() {
+                return browserVersion;
+            }
+
+            public void setBrowserVersion(String v) {
+                this.browserVersion = v;
+            }
+
+            public String getDevice() {
+                return device;
+            }
+
+            public void setDevice(String v) {
+                this.device = v;
+            }
+
+            public boolean isRealMobile() {
+                return realMobile;
+            }
+
+            public void setRealMobile(boolean v) {
+                this.realMobile = v;
+            }
+
+            public java.util.Map<String, Object> getCapabilities() {
+                return capabilities;
+            }
+
+            public void setCapabilities(java.util.Map<String, Object> v) {
+                this.capabilities = v != null ? v : new java.util.LinkedHashMap<>();
+            }
         }
 
         public static final class SauceLabs {
-            private String  username;
-            private String  accessKey;
-            private String  region         = "us-west-1";
-            private String  platformName   = "Windows 11";
-            private String  browser        = "chrome";
-            private String  browserVersion = "latest";
+            private String username;
+            private String accessKey;
+            private String region = "us-west-1";
+            private String platformName = "Windows 11";
+            private String browser = "chrome";
+            private String browserVersion = "latest";
             private java.util.Map<String, Object> capabilities = new java.util.LinkedHashMap<>();
 
-            public String  getUsername()              { return username; }
-            public void    setUsername(String v)      { this.username = v; }
-            public String  getAccessKey()             { return accessKey; }
-            public void    setAccessKey(String v)     { this.accessKey = v; }
-            public String  getRegion()                { return region; }
-            public void    setRegion(String v)        { this.region = v; }
-            public String  getPlatformName()          { return platformName; }
-            public void    setPlatformName(String v)  { this.platformName = v; }
-            public String  getBrowser()               { return browser; }
-            public void    setBrowser(String v)       { this.browser = v; }
-            public String  getBrowserVersion()        { return browserVersion; }
-            public void    setBrowserVersion(String v){ this.browserVersion = v; }
-            public java.util.Map<String, Object> getCapabilities() { return capabilities; }
-            public void setCapabilities(java.util.Map<String, Object> v) { this.capabilities = v != null ? v : new java.util.LinkedHashMap<>(); }
+            public String getUsername() {
+                return username;
+            }
+
+            public void setUsername(String v) {
+                this.username = v;
+            }
+
+            public String getAccessKey() {
+                return accessKey;
+            }
+
+            public void setAccessKey(String v) {
+                this.accessKey = v;
+            }
+
+            public String getRegion() {
+                return region;
+            }
+
+            public void setRegion(String v) {
+                this.region = v;
+            }
+
+            public String getPlatformName() {
+                return platformName;
+            }
+
+            public void setPlatformName(String v) {
+                this.platformName = v;
+            }
+
+            public String getBrowser() {
+                return browser;
+            }
+
+            public void setBrowser(String v) {
+                this.browser = v;
+            }
+
+            public String getBrowserVersion() {
+                return browserVersion;
+            }
+
+            public void setBrowserVersion(String v) {
+                this.browserVersion = v;
+            }
+
+            public java.util.Map<String, Object> getCapabilities() {
+                return capabilities;
+            }
+
+            public void setCapabilities(java.util.Map<String, Object> v) {
+                this.capabilities = v != null ? v : new java.util.LinkedHashMap<>();
+            }
         }
     }
 
     public static final class Retry {
         private boolean enabled = true;
         private int maxAttempts = 1;
-        private boolean maxAttemptsSet = false;  // true only when YAML explicitly sets the value
+        private boolean maxAttemptsSet = false; // true only when YAML explicitly sets the value
 
         public boolean isEnabled() {
             return enabled;
@@ -292,7 +452,10 @@ public final class TestFlyConfig {
             return maxAttempts;
         }
 
-        /** Returns null when maxAttempts was not explicitly set by YAML (used by defaults logic). */
+        /**
+         * Returns null when maxAttempts was not explicitly set by YAML (used by
+         * defaults logic).
+         */
         public Integer getRawMaxAttempts() {
             return maxAttemptsSet ? maxAttempts : null;
         }
@@ -352,6 +515,7 @@ public final class TestFlyConfig {
         public double getFailOnPassRateBelow() {
             return failOnPassRateBelow;
         }
+
         public void setFailOnPassRateBelow(double failOnPassRateBelow) {
             this.failOnPassRateBelow = failOnPassRateBelow;
         }
@@ -359,6 +523,7 @@ public final class TestFlyConfig {
         public int getMaxFlakyTests() {
             return maxFlakyTests;
         }
+
         public void setMaxFlakyTests(int maxFlakyTests) {
             this.maxFlakyTests = maxFlakyTests;
         }
@@ -371,50 +536,102 @@ public final class TestFlyConfig {
         public boolean isCaptureMetadata() {
             return captureMetadata != null ? captureMetadata : io.testfly.ci.CiEnvironmentDetector.isCI();
         }
+
         public void setCaptureMetadata(boolean captureMetadata) {
             this.captureMetadata = captureMetadata;
         }
     }
 
     private Recording recording;
-    public Recording getRecording() { return recording; }
-    public void setRecording(Recording recording) { this.recording = recording; }
+
+    public Recording getRecording() {
+        return recording;
+    }
+
+    public void setRecording(Recording recording) {
+        this.recording = recording;
+    }
 
     private Reporting reporting = new Reporting();
-    public Reporting getReporting() { return reporting != null ? reporting : (reporting = new Reporting()); }
-    public void setReporting(Reporting reporting) { this.reporting = reporting != null ? reporting : new Reporting(); }
+
+    public Reporting getReporting() {
+        return reporting != null ? reporting : (reporting = new Reporting());
+    }
+
+    public void setReporting(Reporting reporting) {
+        this.reporting = reporting != null ? reporting : new Reporting();
+    }
 
     private Notifications notifications;
-    public Notifications getNotifications() { return notifications; }
-    public void setNotifications(Notifications notifications) { this.notifications = notifications; }
+
+    public Notifications getNotifications() {
+        return notifications;
+    }
+
+    public void setNotifications(Notifications notifications) {
+        this.notifications = notifications;
+    }
 
     public static final class Notifications {
         private Slack slack;
         private Teams teams;
 
-        public Slack getSlack() { return slack; }
-        public void  setSlack(Slack slack) { this.slack = slack; }
-        public Teams getTeams() { return teams; }
-        public void  setTeams(Teams teams) { this.teams = teams; }
+        public Slack getSlack() {
+            return slack;
+        }
+
+        public void setSlack(Slack slack) {
+            this.slack = slack;
+        }
+
+        public Teams getTeams() {
+            return teams;
+        }
+
+        public void setTeams(Teams teams) {
+            this.teams = teams;
+        }
 
         public static final class Slack {
-            private String  webhookUrl;
+            private String webhookUrl;
             private boolean notifyOnFailureOnly = false;
 
-            public String  getWebhookUrl()                      { return webhookUrl; }
-            public void    setWebhookUrl(String webhookUrl)     { this.webhookUrl = webhookUrl; }
-            public boolean isNotifyOnFailureOnly()              { return notifyOnFailureOnly; }
-            public void    setNotifyOnFailureOnly(boolean v)    { this.notifyOnFailureOnly = v; }
+            public String getWebhookUrl() {
+                return webhookUrl;
+            }
+
+            public void setWebhookUrl(String webhookUrl) {
+                this.webhookUrl = webhookUrl;
+            }
+
+            public boolean isNotifyOnFailureOnly() {
+                return notifyOnFailureOnly;
+            }
+
+            public void setNotifyOnFailureOnly(boolean v) {
+                this.notifyOnFailureOnly = v;
+            }
         }
 
         public static final class Teams {
-            private String  webhookUrl;
+            private String webhookUrl;
             private boolean notifyOnFailureOnly = false;
 
-            public String  getWebhookUrl()                      { return webhookUrl; }
-            public void    setWebhookUrl(String webhookUrl)     { this.webhookUrl = webhookUrl; }
-            public boolean isNotifyOnFailureOnly()              { return notifyOnFailureOnly; }
-            public void    setNotifyOnFailureOnly(boolean v)    { this.notifyOnFailureOnly = v; }
+            public String getWebhookUrl() {
+                return webhookUrl;
+            }
+
+            public void setWebhookUrl(String webhookUrl) {
+                this.webhookUrl = webhookUrl;
+            }
+
+            public boolean isNotifyOnFailureOnly() {
+                return notifyOnFailureOnly;
+            }
+
+            public void setNotifyOnFailureOnly(boolean v) {
+                this.notifyOnFailureOnly = v;
+            }
         }
     }
 
@@ -425,15 +642,47 @@ public final class TestFlyConfig {
         private boolean screenshotOnFailure = true;
         private boolean htmlReport = true;
         private ReportPortal reportPortal = new ReportPortal();
+        private Allure allure;
 
-        public boolean isScreenshotOnFailure()                { return screenshotOnFailure; }
-        public void    setScreenshotOnFailure(boolean val)    { this.screenshotOnFailure = val; }
+        public boolean isScreenshotOnFailure() {
+            return screenshotOnFailure;
+        }
 
-        public boolean isHtmlReport()                         { return htmlReport; }
-        public void    setHtmlReport(boolean val)             { this.htmlReport = val; }
+        public void setScreenshotOnFailure(boolean val) {
+            this.screenshotOnFailure = val;
+        }
 
-        public boolean isAllureEnabled()                      { return allureEnabled; }
-        public void    setAllureEnabled(boolean allureEnabled) { this.allureEnabled = allureEnabled; }
+        public boolean isHtmlReport() {
+            return htmlReport;
+        }
+
+        public void setHtmlReport(boolean val) {
+            this.htmlReport = val;
+        }
+
+        /**
+         * Returns {@code true} when Allure reporting is enabled via either the
+         * flat key ({@code reporting.allureEnabled: true}) or the nested key
+         * ({@code reporting.allure.enabled: true}). The nested form matches the
+         * documentation; the flat form is kept for backward compatibility.
+         */
+        public boolean isAllureEnabled() {
+            if (allureEnabled)
+                return true;
+            return allure != null && allure.isEnabled();
+        }
+
+        public void setAllureEnabled(boolean allureEnabled) {
+            this.allureEnabled = allureEnabled;
+        }
+
+        public Allure getAllure() {
+            return allure;
+        }
+
+        public void setAllure(Allure allure) {
+            this.allure = allure;
+        }
 
         public boolean isMergeRuns() {
             String sysProp = System.getProperty("testfly.merge");
@@ -442,96 +691,218 @@ public final class TestFlyConfig {
             }
             return mergeRuns;
         }
-        public void setMergeRuns(boolean mergeRuns)           { this.mergeRuns = mergeRuns; }
 
-        public int  getHistoryRuns()                          { return historyRuns; }
-        public void setHistoryRuns(int historyRuns)           { this.historyRuns = historyRuns > 0 ? historyRuns : 10; }
+        public void setMergeRuns(boolean mergeRuns) {
+            this.mergeRuns = mergeRuns;
+        }
 
-        public ReportPortal getReportPortal()                 { return reportPortal; }
-        public void         setReportPortal(ReportPortal v)   { this.reportPortal = v != null ? v : new ReportPortal(); }
+        public int getHistoryRuns() {
+            return historyRuns;
+        }
+
+        public void setHistoryRuns(int historyRuns) {
+            this.historyRuns = historyRuns > 0 ? historyRuns : 10;
+        }
+
+        public ReportPortal getReportPortal() {
+            return reportPortal;
+        }
+
+        public void setReportPortal(ReportPortal v) {
+            this.reportPortal = v != null ? v : new ReportPortal();
+        }
+
+        /**
+         * Alias for {@link #setReportPortal(ReportPortal)} that accepts the
+         * all-lowercase YAML key {@code reportportal} used in the documentation.
+         */
+        public void setReportportal(ReportPortal v) {
+            setReportPortal(v);
+        }
 
         public static final class ReportPortal {
             private boolean enabled = false;
-            private String  endpoint;
-            private String  apiKey;
-            private String  project = "superadmin_personal";
-            private String  launch = "TestFly Suite";
-            private String  description = "Automated test execution powered by TestFly";
-            private String  attributes = "";
+            private String endpoint;
+            private String apiKey;
+            private String project = "superadmin_personal";
+            private String launch = "TestFly Suite";
+            private String description = "Automated test execution powered by TestFly";
+            private String attributes = "";
             /**
              * Run type for launch name enrichment:
              * <ul>
-             *   <li>{@code auto} — auto-detect from test classes (default)</li>
-             *   <li>{@code api} — force API label</li>
-             *   <li>{@code web} — force Web label</li>
+             * <li>{@code auto} — auto-detect from test classes (default)</li>
+             * <li>{@code api} — force API label</li>
+             * <li>{@code web} — force Web label</li>
              * </ul>
              */
-            private String  type = "auto";
+            private String type = "auto";
             /**
              * ReportPortal listener mode:
              * <ul>
-             *   <li>{@code default} — standard TestNG listener</li>
-             *   <li>{@code step} — each test method as a step</li>
+             * <li>{@code default} — standard TestNG listener</li>
+             * <li>{@code step} — each test method as a step</li>
              * </ul>
              */
-            private String  mode = "default";
+            private String mode = "default";
 
-            public boolean isEnabled()                  { return enabled; }
-            public void    setEnabled(boolean v)      { this.enabled = v; }
+            public boolean isEnabled() {
+                return enabled;
+            }
 
-            public String  getEndpoint()                { return endpoint; }
-            public void    setEndpoint(String v)        { this.endpoint = v; }
+            public void setEnabled(boolean v) {
+                this.enabled = v;
+            }
 
-            public String  getApiKey()                  { return apiKey; }
-            public void    setApiKey(String v)          { this.apiKey = v; }
+            public String getEndpoint() {
+                return endpoint;
+            }
 
-            public String  getProject()                 { return project; }
-            public void    setProject(String v)         { this.project = v; }
+            public void setEndpoint(String v) {
+                this.endpoint = v;
+            }
 
-            public String  getLaunch()                  { return launch; }
-            public void    setLaunch(String v)          { this.launch = v; }
+            public String getApiKey() {
+                return apiKey;
+            }
 
-            public String  getDescription()             { return description; }
-            public void    setDescription(String v)     { this.description = v; }
+            public void setApiKey(String v) {
+                this.apiKey = v;
+            }
 
-            public String  getAttributes()              { return attributes; }
-            public void    setAttributes(String v)      { this.attributes = v; }
+            public String getProject() {
+                return project;
+            }
 
-            public String  getType()                    { return type; }
-            public void    setType(String v)            { this.type = v; }
+            public void setProject(String v) {
+                this.project = v;
+            }
 
-            public String  getMode()                    { return mode; }
-            public void    setMode(String v)            { this.mode = v; }
+            public String getLaunch() {
+                return launch;
+            }
+
+            public void setLaunch(String v) {
+                this.launch = v;
+            }
+
+            public String getDescription() {
+                return description;
+            }
+
+            public void setDescription(String v) {
+                this.description = v;
+            }
+
+            public String getAttributes() {
+                return attributes;
+            }
+
+            public void setAttributes(String v) {
+                this.attributes = v;
+            }
+
+            public String getType() {
+                return type;
+            }
+
+            public void setType(String v) {
+                this.type = v;
+            }
+
+            public String getMode() {
+                return mode;
+            }
+
+            public void setMode(String v) {
+                this.mode = v;
+            }
+        }
+
+        /**
+         * Nested Allure configuration matching the documented YAML structure:
+         * 
+         * <pre>
+         * reporting:
+         *   allure:
+         *     enabled: true
+         * </pre>
+         * 
+         * The flat key {@code reporting.allureEnabled} is also accepted for
+         * backward compatibility; see {@link #isAllureEnabled()}.
+         */
+        public static final class Allure {
+            private boolean enabled = false;
+
+            public boolean isEnabled() {
+                return enabled;
+            }
+
+            public void setEnabled(boolean enabled) {
+                this.enabled = enabled;
+            }
         }
     }
 
     public static final class Recording {
-        private boolean enabled            = false;
-        private String  mode               = "retain-on-failure";
-        private String  format             = "mp4";
-        private boolean cdp                = true;
-        private int     fps                = 2;
-        private int     maxDurationSeconds = 60;
+        private boolean enabled = false;
+        private String mode = "retain-on-failure";
+        private String format = "mp4";
+        private boolean cdp = true;
+        private int fps = 2;
+        private int maxDurationSeconds = 60;
 
-        public boolean isEnabled()                    { return enabled; }
-        public void    setEnabled(boolean enabled)    { this.enabled = enabled; }
+        public boolean isEnabled() {
+            return enabled;
+        }
 
-        public String  getMode()                      { return mode; }
-        public void    setMode(String mode)           { this.mode = mode != null ? mode : "retain-on-failure"; }
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
 
-        public String  getFormat()                    { return format; }
-        public void    setFormat(String format)       { this.format = format != null ? format : "mp4"; }
+        public String getMode() {
+            return mode;
+        }
 
-        public boolean isMp4()                        { return "mp4".equalsIgnoreCase(format); }
+        public void setMode(String mode) {
+            this.mode = mode != null ? mode : "retain-on-failure";
+        }
 
-        public boolean isCdp()                        { return cdp; }
-        public void    setCdp(boolean cdp)            { this.cdp = cdp; }
+        public String getFormat() {
+            return format;
+        }
 
-        public int  getFps()                          { return fps; }
-        public void setFps(int fps)                   { this.fps = fps; }
+        public void setFormat(String format) {
+            this.format = format != null ? format : "mp4";
+        }
 
-        public int  getMaxDurationSeconds()                       { return maxDurationSeconds; }
-        public void setMaxDurationSeconds(int maxDurationSeconds) { this.maxDurationSeconds = maxDurationSeconds; }
+        public boolean isMp4() {
+            return "mp4".equalsIgnoreCase(format);
+        }
+
+        public boolean isCdp() {
+            return cdp;
+        }
+
+        public void setCdp(boolean cdp) {
+            this.cdp = cdp;
+        }
+
+        public int getFps() {
+            return fps;
+        }
+
+        public void setFps(int fps) {
+            this.fps = fps;
+        }
+
+        public int getMaxDurationSeconds() {
+            return maxDurationSeconds;
+        }
+
+        public void setMaxDurationSeconds(int maxDurationSeconds) {
+            this.maxDurationSeconds = maxDurationSeconds;
+        }
 
         public boolean isRetainOnFailure() {
             return "retain-on-failure".equalsIgnoreCase(mode);
@@ -547,180 +918,403 @@ public final class TestFlyConfig {
     }
 
     private Visual visual;
-    public Visual getVisual() { return visual; }
-    public void setVisual(Visual visual) { this.visual = visual; }
+
+    public Visual getVisual() {
+        return visual;
+    }
+
+    public void setVisual(Visual visual) {
+        this.visual = visual;
+    }
 
     private Tracing tracing;
-    public Tracing getTracing() { return tracing; }
-    public void setTracing(Tracing tracing) { this.tracing = tracing; }
+
+    public Tracing getTracing() {
+        return tracing;
+    }
+
+    public void setTracing(Tracing tracing) {
+        this.tracing = tracing;
+    }
 
     private Locators locators;
-    public Locators getLocators() { return locators; }
-    public void setLocators(Locators locators) { this.locators = locators; }
+
+    public Locators getLocators() {
+        return locators;
+    }
+
+    public void setLocators(Locators locators) {
+        this.locators = locators;
+    }
 
     public static final class Locators {
         private boolean selfHealing = false;
         private boolean aiHealing = false;
-        private int     maxDomTokens = 8000;
-        private String  testIdAttribute = "data-testid";
+        private int maxDomTokens = 8000;
+        private String testIdAttribute = "data-testid";
 
-        public boolean isSelfHealing()           { return selfHealing; }
-        public void    setSelfHealing(boolean v) { this.selfHealing = v; }
+        public boolean isSelfHealing() {
+            return selfHealing;
+        }
 
-        public boolean isAiHealing()             { return aiHealing; }
-        public void    setAiHealing(boolean v)   { this.aiHealing = v; }
+        public void setSelfHealing(boolean v) {
+            this.selfHealing = v;
+        }
 
-        public int     getMaxDomTokens()               { return maxDomTokens; }
-        public void    setMaxDomTokens(int maxDomTokens) { this.maxDomTokens = maxDomTokens; }
+        public boolean isAiHealing() {
+            return aiHealing;
+        }
 
-        public String  getTestIdAttribute()             { return testIdAttribute; }
-        public void    setTestIdAttribute(String value) { this.testIdAttribute = value; }
+        public void setAiHealing(boolean v) {
+            this.aiHealing = v;
+        }
+
+        public int getMaxDomTokens() {
+            return maxDomTokens;
+        }
+
+        public void setMaxDomTokens(int maxDomTokens) {
+            this.maxDomTokens = maxDomTokens;
+        }
+
+        public String getTestIdAttribute() {
+            return testIdAttribute;
+        }
+
+        public void setTestIdAttribute(String value) {
+            this.testIdAttribute = value;
+        }
     }
 
     private Ai ai;
-    public Ai getAi() { return ai; }
-    public void setAi(Ai ai) { this.ai = ai; }
+
+    public Ai getAi() {
+        return ai;
+    }
+
+    public void setAi(Ai ai) {
+        this.ai = ai;
+    }
 
     public static final class Ai {
         private boolean failureAnalysis = false;
-        private boolean generatePatch   = false;
-        private String  provider        = "claude";
-        private String  baseUrl         = null;
-        private String  apiKey          = null;
-        private String  model           = null;
-        private String  language        = "en";
-        private int     timeoutSeconds  = 20;
+        private boolean generatePatch = false;
+        private String provider = "claude";
+        private String baseUrl = null;
+        private String apiKey = null;
+        private String model = null;
+        private String language = "en";
+        private int timeoutSeconds = 20;
 
-        public boolean isFailureAnalysis()               { return failureAnalysis; }
-        public void    setFailureAnalysis(boolean v)     { this.failureAnalysis = v; }
+        public boolean isFailureAnalysis() {
+            return failureAnalysis;
+        }
 
-        public boolean isGeneratePatch()                 { return generatePatch; }
-        public void    setGeneratePatch(boolean v)       { this.generatePatch = v; }
+        public void setFailureAnalysis(boolean v) {
+            this.failureAnalysis = v;
+        }
 
-        public String  getProvider()                     { return provider; }
-        public void    setProvider(String v)             { this.provider = v; }
+        public boolean isGeneratePatch() {
+            return generatePatch;
+        }
 
-        public String  getBaseUrl()                      { return baseUrl; }
-        public void    setBaseUrl(String v)              { this.baseUrl = v; }
+        public void setGeneratePatch(boolean v) {
+            this.generatePatch = v;
+        }
 
-        public String  getApiKey()                       { return apiKey; }
-        public void    setApiKey(String v)               { this.apiKey = v; }
+        public String getProvider() {
+            return provider;
+        }
 
-        public String  getModel()                        { return model; }
-        public void    setModel(String v)                { this.model = v; }
+        public void setProvider(String v) {
+            this.provider = v;
+        }
 
-        public String  getLanguage()                     { return language; }
-        public void    setLanguage(String v)             { this.language = v; }
+        public String getBaseUrl() {
+            return baseUrl;
+        }
 
-        public int     getTimeoutSeconds()               { return timeoutSeconds; }
-        public void    setTimeoutSeconds(int v)          { this.timeoutSeconds = v; }
+        public void setBaseUrl(String v) {
+            this.baseUrl = v;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String v) {
+            this.apiKey = v;
+        }
+
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String v) {
+            this.model = v;
+        }
+
+        public String getLanguage() {
+            return language;
+        }
+
+        public void setLanguage(String v) {
+            this.language = v;
+        }
+
+        public int getTimeoutSeconds() {
+            return timeoutSeconds;
+        }
+
+        public void setTimeoutSeconds(int v) {
+            this.timeoutSeconds = v;
+        }
 
         private boolean actionCache = true;
-        public boolean isActionCache()                   { return actionCache; }
-        public void    setActionCache(boolean v)         { this.actionCache = v; }
+
+        public boolean isActionCache() {
+            return actionCache;
+        }
+
+        public void setActionCache(boolean v) {
+            this.actionCache = v;
+        }
     }
 
     private Flakiness flakiness;
-    public Flakiness getFlakiness() { return flakiness; }
-    public void setFlakiness(Flakiness flakiness) { this.flakiness = flakiness; }
+
+    public Flakiness getFlakiness() {
+        return flakiness;
+    }
+
+    public void setFlakiness(Flakiness flakiness) {
+        this.flakiness = flakiness;
+    }
 
     public static final class Flakiness {
-        private int     historyRuns          = 20;
-        private double  highRiskThreshold    = 33.0;
-        private boolean failOnHighFlakiness  = false;
+        private int historyRuns = 20;
+        private double highRiskThreshold = 33.0;
+        private boolean failOnHighFlakiness = false;
 
-        public int     getHistoryRuns()                   { return historyRuns; }
-        public void    setHistoryRuns(int v)              { this.historyRuns = v; }
+        public int getHistoryRuns() {
+            return historyRuns;
+        }
 
-        public double  getHighRiskThreshold()             { return highRiskThreshold; }
-        public void    setHighRiskThreshold(double v)     { this.highRiskThreshold = v; }
+        public void setHistoryRuns(int v) {
+            this.historyRuns = v;
+        }
 
-        public boolean isFailOnHighFlakiness()            { return failOnHighFlakiness; }
-        public void    setFailOnHighFlakiness(boolean v)  { this.failOnHighFlakiness = v; }
+        public double getHighRiskThreshold() {
+            return highRiskThreshold;
+        }
+
+        public void setHighRiskThreshold(double v) {
+            this.highRiskThreshold = v;
+        }
+
+        public boolean isFailOnHighFlakiness() {
+            return failOnHighFlakiness;
+        }
+
+        public void setFailOnHighFlakiness(boolean v) {
+            this.failOnHighFlakiness = v;
+        }
     }
 
     public static final class Tracing {
-        private boolean enabled       = false;
+        private boolean enabled = false;
         private boolean captureOnPass = false;
 
-        public boolean isEnabled()              { return enabled; }
-        public void    setEnabled(boolean v)    { this.enabled = v; }
+        public boolean isEnabled() {
+            return enabled;
+        }
 
-        public boolean isCaptureOnPass()           { return captureOnPass; }
-        public void    setCaptureOnPass(boolean v) { this.captureOnPass = v; }
+        public void setEnabled(boolean v) {
+            this.enabled = v;
+        }
+
+        public boolean isCaptureOnPass() {
+            return captureOnPass;
+        }
+
+        public void setCaptureOnPass(boolean v) {
+            this.captureOnPass = v;
+        }
     }
 
     public static final class Visual {
-        private String  baselineDir      = "src/test/resources/baselines";
-        private String  diffDir          = "target/visual-diffs";
-        private double  defaultTolerance = 0;
-        private boolean updateBaselines  = false;
+        private String baselineDir = "src/test/resources/baselines";
+        private String diffDir = "target/visual-diffs";
+        private double defaultTolerance = 0;
+        private boolean updateBaselines = false;
 
-        public String  getBaselineDir()                    { return baselineDir; }
-        public void    setBaselineDir(String v)            { this.baselineDir = v; }
+        public String getBaselineDir() {
+            return baselineDir;
+        }
 
-        public String  getDiffDir()                        { return diffDir; }
-        public void    setDiffDir(String v)                { this.diffDir = v; }
+        public void setBaselineDir(String v) {
+            this.baselineDir = v;
+        }
 
-        public double  getDefaultTolerance()               { return defaultTolerance; }
-        public void    setDefaultTolerance(double v)       { this.defaultTolerance = v; }
+        public String getDiffDir() {
+            return diffDir;
+        }
 
-        public boolean isUpdateBaselines()                 { return updateBaselines; }
-        public void    setUpdateBaselines(boolean v)       { this.updateBaselines = v; }
+        public void setDiffDir(String v) {
+            this.diffDir = v;
+        }
+
+        public double getDefaultTolerance() {
+            return defaultTolerance;
+        }
+
+        public void setDefaultTolerance(double v) {
+            this.defaultTolerance = v;
+        }
+
+        public boolean isUpdateBaselines() {
+            return updateBaselines;
+        }
+
+        public void setUpdateBaselines(boolean v) {
+            this.updateBaselines = v;
+        }
     }
 
     private Email email;
-    public Email getEmail() { return email; }
-    public void setEmail(Email email) { this.email = email; }
+
+    public Email getEmail() {
+        return email;
+    }
+
+    public void setEmail(Email email) {
+        this.email = email;
+    }
 
     public static final class Email {
-        private String  provider        = "mailhog";
-        private int     timeoutSeconds  = 30;
-        private int     pollIntervalMs  = 1000;
-        private boolean autoClear       = false;
+        private String provider = "mailhog";
+        private int timeoutSeconds = 30;
+        private int pollIntervalMs = 1000;
+        private boolean autoClear = false;
 
-        public String  getProvider()              { return provider; }
-        public void    setProvider(String v)      { this.provider = v; }
-        public int     getTimeoutSeconds()        { return timeoutSeconds; }
-        public void    setTimeoutSeconds(int v)   { this.timeoutSeconds = v; }
-        public int     getPollIntervalMs()        { return pollIntervalMs; }
-        public void    setPollIntervalMs(int v)   { this.pollIntervalMs = v; }
-        public boolean isAutoClear()              { return autoClear; }
-        public void    setAutoClear(boolean v)    { this.autoClear = v; }
+        public String getProvider() {
+            return provider;
+        }
 
-        private Mailhog  mailhog  = new Mailhog();
+        public void setProvider(String v) {
+            this.provider = v;
+        }
+
+        public int getTimeoutSeconds() {
+            return timeoutSeconds;
+        }
+
+        public void setTimeoutSeconds(int v) {
+            this.timeoutSeconds = v;
+        }
+
+        public int getPollIntervalMs() {
+            return pollIntervalMs;
+        }
+
+        public void setPollIntervalMs(int v) {
+            this.pollIntervalMs = v;
+        }
+
+        public boolean isAutoClear() {
+            return autoClear;
+        }
+
+        public void setAutoClear(boolean v) {
+            this.autoClear = v;
+        }
+
+        private Mailhog mailhog = new Mailhog();
         private Mailtrap mailtrap = new Mailtrap();
-        private Outlook  outlook  = new Outlook();
-        private Imap     imap     = new Imap();
+        private Outlook outlook = new Outlook();
+        private Imap imap = new Imap();
 
-        public Mailhog  getMailhog()              { return mailhog; }
-        public void     setMailhog(Mailhog v)     { this.mailhog = v; }
-        public Mailtrap getMailtrap()             { return mailtrap; }
-        public void     setMailtrap(Mailtrap v)   { this.mailtrap = v; }
-        public Outlook  getOutlook()              { return outlook; }
-        public void     setOutlook(Outlook v)     { this.outlook = v; }
-        public Imap     getImap()                 { return imap; }
-        public void     setImap(Imap v)           { this.imap = v; }
+        public Mailhog getMailhog() {
+            return mailhog;
+        }
+
+        public void setMailhog(Mailhog v) {
+            this.mailhog = v;
+        }
+
+        public Mailtrap getMailtrap() {
+            return mailtrap;
+        }
+
+        public void setMailtrap(Mailtrap v) {
+            this.mailtrap = v;
+        }
+
+        public Outlook getOutlook() {
+            return outlook;
+        }
+
+        public void setOutlook(Outlook v) {
+            this.outlook = v;
+        }
+
+        public Imap getImap() {
+            return imap;
+        }
+
+        public void setImap(Imap v) {
+            this.imap = v;
+        }
 
         public static final class Mailhog {
             private String host = "localhost";
-            private int    port = 8025;
-            public String getHost()          { return host; }
-            public void   setHost(String v)  { this.host = v; }
-            public int    getPort()          { return port; }
-            public void   setPort(int v)     { this.port = v; }
+            private int port = 8025;
+
+            public String getHost() {
+                return host;
+            }
+
+            public void setHost(String v) {
+                this.host = v;
+            }
+
+            public int getPort() {
+                return port;
+            }
+
+            public void setPort(int v) {
+                this.port = v;
+            }
         }
 
         public static final class Mailtrap {
             private String apiToken;
             private String accountId;
             private String inboxId;
-            public String getApiToken()           { return apiToken; }
-            public void   setApiToken(String v)   { this.apiToken = v; }
-            public String getAccountId()          { return accountId; }
-            public void   setAccountId(String v)  { this.accountId = v; }
-            public String getInboxId()            { return inboxId; }
-            public void   setInboxId(String v)    { this.inboxId = v; }
+
+            public String getApiToken() {
+                return apiToken;
+            }
+
+            public void setApiToken(String v) {
+                this.apiToken = v;
+            }
+
+            public String getAccountId() {
+                return accountId;
+            }
+
+            public void setAccountId(String v) {
+                this.accountId = v;
+            }
+
+            public String getInboxId() {
+                return inboxId;
+            }
+
+            public void setInboxId(String v) {
+                this.inboxId = v;
+            }
         }
 
         public static final class Outlook {
@@ -728,104 +1322,253 @@ public final class TestFlyConfig {
             private String clientId;
             private String clientSecret;
             private String mailbox;
-            public String getTenantId()              { return tenantId; }
-            public void   setTenantId(String v)      { this.tenantId = v; }
-            public String getClientId()              { return clientId; }
-            public void   setClientId(String v)      { this.clientId = v; }
-            public String getClientSecret()          { return clientSecret; }
-            public void   setClientSecret(String v)  { this.clientSecret = v; }
-            public String getMailbox()               { return mailbox; }
-            public void   setMailbox(String v)       { this.mailbox = v; }
+
+            public String getTenantId() {
+                return tenantId;
+            }
+
+            public void setTenantId(String v) {
+                this.tenantId = v;
+            }
+
+            public String getClientId() {
+                return clientId;
+            }
+
+            public void setClientId(String v) {
+                this.clientId = v;
+            }
+
+            public String getClientSecret() {
+                return clientSecret;
+            }
+
+            public void setClientSecret(String v) {
+                this.clientSecret = v;
+            }
+
+            public String getMailbox() {
+                return mailbox;
+            }
+
+            public void setMailbox(String v) {
+                this.mailbox = v;
+            }
         }
 
         public static final class Imap {
-            private String  host;
-            private int     port     = 993;
-            private boolean ssl      = true;
-            private String  username;
-            private String  password;
-            private String  folder   = "INBOX";
-            public String  getHost()              { return host; }
-            public void    setHost(String v)      { this.host = v; }
-            public int     getPort()              { return port; }
-            public void    setPort(int v)         { this.port = v; }
-            public boolean isSsl()                { return ssl; }
-            public void    setSsl(boolean v)      { this.ssl = v; }
-            public String  getUsername()          { return username; }
-            public void    setUsername(String v)  { this.username = v; }
-            public String  getPassword()          { return password; }
-            public void    setPassword(String v)  { this.password = v; }
-            public String  getFolder()            { return folder; }
-            public void    setFolder(String v)    { this.folder = v; }
+            private String host;
+            private int port = 993;
+            private boolean ssl = true;
+            private String username;
+            private String password;
+            private String folder = "INBOX";
+
+            public String getHost() {
+                return host;
+            }
+
+            public void setHost(String v) {
+                this.host = v;
+            }
+
+            public int getPort() {
+                return port;
+            }
+
+            public void setPort(int v) {
+                this.port = v;
+            }
+
+            public boolean isSsl() {
+                return ssl;
+            }
+
+            public void setSsl(boolean v) {
+                this.ssl = v;
+            }
+
+            public String getUsername() {
+                return username;
+            }
+
+            public void setUsername(String v) {
+                this.username = v;
+            }
+
+            public String getPassword() {
+                return password;
+            }
+
+            public void setPassword(String v) {
+                this.password = v;
+            }
+
+            public String getFolder() {
+                return folder;
+            }
+
+            public void setFolder(String v) {
+                this.folder = v;
+            }
         }
     }
 
     private Sessions sessions;
-    public Sessions getSessions() { return sessions; }
-    public void setSessions(Sessions sessions) { this.sessions = sessions; }
+
+    public Sessions getSessions() {
+        return sessions;
+    }
+
+    public void setSessions(Sessions sessions) {
+        this.sessions = sessions;
+    }
 
     public static final class Sessions {
         private int maxPerTest = 2;
-        public int  getMaxPerTest()        { return maxPerTest; }
-        public void setMaxPerTest(int v)   { this.maxPerTest = v; }
+
+        public int getMaxPerTest() {
+            return maxPerTest;
+        }
+
+        public void setMaxPerTest(int v) {
+            this.maxPerTest = v;
+        }
     }
 
     private Performance performance;
-    public Performance getPerformance() { return performance; }
-    public void setPerformance(Performance performance) { this.performance = performance; }
+
+    public Performance getPerformance() {
+        return performance;
+    }
+
+    public void setPerformance(Performance performance) {
+        this.performance = performance;
+    }
 
     public static final class Performance {
         private boolean captureOnEveryTest = false;
-        private double  lcpWarnMs          = 0;   // 0 = disabled
-        private double  fcpWarnMs          = 0;
-        private double  ttfbWarnMs         = 0;
-        private double  clsWarn            = 0;
+        private double lcpWarnMs = 0; // 0 = disabled
+        private double fcpWarnMs = 0;
+        private double ttfbWarnMs = 0;
+        private double clsWarn = 0;
 
-        public boolean isCaptureOnEveryTest()                { return captureOnEveryTest; }
-        public void    setCaptureOnEveryTest(boolean v)      { this.captureOnEveryTest = v; }
-        public double  getLcpWarnMs()                        { return lcpWarnMs; }
-        public void    setLcpWarnMs(double v)                { this.lcpWarnMs = v; }
-        public double  getFcpWarnMs()                        { return fcpWarnMs; }
-        public void    setFcpWarnMs(double v)                { this.fcpWarnMs = v; }
-        public double  getTtfbWarnMs()                       { return ttfbWarnMs; }
-        public void    setTtfbWarnMs(double v)               { this.ttfbWarnMs = v; }
-        public double  getClsWarn()                          { return clsWarn; }
-        public void    setClsWarn(double v)                  { this.clsWarn = v; }
+        public boolean isCaptureOnEveryTest() {
+            return captureOnEveryTest;
+        }
+
+        public void setCaptureOnEveryTest(boolean v) {
+            this.captureOnEveryTest = v;
+        }
+
+        public double getLcpWarnMs() {
+            return lcpWarnMs;
+        }
+
+        public void setLcpWarnMs(double v) {
+            this.lcpWarnMs = v;
+        }
+
+        public double getFcpWarnMs() {
+            return fcpWarnMs;
+        }
+
+        public void setFcpWarnMs(double v) {
+            this.fcpWarnMs = v;
+        }
+
+        public double getTtfbWarnMs() {
+            return ttfbWarnMs;
+        }
+
+        public void setTtfbWarnMs(double v) {
+            this.ttfbWarnMs = v;
+        }
+
+        public double getClsWarn() {
+            return clsWarn;
+        }
+
+        public void setClsWarn(double v) {
+            this.clsWarn = v;
+        }
     }
 
     private Quarantine quarantine;
-    public Quarantine getQuarantine() { return quarantine; }
-    public void setQuarantine(Quarantine quarantine) { this.quarantine = quarantine; }
+
+    public Quarantine getQuarantine() {
+        return quarantine;
+    }
+
+    public void setQuarantine(Quarantine quarantine) {
+        this.quarantine = quarantine;
+    }
 
     public static final class Quarantine {
-        private boolean enabled      = true;
-        private String  cucumberTag  = "quarantine";
+        private boolean enabled = true;
+        private String cucumberTag = "quarantine";
 
-        public boolean isEnabled()              { return enabled; }
-        public void    setEnabled(boolean v)    { this.enabled = v; }
+        public boolean isEnabled() {
+            return enabled;
+        }
 
-        /** Tag name to look for in Cucumber {@code .feature} files (without the {@code @} prefix). */
-        public String  getCucumberTag()         { return cucumberTag; }
-        public void    setCucumberTag(String v) { this.cucumberTag = v != null ? v : "quarantine"; }
+        public void setEnabled(boolean v) {
+            this.enabled = v;
+        }
+
+        /**
+         * Tag name to look for in Cucumber {@code .feature} files (without the
+         * {@code @} prefix).
+         */
+        public String getCucumberTag() {
+            return cucumberTag;
+        }
+
+        public void setCucumberTag(String v) {
+            this.cucumberTag = v != null ? v : "quarantine";
+        }
     }
 
     private Clock clock;
-    public Clock getClock() { return clock; }
-    public void setClock(Clock clock) { this.clock = clock; }
+
+    public Clock getClock() {
+        return clock;
+    }
+
+    public void setClock(Clock clock) {
+        this.clock = clock;
+    }
 
     public static final class Clock {
         private boolean injectHeader = false;
-        private String  headerName   = "X-Mock-Date";
+        private String headerName = "X-Mock-Date";
 
-        public boolean isInjectHeader()              { return injectHeader; }
-        public void    setInjectHeader(boolean v)    { this.injectHeader = v; }
-        public String  getHeaderName()               { return headerName; }
-        public void    setHeaderName(String v)       { this.headerName = v; }
+        public boolean isInjectHeader() {
+            return injectHeader;
+        }
+
+        public void setInjectHeader(boolean v) {
+            this.injectHeader = v;
+        }
+
+        public String getHeaderName() {
+            return headerName;
+        }
+
+        public void setHeaderName(String v) {
+            this.headerName = v;
+        }
     }
 
     private Database database;
-    public Database getDatabase() { return database; }
-    public void setDatabase(Database database) { this.database = database; }
+
+    public Database getDatabase() {
+        return database;
+    }
+
+    public void setDatabase(Database database) {
+        this.database = database;
+    }
 
     public static final class Database {
         private String url;
@@ -834,17 +1577,45 @@ public final class TestFlyConfig {
         private String driver;
         private java.util.Map<String, DataSource> datasources = new java.util.LinkedHashMap<>();
 
-        public String getUrl()              { return url; }
-        public void   setUrl(String v)      { this.url = v; }
-        public String getUsername()         { return username; }
-        public void   setUsername(String v) { this.username = v; }
-        public String getPassword()         { return password; }
-        public void   setPassword(String v) { this.password = v; }
-        public String getDriver()           { return driver; }
-        public void   setDriver(String v)   { this.driver = v; }
+        public String getUrl() {
+            return url;
+        }
 
-        public java.util.Map<String, DataSource> getDatasources() { return datasources; }
-        public void setDatasources(java.util.Map<String, DataSource> v) { this.datasources = v != null ? v : new java.util.LinkedHashMap<>(); }
+        public void setUrl(String v) {
+            this.url = v;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String v) {
+            this.username = v;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String v) {
+            this.password = v;
+        }
+
+        public String getDriver() {
+            return driver;
+        }
+
+        public void setDriver(String v) {
+            this.driver = v;
+        }
+
+        public java.util.Map<String, DataSource> getDatasources() {
+            return datasources;
+        }
+
+        public void setDatasources(java.util.Map<String, DataSource> v) {
+            this.datasources = v != null ? v : new java.util.LinkedHashMap<>();
+        }
 
         public static final class DataSource {
             private String url;
@@ -852,139 +1623,304 @@ public final class TestFlyConfig {
             private String password;
             private String driver;
 
-            public String getUrl()              { return url; }
-            public void   setUrl(String v)      { this.url = v; }
-            public String getUsername()         { return username; }
-            public void   setUsername(String v) { this.username = v; }
-            public String getPassword()         { return password; }
-            public void   setPassword(String v) { this.password = v; }
-            public String getDriver()           { return driver; }
-            public void   setDriver(String v)   { this.driver = v; }
+            public String getUrl() {
+                return url;
+            }
+
+            public void setUrl(String v) {
+                this.url = v;
+            }
+
+            public String getUsername() {
+                return username;
+            }
+
+            public void setUsername(String v) {
+                this.username = v;
+            }
+
+            public String getPassword() {
+                return password;
+            }
+
+            public void setPassword(String v) {
+                this.password = v;
+            }
+
+            public String getDriver() {
+                return driver;
+            }
+
+            public void setDriver(String v) {
+                this.driver = v;
+            }
         }
     }
 
-    public Api getApi() { return api; }
-    public void setApi(Api api) { this.api = api; }
+    public Api getApi() {
+        return api;
+    }
+
+    public void setApi(Api api) {
+        this.api = api;
+    }
 
     public static final class Api {
-        private String  baseUrl;
+        private String baseUrl;
         private java.util.Map<String, String> baseUrls = new java.util.LinkedHashMap<>();
-        private int     timeoutSeconds = 30;
-        private boolean logBody        = false;
-        private boolean logContext     = true;
-        private boolean prettyLog      = false;
-        private boolean logCurl        = false;
-        private int     truncationLimit = 300;
-        private java.util.List<String> maskedHeaders = new java.util.ArrayList<>(java.util.List.of("Authorization", "Cookie", "X-Api-Key"));
+        private int timeoutSeconds = 30;
+        private boolean logBody = false;
+        private boolean logContext = true;
+        private boolean prettyLog = false;
+        private boolean logCurl = false;
+        private int truncationLimit = 300;
+        private java.util.List<String> maskedHeaders = new java.util.ArrayList<>(
+                java.util.List.of("Authorization", "Cookie", "X-Api-Key"));
         private java.util.Map<String, AuthStrategy> auth = new java.util.LinkedHashMap<>();
         private RetryConfig retry = new RetryConfig();
 
-        public String  getBaseUrl()          { return baseUrl; }
-        public void    setBaseUrl(String v)  { this.baseUrl = v; }
-
-        public java.util.Map<String, String> getBaseUrls() { return baseUrls; }
-        public void setBaseUrls(java.util.Map<String, String> v) { this.baseUrls = v != null ? v : new java.util.LinkedHashMap<>(); }
-
-        public String baseUrlFor(String service) {
-            if (baseUrls != null && baseUrls.containsKey(service)) return baseUrls.get(service);
+        public String getBaseUrl() {
             return baseUrl;
         }
 
-        public int     getTimeoutSeconds()         { return timeoutSeconds; }
-        public void    setTimeoutSeconds(int v)    { this.timeoutSeconds = v; }
+        public void setBaseUrl(String v) {
+            this.baseUrl = v;
+        }
 
-        public boolean isLogBody()                 { return logBody; }
-        public void    setLogBody(boolean v)       { this.logBody = v; }
+        public java.util.Map<String, String> getBaseUrls() {
+            return baseUrls;
+        }
 
-        public boolean isLogContext()              { return logContext; }
-        public void    setLogContext(boolean v)    { this.logContext = v; }
+        public void setBaseUrls(java.util.Map<String, String> v) {
+            this.baseUrls = v != null ? v : new java.util.LinkedHashMap<>();
+        }
 
-        public boolean isPrettyLog()               { return prettyLog; }
-        public void    setPrettyLog(boolean v)     { this.prettyLog = v; }
+        public String baseUrlFor(String service) {
+            if (baseUrls != null && baseUrls.containsKey(service))
+                return baseUrls.get(service);
+            return baseUrl;
+        }
 
-        public boolean isLogCurl()                 { return logCurl; }
-        public void    setLogCurl(boolean v)       { this.logCurl = v; }
+        public int getTimeoutSeconds() {
+            return timeoutSeconds;
+        }
 
-        public int     getTruncationLimit()              { return truncationLimit; }
-        public void    setTruncationLimit(int v)         { this.truncationLimit = v; }
+        public void setTimeoutSeconds(int v) {
+            this.timeoutSeconds = v;
+        }
 
-        public java.util.List<String> getMaskedHeaders() { return maskedHeaders; }
-        public void setMaskedHeaders(java.util.List<String> v) { this.maskedHeaders = v != null ? v : new java.util.ArrayList<>(); }
+        public boolean isLogBody() {
+            return logBody;
+        }
 
-        public java.util.Map<String, AuthStrategy> getAuth() { return auth; }
-        public void setAuth(java.util.Map<String, AuthStrategy> auth) { this.auth = auth; }
+        public void setLogBody(boolean v) {
+            this.logBody = v;
+        }
 
-        public RetryConfig getRetry()             { return retry; }
-        public void        setRetry(RetryConfig v){ this.retry = v; }
+        public boolean isLogContext() {
+            return logContext;
+        }
+
+        public void setLogContext(boolean v) {
+            this.logContext = v;
+        }
+
+        public boolean isPrettyLog() {
+            return prettyLog;
+        }
+
+        public void setPrettyLog(boolean v) {
+            this.prettyLog = v;
+        }
+
+        public boolean isLogCurl() {
+            return logCurl;
+        }
+
+        public void setLogCurl(boolean v) {
+            this.logCurl = v;
+        }
+
+        public int getTruncationLimit() {
+            return truncationLimit;
+        }
+
+        public void setTruncationLimit(int v) {
+            this.truncationLimit = v;
+        }
+
+        public java.util.List<String> getMaskedHeaders() {
+            return maskedHeaders;
+        }
+
+        public void setMaskedHeaders(java.util.List<String> v) {
+            this.maskedHeaders = v != null ? v : new java.util.ArrayList<>();
+        }
+
+        public java.util.Map<String, AuthStrategy> getAuth() {
+            return auth;
+        }
+
+        public void setAuth(java.util.Map<String, AuthStrategy> auth) {
+            this.auth = auth;
+        }
+
+        public RetryConfig getRetry() {
+            return retry;
+        }
+
+        public void setRetry(RetryConfig v) {
+            this.retry = v;
+        }
 
         public static final class RetryConfig {
-            private boolean enabled          = false;
-            private int     maxAttempts      = 3;
-            private long    backoffMs        = 500;
+            private boolean enabled = false;
+            private int maxAttempts = 3;
+            private long backoffMs = 500;
             private java.util.List<Integer> retryOnStatus = java.util.List.of(502, 503, 504);
             private boolean retryOnException = true;
 
-            public boolean isEnabled()                    { return enabled; }
-            public void    setEnabled(boolean v)          { this.enabled = v; }
+            public boolean isEnabled() {
+                return enabled;
+            }
 
-            public int     getMaxAttempts()               { return maxAttempts; }
-            public void    setMaxAttempts(int v)          { this.maxAttempts = v; }
+            public void setEnabled(boolean v) {
+                this.enabled = v;
+            }
 
-            public long    getBackoffMs()                 { return backoffMs; }
-            public void    setBackoffMs(long v)           { this.backoffMs = v; }
+            public int getMaxAttempts() {
+                return maxAttempts;
+            }
 
-            public java.util.List<Integer> getRetryOnStatus()          { return retryOnStatus; }
-            public void setRetryOnStatus(java.util.List<Integer> v)    { this.retryOnStatus = v; }
+            public void setMaxAttempts(int v) {
+                this.maxAttempts = v;
+            }
 
-            public boolean isRetryOnException()            { return retryOnException; }
-            public void    setRetryOnException(boolean v)  { this.retryOnException = v; }
+            public long getBackoffMs() {
+                return backoffMs;
+            }
+
+            public void setBackoffMs(long v) {
+                this.backoffMs = v;
+            }
+
+            public java.util.List<Integer> getRetryOnStatus() {
+                return retryOnStatus;
+            }
+
+            public void setRetryOnStatus(java.util.List<Integer> v) {
+                this.retryOnStatus = v;
+            }
+
+            public boolean isRetryOnException() {
+                return retryOnException;
+            }
+
+            public void setRetryOnException(boolean v) {
+                this.retryOnException = v;
+            }
         }
 
         public static final class AuthStrategy {
-            private String type;          // bearer | basic | oauth2 | apiKey | hmac | digest
-            private String token;         // bearer
-            private String username;      // basic / digest
-            private String password;      // basic / digest
-            private String tokenUrl;      // oauth2
-            private String clientId;      // oauth2
-            private String clientSecret;  // oauth2
-            private String headerName;    // apiKey
-            private String apiKey;        // apiKey / hmac
-            private String secret;        // hmac
-            private String algorithm;     // hmac
+            private String type; // bearer | basic | oauth2 | apiKey | hmac | digest
+            private String token; // bearer
+            private String username; // basic / digest
+            private String password; // basic / digest
+            private String tokenUrl; // oauth2
+            private String clientId; // oauth2
+            private String clientSecret; // oauth2
+            private String headerName; // apiKey
+            private String apiKey; // apiKey / hmac
+            private String secret; // hmac
+            private String algorithm; // hmac
 
-            public String getType()            { return type; }
-            public void   setType(String v)    { this.type = v; }
+            public String getType() {
+                return type;
+            }
 
-            public String getToken()           { return token; }
-            public void   setToken(String v)   { this.token = v; }
+            public void setType(String v) {
+                this.type = v;
+            }
 
-            public String getUsername()        { return username; }
-            public void   setUsername(String v){ this.username = v; }
+            public String getToken() {
+                return token;
+            }
 
-            public String getPassword()        { return password; }
-            public void   setPassword(String v){ this.password = v; }
+            public void setToken(String v) {
+                this.token = v;
+            }
 
-            public String getTokenUrl()        { return tokenUrl; }
-            public void   setTokenUrl(String v){ this.tokenUrl = v; }
+            public String getUsername() {
+                return username;
+            }
 
-            public String getClientId()        { return clientId; }
-            public void   setClientId(String v){ this.clientId = v; }
+            public void setUsername(String v) {
+                this.username = v;
+            }
 
-            public String getClientSecret()        { return clientSecret; }
-            public void   setClientSecret(String v){ this.clientSecret = v; }
+            public String getPassword() {
+                return password;
+            }
 
-            public String getHeaderName()          { return headerName; }
-            public void   setHeaderName(String v)  { this.headerName = v; }
+            public void setPassword(String v) {
+                this.password = v;
+            }
 
-            public String getApiKey()              { return apiKey; }
-            public void   setApiKey(String v)      { this.apiKey = v; }
+            public String getTokenUrl() {
+                return tokenUrl;
+            }
 
-            public String getSecret()              { return secret; }
-            public void   setSecret(String v)      { this.secret = v; }
+            public void setTokenUrl(String v) {
+                this.tokenUrl = v;
+            }
 
-            public String getAlgorithm()           { return algorithm; }
-            public void   setAlgorithm(String v)   { this.algorithm = v; }
+            public String getClientId() {
+                return clientId;
+            }
+
+            public void setClientId(String v) {
+                this.clientId = v;
+            }
+
+            public String getClientSecret() {
+                return clientSecret;
+            }
+
+            public void setClientSecret(String v) {
+                this.clientSecret = v;
+            }
+
+            public String getHeaderName() {
+                return headerName;
+            }
+
+            public void setHeaderName(String v) {
+                this.headerName = v;
+            }
+
+            public String getApiKey() {
+                return apiKey;
+            }
+
+            public void setApiKey(String v) {
+                this.apiKey = v;
+            }
+
+            public String getSecret() {
+                return secret;
+            }
+
+            public void setSecret(String v) {
+                this.secret = v;
+            }
+
+            public String getAlgorithm() {
+                return algorithm;
+            }
+
+            public void setAlgorithm(String v) {
+                this.algorithm = v;
+            }
         }
     }
 
@@ -992,94 +1928,196 @@ public final class TestFlyConfig {
 
     public static final class TestManagement {
         private TestRail testrail = new TestRail();
-        private Xray     xray     = new Xray();
+        private Xray xray = new Xray();
 
-        public TestRail getTestrail() { return testrail; }
-        public void     setTestrail(TestRail v) { this.testrail = v; }
+        public TestRail getTestrail() {
+            return testrail;
+        }
 
-        public Xray  getXray()     { return xray; }
-        public void  setXray(Xray v) { this.xray = v; }
+        public void setTestrail(TestRail v) {
+            this.testrail = v;
+        }
+
+        public Xray getXray() {
+            return xray;
+        }
+
+        public void setXray(Xray v) {
+            this.xray = v;
+        }
 
         public static final class TestRail {
-            private boolean enabled     = false;
-            private String  url;
-            private String  username;
-            private String  apiKey;
-            private int     projectId;
-            private int     suiteId;
-            private String  runName     = "TestFly Run";
+            private boolean enabled = false;
+            private String url;
+            private String username;
+            private String apiKey;
+            private int projectId;
+            private int suiteId;
+            private String runName = "TestFly Run";
             private boolean autoCreateRun = true;
-            private int     runId;     // populated at runtime; may be set explicitly to skip creation
+            private int runId; // populated at runtime; may be set explicitly to skip creation
 
-            public boolean isEnabled()                { return enabled; }
-            public void    setEnabled(boolean v)      { this.enabled = v; }
+            public boolean isEnabled() {
+                return enabled;
+            }
 
-            public String  getUrl()                   { return url; }
-            public void    setUrl(String v)           { this.url = v; }
+            public void setEnabled(boolean v) {
+                this.enabled = v;
+            }
 
-            public String  getUsername()              { return username; }
-            public void    setUsername(String v)      { this.username = v; }
+            public String getUrl() {
+                return url;
+            }
 
-            public String  getApiKey()                { return apiKey; }
-            public void    setApiKey(String v)        { this.apiKey = v; }
+            public void setUrl(String v) {
+                this.url = v;
+            }
 
-            public int     getProjectId()             { return projectId; }
-            public void    setProjectId(int v)        { this.projectId = v; }
+            public String getUsername() {
+                return username;
+            }
 
-            public int     getSuiteId()               { return suiteId; }
-            public void    setSuiteId(int v)          { this.suiteId = v; }
+            public void setUsername(String v) {
+                this.username = v;
+            }
 
-            public String  getRunName()               { return runName; }
-            public void    setRunName(String v)       { this.runName = v; }
+            public String getApiKey() {
+                return apiKey;
+            }
 
-            public boolean isAutoCreateRun()          { return autoCreateRun; }
-            public void    setAutoCreateRun(boolean v){ this.autoCreateRun = v; }
+            public void setApiKey(String v) {
+                this.apiKey = v;
+            }
 
-            public int     getRunId()                 { return runId; }
-            public void    setRunId(int v)            { this.runId = v; }
+            public int getProjectId() {
+                return projectId;
+            }
+
+            public void setProjectId(int v) {
+                this.projectId = v;
+            }
+
+            public int getSuiteId() {
+                return suiteId;
+            }
+
+            public void setSuiteId(int v) {
+                this.suiteId = v;
+            }
+
+            public String getRunName() {
+                return runName;
+            }
+
+            public void setRunName(String v) {
+                this.runName = v;
+            }
+
+            public boolean isAutoCreateRun() {
+                return autoCreateRun;
+            }
+
+            public void setAutoCreateRun(boolean v) {
+                this.autoCreateRun = v;
+            }
+
+            public int getRunId() {
+                return runId;
+            }
+
+            public void setRunId(int v) {
+                this.runId = v;
+            }
         }
 
         public static final class Xray {
-            private boolean enabled      = false;
-            /** "cloud" (Xray Cloud / Jira Cloud) or "server" (Xray Server / Data Center). */
-            private String  mode         = "cloud";
+            private boolean enabled = false;
+            /**
+             * "cloud" (Xray Cloud / Jira Cloud) or "server" (Xray Server / Data Center).
+             */
+            private String mode = "cloud";
             // Cloud-only fields
-            private String  clientId;
-            private String  clientSecret;
+            private String clientId;
+            private String clientSecret;
             // Server/DC fields
-            private String  jiraUrl;
-            private String  username;
-            private String  password;
+            private String jiraUrl;
+            private String username;
+            private String password;
             // Shared
-            private String  projectKey;
-            private String  testPlanKey;
+            private String projectKey;
+            private String testPlanKey;
 
-            public boolean isEnabled()                  { return enabled; }
-            public void    setEnabled(boolean v)        { this.enabled = v; }
+            public boolean isEnabled() {
+                return enabled;
+            }
 
-            public String  getMode()                    { return mode; }
-            public void    setMode(String v)            { this.mode = v; }
+            public void setEnabled(boolean v) {
+                this.enabled = v;
+            }
 
-            public String  getClientId()                { return clientId; }
-            public void    setClientId(String v)        { this.clientId = v; }
+            public String getMode() {
+                return mode;
+            }
 
-            public String  getClientSecret()            { return clientSecret; }
-            public void    setClientSecret(String v)    { this.clientSecret = v; }
+            public void setMode(String v) {
+                this.mode = v;
+            }
 
-            public String  getJiraUrl()                 { return jiraUrl; }
-            public void    setJiraUrl(String v)         { this.jiraUrl = v; }
+            public String getClientId() {
+                return clientId;
+            }
 
-            public String  getUsername()                { return username; }
-            public void    setUsername(String v)        { this.username = v; }
+            public void setClientId(String v) {
+                this.clientId = v;
+            }
 
-            public String  getPassword()                { return password; }
-            public void    setPassword(String v)        { this.password = v; }
+            public String getClientSecret() {
+                return clientSecret;
+            }
 
-            public String  getProjectKey()              { return projectKey; }
-            public void    setProjectKey(String v)      { this.projectKey = v; }
+            public void setClientSecret(String v) {
+                this.clientSecret = v;
+            }
 
-            public String  getTestPlanKey()             { return testPlanKey; }
-            public void    setTestPlanKey(String v)     { this.testPlanKey = v; }
+            public String getJiraUrl() {
+                return jiraUrl;
+            }
+
+            public void setJiraUrl(String v) {
+                this.jiraUrl = v;
+            }
+
+            public String getUsername() {
+                return username;
+            }
+
+            public void setUsername(String v) {
+                this.username = v;
+            }
+
+            public String getPassword() {
+                return password;
+            }
+
+            public void setPassword(String v) {
+                this.password = v;
+            }
+
+            public String getProjectKey() {
+                return projectKey;
+            }
+
+            public void setProjectKey(String v) {
+                this.projectKey = v;
+            }
+
+            public String getTestPlanKey() {
+                return testPlanKey;
+            }
+
+            public void setTestPlanKey(String v) {
+                this.testPlanKey = v;
+            }
         }
     }
 
