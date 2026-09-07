@@ -2192,4 +2192,188 @@ public final class TestFlyConfig {
         }
     }
 
+    // ── Load Testing ─────────────────────────────────────────────────────
+
+    private LoadTest loadTest;
+
+    public LoadTest getLoadTest() {
+        return loadTest;
+    }
+
+    public void setLoadTest(LoadTest loadTest) {
+        this.loadTest = loadTest;
+    }
+
+    /**
+     * Alias for {@link #setLoadTest(LoadTest)} that accepts the all-lowercase
+     * YAML key {@code loadtest} used in documentation.
+     */
+    public void setLoadtest(LoadTest loadTest) {
+        setLoadTest(loadTest);
+    }
+
+    /**
+     * Load testing configuration block.
+     *
+     * <pre>
+     * loadtest:
+     *   baseUrl: https://api.example.com
+     *   users: 50
+     *   rampUp: 30s
+     *   hold: 60s
+     *   cooldown: 10s
+     *   engine: auto
+     *   resultsDir: target/loadtest
+     *   reportEnabled: true
+     * </pre>
+     */
+    public static final class LoadTest {
+        private boolean enabled = false;
+        private String baseUrl;
+        private String engine = "auto";
+        private int users = 10;
+        private String rampUp = "10s";
+        private String hold = "30s";
+        private String cooldown = "5s";
+        private int maxUsers = 1000;
+        private String resultsDir = "target/loadtest";
+        private boolean reportEnabled = true;
+        private int requestTimeoutSeconds = 30;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        /**
+         * Engine selection: {@code auto} (Gatling if available, else JDK),
+         * {@code gatling} (require Gatling), or {@code jdk} (always JDK).
+         */
+        public String getEngine() {
+            return engine;
+        }
+
+        public void setEngine(String engine) {
+            this.engine = engine != null ? engine : "auto";
+        }
+
+        public int getUsers() {
+            return users;
+        }
+
+        public void setUsers(int users) {
+            this.users = users > 0 ? users : 10;
+        }
+
+        public String getRampUp() {
+            return rampUp;
+        }
+
+        public void setRampUp(String rampUp) {
+            this.rampUp = rampUp != null ? rampUp : "10s";
+        }
+
+        public String getHold() {
+            return hold;
+        }
+
+        public void setHold(String hold) {
+            this.hold = hold != null ? hold : "30s";
+        }
+
+        public String getCooldown() {
+            return cooldown;
+        }
+
+        public void setCooldown(String cooldown) {
+            this.cooldown = cooldown != null ? cooldown : "5s";
+        }
+
+        public int getMaxUsers() {
+            return maxUsers;
+        }
+
+        public void setMaxUsers(int maxUsers) {
+            this.maxUsers = maxUsers > 0 ? maxUsers : 1000;
+        }
+
+        public String getResultsDir() {
+            return resultsDir;
+        }
+
+        public void setResultsDir(String resultsDir) {
+            this.resultsDir = resultsDir != null ? resultsDir : "target/loadtest";
+        }
+
+        public boolean isReportEnabled() {
+            return reportEnabled;
+        }
+
+        public void setReportEnabled(boolean reportEnabled) {
+            this.reportEnabled = reportEnabled;
+        }
+
+        public int getRequestTimeoutSeconds() {
+            return requestTimeoutSeconds;
+        }
+
+        public void setRequestTimeoutSeconds(int requestTimeoutSeconds) {
+            this.requestTimeoutSeconds = requestTimeoutSeconds > 0 ? requestTimeoutSeconds : 30;
+        }
+
+        // ── Duration parsing helpers ──
+
+        /** Parses {@code rampUp} string ("30s", "2m", "1h") into seconds. */
+        public long getRampUpSeconds() {
+            return parseDurationSeconds(rampUp, 10);
+        }
+
+        /** Parses {@code hold} string into seconds. */
+        public long getHoldSeconds() {
+            return parseDurationSeconds(hold, 30);
+        }
+
+        /** Parses {@code cooldown} string into seconds. */
+        public long getCooldownSeconds() {
+            return parseDurationSeconds(cooldown, 5);
+        }
+
+        /**
+         * Parses a human-readable duration string into seconds.
+         * Supported formats: {@code 30s}, {@code 2m}, {@code 1h}, {@code 500ms},
+         * or a plain integer (interpreted as seconds).
+         */
+        public static long parseDurationSeconds(String value, long defaultSeconds) {
+            if (value == null || value.isBlank())
+                return defaultSeconds;
+            String v = value.trim().toLowerCase();
+            try {
+                if (v.endsWith("ms")) {
+                    return Math.max(0, Long.parseLong(v.substring(0, v.length() - 2).trim()) / 1000);
+                } else if (v.endsWith("s")) {
+                    return Long.parseLong(v.substring(0, v.length() - 1).trim());
+                } else if (v.endsWith("m")) {
+                    return Long.parseLong(v.substring(0, v.length() - 1).trim()) * 60;
+                } else if (v.endsWith("h")) {
+                    return Long.parseLong(v.substring(0, v.length() - 1).trim()) * 3600;
+                } else {
+                    return Long.parseLong(v);
+                }
+            } catch (NumberFormatException e) {
+                return defaultSeconds;
+            }
+        }
+    }
+
 }

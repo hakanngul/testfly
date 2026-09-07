@@ -518,10 +518,10 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      * Traverses nested shadow roots and returns the target element.
      * Pass CSS selectors from outermost host down to the target element.
      *
-     * <pre>
+     * <pre>{@code
      * // <checkout-flow> → shadow → <payment-widget> → shadow → #pay-btn
      * WebElement btn = shadowPierce("checkout-flow", "payment-widget", "#pay-btn");
-     * </pre>
+     * }</pre>
      */
     protected WebElement shadowPierce(String... cssSelectors) {
         step("Shadow pierce " + String.join(" -> ", cssSelectors));
