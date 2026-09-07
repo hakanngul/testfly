@@ -6,6 +6,7 @@ import io.cucumber.plugin.event.HookTestStep;
 import io.cucumber.plugin.event.PickleStepTestStep;
 import io.cucumber.plugin.event.Result;
 import io.cucumber.plugin.event.Status;
+import io.cucumber.plugin.event.Step;
 import io.cucumber.plugin.event.TestStepFinished;
 import io.cucumber.plugin.event.TestStepStarted;
 import io.testfly.cucumber.CucumberStepLogger;
@@ -75,7 +76,9 @@ public class CucumberStepLoggerTest {
         EventHandler<TestStepFinished> finishHandler = captureHandler(publisher, TestStepFinished.class);
 
         PickleStepTestStep pickleStep = mock(PickleStepTestStep.class);
-        when(pickleStep.getStepText()).thenReturn("the user opens the login page");
+        Step step = mock(Step.class);
+        when(step.getText()).thenReturn("the user opens the login page");
+        when(pickleStep.getStep()).thenReturn(step);
 
         TestStepStarted startEvent = mock(TestStepStarted.class);
         when(startEvent.getTestStep()).thenReturn(pickleStep);
@@ -103,7 +106,9 @@ public class CucumberStepLoggerTest {
         EventHandler<TestStepFinished> finishHandler = captureHandler(publisher, TestStepFinished.class);
 
         PickleStepTestStep pickleStep = mock(PickleStepTestStep.class);
-        when(pickleStep.getStepText()).thenReturn("the user clicks submit");
+        Step step = mock(Step.class);
+        when(step.getText()).thenReturn("the user clicks submit");
+        when(pickleStep.getStep()).thenReturn(step);
 
         TestStepStarted startEvent = mock(TestStepStarted.class);
         when(startEvent.getTestStep()).thenReturn(pickleStep);

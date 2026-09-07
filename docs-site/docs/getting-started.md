@@ -35,7 +35,7 @@ No WebDriver binaries required — Selenium Manager handles browser driver downl
 <dependency>
     <groupId>io.testfly</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
@@ -44,7 +44,7 @@ No WebDriver binaries required — Selenium Manager handles browser driver downl
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.0'
+    testImplementation 'io.testfly:testfly:1.0.4'
 }
 
 test {
@@ -58,7 +58,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.testfly:testfly:1.0.0")
+    testImplementation("io.testfly:testfly:1.0.4")
 }
 
 tasks.test {

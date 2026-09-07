@@ -15,16 +15,22 @@ import io.cucumber.plugin.event.TestStepStarted;
  * Cucumber plugin that pipes Gherkin step names into TestFly's
  * {@link StepLogger}, making them visible in the HTML report step timeline.
  *
- * <p>Register in {@code @CucumberOptions}:
+ * <p>
+ * Register in {@code @CucumberOptions}:
+ * 
  * <pre>
  * plugin = {"pretty", "io.testfly.cucumber.CucumberStepLogger"}
  * </pre>
  *
- * <p>Only Gherkin steps ({@link PickleStepTestStep}) are logged.
- * {@link HookTestStep} entries ({@code @Before}, {@code @After}, etc.) are skipped
+ * <p>
+ * Only Gherkin steps ({@link PickleStepTestStep}) are logged.
+ * {@link HookTestStep} entries ({@code @Before}, {@code @After}, etc.) are
+ * skipped
  * to keep the timeline focused on scenario steps.
  *
- * <p>Implements {@link ConcurrentEventListener} (not {@link io.cucumber.plugin.EventListener})
+ * <p>
+ * Implements {@link ConcurrentEventListener} (not
+ * {@link io.cucumber.plugin.EventListener})
  * for thread-safety during parallel scenario execution.
  */
 public final class CucumberStepLogger implements ConcurrentEventListener {
@@ -43,16 +49,18 @@ public final class CucumberStepLogger implements ConcurrentEventListener {
             return;
         }
         if (event.getTestStep() instanceof PickleStepTestStep step) {
-            CURRENT_STEP.set(step.getStepText());
+            CURRENT_STEP.set(step.getStep().getText());
         }
     }
 
     private void onStepFinished(TestStepFinished event) {
-        if (event.getTestStep() instanceof HookTestStep) return;
+        if (event.getTestStep() instanceof HookTestStep)
+            return;
 
         String stepName = CURRENT_STEP.get();
         CURRENT_STEP.remove();
-        if (stepName == null) return;
+        if (stepName == null)
+            return;
 
         Result result = event.getResult();
         StepStatus status = mapStatus(result.getStatus());
@@ -63,13 +71,15 @@ public final class CucumberStepLogger implements ConcurrentEventListener {
     }
 
     public static StepStatus mapStatus(Status cucumberStatus) {
-        if (cucumberStatus == null) return StepStatus.INFO;
+        if (cucumberStatus == null)
+            return StepStatus.INFO;
         return switch (cucumberStatus) {
-            case PASSED             -> StepStatus.PASS;
-            case FAILED             -> StepStatus.FAIL;
+            case PASSED -> StepStatus.PASS;
+            case FAILED -> StepStatus.FAIL;
             case SKIPPED, PENDING,
-                 UNDEFINED, AMBIGUOUS -> StepStatus.WARN;
-            default                 -> StepStatus.INFO;
+                    UNDEFINED, AMBIGUOUS ->
+                StepStatus.WARN;
+            default -> StepStatus.INFO;
         };
     }
 }

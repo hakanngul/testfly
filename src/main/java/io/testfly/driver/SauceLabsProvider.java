@@ -10,7 +10,7 @@ import org.openqa.selenium.remote.AbstractDriverOptions;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.safari.SafariOptions;
 
-import java.net.URL;
+import java.net.URI;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -18,7 +18,8 @@ import java.util.Map;
 /**
  * Creates a {@link RemoteWebDriver} session against Sauce Labs.
  *
- * <p>Uses the W3C {@code sauce:options} extension capability. All existing
+ * <p>
+ * Uses the W3C {@code sauce:options} extension capability. All existing
  * framework features (retry, reporting, screenshots, parallel) work unchanged.
  *
  * <pre>
@@ -44,21 +45,25 @@ public class SauceLabsProvider implements DriverProvider {
         TestFlyConfig cfg = TestFlyContext.getConfig();
         TestFlyConfig.Execution.SauceLabs sl = cfg.getExecution().getSaucelabs();
 
-        String username  = BrowserStackProvider.resolveEnv(sl.getUsername());
+        String username = BrowserStackProvider.resolveEnv(sl.getUsername());
         String accessKey = BrowserStackProvider.resolveEnv(sl.getAccessKey());
-        String region    = sl.getRegion() != null ? sl.getRegion() : "us-west-1";
-        String browser   = sl.getBrowser() != null ? sl.getBrowser() : "chrome";
-        String testId    = TestFlyContext.getCurrentTestId();
+        String region = sl.getRegion() != null ? sl.getRegion() : "us-west-1";
+        String browser = sl.getBrowser() != null ? sl.getBrowser() : "chrome";
+        String testId = TestFlyContext.getCurrentTestId();
 
-        if (isBlank(username))  throw new IllegalStateException("[SauceLabs] execution.saucelabs.username is required");
-        if (isBlank(accessKey)) throw new IllegalStateException("[SauceLabs] execution.saucelabs.accessKey is required");
+        if (isBlank(username))
+            throw new IllegalStateException("[SauceLabs] execution.saucelabs.username is required");
+        if (isBlank(accessKey))
+            throw new IllegalStateException("[SauceLabs] execution.saucelabs.accessKey is required");
 
         Map<String, Object> sauceOptions = new LinkedHashMap<>();
-        sauceOptions.put("username",   username);
-        sauceOptions.put("accessKey",  accessKey);
-        if (!isBlank(testId)) sauceOptions.put("name", testId);
+        sauceOptions.put("username", username);
+        sauceOptions.put("accessKey", accessKey);
+        if (!isBlank(testId))
+            sauceOptions.put("name", testId);
         // User-defined sauce:options overrides
-        if (sl.getCapabilities() != null) sauceOptions.putAll(sl.getCapabilities());
+        if (sl.getCapabilities() != null)
+            sauceOptions.putAll(sl.getCapabilities());
 
         AbstractDriverOptions<?> options = buildOptions(
                 browser, sl.getBrowserVersion(), sl.getPlatformName(), sauceOptions);
@@ -66,10 +71,10 @@ public class SauceLabsProvider implements DriverProvider {
         String hubUrl = "https://ondemand." + region + ".saucelabs.com:443/wd/hub";
 
         try {
-            WebDriver driver = new RemoteWebDriver(new URL(hubUrl), options);
+            WebDriver driver = new RemoteWebDriver(URI.create(hubUrl).toURL(), options);
             driver.manage().timeouts().implicitlyWait(Duration.ZERO);
             driver.manage().timeouts().pageLoadTimeout(
-                Duration.ofSeconds(cfg.getTimeouts().getPageLoad()));
+                    Duration.ofSeconds(cfg.getTimeouts().getPageLoad()));
             return driver;
         } catch (Exception e) {
             throw new IllegalStateException("[SauceLabs] Failed to create session: " + e.getMessage(), e);
@@ -82,29 +87,37 @@ public class SauceLabsProvider implements DriverProvider {
         switch (browser.toLowerCase()) {
             case "firefox": {
                 FirefoxOptions o = new FirefoxOptions();
-                if (!isBlank(browserVersion)) o.setBrowserVersion(browserVersion);
-                if (!isBlank(platformName))   o.setPlatformName(platformName);
+                if (!isBlank(browserVersion))
+                    o.setBrowserVersion(browserVersion);
+                if (!isBlank(platformName))
+                    o.setPlatformName(platformName);
                 o.setCapability("sauce:options", sauceOptions);
                 return o;
             }
             case "edge": {
                 EdgeOptions o = new EdgeOptions();
-                if (!isBlank(browserVersion)) o.setBrowserVersion(browserVersion);
-                if (!isBlank(platformName))   o.setPlatformName(platformName);
+                if (!isBlank(browserVersion))
+                    o.setBrowserVersion(browserVersion);
+                if (!isBlank(platformName))
+                    o.setPlatformName(platformName);
                 o.setCapability("sauce:options", sauceOptions);
                 return o;
             }
             case "safari": {
                 SafariOptions o = new SafariOptions();
-                if (!isBlank(browserVersion)) o.setBrowserVersion(browserVersion);
-                if (!isBlank(platformName))   o.setPlatformName(platformName);
+                if (!isBlank(browserVersion))
+                    o.setBrowserVersion(browserVersion);
+                if (!isBlank(platformName))
+                    o.setPlatformName(platformName);
                 o.setCapability("sauce:options", sauceOptions);
                 return o;
             }
             default: {
                 ChromeOptions o = new ChromeOptions();
-                if (!isBlank(browserVersion)) o.setBrowserVersion(browserVersion);
-                if (!isBlank(platformName))   o.setPlatformName(platformName);
+                if (!isBlank(browserVersion))
+                    o.setBrowserVersion(browserVersion);
+                if (!isBlank(platformName))
+                    o.setPlatformName(platformName);
                 o.setCapability("sauce:options", sauceOptions);
                 return o;
             }
@@ -115,5 +128,7 @@ public class SauceLabsProvider implements DriverProvider {
         return "https://ondemand." + region + ".saucelabs.com:443/wd/hub";
     }
 
-    private static boolean isBlank(String s) { return s == null || s.isBlank(); }
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
 }

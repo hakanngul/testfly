@@ -20,7 +20,6 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -87,21 +86,27 @@ public class AiAssertionTest {
 
     @AfterMethod
     public void tearDown() {
-        if (driverManagerMock != null) driverManagerMock.close();
-        if (contextMock != null) contextMock.close();
-        if (stepLoggerMock != null) stepLoggerMock.close();
-        if (providerRegistryMock != null) providerRegistryMock.close();
+        if (driverManagerMock != null)
+            driverManagerMock.close();
+        if (contextMock != null)
+            contextMock.close();
+        if (stepLoggerMock != null)
+            stepLoggerMock.close();
+        if (providerRegistryMock != null)
+            providerRegistryMock.close();
         SoftAssertions.clear();
     }
 
     @Test
     public void testBuildPromptAndParseResult() {
-        String prompt = AiAssertEngine.buildPrompt("https://test.com", "Test Page", "<div>Hello</div>", "Greeting visible", true);
+        String prompt = AiAssertEngine.buildPrompt("https://test.com", "Test Page", "<div>Hello</div>",
+                "Greeting visible", true);
         assertTrue(prompt.contains("https://test.com"));
         assertTrue(prompt.contains("Greeting visible"));
         assertTrue(prompt.contains("SATISFIES this condition"));
 
-        String negativePrompt = AiAssertEngine.buildPrompt("https://test.com", "Test Page", "<div>Hello</div>", "Error alert", false);
+        String negativePrompt = AiAssertEngine.buildPrompt("https://test.com", "Test Page", "<div>Hello</div>",
+                "Error alert", false);
         assertTrue(negativePrompt.contains("VIOLATES this condition"));
 
         String validJson = "```json\n{\n  \"passed\": true,\n  \"confidence\": 0.98,\n  \"reason\": \"Matches perfectly\"\n}\n```";
@@ -149,7 +154,8 @@ public class AiAssertionTest {
 
         // When violation is detected
         when(mockAiProvider.call(anyString(), nullable(String.class), anyString(), anyInt()))
-                .thenReturn("{\"passed\": false, \"confidence\": 0.95, \"reason\": \"Found critical error 500 on screen\"}");
+                .thenReturn(
+                        "{\"passed\": false, \"confidence\": 0.95, \"reason\": \"Found critical error 500 on screen\"}");
 
         try {
             pageAssert.violatesAi("Error 500 banner");
@@ -193,7 +199,8 @@ public class AiAssertionTest {
         when(mockDriver.findElements(By.className("warning"))).thenReturn(List.of(mockElement));
 
         when(mockAiProvider.call(anyString(), nullable(String.class), anyString(), anyInt()))
-                .thenReturn("{\"passed\": false, \"confidence\": 0.95, \"reason\": \"Element contains out of stock warning\"}");
+                .thenReturn(
+                        "{\"passed\": false, \"confidence\": 0.95, \"reason\": \"Element contains out of stock warning\"}");
 
         LocatorAssert locatorAssert = SeleniumAssert.assertThat(By.className("warning"));
         try {
@@ -210,7 +217,8 @@ public class AiAssertionTest {
         when(mockAiProvider.call(anyString(), nullable(String.class), anyString(), anyInt()))
                 .thenReturn("{\"passed\": true, \"confidence\": 0.95, \"reason\": \"Order confirmed\"}");
 
-        AssertionSupport support = new AssertionSupport() {};
+        AssertionSupport support = new AssertionSupport() {
+        };
         PageAssert pageAssert = support.assertWithAi("Order confirmed message");
         assertNotNull(pageAssert);
     }

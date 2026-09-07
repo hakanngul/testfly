@@ -16,20 +16,19 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.testng.Assert.*;
 
 /**
  * Unit tests for {@link JUnitXmlReporter}.
  * Verifies that the generated XML file exists and contains well-formed content.
- * Thread-safe for parallel=methods via singleThreaded and global report + context locks.
+ * Thread-safe for parallel=methods via singleThreaded and global report +
+ * context locks.
  */
 @Test(singleThreaded = true)
 public class JUnitXmlReporterTest {
 
-    private static final File XML_FILE =
-            new File("target/surefire-reports/TEST-TestFly.xml");
+    private static final File XML_FILE = new File("target/surefire-reports/TEST-TestFly.xml");
 
     private static final Object GLOBAL_REPORT_LOCK = ReportPaths.class;
     private static final Object CONTEXT_LOCK = TestFlyContext.class;
@@ -39,7 +38,8 @@ public class JUnitXmlReporterTest {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
                 System.clearProperty("testfly.reports.dir");
-                if (XML_FILE.exists()) XML_FILE.delete();
+                if (XML_FILE.exists())
+                    XML_FILE.delete();
                 ExecutionMetrics.reset();
                 resetTestFlyContext();
             }
@@ -51,7 +51,8 @@ public class JUnitXmlReporterTest {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
                 System.clearProperty("testfly.reports.dir");
-                if (XML_FILE.exists()) XML_FILE.delete();
+                if (XML_FILE.exists())
+                    XML_FILE.delete();
                 ExecutionMetrics.reset();
                 resetTestFlyContext();
             }
@@ -65,7 +66,8 @@ public class JUnitXmlReporterTest {
             Field ciField = ExecutionMetrics.class.getDeclaredField("ciMetadata");
             ciField.setAccessible(true);
             ciField.set(null, null);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     private static TestFlyConfig minimalConfig(boolean captureMetadata) {
@@ -166,8 +168,7 @@ public class JUnitXmlReporterTest {
         List<TestTiming> timings = List.of(
                 timing("t1", "PASSED"),
                 timing("t2", "FAILED"),
-                timing("t3", "SKIPPED")
-        );
+                timing("t3", "SKIPPED"));
         exportSync(timings, 1000L);
         String xml = readXml();
         assertTrue(xml.contains("tests=\"3\""), "tests attribute should be 3");

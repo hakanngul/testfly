@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+_Nothing yet._
+
+---
+
+## [1.0.4] — 2026-09-07
+
 ### Added — Agentic Testing & Autonomous AI
 
 - **AI-Driven Advanced Self-Healing** — `DomPruner` compresses complex web DOM trees to under 8K tokens by stripping non-semantic and decorative nodes. `AiHealingEngine` synthesizes replacement locators with LLM reasoning when static fallbacks are exhausted, caching healed locators to `.testfly/healed-locators.json` for 0 ms replay latency.

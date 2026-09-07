@@ -18,11 +18,11 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import static org.mockito.Mockito.*;
-import static org.testng.Assert.*;
 
 /**
  * Unit tests for {@link TestFlyLauncherListener}.
- * Verifies suite-level report generation and cleanup after the test plan finishes.
+ * Verifies suite-level report generation and cleanup after the test plan
+ * finishes.
  */
 @Test(singleThreaded = true)
 public class TestFlyLauncherListenerTest {
@@ -66,15 +66,24 @@ public class TestFlyLauncherListenerTest {
 
     @AfterMethod
     public void teardown() {
-        if (metricsMock != null) metricsMock.close();
-        if (flakinessMock != null) flakinessMock.close();
-        if (xmlReporterMock != null) xmlReporterMock.close();
-        if (adapterRegistryMock != null) adapterRegistryMock.close();
-        if (preCondRunnerMock != null) preCondRunnerMock.close();
-        if (hookMock != null) hookMock.close();
-        if (tmReporterMock != null) tmReporterMock.close();
-        if (contextMock != null) contextMock.close();
-        if (enforcerMock != null) enforcerMock.close();
+        if (metricsMock != null)
+            metricsMock.close();
+        if (flakinessMock != null)
+            flakinessMock.close();
+        if (xmlReporterMock != null)
+            xmlReporterMock.close();
+        if (adapterRegistryMock != null)
+            adapterRegistryMock.close();
+        if (preCondRunnerMock != null)
+            preCondRunnerMock.close();
+        if (hookMock != null)
+            hookMock.close();
+        if (tmReporterMock != null)
+            tmReporterMock.close();
+        if (contextMock != null)
+            contextMock.close();
+        if (enforcerMock != null)
+            enforcerMock.close();
     }
 
     // ----------------------------------------------------------

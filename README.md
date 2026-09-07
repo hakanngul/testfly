@@ -28,7 +28,7 @@ Three files. Copy them as-is and `mvn test` goes green against a real Chrome.
     <dependency>
         <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.4</version>
     </dependency>
 </dependencies>
 
@@ -180,7 +180,7 @@ Add to your `pom.xml`:
 <dependency>
     <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
@@ -793,7 +793,7 @@ ci:
 
 ## Project Status
 
-**Current release: v1.0.0** — `execution.parallel` is now validated against TestNG's own parallel modes, so `tests` and `instances` are accepted alongside `none`, `methods`, and `classes`.
+**Current release: v1.0.4** — Agentic Testing with AI-driven self-healing, video recording, network mocking, and comprehensive API testing improvements.
 
 See the full version history in **[CHANGELOG.md](CHANGELOG.md)**.
 

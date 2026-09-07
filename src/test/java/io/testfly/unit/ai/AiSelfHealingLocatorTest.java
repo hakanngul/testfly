@@ -16,7 +16,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Field;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -83,8 +82,7 @@ public class AiSelfHealingLocatorTest {
                 "By.id: old-btn",
                 "https://test.com/login",
                 "Login Page",
-                "<button class='new-btn'>Sign In</button>"
-        );
+                "<button class='new-btn'>Sign In</button>");
 
         Assert.assertTrue(prompt.contains("By.id: old-btn"));
         Assert.assertTrue(prompt.contains("https://test.com/login"));
@@ -128,13 +126,15 @@ public class AiSelfHealingLocatorTest {
             // Register mock AI provider
             AiProvider mockProvider = Mockito.mock(AiProvider.class);
             Mockito.when(mockProvider.name()).thenReturn("mock-ai");
-            Mockito.when(mockProvider.call(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyInt()))
+            Mockito.when(
+                    mockProvider.call(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyInt()))
                     .thenReturn("{\"type\": \"cssSelector\", \"value\": \".healed-button\"}");
             AiProviderRegistry.register(mockProvider);
 
             // Mock WebDriver and visible WebElement
             WebDriver driver = Mockito.mock(WebDriver.class);
-            Mockito.when(driver.getPageSource()).thenReturn("<html><body><button class='healed-button'>OK</button></body></html>");
+            Mockito.when(driver.getPageSource())
+                    .thenReturn("<html><body><button class='healed-button'>OK</button></body></html>");
             Mockito.when(driver.getCurrentUrl()).thenReturn("https://example.com");
             Mockito.when(driver.getTitle()).thenReturn("Example");
 
@@ -168,12 +168,14 @@ public class AiSelfHealingLocatorTest {
 
             AiProvider mockProvider = Mockito.mock(AiProvider.class);
             Mockito.when(mockProvider.name()).thenReturn("mock-ai-hidden");
-            Mockito.when(mockProvider.call(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyInt()))
+            Mockito.when(
+                    mockProvider.call(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyInt()))
                     .thenReturn("{\"type\": \"id\", \"value\": \"hidden-btn\"}");
             AiProviderRegistry.register(mockProvider);
 
             WebDriver driver = Mockito.mock(WebDriver.class);
-            Mockito.when(driver.getPageSource()).thenReturn("<html><body><button id='hidden-btn'>Hidden</button></body></html>");
+            Mockito.when(driver.getPageSource())
+                    .thenReturn("<html><body><button id='hidden-btn'>Hidden</button></body></html>");
 
             WebElement hiddenElement = Mockito.mock(WebElement.class);
             Mockito.when(hiddenElement.isDisplayed()).thenReturn(false);
@@ -202,7 +204,8 @@ public class AiSelfHealingLocatorTest {
 
             AiProvider mockProvider = Mockito.mock(AiProvider.class);
             Mockito.when(mockProvider.name()).thenReturn("mock-ai-error");
-            Mockito.when(mockProvider.call(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyInt()))
+            Mockito.when(
+                    mockProvider.call(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyInt()))
                     .thenThrow(new RuntimeException("Simulated AI connection timeout"));
             AiProviderRegistry.register(mockProvider);
 

@@ -58,7 +58,7 @@ public class LocatorTest {
                 .nth(2);
         String str = loc.toString();
         assertTrue(str.contains(".active"), "toString should include filter");
-        assertTrue(str.contains("2"),       "toString should include nth index");
+        assertTrue(str.contains("2"), "toString should include nth index");
     }
 
     @Test
@@ -95,7 +95,7 @@ public class LocatorTest {
 
     @Test
     public void locator_chaining_doesNotMutateOriginal() {
-        Locator base    = Locator.ofCss(".item");
+        Locator base = Locator.ofCss(".item");
         Locator filtered = base.filter(".active");
         assertNotNull(base);
         assertNotNull(filtered);
@@ -107,10 +107,18 @@ public class LocatorTest {
     // ----------------------------------------------------------
 
     private static class BaseTestFixture extends BaseTest {
-        Locator findCss(String css) { return find(css); }
-        Locator findBy(By by) { return find(by); }
+        Locator findCss(String css) {
+            return find(css);
+        }
+
+        Locator findBy(By by) {
+            return find(by);
+        }
+
         @SuppressWarnings("removal")
-        Locator dollarCss(String css) { return $(css); }
+        Locator dollarCss(String css) {
+            return $(css);
+        }
     }
 
     @Test
@@ -127,7 +135,6 @@ public class LocatorTest {
         assertTrue(loc.toString().contains("username"));
     }
 
-    @SuppressWarnings("removal")
     @Test
     public void baseTest_dollarAliasStillWorks() {
         BaseTestFixture fixture = new BaseTestFixture();
@@ -161,13 +168,14 @@ public class LocatorTest {
         contextMock.when(TestFlyContext::getConfig).thenReturn(config);
         contextMock.when(TestFlyContext::getCurrentTestId).thenReturn("test-1");
 
-        return new MockedStatic<?>[]{driverManagerMock, contextMock};
+        return new MockedStatic<?>[] { driverManagerMock, contextMock };
     }
 
     private WebDriver lastMockDriver;
 
     private void closeMocks(MockedStatic<?>[] mocks) {
-        for (MockedStatic<?> m : mocks) m.close();
+        for (MockedStatic<?> m : mocks)
+            m.close();
     }
 
     @Test

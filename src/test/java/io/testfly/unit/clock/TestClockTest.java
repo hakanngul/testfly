@@ -59,8 +59,7 @@ public class TestClockTest {
                     argThat(params -> {
                         String expression = (String) params.get("expression");
                         return expression != null && expression.contains("1893456000000");
-                    })
-            );
+                    }));
 
             // Assert - executeScript was also called for the current page
             verify((JavascriptExecutor) mockChromiumDriver).executeScript(anyString(), eq(1893456000000L));
@@ -74,6 +73,8 @@ public class TestClockTest {
         cdpResult.put("identifier", "script-456");
         when(mockChromiumDriver.executeCdpCommand(eq("Page.addScriptToEvaluateOnNewDocument"), anyMap()))
                 .thenReturn(cdpResult);
+        when(mockChromiumDriver.executeCdpCommand(eq("Page.removeScriptToEvaluateOnNewDocument"), anyMap()))
+                .thenReturn(new HashMap<>());
 
         try (MockedStatic<DriverManager> driverManagerMock = Mockito.mockStatic(DriverManager.class)) {
             driverManagerMock.when(DriverManager::getDriver).thenReturn(mockChromiumDriver);
@@ -84,11 +85,10 @@ public class TestClockTest {
             // Act
             clock.reset();
 
-            // Assert - CDP remove command was called
-            verify(mockChromiumDriver).executeCdpCommand(
+            // Assert - CDP remove command was called with the correct identifier
+            verify(mockChromiumDriver, atLeastOnce()).executeCdpCommand(
                     eq("Page.removeScriptToEvaluateOnNewDocument"),
-                    argThat(params -> "script-456".equals(params.get("identifier")))
-            );
+                    argThat(params -> "script-456".equals(params.get("identifier"))));
         }
     }
 
@@ -99,6 +99,8 @@ public class TestClockTest {
         cdpResult.put("identifier", "script-789");
         when(mockChromiumDriver.executeCdpCommand(eq("Page.addScriptToEvaluateOnNewDocument"), anyMap()))
                 .thenReturn(cdpResult);
+        when(mockChromiumDriver.executeCdpCommand(eq("Page.removeScriptToEvaluateOnNewDocument"), anyMap()))
+                .thenReturn(new HashMap<>());
 
         try (MockedStatic<DriverManager> driverManagerMock = Mockito.mockStatic(DriverManager.class)) {
             driverManagerMock.when(DriverManager::getDriver).thenReturn(mockChromiumDriver);
@@ -109,11 +111,10 @@ public class TestClockTest {
             // Act
             TestClock.autoReset();
 
-            // Assert - CDP remove command was called
-            verify(mockChromiumDriver).executeCdpCommand(
+            // Assert - CDP remove command was called with the correct identifier
+            verify(mockChromiumDriver, atLeastOnce()).executeCdpCommand(
                     eq("Page.removeScriptToEvaluateOnNewDocument"),
-                    argThat(params -> "script-789".equals(params.get("identifier")))
-            );
+                    argThat(params -> "script-789".equals(params.get("identifier"))));
         }
     }
 
@@ -128,6 +129,8 @@ public class TestClockTest {
         when(mockChromiumDriver.executeCdpCommand(eq("Page.addScriptToEvaluateOnNewDocument"), anyMap()))
                 .thenReturn(cdpResult1)
                 .thenReturn(cdpResult2);
+        when(mockChromiumDriver.executeCdpCommand(eq("Page.removeScriptToEvaluateOnNewDocument"), anyMap()))
+                .thenReturn(new HashMap<>());
 
         try (MockedStatic<DriverManager> driverManagerMock = Mockito.mockStatic(DriverManager.class)) {
             driverManagerMock.when(DriverManager::getDriver).thenReturn(mockChromiumDriver);
@@ -138,20 +141,24 @@ public class TestClockTest {
             // Act
             clock.advance(Duration.ofHours(1));
 
-            // Assert - CDP command was called twice (once for set, once for advance)
+            // Assert - CDP add command was called twice (once for set, once for advance)
             verify(mockChromiumDriver, times(2)).executeCdpCommand(
                     eq("Page.addScriptToEvaluateOnNewDocument"),
-                    anyMap()
-            );
+                    anyMap());
 
-            // Assert - the second call had the advanced time
+            // Assert - CDP remove command was called once (before the second add, to
+            // replace the old script)
+            verify(mockChromiumDriver, times(1)).executeCdpCommand(
+                    eq("Page.removeScriptToEvaluateOnNewDocument"),
+                    anyMap());
+
+            // Assert - the second add call had the advanced time
             verify(mockChromiumDriver).executeCdpCommand(
                     eq("Page.addScriptToEvaluateOnNewDocument"),
                     argThat(params -> {
                         String expression = (String) params.get("expression");
                         return expression != null && expression.contains("1893459600000");
-                    })
-            );
+                    }));
         }
     }
 

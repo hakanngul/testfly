@@ -122,7 +122,6 @@ public class VisualAssertTest {
 
     @Test
     public void compare_noBaseline_createsBaselineAndPasses() throws Exception {
-        File tempDir = Files.createTempDirectory("visual-test").toFile();
         // Use the internal compare() method via a dedicated temp dir
         // Since baselineDir is config-driven we test the logic through a known path
         String name = "test_no_baseline_" + System.nanoTime();

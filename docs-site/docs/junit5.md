@@ -23,7 +23,7 @@ Add JUnit 5 dependencies alongside TestFly:
     <dependency>
         <groupId>io.testfly</groupId>
         <artifactId>testfly</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.4</version>
     </dependency>
 
     <!-- JUnit 5 Jupiter & Platform Launcher -->
@@ -48,7 +48,7 @@ Maven Surefire 3.x auto-detects JUnit 5 without any extra plugin configuration.
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.0'
+    testImplementation 'io.testfly:testfly:1.0.4'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
 }
