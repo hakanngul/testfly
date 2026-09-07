@@ -321,24 +321,63 @@ public class SauceDemoSteps extends BaseCucumberSteps {
 }
 ```
 
+### SELECT and NAVIGATE (`SelectAndNavigateAgenticTest.java`)
+
+Sauce Demo has no `<select>` element, so these examples use `https://the-internet.herokuapp.com/dropdown` — a real `<select id="dropdown">` with Option 1 and Option 2.
+
+```java
+public class SelectAndNavigateAgenticTest extends BaseTest {
+
+    @Test(description = "NAVIGATE to an absolute URL, then SELECT a dropdown option")
+    public void absoluteNavigationAndDropdownSelection() {
+        open();
+
+        // Absolute URLs pass through resolveTargetUrl unchanged, so one plan can leave baseUrl
+        act("Navigate to https://the-internet.herokuapp.com/dropdown");
+        assertWithAi("A page headed 'Dropdown List' with a select box is displayed");
+
+        // Compiles to {"action":"SELECT","locator":"#dropdown","value":"Option 2"}
+        act("Select 'Option 2' from the dropdown");
+        assertThatPage().satisfiesAi("The dropdown shows Option 2 as its selected value");
+    }
+
+    @Test(description = "NAVIGATE with a path resolved against execution.baseUrl")
+    public void relativePathNavigationUsesBaseUrl() {
+        open();
+        act("Enter username 'standard_user' and password 'secret_sauce', then click Login");
+
+        // '/cart.html' resolves to https://www.saucedemo.com/cart.html
+        act("Navigate to /cart.html");
+        assertThatPage().satisfiesAi("The Your Cart page is displayed with a Checkout button");
+    }
+}
+```
+
+`TheInternetDropdownPage` shows the same two primitives inside a Page Object, and `agentic_select_navigate.feature` drives them through the **existing** generic `the agent executes goal {string}` step. No new step definitions are needed, because `act(goal)` compiles whichever action types the goal implies.
+
 ---
 
 ## 7. Running Examples via Maven CLI
 
-You can execute the example suites directly from your terminal:
+Example suites live under `src/test/java/io/testfly/examples/` and are **excluded from the default `mvn test`** run, because they need a real browser and an LLM API key. Activate them with the `examples` profile — without `-Pexamples` the surefire exclude pattern wins and nothing runs:
 
 ```bash
 # Set your AI API key
 export AI_API_KEY="your-api-key"
 
 # Run TestNG Agentic Example
-mvn test -Dtest=io.testfly.examples.testng.SauceDemoAgenticTest
+mvn test -Pexamples -Dtest=io.testfly.examples.testng.SauceDemoAgenticTest
 
 # Run JUnit 5 Agentic Example
-mvn test -Dtest=io.testfly.examples.junit5.SauceDemoAgenticJUnit5Test
+mvn test -Pexamples -Dtest=io.testfly.examples.junit5.SauceDemoAgenticJUnit5Test
 
 # Run Cucumber BDD Agentic Scenarios
-mvn test -Dtest=io.testfly.examples.cucumber.SauceDemoAgenticCucumberRunner
+mvn test -Pexamples -Dtest=io.testfly.examples.cucumber.SauceDemoAgenticCucumberRunner
+
+# Run the SELECT / NAVIGATE primitive examples
+mvn test -Pexamples -Dtest=io.testfly.examples.testng.SelectAndNavigateAgenticTest
+mvn test -Pexamples -Dtest=io.testfly.examples.junit5.SelectAndNavigateAgenticJUnit5Test
+mvn test -Pexamples -Dtest=io.testfly.examples.cucumber.SelectAndNavigateAgenticCucumberRunner
 ```
 
 ---

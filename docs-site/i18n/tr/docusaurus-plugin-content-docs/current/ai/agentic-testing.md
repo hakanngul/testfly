@@ -321,24 +321,63 @@ public class SauceDemoSteps extends BaseCucumberSteps {
 }
 ```
 
+### SELECT ve NAVIGATE (`SelectAndNavigateAgenticTest.java`)
+
+Sauce Demo'da `<select>` elementi bulunmadığı için bu örnekler `https://the-internet.herokuapp.com/dropdown` adresini kullanır — Option 1 ve Option 2 içeren gerçek bir `<select id="dropdown">`.
+
+```java
+public class SelectAndNavigateAgenticTest extends BaseTest {
+
+    @Test(description = "Mutlak URL'e NAVIGATE, ardından dropdown'dan SELECT")
+    public void absoluteNavigationAndDropdownSelection() {
+        open();
+
+        // Mutlak URL'ler resolveTargetUrl'den değişmeden geçer, yani bir plan baseUrl'den çıkabilir
+        act("Navigate to https://the-internet.herokuapp.com/dropdown");
+        assertWithAi("A page headed 'Dropdown List' with a select box is displayed");
+
+        // {"action":"SELECT","locator":"#dropdown","value":"Option 2"} haline derlenir
+        act("Select 'Option 2' from the dropdown");
+        assertThatPage().satisfiesAi("The dropdown shows Option 2 as its selected value");
+    }
+
+    @Test(description = "execution.baseUrl ile çözümlenen göreli path ile NAVIGATE")
+    public void relativePathNavigationUsesBaseUrl() {
+        open();
+        act("Enter username 'standard_user' and password 'secret_sauce', then click Login");
+
+        // '/cart.html' → https://www.saucedemo.com/cart.html olarak çözülür
+        act("Navigate to /cart.html");
+        assertThatPage().satisfiesAi("The Your Cart page is displayed with a Checkout button");
+    }
+}
+```
+
+`TheInternetDropdownPage` aynı iki primitive'i Page Object içinde gösterir; `agentic_select_navigate.feature` ise bunları **zaten var olan** genel `the agent executes goal {string}` adımıyla sürer. Yeni step definition gerekmez, çünkü `act(goal)` hedefin gerektirdiği aksiyon tiplerini kendisi derler.
+
 ---
 
 ## 7. Örnekleri Maven CLI ile Çalıştırma
 
-Örnek test paketlerini terminalinizden doğrudan koşturabilirsiniz:
+Örnek test paketleri `src/test/java/io/testfly/examples/` altında yaşar ve gerçek tarayıcı + LLM API anahtarı gerektirdikleri için **varsayılan `mvn test` koşusundan hariç tutulur**. Bunları `examples` profiliyle etkinleştirin — `-Pexamples` olmadan surefire exclude kuralı kazanır ve hiçbir test çalışmaz:
 
 ```bash
 # AI API anahtarınızı tanımlayın
 export AI_API_KEY="your-api-key"
 
 # TestNG Agentic Örneği
-mvn test -Dtest=io.testfly.examples.testng.SauceDemoAgenticTest
+mvn test -Pexamples -Dtest=io.testfly.examples.testng.SauceDemoAgenticTest
 
 # JUnit 5 Agentic Örneği
-mvn test -Dtest=io.testfly.examples.junit5.SauceDemoAgenticJUnit5Test
+mvn test -Pexamples -Dtest=io.testfly.examples.junit5.SauceDemoAgenticJUnit5Test
 
 # Cucumber BDD Agentic Senaryoları
-mvn test -Dtest=io.testfly.examples.cucumber.SauceDemoAgenticCucumberRunner
+mvn test -Pexamples -Dtest=io.testfly.examples.cucumber.SauceDemoAgenticCucumberRunner
+
+# SELECT / NAVIGATE primitive örnekleri
+mvn test -Pexamples -Dtest=io.testfly.examples.testng.SelectAndNavigateAgenticTest
+mvn test -Pexamples -Dtest=io.testfly.examples.junit5.SelectAndNavigateAgenticJUnit5Test
+mvn test -Pexamples -Dtest=io.testfly.examples.cucumber.SelectAndNavigateAgenticCucumberRunner
 ```
 
 ---
