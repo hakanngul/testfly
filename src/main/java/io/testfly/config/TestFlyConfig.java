@@ -78,8 +78,9 @@ public final class TestFlyConfig {
     public static final class Network {
         private boolean interceptEnabled = false;
 
+        /** Overridable from the umbrella via {@code features.network}. */
         public boolean isInterceptEnabled() {
-            return interceptEnabled;
+            return FeatureGate.enabled(FeatureGate.NETWORK, interceptEnabled);
         }
 
         public void setInterceptEnabled(boolean interceptEnabled) {
@@ -143,7 +144,7 @@ public final class TestFlyConfig {
         }
 
         public boolean isCaptureConsoleErrors() {
-            return captureConsoleErrors;
+            return FeatureGate.enabled(FeatureGate.CONSOLE_ERRORS, captureConsoleErrors);
         }
 
         public void setCaptureConsoleErrors(boolean captureConsoleErrors) {
@@ -852,8 +853,9 @@ public final class TestFlyConfig {
         private int fps = 2;
         private int maxDurationSeconds = 60;
 
+        /** Overridable from the umbrella via {@code features.recording}. */
         public boolean isEnabled() {
-            return enabled;
+            return FeatureGate.enabled(FeatureGate.RECORDING, enabled);
         }
 
         public void setEnabled(boolean enabled) {
@@ -909,11 +911,11 @@ public final class TestFlyConfig {
         }
 
         public boolean isRecordAll() {
-            return "on".equalsIgnoreCase(mode) || "always".equalsIgnoreCase(mode);
+            return isEnabled() && ("on".equalsIgnoreCase(mode) || "always".equalsIgnoreCase(mode));
         }
 
         public boolean shouldRecord() {
-            return enabled && !"off".equalsIgnoreCase(mode);
+            return isEnabled() && !"off".equalsIgnoreCase(mode);
         }
     }
 
@@ -953,16 +955,22 @@ public final class TestFlyConfig {
         private int maxDomTokens = 8000;
         private String testIdAttribute = "data-testid";
 
+        /** Overridable from the umbrella via {@code features.healing}. */
         public boolean isSelfHealing() {
-            return selfHealing;
+            return FeatureGate.enabled(FeatureGate.HEALING, selfHealing);
         }
 
         public void setSelfHealing(boolean v) {
             this.selfHealing = v;
         }
 
+        /**
+         * Overridable from the umbrella via {@code features.healing}. The AI
+         * kill-switch ({@code features.ai} / {@code ai.enabled}) is enforced
+         * separately by {@code AiHealingEngine}.
+         */
         public boolean isAiHealing() {
-            return aiHealing;
+            return FeatureGate.enabled(FeatureGate.HEALING, aiHealing);
         }
 
         public void setAiHealing(boolean v) {
@@ -986,6 +994,35 @@ public final class TestFlyConfig {
         }
     }
 
+    private java.util.Map<String, Boolean> features = new java.util.LinkedHashMap<>();
+
+    /**
+     * Master switchboard for optional framework modules, keyed by module name.
+     *
+     * <p>
+     * Values are tri-state: an absent key (or a {@code null} value) means
+     * "not decided here — the module's own settings apply", while an explicit
+     * {@code true} / {@code false} overrides them.
+     *
+     * <pre>
+     * features:
+     *   ai: false          # disable every AI/agentic surface
+     *   recording: true    # force video recording on
+     * </pre>
+     *
+     * <p>
+     * Read these through {@link FeatureGate} rather than directly — it
+     * applies the tri-state resolution and tolerates an uninitialized context.
+     * Valid names are listed by {@link FeatureGate#knownFeatures()}.
+     */
+    public java.util.Map<String, Boolean> getFeatures() {
+        return features;
+    }
+
+    public void setFeatures(java.util.Map<String, Boolean> features) {
+        this.features = (features != null) ? features : new java.util.LinkedHashMap<>();
+    }
+
     private Ai ai;
 
     public Ai getAi() {
@@ -997,6 +1034,17 @@ public final class TestFlyConfig {
     }
 
     public static final class Ai {
+        /**
+         * Master switch for every AI-driven surface: failure analysis, patch
+         * generation, AI locator healing, {@code aiAssert(...)} and the agentic
+         * {@code act(...)} engine. Defaults to {@code true}; the granular flags
+         * below still decide <em>which</em> surfaces run, but none of them can
+         * run while this is {@code false}.
+         *
+         * <p>
+         * Overridable from the umbrella via {@code features.ai}.
+         */
+        private boolean enabled = true;
         private boolean failureAnalysis = false;
         private boolean generatePatch = false;
         private String provider = "claude";
@@ -1005,6 +1053,15 @@ public final class TestFlyConfig {
         private String model = null;
         private String language = "en";
         private int timeoutSeconds = 20;
+
+        /** Overridable from the umbrella via {@code features.ai}. */
+        public boolean isEnabled() {
+            return FeatureGate.enabled(FeatureGate.AI, enabled);
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
 
         public boolean isFailureAnalysis() {
             return failureAnalysis;
@@ -1125,8 +1182,9 @@ public final class TestFlyConfig {
         private boolean enabled = false;
         private boolean captureOnPass = false;
 
+        /** Overridable from the umbrella via {@code features.tracing}. */
         public boolean isEnabled() {
-            return enabled;
+            return FeatureGate.enabled(FeatureGate.TRACING, enabled);
         }
 
         public void setEnabled(boolean v) {
@@ -1462,8 +1520,9 @@ public final class TestFlyConfig {
         private double ttfbWarnMs = 0;
         private double clsWarn = 0;
 
+        /** Overridable from the umbrella via {@code features.performance}. */
         public boolean isCaptureOnEveryTest() {
-            return captureOnEveryTest;
+            return FeatureGate.enabled(FeatureGate.PERFORMANCE, captureOnEveryTest);
         }
 
         public void setCaptureOnEveryTest(boolean v) {
@@ -1517,8 +1576,9 @@ public final class TestFlyConfig {
         private boolean enabled = true;
         private String cucumberTag = "quarantine";
 
+        /** Overridable from the umbrella via {@code features.quarantine}. */
         public boolean isEnabled() {
-            return enabled;
+            return FeatureGate.enabled(FeatureGate.QUARANTINE, enabled);
         }
 
         public void setEnabled(boolean v) {
@@ -1966,8 +2026,9 @@ public final class TestFlyConfig {
             private boolean autoCreateRun = true;
             private int runId; // populated at runtime; may be set explicitly to skip creation
 
+            /** Overridable from the umbrella via {@code features.testManagement}. */
             public boolean isEnabled() {
-                return enabled;
+                return FeatureGate.enabled(FeatureGate.TEST_MANAGEMENT, enabled);
             }
 
             public void setEnabled(boolean v) {
@@ -2056,8 +2117,9 @@ public final class TestFlyConfig {
             private String projectKey;
             private String testPlanKey;
 
+            /** Overridable from the umbrella via {@code features.testManagement}. */
             public boolean isEnabled() {
-                return enabled;
+                return FeatureGate.enabled(FeatureGate.TEST_MANAGEMENT, enabled);
             }
 
             public void setEnabled(boolean v) {

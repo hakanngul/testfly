@@ -9,7 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-_Nothing yet._
+### Added — Feature Switchboard
+
+- **`features:` master on/off panel** — a single block in `testfly.yml` that sits above every optional module's own settings, so a subsystem can be switched off without hunting down which key controls it or deleting its detailed configuration. Each key is tri-state: absent defers to the module's own flag, `true` forces its primary enable flag on, `false` forces the module off. Covers `ai`, `recording`, `tracing`, `network`, `healing`, `visual`, `performance`, `flakiness`, `quarantine`, `testManagement`, `notifications` and `consoleErrors`.
+- **`FeatureGate`** (`io.testfly.config.FeatureGate`, `@TestFlyApi(since = "1.0.5")`) — single resolution point for the switchboard. `enabled(feature)`, `enabled(feature, moduleDefault)`, `override(feature)`, `knownFeatures()` and `summary()`. Tolerates an unbootstrapped `TestFlyContext`, so the umbrella never blocks a module in a plain unit test. Plugins may gate their own behaviour with a private feature name.
+- **`ai.enabled` AI kill-switch** (default `true`) — until now there was no way to turn AI off globally: `AiAssertEngine` and `ActionCompiler` only checked that the `ai` block existed and `apiKey` was set, so a configured key meant `aiAssert()` and `act()` always ran regardless of `failureAnalysis`/`generatePatch`. Now gates all five surfaces: `AiFailureAnalyzer`, `RemediationPatchGenerator`, `AiHealingEngine`, `AiAssertEngine` and `ActionCompiler`. Also settable via `features.ai`.
+- **Bootstrap diagnostics** — `FrameworkBootstrap` prints the active overrides at suite start (`[TestFly] features: ai=OFF, recording=ON`), and an unrecognised feature name is reported once on stderr rather than silently ignored.
+
+### Changed
+
+- **Tolerant `testfly.yml` parsing** — SnakeYAML's `Constructor` rejected any key without a matching bean property, so a single typo aborted the whole suite with a cryptic `ConstructorException`. Unknown keys are now skipped and reported (`[TestFly] Unknown config key 'headles' on Browser — ignored`); the rest of the configuration stays usable. Detection compares against the bean's real property set rather than SnakeYAML's `MissingProperty` sentinel, so it does not depend on that class staying reachable in future releases.
+- **Explicit calls never fail silently when their feature is off** — a silently skipped check is a false green. `act()` throws `IllegalStateException`, `aiAssert()` fails with an explanatory reason, and `VisualAssert.assertScreenshot()` raises a TestNG `SkipException` so the test is reported as *skipped* rather than passed. Background behaviour (recording, tracing, performance capture, flakiness analysis, notifications, TestRail/Xray push) simply does not run.
+- **`Recording.isRecordAll()` now requires the recorder to be enabled** — `recording.enabled: false` combined with `mode: on` previously reported `true`, so `TestExecutionListener` would record passing tests for a disabled recorder.
+
+### Documentation
+
+- `docs-site/docs/configuration.md` and its Turkish translation gained a **Feature Switchboard** section (resolution rules, supported keys, off-behaviour per call site, diagnostics) plus the `ai.enabled` row.
 
 ---
 
