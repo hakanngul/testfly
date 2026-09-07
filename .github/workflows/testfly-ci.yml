@@ -53,9 +53,21 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+      - name: Upload HTML report and metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testfly-html-report
+          path: |
+            target/testfly-report.html
+            target/testfly-metrics.json
+            target/flakiness-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Publish unit test results
         if: always()
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v1
         with:
           name: Unit Test Results
           path: '**/target/surefire-reports/TEST-*.xml'
@@ -102,7 +114,7 @@ jobs:
 
       - name: Publish integration test results
         if: always()
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v1
         with:
           name: Framework Integration Test Results
           path: '**/target/failsafe-reports/TEST-*.xml'
@@ -191,7 +203,7 @@ jobs:
 
       - name: Publish consumer test results
         if: always() && steps.consumer-available.outputs.available == 'true'
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v1
         with:
           name: Consumer Test Results
           path: 'testfly-test/target/surefire-reports/TEST-*.xml'

@@ -9,15 +9,17 @@ import org.openqa.selenium.chromium.ChromiumDriver;
 /**
  * Geolocation mocking helper.
  *
- * <p>On Chrome/Edge: uses CDP {@code Emulation.setGeolocationOverride} for
+ * <p>
+ * On Chrome/Edge: uses CDP {@code Emulation.setGeolocationOverride} for
  * accurate override. On other browsers: injects a JavaScript override of
  * {@code navigator.geolocation.getCurrentPosition} as a fallback.
  *
- * <p>Always call {@link #clear()} or rely on the auto-clear in
+ * <p>
+ * Always call {@link #clear()} or rely on the auto-clear in
  * {@link io.testfly.listeners.TestExecutionListener} after each test.
  *
  * <pre>
- * mockLocation().set(51.5074, -0.1278);  // London
+ * mockLocation().set(51.5074, -0.1278); // London
  * open("/map-page");
  * assertThat(By.id("city")).hasText("London");
  * mockLocation().clear();
@@ -58,11 +60,9 @@ public final class GeoLocation {
             ((ChromiumDriver) driver).executeCdpCommand(
                     "Emulation.setGeolocationOverride",
                     java.util.Map.of(
-                            "latitude",  latitude,
+                            "latitude", latitude,
                             "longitude", longitude,
-                            "accuracy",  1
-                    )
-            );
+                            "accuracy", 1));
         } else {
             // Firefox / other: JS override
             injectJsOverride(driver, latitude, longitude, altitude);
@@ -77,17 +77,15 @@ public final class GeoLocation {
         if (driver instanceof ChromiumDriver) {
             ((ChromiumDriver) driver).executeCdpCommand(
                     "Emulation.clearGeolocationOverride",
-                    java.util.Map.of()
-            );
+                    java.util.Map.of());
         } else {
-            // Remove JS override
+            // Restore original geolocation from backup
             ((JavascriptExecutor) driver).executeScript(
-                    "delete navigator.__defineGetter__; " +
                     "if(window.__testFlyGeoBackup) {" +
-                    "  Object.defineProperty(navigator, 'geolocation', " +
-                    "  { get: function(){ return window.__testFlyGeoBackup; }, configurable: true });" +
-                    "}"
-            );
+                            "  Object.defineProperty(navigator, 'geolocation', " +
+                            "  { get: function(){ return window.__testFlyGeoBackup; }, configurable: true });" +
+                            "  delete window.__testFlyGeoBackup;" +
+                            "}");
         }
     }
 
@@ -98,33 +96,32 @@ public final class GeoLocation {
     private void injectJsOverride(WebDriver driver, double lat, double lon, double alt) {
         String script = String.format(
                 "window.__testFlyGeoBackup = navigator.geolocation;" +
-                "Object.defineProperty(navigator, 'geolocation', {" +
-                "  get: function() {" +
-                "    return {" +
-                "      getCurrentPosition: function(success) {" +
-                "        success({" +
-                "          coords: { latitude: %f, longitude: %f, altitude: %f," +
-                "                    accuracy: 1, altitudeAccuracy: null," +
-                "                    heading: null, speed: null }," +
-                "          timestamp: Date.now()" +
-                "        });" +
-                "      }," +
-                "      watchPosition: function(success) {" +
-                "        success({" +
-                "          coords: { latitude: %f, longitude: %f, altitude: %f," +
-                "                    accuracy: 1, altitudeAccuracy: null," +
-                "                    heading: null, speed: null }," +
-                "          timestamp: Date.now()" +
-                "        });" +
-                "        return 0;" +
-                "      }," +
-                "      clearWatch: function() {}" +
-                "    };" +
-                "  }," +
-                "  configurable: true" +
-                "});",
-                lat, lon, alt, lat, lon, alt
-        );
+                        "Object.defineProperty(navigator, 'geolocation', {" +
+                        "  get: function() {" +
+                        "    return {" +
+                        "      getCurrentPosition: function(success) {" +
+                        "        success({" +
+                        "          coords: { latitude: %f, longitude: %f, altitude: %f," +
+                        "                    accuracy: 1, altitudeAccuracy: null," +
+                        "                    heading: null, speed: null }," +
+                        "          timestamp: Date.now()" +
+                        "        });" +
+                        "      }," +
+                        "      watchPosition: function(success) {" +
+                        "        success({" +
+                        "          coords: { latitude: %f, longitude: %f, altitude: %f," +
+                        "                    accuracy: 1, altitudeAccuracy: null," +
+                        "                    heading: null, speed: null }," +
+                        "          timestamp: Date.now()" +
+                        "        });" +
+                        "        return 0;" +
+                        "      }," +
+                        "      clearWatch: function() {}" +
+                        "    };" +
+                        "  }," +
+                        "  configurable: true" +
+                        "});",
+                lat, lon, alt, lat, lon, alt);
         ((JavascriptExecutor) driver).executeScript(script);
     }
 }

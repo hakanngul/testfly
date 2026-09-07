@@ -7,7 +7,6 @@ import org.openqa.selenium.devtools.DevTools;
 import org.openqa.selenium.devtools.HasDevTools;
 import org.openqa.selenium.devtools.v152.page.Page;
 import org.openqa.selenium.devtools.v152.page.Page.StartScreencastFormat;
-import org.openqa.selenium.devtools.v152.page.model.ScreencastFrame;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -18,7 +17,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -201,7 +200,7 @@ public final class RecordingManager {
         private final int maxFrames;
         private final int fps;
         private final boolean preferCdp;
-        private final List<BufferedImage> frames = new CopyOnWriteArrayList<>();
+        private final ConcurrentLinkedQueue<BufferedImage> frames = new ConcurrentLinkedQueue<>();
         private ScheduledExecutorService executor;
         private ScheduledFuture<?> future;
         private DevTools devTools;

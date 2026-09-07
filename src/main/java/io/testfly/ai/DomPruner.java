@@ -4,7 +4,6 @@ import io.testfly.api.TestFlyApi;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**

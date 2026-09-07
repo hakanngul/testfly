@@ -18,10 +18,16 @@ public final class HookRegistry {
     private HookRegistry() {
     }
 
+    private static volatile boolean loaded = false;
+
     /**
-     * Discovers all SPI-registered hooks. Safe to call multiple times.
+     * Discovers all SPI-registered hooks. Safe to call multiple times — subsequent
+     * calls are no-ops.
      */
     public static synchronized void loadAll() {
+        if (loaded)
+            return;
+        loaded = true;
         ServiceLoader<ExecutionHook> loader = ServiceLoader.load(ExecutionHook.class);
         for (ExecutionHook hook : loader) {
             hooks.add(hook);

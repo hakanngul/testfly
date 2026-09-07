@@ -203,11 +203,13 @@
             <groupId>org.jcodec</groupId>
             <artifactId>jcodec</artifactId>
             <version>0.2.5</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jcodec</groupId>
             <artifactId>jcodec-javase</artifactId>
             <version>0.2.5</version>
+            <optional>true</optional>
         </dependency>
 
         <!-- Unit-test tooling (test scope only) -->
@@ -561,7 +563,7 @@
                         <configuration>
                             <configLocation>google_checks.xml</configLocation>
                             <consoleOutput>true</consoleOutput>
-                            <failsOnError>false</failsOnError>
+                            <failsOnError>true</failsOnError>
                         </configuration>
                         <executions>
                             <execution>
