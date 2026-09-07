@@ -23,7 +23,8 @@ class GifEncoder {
      * @param delayMillis delay between frames in milliseconds
      */
     static void write(List<BufferedImage> frames, File output, int delayMillis) throws IOException {
-        if (frames == null || frames.isEmpty()) return;
+        if (frames == null || frames.isEmpty())
+            return;
 
         ImageWriter writer = ImageIO.getImageWritersByFormatName("gif").next();
         try (ImageOutputStream ios = ImageIO.createImageOutputStream(output)) {
@@ -35,9 +36,9 @@ class GifEncoder {
 
             for (int i = 0; i < frames.size(); i++) {
                 BufferedImage frame = toCompatible(frames.get(i));
-                ImageWriteParam      params = writer.getDefaultWriteParam();
-                ImageTypeSpecifier   type   = ImageTypeSpecifier.createFromBufferedImageType(frame.getType());
-                IIOMetadata          meta   = writer.getDefaultImageMetadata(type, params);
+                ImageWriteParam params = writer.getDefaultWriteParam();
+                ImageTypeSpecifier type = ImageTypeSpecifier.createFromBufferedImageType(frame.getType());
+                IIOMetadata meta = writer.getDefaultImageMetadata(type, params);
 
                 applyGifMetadata(meta, delayCs, i == 0);
                 writer.writeToSequence(new IIOImage(frame, null, meta), params);
@@ -58,19 +59,19 @@ class GifEncoder {
 
         // Frame delay + disposal
         IIOMetadataNode gce = getOrCreate(root, "GraphicControlExtension");
-        gce.setAttribute("disposalMethod",       "restoreToBackgroundColor");
-        gce.setAttribute("userInputFlag",         "FALSE");
-        gce.setAttribute("transparentColorFlag",  "FALSE");
-        gce.setAttribute("delayTime",             String.valueOf(delayCs));
+        gce.setAttribute("disposalMethod", "restoreToBackgroundColor");
+        gce.setAttribute("userInputFlag", "FALSE");
+        gce.setAttribute("transparentColorFlag", "FALSE");
+        gce.setAttribute("delayTime", String.valueOf(delayCs));
         gce.setAttribute("transparentColorIndex", "0");
 
         // Loop forever (only set on first frame)
         if (isFirst) {
             IIOMetadataNode appExts = getOrCreate(root, "ApplicationExtensions");
-            IIOMetadataNode appExt  = new IIOMetadataNode("ApplicationExtension");
-            appExt.setAttribute("applicationID",    "NETSCAPE");
+            IIOMetadataNode appExt = new IIOMetadataNode("ApplicationExtension");
+            appExt.setAttribute("applicationID", "NETSCAPE");
             appExt.setAttribute("authenticationCode", "2.0");
-            appExt.setUserObject(new byte[]{0x1, 0x0, 0x0}); // loop infinitely
+            appExt.setUserObject(new byte[] { 0x1, 0x0, 0x0 }); // loop infinitely
             appExts.appendChild(appExt);
         }
 
@@ -79,10 +80,13 @@ class GifEncoder {
 
     /** GIF supports max 256 colors — convert to indexed TYPE_BYTE_INDEXED. */
     private static BufferedImage toCompatible(BufferedImage src) {
-        if (src.getType() == BufferedImage.TYPE_BYTE_INDEXED) return src;
+        if (src.getType() == BufferedImage.TYPE_BYTE_INDEXED)
+            return src;
         BufferedImage dst = new BufferedImage(src.getWidth(), src.getHeight(),
                 BufferedImage.TYPE_BYTE_INDEXED);
-        dst.createGraphics().drawImage(src, 0, 0, null);
+        java.awt.Graphics2D g = dst.createGraphics();
+        g.drawImage(src, 0, 0, null);
+        g.dispose();
         return dst;
     }
 

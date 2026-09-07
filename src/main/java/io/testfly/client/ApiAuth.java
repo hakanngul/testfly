@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.testfly.api.TestFlyApi;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -181,11 +182,12 @@ public interface ApiAuth {
         private static CachedToken fetchPasswordToken(String tokenUrl, String clientId, String clientSecret,
                 String username, String password) {
             try {
+                String enc = java.nio.charset.StandardCharsets.UTF_8.name();
                 String form = "grant_type=password"
-                        + "&client_id=" + clientId
-                        + "&client_secret=" + clientSecret
-                        + "&username=" + username
-                        + "&password=" + password;
+                        + "&client_id=" + URLEncoder.encode(clientId, enc)
+                        + "&client_secret=" + URLEncoder.encode(clientSecret, enc)
+                        + "&username=" + URLEncoder.encode(username, enc)
+                        + "&password=" + URLEncoder.encode(password, enc);
                 HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create(tokenUrl))
                         .header("Content-Type", "application/x-www-form-urlencoded")
@@ -210,9 +212,10 @@ public interface ApiAuth {
 
         private static CachedToken fetchToken(String tokenUrl, String clientId, String clientSecret) {
             try {
+                String enc = java.nio.charset.StandardCharsets.UTF_8.name();
                 String form = "grant_type=client_credentials"
-                        + "&client_id=" + clientId
-                        + "&client_secret=" + clientSecret;
+                        + "&client_id=" + URLEncoder.encode(clientId, enc)
+                        + "&client_secret=" + URLEncoder.encode(clientSecret, enc);
 
                 HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create(tokenUrl))

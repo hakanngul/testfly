@@ -136,8 +136,15 @@ public final class ActionCompiler {
             }
         }
 
-        int maxTokens = (config.getLocators() != null) ? config.getLocators().getMaxDomTokens() : 8000;
-        String prunedDom = DomPruner.prune(driver, maxTokens);
+        int totalBudget = (config.getLocators() != null) ? config.getLocators().getMaxDomTokens() : 8000;
+
+        // Calculate scaffolding overhead (everything except the DOM) so DomPruner
+        // receives only the remaining token budget.
+        String scaffolding = buildPrompt(currentUrl, currentTitle, "", goal);
+        int scaffoldingTokens = scaffolding.length() / 4; // ~4 chars per token estimate
+        int domBudget = Math.max(totalBudget - scaffoldingTokens, 500);
+
+        String prunedDom = DomPruner.prune(driver, domBudget);
 
         String prompt = buildPrompt(currentUrl, currentTitle, prunedDom, goal);
         String response = provider.call(apiKey, aiCfg.getModel(), prompt, aiCfg.getTimeoutSeconds());

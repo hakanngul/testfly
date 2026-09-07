@@ -14,9 +14,12 @@ import java.nio.file.Files;
 import java.util.logging.Logger;
 
 /**
- * Generates unified git diff patches (.patch) for failed tests using LLM intelligence.
+ * Generates unified git diff patches (.patch) for failed tests using LLM
+ * intelligence.
  *
- * <p>Produces non-destructive patches saved to {@code target/remediations/{TestName}.patch}
+ * <p>
+ * Produces non-destructive patches saved to
+ * {@code target/remediations/{TestName}.patch}
  * which can be inspected by developers or applied via {@code git apply}.
  */
 @TestFlyApi(since = "1.9.0")
@@ -24,7 +27,8 @@ public final class RemediationPatchGenerator {
 
     private static final Logger LOG = Logger.getLogger(RemediationPatchGenerator.class.getName());
 
-    private RemediationPatchGenerator() {}
+    private RemediationPatchGenerator() {
+    }
 
     /**
      * Generates a unified diff patch for a failing test and writes it to disk.
@@ -34,9 +38,11 @@ public final class RemediationPatchGenerator {
      * @param timing    metrics and error context of the failed test
      * @param pageUrl   current page URL at failure
      * @param pageTitle current page title at failure
-     * @return the generated {@link File} patch, or {@code null} if generation failed
+     * @return the generated {@link File} patch, or {@code null} if generation
+     *         failed
      */
-    public static File generateAndSave(String testId, SourceCodeLocator.SourceSnippet snippet, TestTiming timing, String pageUrl, String pageTitle) {
+    public static File generateAndSave(String testId, SourceCodeLocator.SourceSnippet snippet, TestTiming timing,
+            String pageUrl, String pageTitle) {
         if (snippet == null || timing == null) {
             return null;
         }
@@ -78,6 +84,12 @@ public final class RemediationPatchGenerator {
                 return null;
             }
 
+            // Validate that the patch has proper unified-diff file headers
+            if (!cleanPatch.contains("--- a/") || !cleanPatch.contains("+++ b/")) {
+                LOG.warning("[RemediationPatchGenerator] Patch is missing standard " +
+                        "'--- a/' and/or '+++ b/' headers. It may not apply cleanly via 'git apply'.");
+            }
+
             File outDir = new File("target", "remediations");
             outDir.mkdirs();
 
@@ -97,7 +109,8 @@ public final class RemediationPatchGenerator {
     /**
      * Builds the patch generation prompt for the LLM.
      */
-    public static String buildPatchPrompt(String testId, SourceCodeLocator.SourceSnippet snippet, TestTiming timing, String pageUrl, String pageTitle) {
+    public static String buildPatchPrompt(String testId, SourceCodeLocator.SourceSnippet snippet, TestTiming timing,
+            String pageUrl, String pageTitle) {
         StringBuilder sb = new StringBuilder();
         sb.append("You are an expert QA automation engineer repairing automated tests.\n");
         sb.append("A Selenium/TestFly test has failed. Generate a Unified Diff (git diff) patch to fix the issue.\n\n");
@@ -119,16 +132,19 @@ public final class RemediationPatchGenerator {
         sb.append("- File: ").append(snippet.relativePath()).append("\n");
         sb.append("- Line: ").append(snippet.lineNumber()).append("\n\n");
 
-        sb.append("## Code Context (Lines ").append(snippet.startLine()).append("-").append(snippet.endLine()).append(")\n");
+        sb.append("## Code Context (Lines ").append(snippet.startLine()).append("-").append(snippet.endLine())
+                .append(")\n");
         sb.append("```java\n");
         sb.append(snippet.contextCode());
         sb.append("```\n\n");
 
         sb.append("## Task\n");
-        sb.append("Write a standard unified git diff patch to fix the error in `").append(snippet.relativePath()).append("`.\n");
+        sb.append("Write a standard unified git diff patch to fix the error in `").append(snippet.relativePath())
+                .append("`.\n");
         sb.append("Rules:\n");
         sb.append("1. Output ONLY the unified git diff block.\n");
-        sb.append("2. Include proper headers: `--- a/").append(snippet.relativePath()).append("` and `+++ b/").append(snippet.relativePath()).append("`.\n");
+        sb.append("2. Include proper headers: `--- a/").append(snippet.relativePath()).append("` and `+++ b/")
+                .append(snippet.relativePath()).append("`.\n");
         sb.append("3. Do not include markdown prose, conversational text, or explanations. Only the diff.\n");
 
         return sb.toString();

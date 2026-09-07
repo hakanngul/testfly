@@ -19,6 +19,21 @@ public class SuiteContext {
 
     private static final ConcurrentHashMap<String, Object> STORE = new ConcurrentHashMap<>();
 
+    static {
+        registerShutdownHook();
+    }
+
+    /**
+     * Registers a JVM shutdown hook that clears the suite-level store.
+     * This ensures cleanup even if the JVM crashes or exits before the
+     * framework's normal suite-end lifecycle runs {@link #clear()}.
+     */
+    private static void registerShutdownHook() {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            STORE.clear();
+        }, "testfly-suite-context-shutdown"));
+    }
+
     public void set(String key, Object value) {
         STORE.put(key, value);
     }
@@ -32,8 +47,8 @@ public class SuiteContext {
         Object value = STORE.get(key);
         if (value == null) {
             throw new IllegalStateException(
-                "[SuiteContext] Key not found: '" + key + "'. " +
-                "Available keys: " + STORE.keySet());
+                    "[SuiteContext] Key not found: '" + key + "'. " +
+                            "Available keys: " + STORE.keySet());
         }
         return (T) value;
     }

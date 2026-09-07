@@ -135,6 +135,20 @@ public final class VisualAssert {
         // First run — no baseline yet
         if (!baseline.exists()) {
             saveBaseline(baseline, current);
+            boolean failOnNew = false;
+            try {
+                io.testfly.config.TestFlyConfig config = TestFlyContext.getConfig();
+                if (config.getVisual() != null) {
+                    failOnNew = config.getVisual().isFailOnNewBaseline();
+                }
+            } catch (Exception ignored) {
+            }
+            if (failOnNew) {
+                throw new AssertionError("[VisualAssert] No baseline found for '" + name +
+                        "'. New baseline saved at: " + baseline.getAbsolutePath() +
+                        ". Review it and re-run the test. " +
+                        "(visual.failOnNewBaseline is enabled)");
+            }
             LOG.warning("[VisualAssert] No baseline found for '" + name +
                     "'. Saved as new baseline: " + baseline.getAbsolutePath() +
                     ". Review it before committing.");

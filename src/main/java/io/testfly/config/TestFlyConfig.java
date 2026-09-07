@@ -1147,6 +1147,7 @@ public final class TestFlyConfig {
         private String diffDir = "target/visual-diffs";
         private double defaultTolerance = 0;
         private boolean updateBaselines = false;
+        private boolean failOnNewBaseline = false;
 
         public String getBaselineDir() {
             return baselineDir;
@@ -1178,6 +1179,14 @@ public final class TestFlyConfig {
 
         public void setUpdateBaselines(boolean v) {
             this.updateBaselines = v;
+        }
+
+        public boolean isFailOnNewBaseline() {
+            return failOnNewBaseline;
+        }
+
+        public void setFailOnNewBaseline(boolean v) {
+            this.failOnNewBaseline = v;
         }
     }
 

@@ -11,11 +11,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.regex.Pattern;
 
 /**
  * JDBC-backed database assertion client. No ORM required — plain SQL.
  *
- * <p>Obtain via {@code BaseTest}:
+ * <p>
+ * Obtain via {@code BaseTest}:
+ * 
  * <pre>
  * // default datasource from testfly.yml database.url
  * db().assertRowExists("users", Map.of("email", "admin@example.com"));
@@ -29,7 +32,9 @@ import java.util.StringJoiner;
  * db("reporting").assertRowCount("monthly_summary", 12);
  * </pre>
  *
- * <p>Config in {@code testfly.yml}:
+ * <p>
+ * Config in {@code testfly.yml}:
+ * 
  * <pre>
  * database:
  *   url: jdbc:postgresql://localhost/mydb
@@ -52,9 +57,13 @@ public final class DbClient {
         return new DbClient(DbConnectionFactory.DEFAULT);
     }
 
-    /** Returns a client backed by the named entry under {@code database.datasources}. */
+    /**
+     * Returns a client backed by the named entry under
+     * {@code database.datasources}.
+     */
     public static DbClient forNamed(String name) {
-        if (name == null || name.isEmpty()) throw new IllegalArgumentException("Datasource name must not be blank");
+        if (name == null || name.isEmpty())
+            throw new IllegalArgumentException("Datasource name must not be blank");
         return new DbClient(name);
     }
 
@@ -66,7 +75,7 @@ public final class DbClient {
      *
      * <pre>
      * db().query("SELECT status FROM orders WHERE id = ?", orderId)
-     *     .assertValue("status", "SHIPPED");
+     *         .assertValue("status", "SHIPPED");
      * </pre>
      */
     public DbQuery query(String sql, Object... params) {
@@ -106,7 +115,8 @@ public final class DbClient {
     // ── Row existence assertions ───────────────────────────────────────
 
     /**
-     * Asserts that at least one row in {@code table} matches all {@code conditions}.
+     * Asserts that at least one row in {@code table} matches all
+     * {@code conditions}.
      *
      * <pre>
      * db().assertRowExists("users", Map.of("email", "alice@example.com", "active", true));
@@ -115,12 +125,12 @@ public final class DbClient {
      * @throws DbAssertException if no matching row is found
      */
     public void assertRowExists(String table, Map<String, Object> conditions) {
+        validateIdentifier(table, "table name");
         StepLogger.step("[DB] Assert row exists in '" + table + "'");
         long count = countWhere(table, conditions);
         if (count == 0) {
             throw new DbAssertException(
-                "Expected at least one row in '" + table + "' matching " + conditions + " but found none."
-            );
+                    "Expected at least one row in '" + table + "' matching " + conditions + " but found none.");
         }
     }
 
@@ -134,12 +144,12 @@ public final class DbClient {
      * @throws DbAssertException if a matching row exists
      */
     public void assertNoRow(String table, Map<String, Object> conditions) {
+        validateIdentifier(table, "table name");
         long count = countWhere(table, conditions);
         if (count > 0) {
             throw new DbAssertException(
-                "Expected no rows in '" + table + "' matching " + conditions +
-                " but found " + count + "."
-            );
+                    "Expected no rows in '" + table + "' matching " + conditions +
+                            " but found " + count + ".");
         }
     }
 
@@ -151,16 +161,17 @@ public final class DbClient {
      * @throws DbAssertException if the actual count differs
      */
     public void assertRowCount(String table, int expected) {
+        validateIdentifier(table, "table name");
         long actual = countRaw("SELECT COUNT(*) FROM " + table);
         if (actual != expected) {
             throw new DbAssertException(
-                "Expected " + expected + " row(s) in '" + table + "' but found " + actual + "."
-            );
+                    "Expected " + expected + " row(s) in '" + table + "' but found " + actual + ".");
         }
     }
 
     /**
-     * Asserts that the number of rows in {@code table} matching the raw {@code where}
+     * Asserts that the number of rows in {@code table} matching the raw
+     * {@code where}
      * clause equals {@code expected}.
      *
      * <pre>
@@ -170,12 +181,30 @@ public final class DbClient {
      * @throws DbAssertException if the actual count differs
      */
     public void assertRowCount(String table, String where, int expected) {
+        validateIdentifier(table, "table name");
         long actual = countRaw("SELECT COUNT(*) FROM " + table + " WHERE " + where);
         if (actual != expected) {
             throw new DbAssertException(
-                "Expected " + expected + " row(s) in '" + table +
-                "' WHERE " + where + " but found " + actual + "."
-            );
+                    "Expected " + expected + " row(s) in '" + table +
+                            "' WHERE " + where + " but found " + actual + ".");
+        }
+    }
+
+    // ── Identifier validation ──────────────────────────────────────────
+
+    private static final Pattern SAFE_IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_.]*$");
+
+    /**
+     * Rejects table/column names containing SQL-special characters
+     * (semicolons, quotes, dashes, spaces, parentheses, etc.).
+     *
+     * @throws IllegalArgumentException if the name is not a safe SQL identifier
+     */
+    private static void validateIdentifier(String name, String label) {
+        if (name == null || !SAFE_IDENTIFIER.matcher(name).matches()) {
+            throw new IllegalArgumentException(
+                    "[Database] Invalid " + label + ": '" + name + "'. " +
+                            "Must match ^[a-zA-Z_][a-zA-Z0-9_.]*$ — no spaces, dashes, quotes, or semicolons.");
         }
     }
 
@@ -185,9 +214,11 @@ public final class DbClient {
         if (conditions == null || conditions.isEmpty()) {
             throw new IllegalArgumentException("[Database] conditions map must not be empty");
         }
+        validateIdentifier(table, "table name");
         StringJoiner where = new StringJoiner(" AND ");
         List<Object> values = new ArrayList<>();
         for (Map.Entry<String, Object> e : conditions.entrySet()) {
+            validateIdentifier(e.getKey(), "column name");
             where.add(e.getKey() + " = ?");
             values.add(e.getValue());
         }
@@ -212,7 +243,7 @@ public final class DbClient {
         try {
             Connection conn = DbConnectionFactory.getConnection(datasourceName);
             try (PreparedStatement ps = conn.prepareStatement(sql);
-                 ResultSet rs = ps.executeQuery()) {
+                    ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 return rs.getLong(1);
             }

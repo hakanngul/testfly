@@ -21,24 +21,25 @@ import java.util.Map;
  */
 final class ExcelDataReader {
 
-    private ExcelDataReader() {}
+    private ExcelDataReader() {
+    }
 
     /**
      * @param is        InputStream of the XLSX file
      * @param sheetName sheet name — uses the first sheet when blank
-     * @param rowIndex  zero-based data-row index (0 = first row after the header row)
+     * @param rowIndex  zero-based data-row index (0 = first row after the header
+     *                  row)
      */
     static Map<String, Object> read(InputStream is, String sheetName, int rowIndex)
             throws Exception {
         try (Workbook wb = new XSSFWorkbook(is)) {
             Sheet sheet = (sheetName == null || sheetName.isEmpty())
-                ? wb.getSheetAt(0)
-                : wb.getSheet(sheetName);
+                    ? wb.getSheetAt(0)
+                    : wb.getSheet(sheetName);
 
             if (sheet == null) {
                 throw new IllegalArgumentException(
-                    "[TestData] Excel sheet '" + sheetName + "' not found in workbook."
-                );
+                        "[TestData] Excel sheet '" + sheetName + "' not found in workbook.");
             }
 
             Row headerRow = sheet.getRow(0);
@@ -56,9 +57,8 @@ final class ExcelDataReader {
             Row dataRow = sheet.getRow(sheetRowIndex);
             if (dataRow == null) {
                 throw new IllegalArgumentException(
-                    "[TestData] Excel row " + rowIndex + " not found " +
-                    "(sheet has fewer data rows than requested)."
-                );
+                        "[TestData] Excel row " + rowIndex + " not found " +
+                                "(sheet has fewer data rows than requested).");
             }
 
             Map<String, Object> result = new LinkedHashMap<>();
@@ -70,30 +70,83 @@ final class ExcelDataReader {
         }
     }
 
+    /**
+     * Reads all data rows from the workbook.
+     *
+     * @param is        InputStream of the XLSX file
+     * @param sheetName sheet name — uses the first sheet when blank
+     * @return list of row maps, one per data row (header row excluded)
+     */
+    static List<Map<String, Object>> readAll(InputStream is, String sheetName)
+            throws Exception {
+        try (Workbook wb = new XSSFWorkbook(is)) {
+            Sheet sheet = (sheetName == null || sheetName.isEmpty())
+                    ? wb.getSheetAt(0)
+                    : wb.getSheet(sheetName);
+
+            if (sheet == null) {
+                throw new IllegalArgumentException(
+                        "[TestData] Excel sheet '" + sheetName + "' not found in workbook.");
+            }
+
+            Row headerRow = sheet.getRow(0);
+            if (headerRow == null) {
+                throw new IllegalArgumentException("[TestData] Excel sheet is empty.");
+            }
+
+            List<String> headers = new ArrayList<>();
+            for (Cell cell : headerRow) {
+                headers.add(cellStringValue(cell).trim());
+            }
+
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (int r = 1; r <= sheet.getLastRowNum(); r++) {
+                Row dataRow = sheet.getRow(r);
+                if (dataRow == null)
+                    continue;
+                Map<String, Object> row = new LinkedHashMap<>();
+                for (int i = 0; i < headers.size(); i++) {
+                    Cell cell = dataRow.getCell(i);
+                    row.put(headers.get(i), cell == null ? "" : cellValue(cell));
+                }
+                rows.add(row);
+            }
+            return rows;
+        }
+    }
+
     private static Object cellValue(Cell cell) {
         CellType type = cell.getCellType();
-        if (type == CellType.FORMULA) type = cell.getCachedFormulaResultType();
+        if (type == CellType.FORMULA)
+            type = cell.getCachedFormulaResultType();
         switch (type) {
             case NUMERIC:
                 if (DateUtil.isCellDateFormatted(cell)) {
                     return cell.getLocalDateTimeCellValue().toLocalDate().toString();
                 }
                 double d = cell.getNumericCellValue();
-                if (d == Math.floor(d) && !Double.isInfinite(d)) return (long) d;
+                if (d == Math.floor(d) && !Double.isInfinite(d))
+                    return (long) d;
                 return d;
-            case BOOLEAN: return cell.getBooleanCellValue();
-            case BLANK:   return "";
-            default:      return cell.getStringCellValue();
+            case BOOLEAN:
+                return cell.getBooleanCellValue();
+            case BLANK:
+                return "";
+            default:
+                return cell.getStringCellValue();
         }
     }
 
     private static String cellStringValue(Cell cell) {
-        if (cell == null) return "";
+        if (cell == null)
+            return "";
         CellType type = cell.getCellType();
-        if (type == CellType.FORMULA) type = cell.getCachedFormulaResultType();
+        if (type == CellType.FORMULA)
+            type = cell.getCachedFormulaResultType();
         if (type == CellType.NUMERIC) {
             double d = cell.getNumericCellValue();
-            if (d == Math.floor(d)) return String.valueOf((long) d);
+            if (d == Math.floor(d))
+                return String.valueOf((long) d);
             return String.valueOf(d);
         }
         return cell.getStringCellValue();

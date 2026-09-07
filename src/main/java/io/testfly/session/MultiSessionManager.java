@@ -9,10 +9,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Manages named WebDriver sessions within a single test — enabling multi-browser
+ * Manages named WebDriver sessions within a single test — enabling
+ * multi-browser
  * coordination such as admin/user flows, chat apps, or approval workflows.
  *
- * <p>Usage via {@code BaseTest} or {@code BaseJUnit5Test}:
+ * <p>
+ * Usage via {@code BaseTest} or {@code BaseJUnit5Test}:
+ * 
  * <pre>
  * withSession("admin", () -&gt; {
  *     open("/admin/approvals");
@@ -24,7 +27,8 @@ import java.util.Map;
  * });
  * </pre>
  *
- * <p>All named sessions are automatically closed at test end by the framework.
+ * <p>
+ * All named sessions are automatically closed at test end by the framework.
  * Nesting {@code withSession()} calls is supported — the correct driver is
  * restored on each exit.
  */
@@ -40,13 +44,14 @@ public final class MultiSessionManager {
         void run() throws Exception;
     }
 
-    private static final ThreadLocal<Map<String, WebDriver>> NAMED =
-            ThreadLocal.withInitial(LinkedHashMap::new);
+    private static final ThreadLocal<Map<String, WebDriver>> NAMED = ThreadLocal.withInitial(LinkedHashMap::new);
 
-    private MultiSessionManager() {}
+    private MultiSessionManager() {
+    }
 
     /**
-     * Returns the named session's {@link WebDriver}, creating a new browser instance
+     * Returns the named session's {@link WebDriver}, creating a new browser
+     * instance
      * on first access. Subsequent calls with the same name return the same driver.
      */
     public static WebDriver getSession(String name) {
@@ -55,10 +60,10 @@ public final class MultiSessionManager {
             int maxPerTest = getMaxPerTest();
             if (sessions.size() >= maxPerTest) {
                 throw new IllegalStateException(
-                    "[MultiSession] Cannot create session '" + name + "': " +
-                    "maximum of " + maxPerTest + " named sessions per test exceeded " +
-                    "(configure sessions.maxPerTest in testfly.yml to increase). " +
-                    "Active sessions: " + sessions.keySet());
+                        "[MultiSession] Cannot create session '" + name + "': " +
+                                "maximum of " + maxPerTest + " named sessions per test exceeded " +
+                                "(configure sessions.maxPerTest in testfly.yml to increase). " +
+                                "Active sessions: " + sessions.keySet());
             }
         }
         return sessions.computeIfAbsent(name, k -> createNewDriver(k));
@@ -93,28 +98,35 @@ public final class MultiSessionManager {
     }
 
     /**
-     * Quits all named-session drivers for the current thread and clears the registry.
+     * Quits all named-session drivers for the current thread and clears the
+     * registry.
      * Called automatically by the framework at the end of each test.
+     * Releases a semaphore permit for each session that was active.
      */
     public static void clearAll() {
         Map<String, WebDriver> sessions = NAMED.get();
         for (Map.Entry<String, WebDriver> entry : sessions.entrySet()) {
             try {
                 entry.getValue().quit();
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
+            DriverManager.releasePermit();
         }
         sessions.clear();
         NAMED.remove();
     }
 
     private static WebDriver createNewDriver(String name) {
+        // Acquire a semaphore permit so maxActiveSessions covers named sessions too
+        DriverManager.acquirePermit();
         try {
             WebDriver driver = DriverProviderFactory.getProvider().createDriver();
             System.out.println("[MultiSession] Created driver for session: " + name);
             return driver;
         } catch (Exception e) {
+            DriverManager.releasePermit(); // return the permit on failure
             throw new IllegalStateException(
-                "[MultiSession] Failed to create driver for session '" + name + "': " + e.getMessage(), e);
+                    "[MultiSession] Failed to create driver for session '" + name + "': " + e.getMessage(), e);
         }
     }
 }

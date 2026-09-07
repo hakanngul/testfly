@@ -44,37 +44,47 @@ import java.util.List;
 /**
  * TestExecutionListener manages the per-test method lifecycle within TestFly.
  *
- * <p>Responsibilities:
+ * <p>
+ * Responsibilities:
  * <ul>
- *     <li>Creates a WebDriver instance at the start of each test method.</li>
- *     <li>Ensures the WebDriver is terminated after test completion
- *         (success, failure, or skip).</li>
- *     <li>Captures failure artifacts (e.g., screenshots) before driver shutdown.</li>
- *     <li>Sends failure artifacts to ReportPortal from
- *         {@link IInvokedMethodListener#afterInvocation}, before the ReportPortal
- *         TestNG listener closes the failing test item.</li>
+ * <li>Creates a WebDriver instance at the start of each test method.</li>
+ * <li>Ensures the WebDriver is terminated after test completion
+ * (success, failure, or skip).</li>
+ * <li>Captures failure artifacts (e.g., screenshots) before driver
+ * shutdown.</li>
+ * <li>Sends failure artifacts to ReportPortal from
+ * {@link IInvokedMethodListener#afterInvocation}, before the ReportPortal
+ * TestNG listener closes the failing test item.</li>
  * </ul>
  *
- * <p>Design Principles:
+ * <p>
+ * Design Principles:
  * <ul>
- *     <li>One test method = one WebDriver session.</li>
- *     <li>Thread-safe execution using ThreadLocal driver management.</li>
- *     <li>Deterministic cleanup to prevent session leaks under parallel load.</li>
+ * <li>One test method = one WebDriver session.</li>
+ * <li>Thread-safe execution using ThreadLocal driver management.</li>
+ * <li>Deterministic cleanup to prevent session leaks under parallel load.</li>
  * </ul>
  *
- * <p>This listener does not manage suite-level initialization.
+ * <p>
+ * This listener does not manage suite-level initialization.
  * Global setup is handled by {@code SuiteExecutionListener}.
  */
 
 public final class TestExecutionListener implements ITestListener, IInvokedMethodListener {
 
-    /** Tracks whether JS errors have already been logged for this test (prevents double-logging on failure redirect). */
+    /**
+     * Tracks whether JS errors have already been logged for this test (prevents
+     * double-logging on failure redirect).
+     */
     private static final ThreadLocal<Boolean> jsErrorsLogged = ThreadLocal.withInitial(() -> false);
 
     /**
-     * Tracks whether failure artifacts (screenshot, AI analysis) were already captured
-     * and sent to ReportPortal during {@link IInvokedMethodListener#afterInvocation}.
-     * RP closes the test item in its own {@code onTestFailure}, so attachments must be
+     * Tracks whether failure artifacts (screenshot, AI analysis) were already
+     * captured
+     * and sent to ReportPortal during
+     * {@link IInvokedMethodListener#afterInvocation}.
+     * RP closes the test item in its own {@code onTestFailure}, so attachments must
+     * be
      * emitted early; this flag prevents double-capture / double-sending when
      * {@code onTestFailure} runs later.
      */
@@ -82,15 +92,17 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
 
     @Override
     public void onTestStart(ITestResult result) {
-        if (isCucumberScenario(result)) return;
+        if (isCucumberScenario(result))
+            return;
         String testId = result.getMethod().getQualifiedName();
-        failureArtifactsHandled.set(false);    // fresh attempt
+        failureArtifactsHandled.set(false); // fresh attempt
         TestFlyContext.setCurrentTestId(testId);
-        ExecutionMetrics.clearSteps(testId);   // discard stale steps from prior retry attempt
+        ExecutionMetrics.clearSteps(testId); // discard stale steps from prior retry attempt
         ExecutionMetrics.markStart(testId);
         ExecutionMetrics.recordTestClass(testId, result.getTestClass().getRealClass().getSimpleName());
         ExecutionMetrics.recordDescription(testId, result.getMethod().getDescription());
-        // Set browser override BEFORE creating driver so DriverProviderFactory can read it
+        // Set browser override BEFORE creating driver so DriverProviderFactory can read
+        // it
         String browserOverride = result.getTestContext().getCurrentXmlTest()
                 .getParameter("testfly.browser");
         if (browserOverride != null && !browserOverride.isEmpty()) {
@@ -107,7 +119,8 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         if (!skipBrowser(result)) {
             DriverManager.createDriver();
             String sessionUrl = DriverManager.getCloudSessionUrl();
-            if (sessionUrl != null) ExecutionMetrics.recordSessionUrl(testId, sessionUrl);
+            if (sessionUrl != null)
+                ExecutionMetrics.recordSessionUrl(testId, sessionUrl);
             startRecordingIfEnabled();
         }
         autoClearEmailIfEnabled();
@@ -119,7 +132,8 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
 
     @Override
     public void onTestSuccess(ITestResult result) {
-        if (isCucumberScenario(result)) return;
+        if (isCucumberScenario(result))
+            return;
         String testId = result.getMethod().getQualifiedName();
 
         if (!skipBrowser(result) && ConsoleErrorCollector.isEnabled()) {
@@ -128,11 +142,15 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
             jsErrorsLogged.set(true);
 
             boolean failOnErrors = false;
-            try { failOnErrors = TestFlyContext.getConfig().getBrowser().isFailOnConsoleErrors(); } catch (Exception ignored) {}
+            try {
+                failOnErrors = TestFlyContext.getConfig().getBrowser().isFailOnConsoleErrors();
+            } catch (Exception ignored) {
+            }
 
             if (failOnErrors && !errors.isEmpty()) {
                 result.setStatus(ITestResult.FAILURE);
-                result.setThrowable(new AssertionError("JS console errors detected (" + errors.size() + "): " + errors));
+                result.setThrowable(
+                        new AssertionError("JS console errors detected (" + errors.size() + "): " + errors));
                 onTestFailure(result);
                 return;
             }
@@ -143,14 +161,14 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         if (collector.hasFailed()) {
             List<String> softFailures = collector.getFailures();
             // Log each failure as a step entry
-            softFailures.forEach(msg ->
-                StepLogger.step("[Soft Assertion Failed] " + msg, StepStatus.FAIL));
+            softFailures.forEach(msg -> StepLogger.step("[Soft Assertion Failed] " + msg, StepStatus.FAIL));
             // Single screenshot at flush time
-            String screenshotPath = !skipBrowser(result) ? ScreenshotManager.capture(result.getMethod().getMethodName()) : null;
+            String screenshotPath = !skipBrowser(result) ? ScreenshotManager.capture(result.getMethod().getMethodName())
+                    : null;
             ExecutionMetrics.recordScreenshot(result.getMethod().getQualifiedName(), screenshotPath);
             // Build combined error message
             String combined = softFailures.size() + " soft assertion(s) failed:\n" +
-                String.join("\n", softFailures);
+                    String.join("\n", softFailures);
             result.setStatus(ITestResult.FAILURE);
             result.setThrowable(new AssertionError(combined));
             SoftAssertions.clear();
@@ -175,7 +193,8 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         TestManagementReporter.getInstance().onTestResult(
                 result.getMethod().getConstructorOrMethod().getMethod(), "PASSED", null);
         TestClock.autoReset();
-        if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest()) DriverManager.quitDriver();
+        if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest())
+            DriverManager.quitDriver();
         MultiSessionManager.clearAll();
         DbConnectionFactory.closeAll();
         io.testfly.testdata.TestDataStore.clear();
@@ -184,21 +203,39 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         BrowserContext.clear();
         NetworkMock.cleanup();
         TestFlyContext.clearCurrentTestId();
-        jsErrorsLogged.set(false);
+        jsErrorsLogged.remove();
     }
 
     @Override
     public void onTestFailure(ITestResult result) {
-        if (isCucumberScenario(result)) return;
+        if (isCucumberScenario(result))
+            return;
         String testName = result.getMethod().getMethodName();
         String testId = result.getMethod().getQualifiedName();
 
         // Log failure IMMEDIATELY — before ReportPortal closes the test item
         org.slf4j.LoggerFactory.getLogger(TestExecutionListener.class)
-            .info("❌ Test failed: {}", testId);
+                .info("❌ Test failed: {}", testId);
 
         if (!skipBrowser(result) && ConsoleErrorCollector.isEnabled() && !jsErrorsLogged.get()) {
-            ConsoleErrorCollector.collect().forEach(e -> StepLogger.step("[JS Error] " + e, StepStatus.WARN));
+            List<String> errors = ConsoleErrorCollector.collect();
+            errors.forEach(e -> StepLogger.step("[JS Error] " + e, StepStatus.WARN));
+
+            boolean failOnErrors = false;
+            try {
+                failOnErrors = TestFlyContext.getConfig().getBrowser().isFailOnConsoleErrors();
+            } catch (Exception ignored) {
+            }
+
+            if (failOnErrors && !errors.isEmpty()) {
+                String consoleErrorSummary = "JS console errors detected (" + errors.size() + "): " + errors;
+                Throwable original = result.getThrowable();
+                if (original != null) {
+                    original.addSuppressed(new AssertionError(consoleErrorSummary));
+                } else {
+                    result.setThrowable(new AssertionError(consoleErrorSummary));
+                }
+            }
         }
         String recordingPath = skipBrowser(result) ? null : RecordingManager.saveOnFailure(testId);
         ExecutionMetrics.recordRecording(testId, recordingPath);
@@ -212,7 +249,8 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         }
         saveTraceIfEnabled(testId, result.getMethod().getMethodName(), false);
 
-        // Capture screenshot + AI analysis and send to ReportPortal while the item is open.
+        // Capture screenshot + AI analysis and send to ReportPortal while the item is
+        // open.
         // If afterInvocation already handled this, skip to avoid duplicates.
         if (!Boolean.TRUE.equals(failureArtifactsHandled.get())) {
             captureFailureArtifacts(result, testId, testName);
@@ -223,7 +261,8 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         TestManagementReporter.getInstance().onTestResult(
                 result.getMethod().getConstructorOrMethod().getMethod(), "FAILED", failureComment);
         TestClock.autoReset();
-        if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest()) DriverManager.quitDriver();
+        if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest())
+            DriverManager.quitDriver();
         MultiSessionManager.clearAll();
         DbConnectionFactory.closeAll();
         io.testfly.testdata.TestDataStore.clear();
@@ -237,7 +276,8 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
 
     @Override
     public void onTestSkipped(ITestResult result) {
-        if (isCucumberScenario(result)) return;
+        if (isCucumberScenario(result))
+            return;
         String testId = result.getMethod().getQualifiedName();
         ExecutionMetrics.recordStatus(testId, "SKIPPED");
         ExecutionMetrics.markEnd(testId);
@@ -245,7 +285,8 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         TestManagementReporter.getInstance().onTestResult(
                 result.getMethod().getConstructorOrMethod().getMethod(), "SKIPPED", null);
         TestClock.autoReset();
-        if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest()) DriverManager.quitDriver();
+        if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest())
+            DriverManager.quitDriver();
         MultiSessionManager.clearAll();
         DbConnectionFactory.closeAll();
         io.testfly.testdata.TestDataStore.clear();
@@ -258,26 +299,26 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
 
     private void checkQuarantine(ITestResult result) {
         try {
-            io.testfly.config.TestFlyConfig.Quarantine cfg =
-                    TestFlyContext.getConfig().getQuarantine();
-            if (cfg != null && !cfg.isEnabled()) return;
-        } catch (Exception ignored) {}
+            io.testfly.config.TestFlyConfig.Quarantine cfg = TestFlyContext.getConfig().getQuarantine();
+            if (cfg != null && !cfg.isEnabled())
+                return;
+        } catch (Exception ignored) {
+        }
 
-        String className  = result.getTestClass().getRealClass().getName();
+        String className = result.getTestClass().getRealClass().getName();
         String methodName = result.getMethod().getMethodName();
-        String testId     = className + "#" + methodName;
+        String testId = className + "#" + methodName;
 
         if (QuarantineLoader.isQuarantined(testId)) {
             throw new org.testng.SkipException(
-                "[Quarantined] " + testId + " — " + QuarantineLoader.getReason(testId)
-            );
+                    "[Quarantined] " + testId + " — " + QuarantineLoader.getReason(testId));
         }
     }
 
     private void checkApiDependencies(ITestResult result) {
         java.lang.reflect.Method method = result.getMethod().getConstructorOrMethod().getMethod();
         DependsOnApi[] methodLevel = method.getAnnotationsByType(DependsOnApi.class);
-        DependsOnApi[] classLevel  = result.getTestClass().getRealClass().getAnnotationsByType(DependsOnApi.class);
+        DependsOnApi[] classLevel = result.getTestClass().getRealClass().getAnnotationsByType(DependsOnApi.class);
 
         // Method-level takes precedence; fall back to class-level
         DependsOnApi[] deps = methodLevel.length > 0 ? methodLevel : classLevel;
@@ -290,11 +331,14 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         try {
             io.testfly.config.TestFlyConfig cfg = TestFlyContext.getConfig();
             io.testfly.config.TestFlyConfig.Recording rec = cfg != null ? cfg.getRecording() : null;
-            if (rec == null || !rec.shouldRecord()) return;
+            if (rec == null || !rec.shouldRecord())
+                return;
             org.openqa.selenium.WebDriver driver = DriverManager.getDriver();
-            if (driver == null) return;
+            if (driver == null)
+                return;
             RecordingManager.start(driver, rec.getFps(), rec.getMaxDurationSeconds(), rec.isCdp());
-            System.out.println("[TestFly] 🎥 Video recording started (mode=" + rec.getMode() + ", fps=" + rec.getFps() + ")");
+            System.out.println(
+                    "[TestFly] 🎥 Video recording started (mode=" + rec.getMode() + ", fps=" + rec.getFps() + ")");
         } catch (Exception e) {
             System.err.println("[TestFly] Failed to start video recording: " + e.getMessage());
         }
@@ -306,18 +350,18 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
 
     private void autoClearEmailIfEnabled() {
         try {
-            io.testfly.config.TestFlyConfig.Email emailCfg =
-                    TestFlyContext.getConfig().getEmail();
+            io.testfly.config.TestFlyConfig.Email emailCfg = TestFlyContext.getConfig().getEmail();
             if (emailCfg != null && emailCfg.isAutoClear()) {
                 MailboxClient.create().clear();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     private boolean isNoBrowserTest(ITestResult result) {
         java.lang.reflect.Method m = result.getMethod().getConstructorOrMethod().getMethod();
         return m.isAnnotationPresent(NoBrowser.class) ||
-               result.getTestClass().getRealClass().isAnnotationPresent(NoBrowser.class);
+                result.getTestClass().getRealClass().isAnnotationPresent(NoBrowser.class);
     }
 
     /** Returns true for tests that must not create/use a WebDriver. */
@@ -331,18 +375,22 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         if (annotation == null) {
             annotation = result.getTestClass().getRealClass().getAnnotation(UseAuth.class);
         }
-        if (annotation == null) return;
+        if (annotation == null)
+            return;
 
         String strategyName = annotation.value();
         try {
             TestFlyConfig.Api api = TestFlyContext.getConfig().getApi();
-            if (api == null || api.getAuth() == null) return;
+            if (api == null || api.getAuth() == null)
+                return;
             TestFlyConfig.Api.AuthStrategy strategy = api.getAuth().get(strategyName);
             if (strategy == null) {
-                throw new IllegalStateException("[UseAuth] No auth strategy named '" + strategyName + "' found in api.auth config");
+                throw new IllegalStateException(
+                        "[UseAuth] No auth strategy named '" + strategyName + "' found in api.auth config");
             }
             ApiAuth auth = resolveAuthStrategy(strategy);
-            if (auth != null) ApiClient.setGlobalAuth(auth);
+            if (auth != null)
+                ApiClient.setGlobalAuth(auth);
         } catch (IllegalStateException e) {
             throw e;
         } catch (Exception e) {
@@ -352,13 +400,14 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
 
     private ApiAuth resolveAuthStrategy(TestFlyConfig.Api.AuthStrategy s) {
         String type = s.getType();
-        if (type == null) return null;
+        if (type == null)
+            return null;
         return switch (type.toLowerCase()) {
             case "bearer" -> ApiAuth.bearerToken(resolveEnvVar(s.getToken()));
-            case "basic"  -> ApiAuth.basicAuth(resolveEnvVar(s.getUsername()), resolveEnvVar(s.getPassword()));
+            case "basic" -> ApiAuth.basicAuth(resolveEnvVar(s.getUsername()), resolveEnvVar(s.getPassword()));
             case "oauth2" -> ApiAuth.oauth2(resolveEnvVar(s.getTokenUrl()),
-                                            resolveEnvVar(s.getClientId()),
-                                            resolveEnvVar(s.getClientSecret()));
+                    resolveEnvVar(s.getClientId()),
+                    resolveEnvVar(s.getClientSecret()));
             case "apikey", "api_key", "apikey-header" -> ApiAuth.apiKey(
                     s.getHeaderName() != null ? s.getHeaderName() : "X-Api-Key",
                     resolveEnvVar(s.getApiKey() != null ? s.getApiKey() : s.getToken()));
@@ -366,66 +415,71 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
                     s.getHeaderName() != null ? s.getHeaderName() : "api_key",
                     resolveEnvVar(s.getApiKey() != null ? s.getApiKey() : s.getToken()));
             case "digest" -> ApiAuth.digest(resolveEnvVar(s.getUsername()), resolveEnvVar(s.getPassword()));
-            case "hmac"   -> ApiAuth.hmac(resolveEnvVar(s.getApiKey()), resolveEnvVar(s.getSecret()), s.getAlgorithm());
+            case "hmac" -> ApiAuth.hmac(resolveEnvVar(s.getApiKey()), resolveEnvVar(s.getSecret()), s.getAlgorithm());
             case "oauth2_password", "oauth2-password", "password" -> ApiAuth.oauth2Password(
                     resolveEnvVar(s.getTokenUrl()), resolveEnvVar(s.getClientId()),
                     resolveEnvVar(s.getClientSecret()), resolveEnvVar(s.getUsername()), resolveEnvVar(s.getPassword()));
-            default       -> throw new IllegalArgumentException(
-                "[UseAuth] Unknown auth type: '" + type + "'. Use bearer, basic, oauth2, apiKey, digest, hmac, oauth2_password");
+            default -> throw new IllegalArgumentException(
+                    "[UseAuth] Unknown auth type: '" + type
+                            + "'. Use bearer, basic, oauth2, apiKey, digest, hmac, oauth2_password");
         };
     }
 
     private String resolveEnvVar(String value) {
-        if (value == null) return null;
+        if (value == null)
+            return null;
         if (value.startsWith("${") && value.endsWith("}")) {
             String varName = value.substring(2, value.length() - 1);
             String resolved = System.getenv(varName);
-            if (resolved == null) resolved = System.getProperty(varName);
+            if (resolved == null)
+                resolved = System.getProperty(varName);
             return resolved != null ? resolved : value;
         }
         return value;
     }
 
     private void loadTestData(ITestResult result) {
-        io.testfly.testdata.TestData annotation =
-                result.getMethod().getConstructorOrMethod().getMethod()
-                      .getAnnotation(io.testfly.testdata.TestData.class);
+        io.testfly.testdata.TestData annotation = result.getMethod().getConstructorOrMethod().getMethod()
+                .getAnnotation(io.testfly.testdata.TestData.class);
         if (annotation == null) {
             annotation = result.getTestClass().getRealClass()
-                               .getAnnotation(io.testfly.testdata.TestData.class);
+                    .getAnnotation(io.testfly.testdata.TestData.class);
         }
         if (annotation != null) {
             io.testfly.testdata.TestDataStore.set(
-                io.testfly.testdata.TestDataLoader.load(
-                    annotation.value(), annotation.sheet(), annotation.row()
-                )
-            );
+                    io.testfly.testdata.TestDataLoader.load(
+                            annotation.value(), annotation.sheet(), annotation.row()));
         }
     }
 
     private void capturePerformanceIfEnabled(String testId, ITestResult result) {
         try {
             TestFlyConfig.Performance cfg = TestFlyContext.getConfig().getPerformance();
-            if (cfg == null || !cfg.isCaptureOnEveryTest()) return;
-            if (skipBrowser(result)) return;
+            if (cfg == null || !cfg.isCaptureOnEveryTest())
+                return;
+            if (skipBrowser(result))
+                return;
             io.testfly.performance.PerformanceMetrics metrics = PerformanceCollector.collect();
             ExecutionMetrics.recordPerformance(testId, metrics);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     private void runAiAnalysisIfEnabled(String testId) {
         try {
-            String pageUrl   = null;
+            String pageUrl = null;
             String pageTitle = null;
             try {
                 org.openqa.selenium.WebDriver driver = DriverManager.getDriver();
                 if (driver != null) {
-                    pageUrl   = driver.getCurrentUrl();
+                    pageUrl = driver.getCurrentUrl();
                     pageTitle = driver.getTitle();
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
             AiFailureAnalyzer.analyze(testId, pageUrl, pageTitle);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     /**
@@ -434,16 +488,20 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
      * calls after the test item finishes, so this must run inside
      * {@link #onTestFailure(ITestResult)} before the RP listener closes the item.
      *
-     * <p>Reflection is used so {@code TestExecutionListener} remains safe when the
-     * optional {@code agent-java-testng} dependency is absent on the consumer classpath.
+     * <p>
+     * Reflection is used so {@code TestExecutionListener} remains safe when the
+     * optional {@code agent-java-testng} dependency is absent on the consumer
+     * classpath.
      *
-     * <p>Allure receives the same data post-hoc from the metrics JSON, but
+     * <p>
+     * Allure receives the same data post-hoc from the metrics JSON, but
      * ReportPortal is a live service and requires in-flight attachment.
      */
     private void sendFailureArtifactsToReportPortal(String testId) {
         try {
             TestTiming timing = ExecutionMetrics.getTiming(testId);
-            if (timing == null) return;
+            if (timing == null)
+                return;
 
             String screenshotPath = timing.getScreenshotPath();
             String aiAnalysis = timing.getAiAnalysis();
@@ -495,9 +553,12 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
 
     @Override
     public void afterInvocation(IInvokedMethod method, ITestResult testResult) {
-        if (!method.isTestMethod()) return;
-        if (isCucumberScenario(testResult)) return;
-        if (testResult.getStatus() != ITestResult.FAILURE) return;
+        if (!method.isTestMethod())
+            return;
+        if (isCucumberScenario(testResult))
+            return;
+        if (testResult.getStatus() != ITestResult.FAILURE)
+            return;
 
         String testId = testResult.getMethod().getQualifiedName();
         String testName = testResult.getMethod().getMethodName();
@@ -508,7 +569,8 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         }
 
         // Capture and send artifacts now, while the RP test item is guaranteed open.
-        // IInvokedMethodListener.afterInvocation runs before ITestListener.onTestFailure,
+        // IInvokedMethodListener.afterInvocation runs before
+        // ITestListener.onTestFailure,
         // so this emits attachments before ReportPortalTestNGListener closes the item.
         captureFailureArtifacts(testResult, testId, testName);
     }
@@ -516,10 +578,13 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
     private void saveTraceIfEnabled(String testId, String testName, boolean isPassing) {
         try {
             TestFlyConfig.Tracing tracing = TestFlyContext.getConfig().getTracing();
-            if (tracing == null || !tracing.isEnabled()) return;
-            if (isPassing && !tracing.isCaptureOnPass()) return;
+            if (tracing == null || !tracing.isEnabled())
+                return;
+            if (isPassing && !tracing.isCaptureOnPass())
+                return;
             TraceRecorder.save(testId, testName);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
@@ -533,13 +598,13 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
      * duplicate entries in ExecutionMetrics.
      */
     private boolean isCucumberScenario(ITestResult result) {
-        if (!"runScenario".equals(result.getMethod().getMethodName())) return false;
+        if (!"runScenario".equals(result.getMethod().getMethodName()))
+            return false;
         try {
             Class<?> base = Class.forName(
-                "io.cucumber.testng.AbstractTestNGCucumberTests",
-                false,
-                result.getTestClass().getRealClass().getClassLoader()
-            );
+                    "io.cucumber.testng.AbstractTestNGCucumberTests",
+                    false,
+                    result.getTestClass().getRealClass().getClassLoader());
             return base.isAssignableFrom(result.getTestClass().getRealClass());
         } catch (ClassNotFoundException | NoClassDefFoundError e) {
             return false;
