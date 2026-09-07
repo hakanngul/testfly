@@ -28,7 +28,7 @@ public class K6AnnotationDrivenLoadTest extends BaseLoadTest {
     /**
      * Default annotation config: 10 users, 5s ramp-up, 10s hold.
      */
-    @Test(enabled = false) // Enable after Sprint 2 (JDK Engine) is implemented
+    @Test(enabled = true) (JDK Engine) is implemented
     public void defaultLoad() {
         load("/")
                 .run()
@@ -40,7 +40,7 @@ public class K6AnnotationDrivenLoadTest extends BaseLoadTest {
      * Method-level override: 25 users instead of 10.
      * All other values (baseUrl, rampUp, hold, cooldown) inherited from class.
      */
-    @Test(enabled = false) // Enable after Sprint 2
+    @Test(enabled = true)
     @LoadTest(users = 25)
     public void heavierLoad() {
         load("/")
@@ -52,7 +52,7 @@ public class K6AnnotationDrivenLoadTest extends BaseLoadTest {
     /**
      * Method-level override: different hold duration and engine.
      */
-    @Test(enabled = false) // Enable after Sprint 2
+    @Test(enabled = true)
     @LoadTest(hold = "20s", engine = "jdk")
     public void longerHoldWithJdkEngine() {
         load("/cart.php")
@@ -64,7 +64,7 @@ public class K6AnnotationDrivenLoadTest extends BaseLoadTest {
     /**
      * Fluent override beats annotation — .users(50) wins over @LoadTest(users=25).
      */
-    @Test(enabled = false) // Enable after Sprint 2
+    @Test(enabled = true)
     @LoadTest(users = 25)
     public void fluentOverridesAnnotation() {
         load("/")

@@ -1,6 +1,8 @@
 package io.testfly.loadtest;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.loadtest.internal.JdkLoadEngine;
+import io.testfly.loadtest.internal.LoadTestEngine;
 import io.testfly.steps.StepLogger;
 
 /**
@@ -19,15 +21,12 @@ import io.testfly.steps.StepLogger;
  * <li>{@code gatling} — require Gatling; throws if absent</li>
  * <li>{@code jdk} — always use JDK HttpClient + ExecutorService</li>
  * </ul>
- *
- * <p>
- * Full engine implementations arrive in Sprint 2 (JDK) and Sprint 3 (Gatling).
- * This Sprint 1 skeleton validates the wiring and config resolution.
  */
 @TestFlyApi(since = "1.1.0")
 public final class LoadTestRunner {
 
     private static final ThreadLocal<LoadTestMetrics> LAST_METRICS = new ThreadLocal<>();
+    private static final JdkLoadEngine JDK_ENGINE = new JdkLoadEngine();
 
     private LoadTestRunner() {
     }
@@ -45,7 +44,8 @@ public final class LoadTestRunner {
         StepLogger.step("Load Test: " + scenario.name()
                 + " (" + config.getUsers() + " users, engine=" + config.getEngine() + ")");
 
-        LoadTestMetrics metrics = execute(scenario, config);
+        LoadTestEngine engine = selectEngine(config);
+        LoadTestMetrics metrics = engine.execute(scenario, config);
 
         LAST_METRICS.set(metrics);
 
@@ -66,26 +66,20 @@ public final class LoadTestRunner {
         LAST_METRICS.remove();
     }
 
-    private static LoadTestMetrics execute(LoadScenario scenario, LoadTestConfig config) {
+    private static LoadTestEngine selectEngine(LoadTestConfig config) {
         String engine = config.getEngine();
 
-        // Sprint 1: no engine implemented yet — clear message per engine choice
-        // Sprint 2: JdkLoadEngine
-        // Sprint 3: GatlingEngine + auto-selection
-        if ("gatling".equals(engine)) {
+        if ("jdk".equals(engine)) {
+            return JDK_ENGINE;
+        } else if ("gatling".equals(engine)) {
+            // Sprint 3: GatlingEngine with Class.forName probe
             throw new IllegalStateException(
                     "[LoadTest] Gatling engine not yet implemented (Sprint 3). " +
                             "Use engine: jdk or engine: auto for now.");
-        } else if ("jdk".equals(engine)) {
-            throw new IllegalStateException(
-                    "[LoadTest] JDK engine not yet implemented (Sprint 2). " +
-                            "Coming in the next sprint.");
         } else if ("auto".equals(engine)) {
-            throw new IllegalStateException(
-                    "[LoadTest] No load-test engine available yet. " +
-                            "JDK engine arrives in Sprint 2, Gatling engine in Sprint 3. " +
-                            "Current scenario: '" + scenario.name() + "' with " +
-                            config.getUsers() + " users.");
+            // Sprint 3: check GatlingBridge.isAvailable() first
+            // For now, always fall back to JDK
+            return JDK_ENGINE;
         } else {
             throw new IllegalArgumentException(
                     "[LoadTest] Unknown engine: '" + engine + "'. Valid values: auto, gatling, jdk");

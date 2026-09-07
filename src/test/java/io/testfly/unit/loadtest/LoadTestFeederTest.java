@@ -62,18 +62,18 @@ public class LoadTestFeederTest {
     }
 
     @Test
-    public void testCsvFeederNotYetImplemented() {
-        LoadTestFeeder feeder = LoadTestFeeder.csv("users.csv");
+    public void testCsvFeederMissingFileReturnsEmpty() {
+        LoadTestFeeder feeder = LoadTestFeeder.csv("nonexistent.csv");
 
         assertFalse(feeder.hasNext());
-        assertThrows(UnsupportedOperationException.class, feeder::next);
+        assertTrue(feeder.next().isEmpty());
     }
 
     @Test
-    public void testJsonFeederNotYetImplemented() {
-        LoadTestFeeder feeder = LoadTestFeeder.json("products.json");
+    public void testJsonFeederMissingFileReturnsEmpty() {
+        LoadTestFeeder feeder = LoadTestFeeder.json("nonexistent.json");
 
         assertFalse(feeder.hasNext());
-        assertThrows(UnsupportedOperationException.class, feeder::next);
+        assertTrue(feeder.next().isEmpty());
     }
 }

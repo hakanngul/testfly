@@ -31,7 +31,7 @@ public class K6MultiStepLoadTest extends BaseLoadTest {
     /**
      * Simulates a browsing user flow: homepage → product → cart.
      */
-    @Test(enabled = false) // Enable after Sprint 2 (JDK Engine) is implemented
+    @Test(enabled = true) (JDK Engine) is implemented
     public void browsingFlowUnderLoad() {
         loadScenario("Browsing Flow")
                 .users(15)
@@ -66,7 +66,7 @@ public class K6MultiStepLoadTest extends BaseLoadTest {
      * Same flow but with a data feeder — each virtual user gets a different
      * product ID from the sequence.
      */
-    @Test(enabled = false) // Enable after Sprint 2
+    @Test(enabled = true)
     public void browsingFlowWithFeeder() {
         loadScenario("Feeder Browsing")
                 .users(10)
@@ -93,7 +93,7 @@ public class K6MultiStepLoadTest extends BaseLoadTest {
      * Heavy load variant — more users, longer hold, stricter assertions.
      * Method-level @LoadTest overrides the class-level baseUrl.
      */
-    @Test(enabled = false) // Enable after Sprint 2
+    @Test(enabled = true)
     @LoadTest(users = 30, rampUp = "10s", hold = "30s")
     public void stressTest() {
         loadScenario("Stress Test")

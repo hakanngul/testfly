@@ -49,7 +49,7 @@ public class K6SimpleLoadTest extends BaseLoadTest {
      * Loads a deeper page — the cart page.
      * Uses method-level annotation to override user count.
      */
-    @Test(enabled = false) // Enable after Sprint 2
+    @Test(enabled = true)
     @LoadTest(users = 20, hold = "10s")
     public void cartPageUnderLoad() {
         load("/cart.php")
@@ -62,7 +62,7 @@ public class K6SimpleLoadTest extends BaseLoadTest {
      * Functional smoke test coexisting with load tests in the same class.
      * Uses the standard apiClient() — single request, no concurrency.
      */
-    @Test(enabled = false) // Enable after Sprint 2
+    @Test(enabled = true)
     public void functionalSmokeTest() {
         apiClient()
                 .to("https://test.k6.io")
