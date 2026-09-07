@@ -11,6 +11,7 @@ GEMINI.md
 reportportal.lock
 reportportal.sync
 .playwright-*
+review
 
 ### IntelliJ IDEA ###
 .idea/modules.xml

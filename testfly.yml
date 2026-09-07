@@ -5,6 +5,11 @@ execution:
   mode: local
   baseUrl: https://www.saucedemo.com
 
+api:
+  baseUrl: https://fakeapi.net
+  timeoutSeconds: 30
+  logBody: false
+
 browser:
   name: chrome
   headless: false

@@ -23,10 +23,9 @@ public final class ConfigurationLoader {
     /**
      * Loads configuration using the following priority chain:
      * <ol>
-     * <li>System property {@code -Dtestfly.config=/path/to/file.yml} (explicit
-     * override)</li>
-     * <li>{@code ./testfly[-profile].yml} in the current working directory</li>
-     * <li>{@code testfly[-profile].yml} on the classpath (original behaviour)</li>
+     * <li>System property {@code -Dtestfly.config=/path/to/file.yml} (explicit override)</li>
+     * <li>Classpath: {@code testfly[-profile].yml} (standard Maven/Java convention in src/test/resources)</li>
+     * <li>Working directory: {@code ./testfly[-profile].yml} (fallback)</li>
      * </ol>
      */
     public static TestFlyConfig load() {
@@ -42,23 +41,23 @@ public final class ConfigurationLoader {
             return loadFromFile(new File(explicitPath));
         }
 
-        // Priority 2: working directory
+        // Priority 2: classpath (standard Maven/Java convention)
+        InputStream inputStream = ConfigurationLoader.class
+                .getClassLoader()
+                .getResourceAsStream(configFile);
+        if (inputStream != null) {
+            return parseAndValidate(inputStream);
+        }
+
+        // Priority 3: working directory (fallback)
         File workingDirFile = new File(configFile);
         if (workingDirFile.exists()) {
             return loadFromFile(workingDirFile);
         }
 
-        // Priority 3: classpath (original behaviour)
-        InputStream inputStream = ConfigurationLoader.class
-                .getClassLoader()
-                .getResourceAsStream(configFile);
-        if (inputStream == null) {
-            throw new IllegalStateException(
-                    "Configuration file '" + configFile + "' not found. " +
-                            "Checked: -Dtestfly.config, working directory, and classpath.");
-        }
-
-        return parseAndValidate(inputStream);
+        throw new IllegalStateException(
+                "Configuration file '" + configFile + "' not found. " +
+                        "Checked: -Dtestfly.config, classpath, and working directory.");
     }
 
     private static TestFlyConfig loadFromFile(File file) {
