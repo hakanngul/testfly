@@ -1,6 +1,6 @@
 browser:
   name: chrome
-  headless: true
+  headless: false
   arguments:
     - --start-maximized
     - --disable-notifications
@@ -50,15 +50,17 @@ locators:
 
 ai:
   failureAnalysis: false
+  generatePatch: false
   provider: openai-compatible
-  baseUrl: https://api.deepseek.com
+  baseUrl: https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1
   apiKey: ${AI_API_KEY}
-  model: deepseek-v4-flash
+  model: qwen3.8-flash
   language: tr
-  timeoutSeconds: 20
+  timeoutSeconds: 30
+  actionCache: true
 
 recording:
-  enabled: true                    # Video kaydını aktif eder (varsayılan: false)
+  enabled: false                    # Video kaydını aktif eder (varsayılan: false)
   mode: retain-on-failure          # 'retain-on-failure' | 'on' | 'off'
   format: mp4                      # 'mp4' (H.264 video) | 'gif' (varsayılan: mp4)
   fps: 5                           # Saniyedeki kare sayısı (önerilen: 2-10)

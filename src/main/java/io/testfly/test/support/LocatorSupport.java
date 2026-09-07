@@ -103,4 +103,19 @@ public interface LocatorSupport {
     default Locator getByTitle(String title) {
         return Locator.byTitle(title);
     }
+
+    /**
+     * Locates an element dynamically based on semantic natural language intent using AI.
+     *
+     * <pre>
+     * byIntent("cart checkout button").click();
+     * </pre>
+     *
+     * @param intent semantic description of the element
+     * @return chainable {@link Locator}
+     */
+    default Locator byIntent(String intent) {
+        By resolvedBy = io.testfly.agent.ActionCompiler.resolveIntent(io.testfly.driver.DriverManager.getDriver(), intent);
+        return Locator.of(resolvedBy);
+    }
 }

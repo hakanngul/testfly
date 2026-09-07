@@ -16,28 +16,35 @@ import java.util.concurrent.TimeUnit;
  * <li>One WebDriver per thread</li>
  * <li>ThreadLocal ownership</li>
  * <li>Framework-managed creation &amp; destruction only</li>
- * <li>Session limit is enforced with a blocking Semaphore — tests wait for a slot
- *     rather than failing fast, preventing spurious failures under parallel load</li>
+ * <li>Session limit is enforced with a blocking Semaphore — tests wait for a
+ * slot
+ * rather than failing fast, preventing spurious failures under parallel
+ * load</li>
  */
 @TestFlyApi(since = "1.0.0")
 public final class DriverManager {
 
     private static final ThreadLocal<WebDriver> DRIVER = ThreadLocal.withInitial(() -> null);
 
-    /** Session dashboard URL set after driver creation for cloud providers (BrowserStack / Sauce Labs). */
+    /**
+     * Session dashboard URL set after driver creation for cloud providers
+     * (BrowserStack / Sauce Labs).
+     */
     private static final ThreadLocal<String> CLOUD_SESSION_URL = ThreadLocal.withInitial(() -> null);
 
     /**
-     * Stack of named-session driver overrides pushed by {@code MultiSessionManager.withSession()}.
-     * When non-empty, {@code getDriver()} returns the top of the stack instead of the primary driver.
-     * Stack allows nested {@code withSession()} calls to restore the correct previous session.
+     * Stack of named-session driver overrides pushed by
+     * {@code MultiSessionManager.withSession()}.
+     * When non-empty, {@code getDriver()} returns the top of the stack instead of
+     * the primary driver.
+     * Stack allows nested {@code withSession()} calls to restore the correct
+     * previous session.
      */
-    private static final ThreadLocal<java.util.Deque<WebDriver>> SESSION_STACK =
-            ThreadLocal.withInitial(java.util.ArrayDeque::new);
+    private static final ThreadLocal<java.util.Deque<WebDriver>> SESSION_STACK = ThreadLocal
+            .withInitial(java.util.ArrayDeque::new);
 
     /** Tracks all drivers created under per-suite lifecycle for bulk teardown. */
-    private static final java.util.Set<WebDriver> SUITE_DRIVERS =
-            java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final java.util.Set<WebDriver> SUITE_DRIVERS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /** Lazy-initialized from config; null until first createDriver() call. */
     private static volatile Semaphore SESSION_SEMAPHORE;
@@ -61,7 +68,8 @@ public final class DriverManager {
         return SESSION_SEMAPHORE == null ? 0 : MAX_SESSIONS - SESSION_SEMAPHORE.availablePermits();
     }
 
-    private DriverManager() {}
+    private DriverManager() {
+    }
 
     // ==========================================================
     // Lifecycle helpers
@@ -106,8 +114,7 @@ public final class DriverManager {
             if (!acquired) {
                 throw new IllegalStateException(
                         "Timed out waiting for an available session slot after 30s. " +
-                        "Consider increasing maxActiveSessions in configuration."
-                );
+                                "Consider increasing maxActiveSessions in configuration.");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -118,19 +125,16 @@ public final class DriverManager {
 
             long startTime = System.currentTimeMillis();
 
-            DriverProvider provider =
-                    DriverProviderFactory.getProvider();
+            DriverProvider provider = DriverProviderFactory.getProvider();
 
             WebDriver driver = provider.createDriver();
 
             if (driver == null) {
                 throw new IllegalStateException(
-                        "DriverProvider returned null WebDriver"
-                );
+                        "DriverProvider returned null WebDriver");
             }
 
-            long startupDuration =
-                    System.currentTimeMillis() - startTime;
+            long startupDuration = System.currentTimeMillis() - startTime;
 
             DRIVER.set(driver);
 
@@ -145,12 +149,14 @@ public final class DriverManager {
                         CLOUD_SESSION_URL.set(SauceLabsProvider.SESSION_URL_PREFIX + sessionId);
                     }
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
 
             // Register in suite-driver registry when lifecycle is per-suite
             if (isPerSuite()) {
                 SUITE_DRIVERS.add(driver);
-                System.out.println("[TestFly] Browser lifecycle: per-suite — driver will be reused across tests on this thread.");
+                System.out.println(
+                        "[TestFly] Browser lifecycle: per-suite — driver will be reused across tests on this thread.");
             }
 
             // Record driver startup timing
@@ -159,8 +165,7 @@ public final class DriverManager {
             if (testId != null) {
                 ExecutionMetrics.recordDriverStartup(
                         testId,
-                        startupDuration
-                );
+                        startupDuration);
             }
 
             System.out.println("[TestFly] Active sessions: " + activeSessions());
@@ -168,6 +173,46 @@ public final class DriverManager {
         } catch (Exception e) {
             semaphore.release(); // return the permit — driver was never stored
             throw e;
+        }
+    }
+
+    // ==========================================================
+    // Semaphore permit helpers (used by MultiSessionManager)
+    // ==========================================================
+
+    /**
+     * Acquires a single session permit from the session semaphore, blocking for
+     * up to 30 seconds. Used by {@code MultiSessionManager} when creating named
+     * session drivers so that {@code maxActiveSessions} is enforced across all
+     * drivers (primary + named sessions).
+     *
+     * @throws IllegalStateException if the permit cannot be acquired within the
+     *                               timeout or the thread is interrupted
+     */
+    public static void acquirePermit() {
+        Semaphore semaphore = getOrInitSemaphore();
+        try {
+            boolean acquired = semaphore.tryAcquire(30, TimeUnit.SECONDS);
+            if (!acquired) {
+                throw new IllegalStateException(
+                        "Timed out waiting for an available session slot after 30s. " +
+                                "Consider increasing maxActiveSessions in configuration.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for a session slot", e);
+        }
+    }
+
+    /**
+     * Releases a single session permit back to the session semaphore.
+     * Used by {@code MultiSessionManager} when quitting a named session driver.
+     * No-op when the semaphore has not been initialised (e.g. in unit tests
+     * that never created a real driver).
+     */
+    public static void releasePermit() {
+        if (SESSION_SEMAPHORE != null) {
+            SESSION_SEMAPHORE.release();
         }
     }
 
@@ -186,7 +231,8 @@ public final class DriverManager {
 
     /**
      * Pops the topmost named-session driver from the override stack.
-     * After popping, {@link #getDriver()} returns the driver that was active before the push.
+     * After popping, {@link #getDriver()} returns the driver that was active before
+     * the push.
      */
     /**
      * Returns the cloud session dashboard URL (BrowserStack or Sauce Labs) for the
@@ -199,8 +245,10 @@ public final class DriverManager {
 
     public static void popSessionOverride() {
         java.util.Deque<WebDriver> stack = SESSION_STACK.get();
-        if (!stack.isEmpty()) stack.pop();
-        if (stack.isEmpty()) SESSION_STACK.remove();
+        if (!stack.isEmpty())
+            stack.pop();
+        if (stack.isEmpty())
+            SESSION_STACK.remove();
     }
 
     // ==========================================================
@@ -209,27 +257,27 @@ public final class DriverManager {
 
     /**
      * Get WebDriver bound to current thread.
-     * When a named-session override is active (via {@code withSession()}), returns that driver.
+     * When a named-session override is active (via {@code withSession()}), returns
+     * that driver.
      * Otherwise performs a health check and returns the primary thread driver.
      */
     public static WebDriver getDriver() {
 
         java.util.Deque<WebDriver> stack = SESSION_STACK.get();
-        if (!stack.isEmpty()) return stack.peek();
+        if (!stack.isEmpty())
+            return stack.peek();
 
         WebDriver driver = DRIVER.get();
 
         if (driver == null) {
             throw new IllegalStateException(
-                    "WebDriver not initialized for current thread."
-            );
+                    "WebDriver not initialized for current thread.");
         }
 
         if (!isDriverAlive()) {
 
             System.err.println(
-                    "[TestFly] Driver session invalid. Recreating..."
-            );
+                    "[TestFly] Driver session invalid. Recreating...");
 
             recreateDriver();
             driver = DRIVER.get();
@@ -305,11 +353,13 @@ public final class DriverManager {
 
     /**
      * Quits all drivers tracked under {@code per-suite} lifecycle and releases
-     * their semaphore permits. Called once by {@code SuiteExecutionListener.onFinish}.
+     * their semaphore permits. Called once by
+     * {@code SuiteExecutionListener.onFinish}.
      * Safe to call in {@code per-test} mode — no-op when registry is empty.
      */
     public static void quitAllSuiteDrivers() {
-        if (SUITE_DRIVERS.isEmpty()) return;
+        if (SUITE_DRIVERS.isEmpty())
+            return;
         int released = 0;
         for (WebDriver driver : SUITE_DRIVERS) {
             try {

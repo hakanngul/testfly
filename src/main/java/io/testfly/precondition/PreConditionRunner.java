@@ -57,8 +57,10 @@ public final class PreConditionRunner {
     }
 
     private static boolean isRetry(ITestResult result) {
-        if (result == null) return false;
-        if (result.wasRetried()) return true;
+        if (result == null)
+            return false;
+        if (result.wasRetried())
+            return true;
         if (result.getMethod() != null) {
             org.testng.IRetryAnalyzer analyzer = result.getMethod().getRetryAnalyzer(result);
             if (analyzer instanceof io.testfly.listeners.RetryListener rl) {
@@ -109,6 +111,30 @@ public final class PreConditionRunner {
      */
     public static void clearAll() {
         PreconditionSessionCache.clearAll();
+    }
+
+    /**
+     * Checks whether the current page URL indicates an authentication failure
+     * (the browser was redirected to a login/auth/signin page). If so,
+     * invalidates the cached precondition session so the provider re-runs
+     * on the next access instead of replaying stale cookies.
+     *
+     * <p>
+     * Typical usage — call after a navigation or action that may have been
+     * rejected by the server:
+     * 
+     * <pre>
+     * open("/protected/resource");
+     * PreConditionRunner.checkAndInvalidate("loggedIn", driver);
+     * </pre>
+     *
+     * @param conditionName the precondition name (must match a
+     *                      {@code @PreCondition} value)
+     * @param driver        the current WebDriver instance
+     * @return {@code true} if the cached session was invalidated
+     */
+    public static boolean checkAndInvalidate(String conditionName, WebDriver driver) {
+        return PreconditionSessionCache.checkAndInvalidate(conditionName, driver);
     }
 
     private static void restoreSession(String conditionName, WebDriver driver) {

@@ -7,7 +7,6 @@ import org.openqa.selenium.devtools.DevTools;
 import org.openqa.selenium.devtools.HasDevTools;
 import org.openqa.selenium.devtools.v152.page.Page;
 import org.openqa.selenium.devtools.v152.page.Page.StartScreencastFormat;
-import org.openqa.selenium.devtools.v152.page.model.ScreencastFrame;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -18,7 +17,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -29,28 +28,38 @@ import java.util.logging.Logger;
 /**
  * Captures a screen recording during Web UI test execution.
  *
- * <p>Supports two recording backends:
+ * <p>
+ * Supports two recording backends:
  * <ul>
- *   <li><b>CDP Screencast:</b> Uses Chrome DevTools Protocol {@code Page.startScreencast}
- *       on Chromium browsers (Chrome/Edge) for smooth, non-blocking frame streaming.</li>
- *   <li><b>Scheduled Screenshot Poller:</b> Fallback mechanism for non-Chromium browsers
- *       (Firefox, Safari, or remote grids without CDP) capturing periodic frames via {@link TakesScreenshot}.</li>
+ * <li><b>CDP Screencast:</b> Uses Chrome DevTools Protocol
+ * {@code Page.startScreencast}
+ * on Chromium browsers (Chrome/Edge) for smooth, non-blocking frame
+ * streaming.</li>
+ * <li><b>Scheduled Screenshot Poller:</b> Fallback mechanism for non-Chromium
+ * browsers
+ * (Firefox, Safari, or remote grids without CDP) capturing periodic frames via
+ * {@link TakesScreenshot}.</li>
  * </ul>
  *
- * <p>On test pass (in {@code retain-on-failure} mode), frames are discarded.
- * On test failure, frames are assembled into an animated GIF saved to {@code target/recordings/}.
+ * <p>
+ * On test pass (in {@code retain-on-failure} mode), frames are discarded.
+ * On test failure, frames are assembled into an animated GIF saved to
+ * {@code target/recordings/}.
  *
- * <p>ThreadLocal-based — safe for concurrent parallel test execution.
+ * <p>
+ * ThreadLocal-based — safe for concurrent parallel test execution.
  */
 public final class RecordingManager {
 
     private static final Logger LOG = Logger.getLogger(RecordingManager.class.getName());
     private static final ThreadLocal<RecordingSession> SESSION = new ThreadLocal<>();
 
-    private RecordingManager() {}
+    private RecordingManager() {
+    }
 
     /**
-     * Starts a screen recording session for the current thread with CDP preference enabled.
+     * Starts a screen recording session for the current thread with CDP preference
+     * enabled.
      *
      * @param driver             the WebDriver instance to record
      * @param fps                frames per second (1–10 recommended)
@@ -66,13 +75,15 @@ public final class RecordingManager {
      * @param driver             the WebDriver instance to record
      * @param fps                frames per second (1–10 recommended)
      * @param maxDurationSeconds hard cap on recording length
-     * @param preferCdp          whether to use CDP screencast if available on the driver
+     * @param preferCdp          whether to use CDP screencast if available on the
+     *                           driver
      */
     public static void start(WebDriver driver, int fps, int maxDurationSeconds, boolean preferCdp) {
         stop(); // discard any leftover session from a previous test
-        if (driver == null) return;
+        if (driver == null)
+            return;
 
-        int  maxFrames  = Math.max(1, fps) * Math.max(1, maxDurationSeconds);
+        int maxFrames = Math.max(1, fps) * Math.max(1, maxDurationSeconds);
         long intervalMs = 1000L / Math.max(1, fps);
 
         RecordingSession session = new RecordingSession(driver, maxFrames, fps, preferCdp);
@@ -81,7 +92,8 @@ public final class RecordingManager {
     }
 
     /**
-     * Stops recording and discards all captured frames (called on test success in retain-on-failure mode).
+     * Stops recording and discards all captured frames (called on test success in
+     * retain-on-failure mode).
      */
     public static void stop() {
         RecordingSession session = SESSION.get();
@@ -96,7 +108,8 @@ public final class RecordingManager {
      * Called on test failure or when recording mode is set to always record.
      *
      * @param testId the fully-qualified test method name (used as filename)
-     * @return the path to the saved GIF, or {@code null} if saving failed or no frames were captured
+     * @return the path to the saved GIF, or {@code null} if saving failed or no
+     *         frames were captured
      */
     public static String saveOnFailure(String testId) {
         return save(testId);
@@ -106,11 +119,13 @@ public final class RecordingManager {
      * Stops recording and saves captured frames as an animated GIF.
      *
      * @param testId the fully-qualified test method name (used as filename)
-     * @return the path to the saved GIF, or {@code null} if saving failed or no frames were captured
+     * @return the path to the saved GIF, or {@code null} if saving failed or no
+     *         frames were captured
      */
     public static String save(String testId) {
         RecordingSession session = SESSION.get();
-        if (session == null) return null;
+        if (session == null)
+            return null;
         session.cancel();
         SESSION.remove();
 
@@ -122,9 +137,11 @@ public final class RecordingManager {
                 if (img != null) {
                     frames.add(img);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
-        if (frames.isEmpty()) return null;
+        if (frames.isEmpty())
+            return null;
 
         // Duplicate single frame so animated GIF loops gracefully
         if (frames.size() == 1) {
@@ -132,7 +149,7 @@ public final class RecordingManager {
         }
 
         String safeId = testId.replaceAll("[^a-zA-Z0-9._-]", "_");
-        File   dir    = new File("target/recordings");
+        File dir = new File("target/recordings");
         dir.mkdirs();
 
         String format = "mp4";
@@ -143,7 +160,8 @@ public final class RecordingManager {
                     format = cfg.getRecording().getFormat().toLowerCase();
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         if ("gif".equalsIgnoreCase(format)) {
             File output = new File(dir, safeId + ".gif");
@@ -178,20 +196,20 @@ public final class RecordingManager {
 
     private static final class RecordingSession {
 
-        private final WebDriver               driver;
-        private final int                     maxFrames;
-        private final int                     fps;
-        private final boolean                 preferCdp;
-        private final List<BufferedImage>     frames   = new CopyOnWriteArrayList<>();
-        private       ScheduledExecutorService executor;
-        private       ScheduledFuture<?>       future;
-        private       DevTools                devTools;
-        private       boolean                 cdpActive;
+        private final WebDriver driver;
+        private final int maxFrames;
+        private final int fps;
+        private final boolean preferCdp;
+        private final ConcurrentLinkedQueue<BufferedImage> frames = new ConcurrentLinkedQueue<>();
+        private ScheduledExecutorService executor;
+        private ScheduledFuture<?> future;
+        private DevTools devTools;
+        private boolean cdpActive;
 
         RecordingSession(WebDriver driver, int maxFrames, int fps, boolean preferCdp) {
-            this.driver    = driver;
+            this.driver = driver;
             this.maxFrames = maxFrames;
-            this.fps       = fps;
+            this.fps = fps;
             this.preferCdp = preferCdp;
         }
 
@@ -202,7 +220,8 @@ public final class RecordingManager {
                     dt.createSessionIfThereIsNotOne();
                     try {
                         dt.send(Page.enable(Optional.empty()));
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
 
                     dt.addListener(Page.screencastFrame(), frame -> {
                         if (frames.size() >= maxFrames) {
@@ -218,7 +237,8 @@ public final class RecordingManager {
                         } finally {
                             try {
                                 dt.send(Page.screencastFrameAck(frame.getSessionId()));
-                            } catch (Exception ignored) {}
+                            } catch (Exception ignored) {
+                            }
                         }
                     });
 
@@ -228,20 +248,22 @@ public final class RecordingManager {
                             Optional.of(80),
                             Optional.of(1280),
                             Optional.of(720),
-                            Optional.of(1)
-                    ));
+                            Optional.of(1)));
 
                     this.devTools = dt;
                     this.cdpActive = true;
                     return;
                 } catch (Throwable t) {
-                    LOG.log(Level.FINE, "[RecordingManager] CDP screencast unavailable, falling back to screenshot sampler: " + t.getMessage());
+                    LOG.log(Level.FINE,
+                            "[RecordingManager] CDP screencast unavailable, falling back to screenshot sampler: "
+                                    + t.getMessage());
                     this.cdpActive = false;
                 }
             }
 
             // Fallback: Periodic screenshot sampler
-            if (!(driver instanceof TakesScreenshot)) return;
+            if (!(driver instanceof TakesScreenshot))
+                return;
 
             executor = Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = new Thread(r, "testfly-recorder");
@@ -251,6 +273,9 @@ public final class RecordingManager {
             future = executor.scheduleAtFixedRate(this::captureFallback, 0, intervalMs, TimeUnit.MILLISECONDS);
         }
 
+        private static final int MAX_FALLBACK_WIDTH = 1280;
+        private static final int MAX_FALLBACK_HEIGHT = 720;
+
         private void captureFallback() {
             if (frames.size() >= maxFrames) {
                 cancel();
@@ -259,24 +284,59 @@ public final class RecordingManager {
             try {
                 byte[] png = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
                 BufferedImage img = ImageIO.read(new ByteArrayInputStream(png));
-                if (img != null) frames.add(img);
+                if (img != null) {
+                    frames.add(scaleDown(img, MAX_FALLBACK_WIDTH, MAX_FALLBACK_HEIGHT));
+                }
             } catch (Exception ignored) {
                 // Driver may be in the middle of navigation or closing; silently skip
             }
+        }
+
+        /**
+         * Scales the image down so that neither dimension exceeds the given maximums,
+         * preserving aspect ratio. If the image already fits, it is returned unchanged.
+         */
+        private static BufferedImage scaleDown(BufferedImage src, int maxW, int maxH) {
+            int w = src.getWidth();
+            int h = src.getHeight();
+            if (w <= maxW && h <= maxH) {
+                return src;
+            }
+            double scale = Math.min((double) maxW / w, (double) maxH / h);
+            int targetW = Math.max(1, (int) (w * scale));
+            int targetH = Math.max(1, (int) (h * scale));
+            BufferedImage scaled = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_RGB);
+            java.awt.Graphics2D g = scaled.createGraphics();
+            g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                    java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.drawImage(src, 0, 0, targetW, targetH, null);
+            g.dispose();
+            return scaled;
         }
 
         void cancel() {
             if (cdpActive && devTools != null) {
                 try {
                     devTools.send(Page.stopScreencast());
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
-            if (future   != null) future.cancel(false);
-            if (executor != null) executor.shutdownNow();
+            if (future != null)
+                future.cancel(false);
+            if (executor != null)
+                executor.shutdownNow();
         }
 
-        List<BufferedImage> getFrames() { return new ArrayList<>(frames); }
-        int getFps()                     { return fps; }
-        WebDriver getDriver()            { return driver; }
+        List<BufferedImage> getFrames() {
+            return new ArrayList<>(frames);
+        }
+
+        int getFps() {
+            return fps;
+        }
+
+        WebDriver getDriver() {
+            return driver;
+        }
     }
 }

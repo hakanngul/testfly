@@ -96,6 +96,18 @@ Next: [the full Getting Started walkthrough](#getting-started) adds page objects
 > 🤖 **AI-Powered Test Automation with TestFly MCP**
 > TestFly includes a first-class Model Context Protocol (MCP) server — **[TestFly MCP](https://github.com/hakanngul/testfly-mcp)** — allowing AI coding agents (Claude Desktop, Cursor, Antigravity, VS Code) to inspect live browsers, execute actions, capture DOM snapshots, and automatically author production-ready TestFly Java tests.
 
+> 🧠 **Agentic Testing Runtime (Built-in)**
+> Beyond MCP, TestFly embeds autonomous AI capabilities directly into your test runtime:
+> - **Goal-Oriented Actions**: `act("Delete first item in cart")` compiles natural language into deterministic Selenium steps
+> - **Compile & Freeze Caching**: Action plans persist to `.testfly/action-cache.json` for **0ms replay** on subsequent runs
+> - **Semantic Assertions**: `assertThatPage().satisfiesAi("Order confirmation is displayed")` evaluates conditions via LLM reasoning
+> - **AI Self-Healing**: When selectors break, `AiHealingEngine` synthesizes new locators using pruned DOM context
+> - **Auto-PR Patches**: Permanent failures generate Unified Git Diff `.patch` files in `target/remediations/` for instant `git apply`
+>
+> Supported `ai.provider` values: `claude`, `anthropic`, `gemini`, `openai-compatible`, `openai`. DeepSeek, Qwen (Alibaba Cloud), Groq and Ollama work through `openai-compatible` with their own `baseUrl`.
+>
+> 📖 [Full Agentic Testing Documentation](https://hakanngul.github.io/testfly/docs/ai/agentic-testing)
+
 ---
 
 ## Overview
@@ -140,6 +152,9 @@ Outcomes first — the API that delivers each one is named so you can find it in
 - **Read the test like a spec** — `StepLogger` named steps with timestamps and per-step screenshots
 - **Test UI and API in the same suite** — `BaseApiTest` + fluent `ApiClient` with auth, schema validation, JSONPath; hybrid UI + API tests
 - **Accessibility testing in one line** — `accessibility().withTags("wcag2a","wcag21aa").run()`; axe-core bundled in the JAR, no extra dependency
+- **Autonomous Agentic Testing & Dynamic Goals** — `act("Goal description")` compiles natural language goals into deterministic Selenium actions, frozen into `.testfly/action-cache.json` for 0 ms replay
+- **AI-Driven Self-Healing & Auto-PR Patches** — `DomPruner` token compression (<8K tokens) + LLM healing fallback, plus unified git diff `.patch` generation (`target/remediations/`) for instant `git apply` resolution
+- **Semantic Natural Language Assertions** — `assertThatPage().satisfiesAi(...)` and `violatesAi(...)` with single-evaluation anti-throttle guard and soft assertion support
 - **Extend it without forking it** — Java SPI plugins for custom browser providers, report adapters, lifecycle hooks
 - **CI that configures itself** — auto-detects GitHub Actions, Jenkins, CircleCI; forces headless, emits JUnit XML
 

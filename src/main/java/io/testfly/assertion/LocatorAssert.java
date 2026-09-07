@@ -11,19 +11,25 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.TimeoutException;
 
 import java.time.Duration;
 import java.util.List;
+import io.testfly.ai.DomPruner;
+import io.testfly.assertion.ai.AiAssertEngine;
 
 /**
  * Fluent, auto-retrying assertion for a specific locator.
  *
- * <p>Every assertion polls via {@link WebDriverWait} until the condition is true
- * or the configured {@code timeouts.explicit} is exceeded — just like Playwright's
+ * <p>
+ * Every assertion polls via {@link WebDriverWait} until the condition is true
+ * or the configured {@code timeouts.explicit} is exceeded — just like
+ * Playwright's
  * {@code expect(locator).toBeVisible()}.
  *
- * <p>Obtain an instance via {@link SeleniumAssert#assertThat(By)} or
+ * <p>
+ * Obtain an instance via {@link SeleniumAssert#assertThat(By)} or
  * {@link SeleniumAssert#assertThat(Locator)}.
  *
  * <pre>
@@ -55,10 +61,10 @@ public final class LocatorAssert {
     }
 
     LocatorAssert(By by, String description, boolean soft, SoftAssertionCollector collector) {
-        this.by          = by;
+        this.by = by;
         this.description = description;
-        this.soft        = soft;
-        this.collector   = collector;
+        this.soft = soft;
+        this.collector = collector;
     }
 
     // ------------------------------------------------------------------
@@ -107,7 +113,8 @@ public final class LocatorAssert {
 
     /**
      * Switches this assertion into soft mode — failures are collected in
-     * {@link SoftAssertions} rather than throwing an immediate {@link AssertionError}.
+     * {@link SoftAssertions} rather than throwing an immediate
+     * {@link AssertionError}.
      *
      * @return this assertion for chaining
      */
@@ -144,10 +151,15 @@ public final class LocatorAssert {
     public LocatorAssert isEnabled() {
         StepLogger.step("Assert enabled: " + description);
         poll(driver -> {
-            List<WebElement> els = driver.findElements(by);
-            if (els.isEmpty()) return null;
-            WebElement el = els.get(0);
-            return el.isDisplayed() && el.isEnabled() ? true : null;
+            try {
+                List<WebElement> els = driver.findElements(by);
+                if (els.isEmpty())
+                    return null;
+                WebElement el = els.get(0);
+                return el.isDisplayed() && el.isEnabled() ? true : null;
+            } catch (StaleElementReferenceException e) {
+                return null;
+            }
         }, "Expected element to be enabled: " + description);
         return this;
     }
@@ -156,10 +168,15 @@ public final class LocatorAssert {
     public LocatorAssert isDisabled() {
         StepLogger.step("Assert disabled: " + description);
         poll(driver -> {
-            List<WebElement> els = driver.findElements(by);
-            if (els.isEmpty()) return null;
-            WebElement el = els.get(0);
-            return el.isDisplayed() && !el.isEnabled() ? true : null;
+            try {
+                List<WebElement> els = driver.findElements(by);
+                if (els.isEmpty())
+                    return null;
+                WebElement el = els.get(0);
+                return el.isDisplayed() && !el.isEnabled() ? true : null;
+            } catch (StaleElementReferenceException e) {
+                return null;
+            }
         }, "Expected element to be disabled: " + description);
         return this;
     }
@@ -168,9 +185,14 @@ public final class LocatorAssert {
     public LocatorAssert isChecked() {
         StepLogger.step("Assert checked: " + description);
         poll(driver -> {
-            List<WebElement> els = driver.findElements(by);
-            if (els.isEmpty()) return null;
-            return els.get(0).isSelected() ? true : null;
+            try {
+                List<WebElement> els = driver.findElements(by);
+                if (els.isEmpty())
+                    return null;
+                return els.get(0).isSelected() ? true : null;
+            } catch (StaleElementReferenceException e) {
+                return null;
+            }
         }, "Expected element to be checked: " + description);
         return this;
     }
@@ -179,7 +201,10 @@ public final class LocatorAssert {
     // Text
     // ------------------------------------------------------------------
 
-    /** Asserts the element's visible text equals {@code expected} (trimmed) — retries until timeout. */
+    /**
+     * Asserts the element's visible text equals {@code expected} (trimmed) —
+     * retries until timeout.
+     */
     public LocatorAssert hasText(String expected) {
         StepLogger.step("Assert text '" + expected + "' for: " + description);
         poll(ExpectedConditions.textToBe(by, expected),
@@ -187,7 +212,10 @@ public final class LocatorAssert {
         return this;
     }
 
-    /** Asserts the element's visible text contains {@code fragment} — retries until timeout. */
+    /**
+     * Asserts the element's visible text contains {@code fragment} — retries until
+     * timeout.
+     */
     public LocatorAssert containsText(String fragment) {
         StepLogger.step("Assert contains text '" + fragment + "' for: " + description);
         poll(ExpectedConditions.textToBePresentInElementLocated(by, fragment),
@@ -199,7 +227,10 @@ public final class LocatorAssert {
     // Attributes & CSS
     // ------------------------------------------------------------------
 
-    /** Asserts the element's {@code value} attribute equals {@code expected} — retries until timeout. */
+    /**
+     * Asserts the element's {@code value} attribute equals {@code expected} —
+     * retries until timeout.
+     */
     public LocatorAssert hasValue(String expected) {
         StepLogger.step("Assert value '" + expected + "' for: " + description);
         poll(ExpectedConditions.attributeToBe(by, "value", expected),
@@ -207,7 +238,9 @@ public final class LocatorAssert {
         return this;
     }
 
-    /** Asserts the element has a specific attribute value — retries until timeout. */
+    /**
+     * Asserts the element has a specific attribute value — retries until timeout.
+     */
     public LocatorAssert hasAttribute(String attribute, String expected) {
         StepLogger.step("Assert attribute " + attribute + "=" + expected + " for: " + description);
         poll(ExpectedConditions.attributeToBe(by, attribute, expected),
@@ -215,37 +248,61 @@ public final class LocatorAssert {
         return this;
     }
 
-    /** Asserts the element has the specified attribute present (regardless of its value) — retries until timeout. */
+    /**
+     * Asserts the element has the specified attribute present (regardless of its
+     * value) — retries until timeout.
+     */
     public LocatorAssert hasAttribute(String attribute) {
         StepLogger.step("Assert attribute '" + attribute + "' exists for: " + description);
         poll(driver -> {
-            List<WebElement> els = driver.findElements(by);
-            if (els.isEmpty()) return null;
-            return els.get(0).getAttribute(attribute) != null ? true : null;
+            try {
+                List<WebElement> els = driver.findElements(by);
+                if (els.isEmpty())
+                    return null;
+                return els.get(0).getAttribute(attribute) != null ? true : null;
+            } catch (StaleElementReferenceException e) {
+                return null;
+            }
         }, "Expected attribute [" + attribute + "] to exist for: " + description);
         return this;
     }
 
-    /** Asserts the element has the specified CSS property value — retries until timeout. */
+    /**
+     * Asserts the element has the specified CSS property value — retries until
+     * timeout.
+     */
     public LocatorAssert hasCssValue(String propertyName, String expectedValue) {
         StepLogger.step("Assert CSS " + propertyName + "='" + expectedValue + "' for: " + description);
         poll(driver -> {
-            List<WebElement> els = driver.findElements(by);
-            if (els.isEmpty()) return null;
-            String val = els.get(0).getCssValue(propertyName);
-            return expectedValue != null && expectedValue.equals(val) ? true : null;
+            try {
+                List<WebElement> els = driver.findElements(by);
+                if (els.isEmpty())
+                    return null;
+                String val = els.get(0).getCssValue(propertyName);
+                return expectedValue != null && expectedValue.equals(val) ? true : null;
+            } catch (StaleElementReferenceException e) {
+                return null;
+            }
         }, "Expected CSS property [" + propertyName + "='" + expectedValue + "'] for: " + description);
         return this;
     }
 
-    /** Asserts the element is currently focused (the active element in the document) — retries until timeout. */
+    /**
+     * Asserts the element is currently focused (the active element in the document)
+     * — retries until timeout.
+     */
     public LocatorAssert isFocused() {
         StepLogger.step("Assert focused: " + description);
         poll(driver -> {
-            List<WebElement> els = driver.findElements(by);
-            if (els.isEmpty()) return null;
-            WebElement active = driver.switchTo().activeElement();
-            return els.get(0).equals(active) ? true : null;
+            try {
+                List<WebElement> els = driver.findElements(by);
+                if (els.isEmpty())
+                    return null;
+                WebElement active = driver.switchTo().activeElement();
+                return els.get(0).equals(active) ? true : null;
+            } catch (StaleElementReferenceException e) {
+                return null;
+            }
         }, "Expected element to be focused: " + description);
         return this;
     }
@@ -254,14 +311,21 @@ public final class LocatorAssert {
     public LocatorAssert hasClass(String className) {
         StepLogger.step("Assert has class '" + className + "' for: " + description);
         poll(driver -> {
-            List<WebElement> els = driver.findElements(by);
-            if (els.isEmpty()) return null;
-            String classes = els.get(0).getAttribute("class");
-            if (classes == null) return null;
-            for (String cls : classes.split("\\s+")) {
-                if (cls.equals(className)) return true;
+            try {
+                List<WebElement> els = driver.findElements(by);
+                if (els.isEmpty())
+                    return null;
+                String classes = els.get(0).getAttribute("class");
+                if (classes == null)
+                    return null;
+                for (String cls : classes.split("\\s+")) {
+                    if (cls.equals(className))
+                        return true;
+                }
+                return null;
+            } catch (StaleElementReferenceException e) {
+                return null;
             }
-            return null;
         }, "Expected element to have class [" + className + "]: " + description);
         return this;
     }
@@ -270,12 +334,93 @@ public final class LocatorAssert {
     // Count
     // ------------------------------------------------------------------
 
-    /** Asserts the number of matching elements equals {@code expected} — retries until timeout. */
+    /**
+     * Asserts the number of matching elements equals {@code expected} — retries
+     * until timeout.
+     */
     public LocatorAssert count(int expected) {
         StepLogger.step("Assert count " + expected + " for: " + description);
         poll(ExpectedConditions.numberOfElementsToBe(by, expected),
                 "Expected " + expected + " element(s) for: " + description);
         return this;
+    }
+
+    // ------------------------------------------------------------------
+    // Semantic AI Assertions
+    // ------------------------------------------------------------------
+
+    /**
+     * Asserts that the element semantically satisfies the given natural language
+     * condition.
+     *
+     * <p>
+     * Anti-throttle guarantee: does not poll repeatedly. Extracts element HTML and
+     * performs a bounded
+     * LLM reasoning evaluation.
+     *
+     * @param expectedCondition natural language expectation (e.g. "Displays active
+     *                          subscription status")
+     * @return this assertion for chaining
+     */
+    public LocatorAssert satisfiesAi(String expectedCondition) {
+        StepLogger.step("Assert element satisfies condition (AI): \"" + expectedCondition + "\" for: " + description);
+        evaluateAi(expectedCondition, true);
+        return this;
+    }
+
+    /**
+     * Asserts that the element does NOT violate or contain the given forbidden
+     * condition.
+     *
+     * @param forbiddenCondition natural language forbidden condition (e.g.
+     *                           "Contains error banner or expired tag")
+     * @return this assertion for chaining
+     */
+    public LocatorAssert violatesAi(String forbiddenCondition) {
+        StepLogger.step(
+                "Assert element does not violate condition (AI): \"" + forbiddenCondition + "\" for: " + description);
+        evaluateAi(forbiddenCondition, false);
+        return this;
+    }
+
+    private void evaluateAi(String condition, boolean expectSatisfaction) {
+        WebDriver driver = DriverManager.getDriver();
+        List<WebElement> els = driver.findElements(by);
+        if (els.isEmpty()) {
+            String prefix = customMessage != null && !customMessage.isBlank() ? "[" + customMessage + "] " : "";
+            String err = prefix + "Cannot evaluate AI condition: element not found for " + description;
+            if (soft) {
+                SoftAssertionCollector target = collector != null ? collector : SoftAssertions.get();
+                target.that(false, err);
+            } else {
+                throw new AssertionError(err);
+            }
+            return;
+        }
+
+        String rawHtml;
+        try {
+            rawHtml = els.get(0).getAttribute("outerHTML");
+        } catch (Exception e) {
+            rawHtml = els.get(0).getText();
+        }
+
+        String pruned = DomPruner.prune(rawHtml);
+        AiAssertEngine.AiAssertionResult result = AiAssertEngine.verify(driver, pruned, condition, expectSatisfaction);
+
+        if (!result.isPassed()) {
+            String prefix = customMessage != null && !customMessage.isBlank() ? "[" + customMessage + "] " : "";
+            String modeStr = expectSatisfaction ? "satisfy" : "not violate";
+            String err = prefix + "Expected element [" + description + "] to " + modeStr + " AI condition: \""
+                    + condition + "\". Reason: " + result.reason();
+
+            if (soft) {
+                SoftAssertionCollector target = collector != null ? collector : SoftAssertions.get();
+                target.that(false, err);
+            } else {
+                throw new AssertionError(err);
+            }
+        }
     }
 
     // ------------------------------------------------------------------

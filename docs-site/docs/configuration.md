@@ -44,9 +44,26 @@ api:
       token: ${API_TOKEN}
 ```
 
-* If the environment variable exists, its value replaces `${VAR_NAME}` at load time.
-* If the variable is unset, TestFly checks Java system properties (`System.getProperty("VAR_NAME")`).
-* If neither is set, `${VAR_NAME}` remains as a literal string or resolves to an empty string depending on context.
+TestFly resolves `${VAR_NAME}` placeholders using the following priority (highest → lowest):
+
+1. **`.env` file** — A `.env` file in the project root (next to `pom.xml`). Values here deliberately win over the shell so that a stale exported credential cannot silently override the project's checked-out configuration.
+2. **Shell environment variable** — `System.getenv("VAR_NAME")`
+3. **System property** — `-DVAR_NAME=value` or `System.getProperty("VAR_NAME")`
+4. **Default fallback** — `${VAR_NAME:-default}` syntax provides a fallback when no source defines the variable.
+
+Supported `.env` syntax:
+
+```dotenv
+# comment
+API_KEY=sk-abc123
+SECRET="quoted value"
+TOKEN='single quoted'
+URL=https://example.com  # inline comment
+```
+
+:::tip Programmatic access
+Use `DotEnvLoader.fromDotEnv("API_KEY")` to read a value exclusively from the `.env` file, bypassing the shell and system properties.
+:::
 
 ### Environment Profiles (`-Dtestfly.profile`)
 
@@ -139,11 +156,15 @@ retry:
 # ── Locators ─────────────────────────────────────────────────────────────────
 locators:
   selfHealing: false                # auto-heal broken locators using fallback strategies
+  aiHealing: false                  # fallback to LLM when static heuristics fail
+  maxDomTokens: 8000                # token limit for DOM pruning
   testIdAttribute: data-testid      # attribute queried by getByTestId()
 
-# ── AI Failure Analysis ──────────────────────────────────────────────────────
+# ── AI Failure Analysis & Agentic Testing ─────────────────────────────────────
 ai:
   failureAnalysis: false            # generate AI root-cause analysis on test failure
+  generatePatch: false              # generate unified git diff .patch files for test failures
+  actionCache: true                 # cache compiled action plans for act() in .testfly/action-cache.json
   provider: gemini                  # gemini | claude | openai-compatible
   apiKey: ${AI_API_KEY}             # provider API key
   model:                            # optional — defaults: gemini-2.5-flash or claude-haiku-4-5-20251001
@@ -414,17 +435,21 @@ Smart locator synthesis and resilience settings.
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `selfHealing` | `boolean` | `false` | When enabled, locators that time out in `waitForVisible` are healed using alternate heuristics (id, test-id, text, placeholder) and saved to `target/healed-locators.json`. |
+| `aiHealing` | `boolean` | `false` | When enabled, uses LLM reasoning to synthesize resilient fallback locators when static regex strategies fail. |
+| `maxDomTokens` | `int` | `8000` | Maximum token budget for DOM pruning when sending DOM to LLM. |
 | `testIdAttribute` | `string` | `data-testid` | The HTML attribute targeted by `getByTestId("submit-btn")`. Can be configured to `data-qa`, `data-test`, etc. |
 
 ---
 
-## AI Failure Analysis {#ai}
+## AI Failure Analysis & Agentic Testing {#ai}
 
-AI-driven test triage and automated root-cause suggestion engine.
+AI-driven test triage, automated root-cause suggestion, and agentic execution engine.
 
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `failureAnalysis` | `boolean` | `false` | When `true`, automatically sends failure stack traces, step logs, and DOM state to the LLM upon test failure. |
+| `generatePatch` | `boolean` | `false` | When `true`, automatically generates a unified git diff `.patch` file in `target/remediations/` on test failure. |
+| `actionCache` | `boolean` | `true` | When `true`, freezes compiled action plans for `act()` into `.testfly/action-cache.json` for deterministic 0 ms replay. |
 | `provider` | `string` | `claude` | AI backend provider: `gemini`, `claude`, or `openai-compatible`. |
 | `apiKey` | `string` | `null` | API authorization key for the chosen provider. |
 | `model` | `string` | `null` | Target model. Defaults automatically to `gemini-2.5-flash` for Gemini or `claude-haiku-4-5-20251001` for Claude if omitted. |

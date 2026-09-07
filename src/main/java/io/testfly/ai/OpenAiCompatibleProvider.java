@@ -1,5 +1,8 @@
 package io.testfly.ai;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -33,17 +36,34 @@ import java.util.logging.Logger;
 public final class OpenAiCompatibleProvider implements AiProvider {
 
     private static final Logger LOG = Logger.getLogger(OpenAiCompatibleProvider.class.getName());
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final String baseUrl;
+    private final String endpointUrl;
 
     /**
-     * @param baseUrl API base URL, e.g. {@code https://api.deepseek.com}.
-     *                {@code /v1/chat/completions} is appended automatically.
+     * @param baseUrl API base URL, e.g. {@code https://api.deepseek.com} or
+     *                {@code https://.../compatible-mode/v1}.
+     *                Handles {@code /v1} and {@code /chat/completions} intelligently.
      */
     public OpenAiCompatibleProvider(String baseUrl) {
-        this.baseUrl = baseUrl != null && baseUrl.endsWith("/")
-                ? baseUrl.substring(0, baseUrl.length() - 1)
-                : baseUrl;
+        this.endpointUrl = buildEndpointUrl(baseUrl);
+    }
+
+    public static String buildEndpointUrl(String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            return "https://api.openai.com/v1/chat/completions";
+        }
+        String clean = baseUrl.trim();
+        while (clean.endsWith("/")) {
+            clean = clean.substring(0, clean.length() - 1);
+        }
+        if (clean.endsWith("/chat/completions")) {
+            return clean;
+        }
+        if (clean.endsWith("/v1")) {
+            return clean + "/chat/completions";
+        }
+        return clean + "/v1/chat/completions";
     }
 
     @Override
@@ -54,7 +74,7 @@ public final class OpenAiCompatibleProvider implements AiProvider {
     @Override
     public String call(String apiKey, String model, String prompt, int timeoutSeconds) {
         try {
-            String url = baseUrl + "/v1/chat/completions";
+            String url = endpointUrl;
             String body = buildRequestBody(model, prompt);
 
             HttpClient client = HttpClient.newBuilder()
@@ -72,7 +92,12 @@ public final class OpenAiCompatibleProvider implements AiProvider {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                return extractContent(response.body());
+                String content = extractContent(response.body());
+                if (content == null || content.isBlank()) {
+                    LOG.warning("[OpenAiCompatible] HTTP 200 but content was empty or unparseable. Response snippet: "
+                            + response.body().substring(0, Math.min(300, response.body().length())));
+                }
+                return content;
             }
             LOG.warning("[OpenAiCompatible] HTTP " + response.statusCode()
                     + ": " + response.body().substring(0, Math.min(200, response.body().length())));
@@ -86,13 +111,38 @@ public final class OpenAiCompatibleProvider implements AiProvider {
     private static String buildRequestBody(String model, String prompt) {
         String escaped = ClaudeProvider.escapeJson(prompt);
         return "{\"model\":\"" + model + "\","
-                + "\"max_tokens\":512,"
+                + "\"max_tokens\":2048,"
                 + "\"messages\":[{\"role\":\"user\",\"content\":\"" + escaped + "\"}]"
                 + "}";
     }
 
     /** Extracts {@code choices[0].message.content} from an OpenAI-compatible response. */
     public static String extractContent(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            JsonNode root = MAPPER.readTree(json);
+            JsonNode choices = root.get("choices");
+            if (choices != null && choices.isArray() && !choices.isEmpty()) {
+                JsonNode choice = choices.get(0);
+                JsonNode message = choice.get("message");
+                if (message != null) {
+                    JsonNode contentNode = message.get("content");
+                    if (contentNode != null && !contentNode.isNull()) {
+                        String text = contentNode.asText().trim();
+                        if (!text.isEmpty()) {
+                            return text;
+                        }
+                    }
+                }
+            }
+            if (root.has("error")) {
+                LOG.warning("[OpenAiCompatible] Response contains error: " + root.get("error"));
+                return null;
+            }
+        } catch (Exception ignored) {
+            // Fallback to string-based scanner below
+        }
+
         int contentIdx = json.indexOf("\"content\"");
         if (contentIdx < 0) return null;
         int colon = json.indexOf(':', contentIdx);

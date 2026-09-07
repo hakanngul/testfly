@@ -71,9 +71,17 @@ public final class PerformanceMetrics {
     private final double domLoad; // ms — DOMContentLoaded
     @JsonProperty
     private final double pageLoad; // ms — window.load event
+    @JsonProperty
+    private final double transitionDuration; // ms — SPA route transition duration (-1 if not SPA)
 
     public PerformanceMetrics(double lcp, double fcp, double fp,
             double ttfb, double cls, double domLoad, double pageLoad) {
+        this(lcp, fcp, fp, ttfb, cls, domLoad, pageLoad, NOT_AVAILABLE);
+    }
+
+    public PerformanceMetrics(double lcp, double fcp, double fp,
+            double ttfb, double cls, double domLoad, double pageLoad,
+            double transitionDuration) {
         this.lcp = lcp;
         this.fcp = fcp;
         this.fp = fp;
@@ -81,6 +89,7 @@ public final class PerformanceMetrics {
         this.cls = cls;
         this.domLoad = domLoad;
         this.pageLoad = pageLoad;
+        this.transitionDuration = transitionDuration;
     }
 
     /**
@@ -129,6 +138,15 @@ public final class PerformanceMetrics {
         return pageLoad;
     }
 
+    /**
+     * SPA route transition duration in ms. Measured between
+     * {@code markSpaTransitionStart()} and {@code collectSpaTransition()} calls.
+     * {@code -1} if not collected via the SPA strategy.
+     */
+    public double transitionDuration() {
+        return transitionDuration;
+    }
+
     /** Returns {@code true} if the metric value is available (not {@code -1}). */
     public boolean isAvailable(double value) {
         return value >= 0;
@@ -136,9 +154,13 @@ public final class PerformanceMetrics {
 
     @Override
     public String toString() {
-        return String.format(
+        String base = String.format(
                 Locale.ROOT,
-                "PerformanceMetrics{lcp=%.0fms, fcp=%.0fms, ttfb=%.0fms, cls=%.3f, domLoad=%.0fms, pageLoad=%.0fms}",
+                "PerformanceMetrics{lcp=%.0fms, fcp=%.0fms, ttfb=%.0fms, cls=%.3f, domLoad=%.0fms, pageLoad=%.0fms",
                 lcp, fcp, ttfb, cls, domLoad, pageLoad);
+        if (transitionDuration >= 0) {
+            return base + String.format(Locale.ROOT, ", transitionDuration=%.0fms}", transitionDuration);
+        }
+        return base + "}";
     }
 }

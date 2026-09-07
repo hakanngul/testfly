@@ -40,30 +40,38 @@ public final class AiProviderRegistry {
     /**
      * Returns the provider for the given name.
      *
-     * <p>For {@code "openai-compatible"}, a new instance is created using the supplied
-     * base URL. For all other names, the registered singleton is returned.
+     * <p>For {@code "openai-compatible"} or {@code "openai"}, a new instance is created using the supplied
+     * base URL. For {@code "claude"} or {@code "anthropic"}, an instance is created using the custom base URL if supplied.
+     * For all other names, the registered singleton is returned.
      *
      * @param name    provider name from {@code ai.provider} in {@code testfly.yml}
-     * @param baseUrl base URL for OpenAI-compatible providers (ignored for others)
+     * @param baseUrl base URL for the provider (optional)
      * @return the provider, or {@code null} if not found
      */
     public static AiProvider get(String name, String baseUrl) {
         if (name == null || name.isBlank()) {
-            return PROVIDERS.get("claude");
+            return new ClaudeProvider(baseUrl);
         }
 
-        if ("openai-compatible".equalsIgnoreCase(name)) {
+        String normalized = name.toLowerCase().trim();
+        if ("openai-compatible".equals(normalized) || "openai".equals(normalized)) {
             String url = baseUrl != null ? baseUrl : "https://api.openai.com";
             return new OpenAiCompatibleProvider(url);
         }
 
-        return PROVIDERS.get(name.toLowerCase());
+        if ("claude".equals(normalized) || "anthropic".equals(normalized)) {
+            return new ClaudeProvider(baseUrl);
+        }
+
+        return PROVIDERS.get(normalized);
     }
 
     /** Returns all registered provider names. */
     public static java.util.Set<String> availableProviders() {
         java.util.Set<String> names = new java.util.LinkedHashSet<>(PROVIDERS.keySet());
         names.add("openai-compatible");
+        names.add("openai");
+        names.add("anthropic");
         return names;
     }
 }

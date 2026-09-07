@@ -35,6 +35,30 @@ public class OpenAiCompatibleProviderTest {
     }
 
     @Test
+    public void buildEndpointUrl_handlesTokenPlanAndStandardUrls() {
+        // Alibaba Cloud Token Plan baseUrl ending in /v1
+        assertEquals(
+                OpenAiCompatibleProvider.buildEndpointUrl("https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1"),
+                "https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/chat/completions"
+        );
+        // BaseUrl ending with trailing slash
+        assertEquals(
+                OpenAiCompatibleProvider.buildEndpointUrl("https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/"),
+                "https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/chat/completions"
+        );
+        // Standard baseUrl without /v1
+        assertEquals(
+                OpenAiCompatibleProvider.buildEndpointUrl("https://api.deepseek.com"),
+                "https://api.deepseek.com/v1/chat/completions"
+        );
+        // Fully specified chat/completions url
+        assertEquals(
+                OpenAiCompatibleProvider.buildEndpointUrl("https://custom.host/v1/chat/completions"),
+                "https://custom.host/v1/chat/completions"
+        );
+    }
+
+    @Test
     public void extractContent_emptyJson_returnsNull() {
         assertNull(OpenAiCompatibleProvider.extractContent("{}"));
     }

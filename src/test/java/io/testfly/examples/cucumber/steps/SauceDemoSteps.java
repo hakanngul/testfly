@@ -50,4 +50,23 @@ public class SauceDemoSteps extends BaseCucumberSteps {
     public void verifyCartBadge(String expectedCount) {
         assertThat(By.className("shopping_cart_badge")).hasText(expectedCount);
     }
+
+    // ------------------------------------------------------------------
+    // Agentic Testing Steps
+    // ------------------------------------------------------------------
+
+    @When("the agent executes goal {string}")
+    public void executeAgentGoal(String goal) {
+        act(goal);
+    }
+
+    @Then("the page satisfies AI condition {string}")
+    public void verifyPageSatisfiesAi(String condition) {
+        assertWithAi(condition);
+    }
+
+    @Then("the page violates AI condition {string}")
+    public void verifyPageViolatesAi(String condition) {
+        assertThatPage().violatesAi(condition);
+    }
 }

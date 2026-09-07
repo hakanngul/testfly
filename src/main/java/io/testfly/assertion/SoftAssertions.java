@@ -6,18 +6,22 @@ package io.testfly.assertion;
  */
 public final class SoftAssertions {
 
-    private static final ThreadLocal<SoftAssertionCollector> COLLECTOR =
-            ThreadLocal.withInitial(SoftAssertionCollector::new);
+    private static final ThreadLocal<SoftAssertionCollector> COLLECTOR = ThreadLocal
+            .withInitial(SoftAssertionCollector::new);
 
-    private SoftAssertions() {}
+    private SoftAssertions() {
+    }
 
     /** Returns the collector for the current thread. Never null. */
     public static SoftAssertionCollector get() {
         return COLLECTOR.get();
     }
 
-    /** Clears the collector for the current thread. Called by the framework after each test. */
+    /**
+     * Clears the collector for the current thread. Called by the framework after
+     * each test.
+     */
     public static void clear() {
-        COLLECTOR.get().clear();
+        COLLECTOR.remove();
     }
 }

@@ -68,7 +68,6 @@ testfly/
 ├── pom.xml                           # Maven build configuration
 ├── testfly.yml                       # Framework config for local test runs
 ├── README.md                         # User-facing landing page
-├── CLAUDE.md                         # Maintainer cheat sheet (read it!)
 ├── CONTRIBUTING.md                   # PR checklist and philosophy
 ├── CHANGELOG.md                      # Release history
 ├── SECURITY.md                       # Vulnerability reporting policy
@@ -341,7 +340,6 @@ Plugins can declare a `minFrameworkVersion()` to fail fast on incompatibility.
 ## Useful References
 
 - `README.md` — user-facing quickstart and feature overview
-- `CLAUDE.md` — maintainer commands and version-bump details
 - `CONTRIBUTING.md` — philosophy, PR checklist, backward-compatibility policy
 - `docs/architecture.md` — high-level architecture
 - `docs/internals.md` — internal design contracts

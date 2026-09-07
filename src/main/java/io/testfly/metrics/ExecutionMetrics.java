@@ -512,6 +512,9 @@ public final class ExecutionMetrics {
                     new File(historyDir, "testfly-metrics-" + timestamp + ".json"),
                     report);
 
+            // Rotate old history files — keep only the newest N
+            rotateHistoryFiles(historyDir);
+
             System.out.println("[TestFly] Metrics exported → " + primary.getPath());
             System.out.println("[TestFly] History copy     → "
                     + new File(historyDir, "testfly-metrics-" + timestamp + ".json").getPath());
@@ -519,6 +522,50 @@ public final class ExecutionMetrics {
         } catch (IOException e) {
             throw new RuntimeException(
                     "Failed to export metrics JSON", e);
+        }
+    }
+
+    // ==========================================================
+    // History File Rotation
+    // ==========================================================
+
+    /**
+     * Deletes the oldest metrics-history files so that at most {@code keepCount}
+     * files remain in the history directory. The retention count is read from
+     * {@code flakiness.historyRuns} in the framework config; if the config is
+     * unavailable a default of 30 is used.
+     */
+    private static void rotateHistoryFiles(File historyDir) {
+        if (historyDir == null || !historyDir.isDirectory()) {
+            return;
+        }
+
+        int keepCount = 30; // sensible default
+        try {
+            if (TestFlyContext.isInitialized()) {
+                TestFlyConfig cfg = TestFlyContext.getConfig();
+                if (cfg != null && cfg.getFlakiness() != null) {
+                    keepCount = cfg.getFlakiness().getHistoryRuns();
+                }
+            }
+        } catch (Exception ignored) {
+            // fall through with default
+        }
+
+        File[] files = historyDir
+                .listFiles((dir, name) -> name.startsWith("testfly-metrics-") && name.endsWith(".json"));
+        if (files == null || files.length <= keepCount) {
+            return;
+        }
+
+        // Sort by last-modified descending (newest first)
+        Arrays.sort(files, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+
+        // Delete everything beyond the retention window
+        for (int i = keepCount; i < files.length; i++) {
+            if (!files[i].delete()) {
+                files[i].deleteOnExit();
+            }
         }
     }
 

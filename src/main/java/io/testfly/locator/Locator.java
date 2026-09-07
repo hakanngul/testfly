@@ -538,7 +538,11 @@ public final class Locator {
 
     /** Escapes a value for use inside a single-quoted CSS attribute selector. */
     private static String cssEscape(String value) {
-        return value.replace("\\", "\\\\").replace("'", "\\'");
+        return value.replace("\\", "\\\\")
+                .replace("'", "\\'")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\0", "\\0");
     }
 
     /**

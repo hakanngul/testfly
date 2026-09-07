@@ -24,8 +24,12 @@ Off by default. Turn it on in `testfly.yml`:
 
 ```yaml
 locators:
-  selfHealing: true
+  selfHealing: true   # Static rule-based fallbacks
+  aiHealing: true     # Level 2: AI-driven semantic healing when static fallbacks fail
+  maxDomTokens: 8000  # Token budget for DOM pruning
 ```
+
+For full details on LLM-driven healing, see [Agentic Testing & Autonomous AI](../ai/agentic-testing#1-ai-driven-self-healing).
 
 ---
 
@@ -59,6 +63,13 @@ never invents selectors out of thin air. Strategies are tried in this order:
 **Example.** A locator of `By.cssSelector("div.header input#email")` that no longer
 matches will fall back to `By.id("email")`, then to `By.className("header")` — so a
 wrapper rename won't break the test as long as the `id` still exists.
+
+### Level 2: AI-Driven Self-Healing (`aiHealing: true`)
+
+If all 6 static strategies fail and `locators.aiHealing: true` is configured, TestFly activates the **AiHealingEngine**:
+- Uses `DomPruner` to compress the DOM below `locators.maxDomTokens` (default 8,000) while keeping semantic attributes intact.
+- Queries the configured LLM to synthesize a new locator matching the intent of the failed selector.
+- Caches the newly discovered selector into `.testfly/healed-locators.json` so subsequent runs resolve instantly without AI latency.
 
 ---
 

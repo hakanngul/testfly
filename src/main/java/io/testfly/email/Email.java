@@ -36,6 +36,27 @@ public record Email(String subject, String body, String htmlBody, String from, S
         }
     }
 
+    // ── OTP extraction ────────────────────────────────────────────────────
+
+    /**
+     * Extracts the first 4–8 digit OTP / verification code found in the email body.
+     * Searches the plain-text body first, then the HTML body.
+     *
+     * @return the OTP string, or {@code null} if no code is found
+     */
+    public String extractOtp() {
+        Pattern otpPattern = Pattern.compile("\\b(\\d{4,8})\\b");
+        Matcher m = otpPattern.matcher(body);
+        if (m.find()) {
+            return m.group(1);
+        }
+        m = otpPattern.matcher(htmlBody);
+        if (m.find()) {
+            return m.group(1);
+        }
+        return null;
+    }
+
     // ── Link extraction ───────────────────────────────────────────────────
 
     /**

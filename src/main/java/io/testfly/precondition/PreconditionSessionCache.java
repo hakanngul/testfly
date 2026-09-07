@@ -9,9 +9,11 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Thread-local cache of browser session state (cookies + localStorage) per condition name.
+ * Thread-local cache of browser session state (cookies + localStorage) per
+ * condition name.
  *
- * <p>Used by {@link PreConditionRunner} to avoid re-running provider methods when
+ * <p>
+ * Used by {@link PreConditionRunner} to avoid re-running provider methods when
  * a valid session already exists for the calling thread.
  */
 final class PreconditionSessionCache {
@@ -31,12 +33,15 @@ final class PreconditionSessionCache {
         }
     }
 
-    private static final ThreadLocal<Map<String, SavedSession>> cache =
-            ThreadLocal.withInitial(HashMap::new);
+    private static final ThreadLocal<Map<String, SavedSession>> cache = ThreadLocal.withInitial(HashMap::new);
 
-    private PreconditionSessionCache() {}
+    private PreconditionSessionCache() {
+    }
 
-    /** Captures current cookies + localStorage and stores under the given condition name. */
+    /**
+     * Captures current cookies + localStorage and stores under the given condition
+     * name.
+     */
     static void store(String conditionName, WebDriver driver) {
         Set<Cookie> cookies = driver.manage().getCookies();
         Map<String, String> localStorage = captureLocalStorage(driver);
@@ -44,22 +49,30 @@ final class PreconditionSessionCache {
     }
 
     /**
-     * Restores cookies and localStorage from cache into the current browser session.
+     * Restores cookies and localStorage from cache into the current browser
+     * session.
      * Navigates to the current URL to apply cookies before restoring localStorage.
      */
     static void restore(String conditionName, WebDriver driver) {
         SavedSession session = cache.get().get(conditionName);
-        if (session == null) return;
+        if (session == null)
+            return;
 
         driver.manage().deleteAllCookies();
         for (Cookie cookie : session.cookies) {
-            try { driver.manage().addCookie(cookie); } catch (Exception ignored) {}
+            try {
+                driver.manage().addCookie(cookie);
+            } catch (Exception ignored) {
+            }
         }
 
         restoreLocalStorage(driver, session.localStorage);
     }
 
-    /** Returns true if a non-empty cached session exists for the condition and thread. */
+    /**
+     * Returns true if a non-empty cached session exists for the condition and
+     * thread.
+     */
     static boolean isValid(String conditionName) {
         SavedSession session = cache.get().get(conditionName);
         return session != null && !session.isEmpty();
@@ -75,35 +88,76 @@ final class PreconditionSessionCache {
         cache.get().clear();
     }
 
+    /**
+     * Checks whether the current page URL indicates an authentication failure
+     * (redirect to a login/auth/signin page). If so, invalidates the cached
+     * session for the given condition so the provider re-runs on the next access.
+     *
+     * <p>
+     * Call this after a navigation or action that might have been rejected by
+     * the server due to an expired session cookie. Typical usage:
+     * 
+     * <pre>
+     * PreConditionRunner.checkAndInvalidate("loggedIn", driver);
+     * </pre>
+     *
+     * @param conditionName the precondition name to invalidate
+     * @param driver        the current WebDriver instance
+     * @return {@code true} if the session was invalidated
+     */
+    static boolean checkAndInvalidate(String conditionName, WebDriver driver) {
+        try {
+            String currentUrl = driver.getCurrentUrl();
+            if (currentUrl != null && isAuthFailureUrl(currentUrl)) {
+                invalidate(conditionName);
+                return true;
+            }
+        } catch (Exception ignored) {
+            // getCurrentUrl() can throw if the driver is dead — treat as invalid
+            invalidate(conditionName);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns {@code true} if the URL looks like an auth-failure redirect
+     * (login, auth, or signin page).
+     */
+    private static boolean isAuthFailureUrl(String url) {
+        String lower = url.toLowerCase();
+        return lower.contains("/login") || lower.contains("/auth") || lower.contains("/signin");
+    }
+
     @SuppressWarnings("unchecked")
     private static Map<String, String> captureLocalStorage(WebDriver driver) {
         Map<String, String> result = new HashMap<>();
         try {
             Object raw = ((JavascriptExecutor) driver).executeScript(
-                "var items = {}; " +
-                "for (var i = 0; i < localStorage.length; i++) { " +
-                "  var k = localStorage.key(i); items[k] = localStorage.getItem(k); " +
-                "} return items;"
-            );
+                    "var items = {}; " +
+                            "for (var i = 0; i < localStorage.length; i++) { " +
+                            "  var k = localStorage.key(i); items[k] = localStorage.getItem(k); " +
+                            "} return items;");
             if (raw instanceof Map) {
                 ((Map<?, ?>) raw).forEach((k, v) -> result.put(String.valueOf(k), String.valueOf(v)));
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return result;
     }
 
     private static void restoreLocalStorage(WebDriver driver, Map<String, String> items) {
         try {
             ((JavascriptExecutor) driver).executeScript(
-                "localStorage.clear(); " +
-                "var items = arguments[0]; " +
-                "if (items) { " +
-                "  for (var k in items) { " +
-                "    localStorage.setItem(k, items[k]); " +
-                "  } " +
-                "}",
-                items != null ? items : java.util.Collections.emptyMap()
-            );
-        } catch (Exception ignored) {}
+                    "localStorage.clear(); " +
+                            "var items = arguments[0]; " +
+                            "if (items) { " +
+                            "  for (var k in items) { " +
+                            "    localStorage.setItem(k, items[k]); " +
+                            "  } " +
+                            "}",
+                    items != null ? items : java.util.Collections.emptyMap());
+        } catch (Exception ignored) {
+        }
     }
 }

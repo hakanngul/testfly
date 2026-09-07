@@ -31,6 +31,13 @@ TestFly follows a layered, responsibility-driven architecture:
 └───────────────────────────┬────────────────────────────┘
                             │
 ┌───────────────────────────▼────────────────────────────┐
+│                   Agentic AI Layer                     │
+│   ActionCompiler · ActionExecutor · ActionCache        │
+│   AiAssertEngine · AiHealingEngine · DomPruner         │
+│   AiFailureAnalyzer · RemediationPatchGenerator        │
+└───────────────────────────┬────────────────────────────┘
+                            │
+┌───────────────────────────▼────────────────────────────┐
 │                      TestFly Core                      │
 │   Lifecycle Orchestrator · ThreadLocal Driver Manager │
 │   Fluent Locators & Assertions (PageAssert, Locator)  │
@@ -62,6 +69,7 @@ Responsibilities:
 - Page Object Models extending `BasePage`
 - Business-level assertions using `assertThat(locator)` and `assertThatPage()`
 - API endpoint verification using `api()`
+- Agentic testing via `act("goal")`, `assertWithAi("condition")`, `byIntent("description")`
 
 Rules:
 - No manual `new ChromeDriver()` or `driver.quit()` in tests
@@ -70,7 +78,26 @@ Rules:
 
 ---
 
-### 2. TestFly Core (Framework-Owned)
+### 2. Agentic AI Layer (Framework-Owned)
+
+Responsibilities:
+- **Goal Compilation (`ActionCompiler`)**: Transforms natural language goals into deterministic `ActionPlan` steps via LLM reasoning.
+- **Action Execution (`ActionExecutor`)**: Executes compiled plans as Selenium WebDriver actions (`CLICK`, `TYPE`, `CLEAR`, `HOVER`, `WAIT_VISIBLE`, `PRESS_ENTER`, `SELECT`, `NAVIGATE`).
+- **Compile & Freeze Caching (`ActionCache`)**: Persists action plans to `.testfly/action-cache.json` for 0ms replay on subsequent runs.
+- **Semantic Assertions (`PageAssert` / `LocatorAssert` → `AiAssertEngine`)**: Prune the DOM, then evaluate natural language conditions via LLM reasoning; fail closed on malformed responses.
+- **AI Self-Healing (`AiHealingEngine`)**: Synthesizes new locators when selectors break, using pruned DOM context.
+- **DOM Optimization (`DomPruner`)**: Strips non-semantic HTML noise to stay within LLM token budgets (<8K tokens).
+- **Failure Analysis (`AiFailureAnalyzer`)**: Explains test failure root causes in HTML reports.
+- **Auto-PR Remediation (`RemediationPatchGenerator` + `SourceCodeLocator`)**: Generates Unified Git Diff `.patch` files for permanent locator failures.
+
+Supported LLM Providers:
+- OpenAI-compatible (OpenAI, Qwen/Alibaba Cloud, DeepSeek, Groq, Ollama)
+- Anthropic Claude (native Messages API + Token Plan proxy)
+- Google Gemini
+
+---
+
+### 3. TestFly Core (Framework-Owned)
 
 Responsibilities:
 - **Lifecycle Orchestration**: Automates driver start, pre-conditions, and teardown across TestNG, JUnit 5, and Cucumber.
@@ -83,7 +110,7 @@ Responsibilities:
 
 ---
 
-### 3. Infrastructure & Reporting Layer
+### 4. Infrastructure & Reporting Layer
 
 Responsibilities:
 - **Configuration Engine**: Loads and validates `testfly.yml`, merging system properties and environment variables.
@@ -92,7 +119,7 @@ Responsibilities:
 
 ---
 
-### 4. Selenium & Browser Layer
+### 5. Selenium & Browser Layer
 
 Responsibilities:
 - Native Selenium 4.48.0 WebDriver APIs and Chrome DevTools Protocol (CDP v152).
@@ -103,27 +130,28 @@ Responsibilities:
 
 ## Execution Flow
 
-```mermaid
-sequenceDiagram
-    participant Runner as Test Runner (TestNG / JUnit 5)
-    participant CFG as Config Manager
-    participant DM as Driver Manager
-    participant Test as Test Method
-    participant CDP as DevTools / NetworkMock
-    participant Rep as HTML Reporter
-
-    Runner->>CFG: Load and validate testfly.yml
-    Runner->>DM: Request ThreadLocal WebDriver
-    DM->>DM: Provision browser (Chrome/Edge/Firefox)
-    Runner->>CDP: Attach CDP v152 session (if Chromium)
-    Runner->>Test: Execute test logic
-    Test->>Test: Perform actions & fluent assertions
-    alt Test Fails
-        Runner->>Rep: Capture failure screenshot & DOM snapshot
-        Runner->>Test: Trigger retry attempt (if configured)
-    end
-    Runner->>DM: Quit WebDriver and release thread
-    Runner->>Rep: Compile target/testfly-report.html
+```text
+Test Runner             Config Manager        Driver Manager         CDP / DevTools         Test Method           HTML Reporter
+    │                         │                     │                      │                     │                      │
+ 1. │─── Load testfly.yml ───>│                     │                      │                     │                      │
+    │                         │                     │                      │                     │                      │
+ 2. │─── Request WebDriver ────────────────────────>│                      │                     │                      │
+    │                                               │ (Provision Browser)  │                     │                      │
+    │                                               │                      │                     │                      │
+ 3. │─── Attach CDP Session (if Chromium) ────────────────────────────────>│                     │                      │
+    │                                                                      │                     │                      │
+ 4. │─── Execute Test Logic ────────────────────────────────────────────────────────────────────>│                      │
+    │                                                                                            │                      │
+    │                                                                                            │ (Actions & Asserts)  │
+    │                                                                                            │                      │
+    │   [ If Test Fails ]                                                                        │                      │
+ 5. │─── Capture Screenshot & DOM Snapshot ─────────────────────────────────────────────────────────────────────────────>│
+ 6. │─── Trigger Retry (if configured) ─────────────────────────────────────────────────────────>│                      │
+    │                                                                                                                   │
+ 7. │─── Quit WebDriver & Release Thread ──────────>│                                                                   │
+    │                                               │                                                                   │
+ 8. │─── Compile target/testfly-report.html ───────────────────────────────────────────────────────────────────────────>│
+    │                                                                                                                   │
 ```
 
 ---

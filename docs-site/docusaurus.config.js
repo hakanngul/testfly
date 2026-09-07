@@ -176,7 +176,7 @@ module.exports = function createConfig() {
         prism: {
           theme: themes.oneLight,
           darkTheme: themes.dracula,
-          additionalLanguages: ['java', 'yaml', 'bash', 'markup'],
+          additionalLanguages: ['java', 'yaml', 'bash', 'markup', 'gherkin', 'groovy', 'json'],
         },
         algolia: undefined,
       }),

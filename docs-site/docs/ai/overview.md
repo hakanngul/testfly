@@ -21,13 +21,26 @@ Modern AI coding assistants (such as **JetBrains AI Assistant**, **Claude Code**
 
 **TestFly MCP** is a Python-based server implementing the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). It bridges your IDE's AI assistant with live, real-world browser execution:
 
-```mermaid
-graph TD
-    A[IDE: IntelliJ IDEA / VS Code] -->|MCP Protocol / JSON-RPC| B(TestFly MCP Server)
-    B -->|Selenium WebDriver| C[Live Browser: Chrome / Firefox]
-    C -->|DOM & A11y Tree Snapshot| B
-    B -->|Emits Validated Java Code| D[TestFly Java Project]
-    D -->|Compiles & Executes| E[Reliable Test Automation]
+```text
+┌──────────────────────────────┐
+│  IDE: IntelliJ IDEA / VSCode │
+└──────────────┬───────────────┘
+               │ MCP Protocol / JSON-RPC
+               ▼
+┌──────────────────────────────┐
+│    TestFly MCP Server        │
+└──────┬────────────────▲──────┘
+       │                │ DOM & A11y
+       │ Selenium       │ Tree Snapshot
+       ▼                │
+┌──────────────────────┴───────┐
+│ Live Browser: Chrome/Firefox │
+└──────────────────────────────┘
+               │ Emits Validated TestFly Code
+               ▼
+┌──────────────────────────────┐
+│   TestFly Java Test Suite    │
+└──────────────────────────────┘
 ```
 
 ### Key Capabilities
@@ -45,10 +58,11 @@ graph TD
 
 ## Ecosystem Components
 
-The TestFly AI ecosystem consists of 4 tightly integrated components:
+The TestFly AI ecosystem consists of 5 tightly integrated components:
 
 | Component | Purpose | How to Access |
 | :--- | :--- | :--- |
+| **Agentic Testing Runtime** | Embedded Java engine for goal actions (`act()`), semantic assertions (`assertWithAi()`), intent locators (`byIntent()`), self-healing, and auto-remediation patches. | Built-in Java library: `io.testfly:testfly` |
 | **`testfly-mcp` Server** | Python MCP server exposing 88 tools to AI assistants via standard I/O. | `pip install -e .` or CLI: `testfly-mcp` |
 | **IntelliJ IDEA Plugin** | Zero-config registration with JetBrains AI Assistant, diagnostics, and project bootstrap. | Disk installation: `testfly-mcp-jetbrains-1.0.0.zip` |
 | **VS Code Extension** | Auto-registration for Claude Code & GitHub Copilot, status bar menu, and config generator. | VSIX installation: `testfly-mcp-1.0.0.vsix` |
@@ -58,6 +72,7 @@ The TestFly AI ecosystem consists of 4 tightly integrated components:
 
 ## Next Steps
 
+- [Agentic Testing & Autonomous AI](./agentic-testing) — Goal-oriented execution, Compile & Freeze caching, semantic assertions, and self-remediation.
 - [TestFly MCP Server & CLI](./testfly-mcp) — Learn about installation, the 88 MCP tools, and command-line usage.
 - [IDE Plugins & Extensions](./ide-plugins) — Set up the IntelliJ IDEA and VS Code plugins.
 - [Interactive Web Studio](./interactive-studio) — Use the visual browser playground and live codegen studio.

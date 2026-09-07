@@ -203,11 +203,13 @@
             <groupId>org.jcodec</groupId>
             <artifactId>jcodec</artifactId>
             <version>0.2.5</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jcodec</groupId>
             <artifactId>jcodec-javase</artifactId>
             <version>0.2.5</version>
+            <optional>true</optional>
         </dependency>
 
         <!-- Unit-test tooling (test scope only) -->
@@ -263,13 +265,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Source: https://mvnrepository.com/artifact/io.github.cdimascio/dotenv-java -->
-        <dependency>
-            <groupId>io.github.cdimascio</groupId>
-            <artifactId>dotenv-java</artifactId>
-            <version>3.2.0</version>
-            <scope>compile</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -419,6 +414,32 @@
                             <goal>report</goal>
                         </goals>
                     </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.40</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.30</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>
@@ -542,7 +563,7 @@
                         <configuration>
                             <configLocation>google_checks.xml</configLocation>
                             <consoleOutput>true</consoleOutput>
-                            <failsOnError>false</failsOnError>
+                            <failsOnError>true</failsOnError>
                         </configuration>
                         <executions>
                             <execution>
@@ -565,6 +586,7 @@
                                 <ruleset>/rulesets/java/braces.xml</ruleset>
                                 <ruleset>/rulesets/java/unusedcode.xml</ruleset>
                                 <ruleset>/rulesets/java/empty.xml</ruleset>
+                                <ruleset>/rulesets/java/multithreading.xml</ruleset>
                             </rulesets>
                             <printFailingErrors>true</printFailingErrors>
                         </configuration>

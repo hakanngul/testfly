@@ -49,9 +49,17 @@ reporting:
 
 ai:
   failureAnalysis: false
+  generatePatch: false
+  actionCache: true
   provider: openai-compatible
   baseUrl: https://api.deepseek.com
   apiKey: ${AI_API_KEY}
   model: deepseek-v4-flash
   language: tr
   timeoutSeconds: 20
+
+locators:
+  selfHealing: false
+  aiHealing: false
+  maxDomTokens: 8000
+
