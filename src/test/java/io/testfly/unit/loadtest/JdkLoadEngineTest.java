@@ -92,7 +92,8 @@ public class JdkLoadEngineTest {
                 .users(1)
                 .rampUp(java.time.Duration.ofSeconds(0))
                 .hold(java.time.Duration.ofSeconds(2))
-                .cooldown(java.time.Duration.ofSeconds(0));
+                .cooldown(java.time.Duration.ofSeconds(0))
+                .engine("jdk");
 
         LoadTestAssert result = LoadTestRunner.run(scenario);
         LoadTestMetrics metrics = result.metrics();
@@ -118,7 +119,8 @@ public class JdkLoadEngineTest {
                 .users(5)
                 .rampUp(java.time.Duration.ofSeconds(1))
                 .hold(java.time.Duration.ofSeconds(2))
-                .cooldown(java.time.Duration.ofSeconds(0));
+                .cooldown(java.time.Duration.ofSeconds(0))
+                .engine("jdk");
 
         LoadTestMetrics metrics = LoadTestRunner.run(scenario).metrics();
 
@@ -136,7 +138,8 @@ public class JdkLoadEngineTest {
                 .get("/api/slow")
                 .users(2)
                 .rampUp(java.time.Duration.ofSeconds(0))
-                .hold(java.time.Duration.ofSeconds(2));
+                .hold(java.time.Duration.ofSeconds(2))
+                .engine("jdk");
 
         LoadTestMetrics metrics = LoadTestRunner.run(scenario).metrics();
 
@@ -157,7 +160,8 @@ public class JdkLoadEngineTest {
                 .get("/api/error")
                 .users(2)
                 .rampUp(java.time.Duration.ofSeconds(0))
-                .hold(java.time.Duration.ofSeconds(2));
+                .hold(java.time.Duration.ofSeconds(2))
+                .engine("jdk");
 
         LoadTestMetrics metrics = LoadTestRunner.run(scenario).metrics();
 
@@ -175,7 +179,8 @@ public class JdkLoadEngineTest {
                 .get("/api/health")
                 .users(2)
                 .rampUp(java.time.Duration.ofSeconds(0))
-                .hold(java.time.Duration.ofSeconds(2));
+                .hold(java.time.Duration.ofSeconds(2))
+                .engine("jdk");
 
         // Should not throw
         LoadTestRunner.run(scenario)
@@ -191,7 +196,8 @@ public class JdkLoadEngineTest {
                 .get("/api/health")
                 .users(1)
                 .rampUp(java.time.Duration.ofSeconds(0))
-                .hold(java.time.Duration.ofSeconds(1));
+                .hold(java.time.Duration.ofSeconds(1))
+                .engine("jdk");
 
         LoadTestRunner.run(scenario).assertThroughputAbove(999999);
     }
@@ -208,7 +214,8 @@ public class JdkLoadEngineTest {
                 .rampUp(java.time.Duration.ofSeconds(0))
                 .hold(java.time.Duration.ofSeconds(2))
                 .step("Health").get("/api/health").and()
-                .step("Slow").get("/api/slow").and();
+                .step("Slow").get("/api/slow").and()
+                .engine("jdk");
 
         LoadTestMetrics metrics = LoadTestRunner.run(scenario).metrics();
 
@@ -276,7 +283,8 @@ public class JdkLoadEngineTest {
     public void testEmptyScenarioThrows() {
         LoadScenario scenario = LoadScenario.named("Empty")
                 .baseUrl("http://localhost:" + port)
-                .users(1);
+                .users(1)
+                .engine("jdk");
 
         LoadTestRunner.run(scenario);
     }
@@ -287,7 +295,8 @@ public class JdkLoadEngineTest {
     public void testNoBaseUrlThrows() {
         LoadScenario scenario = LoadScenario.named("No URL")
                 .get("/api/health")
-                .users(1);
+                .users(1)
+                .engine("jdk");
 
         LoadTestRunner.run(scenario);
     }

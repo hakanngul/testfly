@@ -128,16 +128,16 @@ public void healthCheck() {
 
 ### Acceptance Criteria
 
-- [ ] Gatling classpath'te yokken `GatlingBridge.isAvailable()` → `false`
-- [ ] Gatling classpath'te varken `GatlingBridge.isAvailable()` → `true`
-- [ ] `engine: auto` → Gatling varsa Gatling, yoksa JDK
-- [ ] `engine: gatling` + Gatling yok → `IllegalStateException` + dependency hint
-- [ ] `engine: jdk` → her zaman JDK, Gatling olsa bile
-- [ ] Gatling engine: `LoadScenario` → Gatling `Simulation` dönüşümü çalışır
-- [ ] Gatling results: `simulation.log` → `LoadTestMetrics` parse edilir
-- [ ] Percentile values (p50, p95, p99) Gatling'den doğru okunur
-- [ ] Netty version conflict yok (Selenium CDP + Gatling birlikte çalışır)
-- [ ] Unit testler geçer
+- [x] Gatling classpath'te yokken `GatlingBridge.isAvailable()` → `false`
+- [x] Gatling classpath'te varken `GatlingBridge.isAvailable()` → `true`
+- [x] `engine: auto` → Gatling varsa Gatling, yoksa JDK
+- [x] `engine: gatling` + Gatling yok → `IllegalStateException` + dependency hint
+- [x] `engine: jdk` → her zaman JDK, Gatling olsa bile
+- [x] Gatling engine: `LoadScenario` → Gatling `Simulation` dönüşümü çalışır
+- [x] Gatling results: `simulation.log` → `LoadTestMetrics` parse edilir
+- [x] Percentile values (p50, p95, p99) Gatling'den doğru okunur
+- [x] Netty version conflict yok (Selenium CDP + Gatling birlikte çalışır)
+- [x] Unit testler geçer
 
 ### Definition of Done
 

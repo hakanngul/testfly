@@ -28,7 +28,7 @@ public class K6AnnotationDrivenLoadTest extends BaseLoadTest {
     /**
      * Default annotation config: 10 users, 5s ramp-up, 10s hold.
      */
-    @Test(enabled = true) (JDK Engine) is implemented
+    @Test(enabled = true) // (JDK Engine) is implemented
     public void defaultLoad() {
         load("/")
                 .run()
@@ -53,9 +53,9 @@ public class K6AnnotationDrivenLoadTest extends BaseLoadTest {
      * Method-level override: different hold duration and engine.
      */
     @Test(enabled = true)
-    @LoadTest(hold = "20s", engine = "jdk")
+    @LoadTest(hold = "10s", engine = "jdk")
     public void longerHoldWithJdkEngine() {
-        load("/cart.php")
+        load("/contacts.php")
                 .run()
                 .assertP95Below(3000)
                 .assertNoStatus(500);

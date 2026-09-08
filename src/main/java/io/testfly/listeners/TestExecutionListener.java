@@ -22,6 +22,8 @@ import io.testfly.tracing.TraceRecorder;
 import io.testfly.precondition.DependsOnApi;
 import io.testfly.precondition.PreConditionRunner;
 import io.testfly.recording.RecordingManager;
+import io.testfly.loadtest.BaseLoadTest;
+import io.testfly.loadtest.LoadTest;
 import io.testfly.reporting.ScreenshotManager;
 import io.testfly.email.MailboxClient;
 import io.testfly.clock.TestClock;
@@ -97,6 +99,8 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         String testId = result.getMethod().getQualifiedName();
         failureArtifactsHandled.set(false); // fresh attempt
         TestFlyContext.setCurrentTestId(testId);
+        TestFlyContext.setCurrentTest(result.getTestClass().getRealClass(),
+                result.getMethod().getConstructorOrMethod().getMethod());
         ExecutionMetrics.clearSteps(testId); // discard stale steps from prior retry attempt
         ExecutionMetrics.markStart(testId);
         ExecutionMetrics.recordTestClass(testId, result.getTestClass().getRealClass().getSimpleName());
@@ -364,9 +368,17 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
                 result.getTestClass().getRealClass().isAnnotationPresent(NoBrowser.class);
     }
 
+    private boolean isLoadTest(ITestResult result) {
+        Class<?> clazz = result.getTestClass().getRealClass();
+        java.lang.reflect.Method m = result.getMethod().getConstructorOrMethod().getMethod();
+        return BaseLoadTest.class.isAssignableFrom(clazz) ||
+                clazz.isAnnotationPresent(LoadTest.class) ||
+                m.isAnnotationPresent(LoadTest.class);
+    }
+
     /** Returns true for tests that must not create/use a WebDriver. */
     private boolean skipBrowser(ITestResult result) {
-        return isApiTest(result) || isNoBrowserTest(result);
+        return isApiTest(result) || isNoBrowserTest(result) || isLoadTest(result);
     }
 
     private void applyUseAuth(ITestResult result) {

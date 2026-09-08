@@ -1,6 +1,8 @@
 package io.testfly.loadtest;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.loadtest.internal.GatlingBridge;
+import io.testfly.loadtest.internal.GatlingEngine;
 import io.testfly.loadtest.internal.JdkLoadEngine;
 import io.testfly.loadtest.internal.LoadTestEngine;
 import io.testfly.steps.StepLogger;
@@ -39,7 +41,9 @@ public final class LoadTestRunner {
      * @throws IllegalStateException if no engine is available
      */
     public static LoadTestAssert run(LoadScenario scenario) {
-        LoadTestConfig config = LoadTestConfig.resolveFor(scenario, null, null);
+        Class<?> testClass = io.testfly.internal.TestFlyContext.getCurrentTestClass();
+        java.lang.reflect.Method testMethod = io.testfly.internal.TestFlyContext.getCurrentTestMethod();
+        LoadTestConfig config = LoadTestConfig.resolveFor(scenario, testClass, testMethod);
 
         StepLogger.step("Load Test: " + scenario.name()
                 + " (" + config.getUsers() + " users, engine=" + config.getEngine() + ")");
@@ -72,13 +76,14 @@ public final class LoadTestRunner {
         if ("jdk".equals(engine)) {
             return JDK_ENGINE;
         } else if ("gatling".equals(engine)) {
-            // Sprint 3: GatlingEngine with Class.forName probe
-            throw new IllegalStateException(
-                    "[LoadTest] Gatling engine not yet implemented (Sprint 3). " +
-                            "Use engine: jdk or engine: auto for now.");
+            if (!GatlingBridge.isAvailable()) {
+                throw new IllegalStateException(GatlingBridge.missingDependencyMessage());
+            }
+            return new GatlingEngine();
         } else if ("auto".equals(engine)) {
-            // Sprint 3: check GatlingBridge.isAvailable() first
-            // For now, always fall back to JDK
+            if (GatlingBridge.isAvailable()) {
+                return new GatlingEngine();
+            }
             return JDK_ENGINE;
         } else {
             throw new IllegalArgumentException(

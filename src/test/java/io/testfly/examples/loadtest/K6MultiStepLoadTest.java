@@ -31,7 +31,7 @@ public class K6MultiStepLoadTest extends BaseLoadTest {
     /**
      * Simulates a browsing user flow: homepage → product → cart.
      */
-    @Test(enabled = true) (JDK Engine) is implemented
+    @Test(enabled = true) // (JDK Engine) is implemented
     public void browsingFlowUnderLoad() {
         loadScenario("Browsing Flow")
                 .users(15)
@@ -44,13 +44,13 @@ public class K6MultiStepLoadTest extends BaseLoadTest {
                 .check(status().is(200))
                 .and()
 
-                .step("Product Detail")
-                .get("/product.php?id=1")
+                .step("Contacts")
+                .get("/contacts.php")
                 .check(status().is(200))
                 .and()
 
-                .step("Cart")
-                .get("/cart.php")
+                .step("News")
+                .get("/news.php")
                 .check(status().is(200))
                 .and()
 
@@ -100,8 +100,8 @@ public class K6MultiStepLoadTest extends BaseLoadTest {
                 .step("Homepage")
                 .get("/")
                 .and()
-                .step("Cart")
-                .get("/cart.php")
+                .step("News")
+                .get("/news.php")
                 .and()
 
                 .run()

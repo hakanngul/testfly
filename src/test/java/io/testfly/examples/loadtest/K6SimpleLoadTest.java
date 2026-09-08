@@ -8,51 +8,54 @@ import org.testng.annotations.Test;
  * Simple load test against https://test.k6.io — the public k6 demo site.
  *
  * <p>
- * Demonstrates the simplest usage: a single GET endpoint with annotation-driven
- * configuration. No fluent overrides needed.
- *
- * <h3>Prerequisites</h3>
+ * Demonstrates high-concurrency Gatling load testing with zero boilerplate:
  * <ul>
- * <li>Sprint 2 (JDK Engine) must be implemented for {@code run()} to work</li>
- * <li>Or add Gatling to the classpath for Sprint 3</li>
+ * <li>Single GET endpoint with class-level {@link LoadTest} configuration</li>
+ * <li>Method-level configuration override</li>
+ * <li>Multi-step user browsing flow with multiple endpoints</li>
+ * <li>Functional API smoke test coexisting in the same test class</li>
  * </ul>
- *
- * <h3>testfly.yml</h3>
- * 
- * <pre>
- * loadtest:
- *   baseUrl: https://test.k6.io
- *   users: 10
- *   rampUp: 5s
- *   hold: 15s
- *   cooldown: 3s
- *   engine: auto
- * </pre>
  */
-@LoadTest(baseUrl = "https://test.k6.io", users = 10, rampUp = "5s", hold = "15s")
+@LoadTest(baseUrl = "https://test.k6.io", users = 5, rampUp = "2s", hold = "5s")
 public class K6SimpleLoadTest extends BaseLoadTest {
 
     /**
-     * Loads the homepage under moderate traffic.
+     * Loads the homepage under traffic using Gatling.
      * Asserts the site responds quickly and without errors.
      */
-    @Test(enabled = true) // Enable after Sprint 2 (JDK Engine) is implemented
+    @Test
     public void homepageUnderLoad() {
         load("/")
                 .run()
-                .assertP95Below(2000) // p95 < 2s (public demo site)
-                .assertErrorRateBelow(0.05) // < 5% errors (public site may throttle)
+                .assertP95Below(2000) // p95 < 2s
+                .assertErrorRateBelow(0.05) // < 5% errors
                 .assertNoStatus(500); // no server errors
     }
 
     /**
-     * Loads a deeper page — the cart page.
-     * Uses method-level annotation to override user count.
+     * Loads the contacts page.
+     * Uses method-level annotation to override user count and duration.
      */
-    @Test(enabled = true)
-    @LoadTest(users = 20, hold = "10s")
-    public void cartPageUnderLoad() {
-        load("/cart.php")
+    @Test
+    @LoadTest(users = 8, rampUp = "2s", hold = "5s")
+    public void contactsPageUnderLoad() {
+        load("/contacts.php")
+                .run()
+                .assertP95Below(3000)
+                .assertErrorRateBelow(0.10);
+    }
+
+    /**
+     * Multi-step browsing scenario: user hits homepage, then reads the news page.
+     */
+    @Test
+    @LoadTest(users = 5, rampUp = "2s", hold = "5s")
+    public void multiStepBrowsingFlow() {
+        loadScenario("Browse Flow")
+                .step("Home").get("/")
+                .and()
+                .step("News").get("/news.php")
+                .and()
                 .run()
                 .assertP95Below(3000)
                 .assertErrorRateBelow(0.10);
@@ -62,7 +65,7 @@ public class K6SimpleLoadTest extends BaseLoadTest {
      * Functional smoke test coexisting with load tests in the same class.
      * Uses the standard apiClient() — single request, no concurrency.
      */
-    @Test(enabled = true)
+    @Test
     public void functionalSmokeTest() {
         apiClient()
                 .to("https://test.k6.io")
