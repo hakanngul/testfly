@@ -382,14 +382,31 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
     private boolean isLoadTest(ITestResult result) {
         Class<?> clazz = result.getTestClass().getRealClass();
         java.lang.reflect.Method m = result.getMethod().getConstructorOrMethod().getMethod();
-        return BaseLoadTest.class.isAssignableFrom(clazz) ||
+        if (BaseLoadTest.class.isAssignableFrom(clazz) ||
+                io.testfly.test.support.LoadTestSupport.class.isAssignableFrom(clazz) ||
                 clazz.isAnnotationPresent(LoadTest.class) ||
-                m.isAnnotationPresent(LoadTest.class);
+                m.isAnnotationPresent(LoadTest.class)) {
+            return true;
+        }
+        String pkg = clazz.getPackageName().toLowerCase();
+        String simpleName = clazz.getSimpleName().toLowerCase();
+        return pkg.contains("loadtest") || simpleName.contains("loadtest");
+    }
+
+    private boolean isUnitTest(ITestResult result) {
+        Class<?> clazz = result.getTestClass().getRealClass();
+        return clazz.getName().startsWith("io.testfly.unit.");
     }
 
     /** Returns true for tests that must not create/use a WebDriver. */
     private boolean skipBrowser(ITestResult result) {
-        return isApiTest(result) || isNoBrowserTest(result) || isLoadTest(result);
+        Class<?> clazz = result.getTestClass().getRealClass();
+        // ONLY classes that extend BaseTest are Web UI tests that need a browser
+        boolean isWebTest = io.testfly.test.BaseTest.class.isAssignableFrom(clazz);
+        if (!isWebTest) {
+            return true;
+        }
+        return isApiTest(result) || isNoBrowserTest(result) || isLoadTest(result) || isUnitTest(result);
     }
 
     private void applyUseAuth(ITestResult result) {

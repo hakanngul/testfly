@@ -406,9 +406,21 @@ public class TestFlyExtension
     }
 
     private boolean skipBrowser(ExtensionContext context) {
+        Class<?> clazz = context.getRequiredTestClass();
         Method m = context.getRequiredTestMethod();
+        if (io.testfly.loadtest.BaseLoadTest.class.isAssignableFrom(clazz) ||
+                io.testfly.test.support.LoadTestSupport.class.isAssignableFrom(clazz) ||
+                clazz.isAnnotationPresent(io.testfly.loadtest.LoadTest.class) ||
+                m.isAnnotationPresent(io.testfly.loadtest.LoadTest.class) ||
+                clazz.getName().toLowerCase().contains("loadtest")) {
+            return true;
+        }
+        boolean isWebTest = BaseJUnit5Test.class.isAssignableFrom(clazz);
+        if (!isWebTest) {
+            return true;
+        }
         return m.isAnnotationPresent(NoBrowser.class) ||
-                context.getRequiredTestClass().isAnnotationPresent(NoBrowser.class);
+                clazz.isAnnotationPresent(NoBrowser.class);
     }
 
     private void capturePerformanceIfEnabled(String testId, ExtensionContext context) {

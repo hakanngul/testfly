@@ -113,6 +113,12 @@ public final class ConfigurationLoader {
 
         @Override
         public Property getProperty(Class<?> type, String name) {
+            for (Property candidate : super.getProperties(type)) {
+                if (candidate.getName().equalsIgnoreCase(name)
+                        || candidate.getName().equalsIgnoreCase(name.replace("-", ""))) {
+                    return candidate;
+                }
+            }
             Property property = super.getProperty(type, name);
             if (property != null && !isKnownProperty(type, name)) {
                 System.err.println("[TestFly] Unknown config key '" + name + "' on "
@@ -123,7 +129,8 @@ public final class ConfigurationLoader {
 
         private boolean isKnownProperty(Class<?> type, String name) {
             for (Property candidate : super.getProperties(type)) {
-                if (name.equals(candidate.getName())) {
+                if (candidate.getName().equalsIgnoreCase(name)
+                        || candidate.getName().equalsIgnoreCase(name.replace("-", ""))) {
                     return true;
                 }
             }

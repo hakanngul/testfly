@@ -2212,6 +2212,10 @@ public final class TestFlyConfig {
         setLoadTest(loadTest);
     }
 
+    public LoadTest getLoadtest() {
+        return getLoadTest();
+    }
+
     /**
      * Load testing configuration block.
      *

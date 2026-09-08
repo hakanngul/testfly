@@ -78,14 +78,9 @@ public final class JdkLoadEngine implements LoadTestEngine {
         String baseUrl = config.getBaseUrl();
 
         if (baseUrl == null || baseUrl.isBlank()) {
-            // Fall back to execution.baseUrl from TestFlyConfig
-            try {
-                baseUrl = io.testfly.internal.TestFlyContext.getConfig().getExecution().getBaseUrl();
-            } catch (Exception e) {
-                throw new IllegalStateException(
-                        "[LoadTest] No baseUrl configured. Set loadtest.baseUrl in testfly.yml " +
-                                "or @LoadTest(baseUrl = \"...\") or .baseUrl(\"...\") on the scenario.");
-            }
+            throw new IllegalStateException(
+                    "[LoadTest] No baseUrl configured. Set loadtest.baseUrl in testfly.yml " +
+                            "or @LoadTest(baseUrl = \"...\") or .baseUrl(\"...\") on the scenario.");
         }
 
         List<LoadStep> steps = scenario.steps();

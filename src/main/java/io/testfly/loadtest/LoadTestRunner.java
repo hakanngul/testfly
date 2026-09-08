@@ -28,9 +28,17 @@ import io.testfly.steps.StepLogger;
 public final class LoadTestRunner {
 
     private static final ThreadLocal<LoadTestMetrics> LAST_METRICS = new ThreadLocal<>();
+    private static final ThreadLocal<Boolean> EXECUTING = ThreadLocal.withInitial(() -> false);
     private static final JdkLoadEngine JDK_ENGINE = new JdkLoadEngine();
 
     private LoadTestRunner() {
+    }
+
+    /**
+     * Returns true if a load test is currently actively running on this thread.
+     */
+    public static boolean isExecuting() {
+        return Boolean.TRUE.equals(EXECUTING.get());
     }
 
     /**
@@ -41,20 +49,25 @@ public final class LoadTestRunner {
      * @throws IllegalStateException if no engine is available
      */
     public static LoadTestAssert run(LoadScenario scenario) {
-        Class<?> testClass = io.testfly.internal.TestFlyContext.getCurrentTestClass();
-        java.lang.reflect.Method testMethod = io.testfly.internal.TestFlyContext.getCurrentTestMethod();
-        LoadTestConfig config = LoadTestConfig.resolveFor(scenario, testClass, testMethod);
+        EXECUTING.set(true);
+        try {
+            Class<?> testClass = io.testfly.internal.TestFlyContext.getCurrentTestClass();
+            java.lang.reflect.Method testMethod = io.testfly.internal.TestFlyContext.getCurrentTestMethod();
+            LoadTestConfig config = LoadTestConfig.resolveFor(scenario, testClass, testMethod);
 
-        StepLogger.step("Load Test: " + scenario.name()
-                + " (" + config.getUsers() + " users, engine=" + config.getEngine() + ")");
+            StepLogger.step("Load Test: " + scenario.name()
+                    + " (" + config.getUsers() + " users, engine=" + config.getEngine() + ")");
 
-        LoadTestEngine engine = selectEngine(config);
-        LoadTestMetrics metrics = engine.execute(scenario, config);
+            LoadTestEngine engine = selectEngine(config);
+            LoadTestMetrics metrics = engine.execute(scenario, config);
 
-        LAST_METRICS.set(metrics);
-        io.testfly.metrics.ExecutionMetrics.recordLoadTest(metrics);
+            LAST_METRICS.set(metrics);
+            io.testfly.metrics.ExecutionMetrics.recordLoadTest(metrics);
 
-        return new LoadTestAssert(metrics);
+            return new LoadTestAssert(metrics);
+        } finally {
+            EXECUTING.remove();
+        }
     }
 
     /**

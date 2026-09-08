@@ -99,6 +99,12 @@ public final class FrameworkBootstrap {
                         + (hasSlack ? " [Slack]" : "") + (hasTeams ? " [Teams]" : ""));
             }
         }
+
+        TestFlyConfig.LoadTest loadTestCfg = config.getLoadTest();
+        if (loadTestCfg != null && loadTestCfg.isReportEnabled()) {
+            ReportAdapterRegistry.register(new io.testfly.loadtest.LoadTestReportAdapter());
+            System.out.println("[TestFly] LoadTest report adapter enabled");
+        }
     }
 
     /**

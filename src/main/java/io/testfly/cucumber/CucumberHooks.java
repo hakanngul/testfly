@@ -78,7 +78,9 @@ public class CucumberHooks {
         ExecutionMetrics.recordDescription(testId, scenario.getName());
 
         // 6. Create WebDriver (acquires session semaphore slot)
-        DriverManager.createDriver();
+        if (!skipBrowser(scenario)) {
+            DriverManager.createDriver();
+        }
 
         // 7. Notify plugins
         HookRegistry.onTestStart(testId);
@@ -89,7 +91,9 @@ public class CucumberHooks {
         String testId = TestFlyContext.getCurrentTestId();
 
         if (testId == null) {
-            safeQuitDriver();
+            if (!skipBrowser(scenario)) {
+                safeQuitDriver();
+            }
             CucumberContext.clear();
             return;
         }
@@ -141,7 +145,9 @@ public class CucumberHooks {
             HookRegistry.onTestEnd(testId, status);
 
         } finally {
-            safeQuitDriver();
+            if (!skipBrowser(scenario)) {
+                safeQuitDriver();
+            }
             ScenarioContext.clear();
             TestDataStore.clear();
             ApiClient.clearGlobalAuth();
@@ -272,5 +278,15 @@ public class CucumberHooks {
         } catch (Exception e) {
             System.err.println("[CucumberHooks] Driver quit failed: " + e.getMessage());
         }
+    }
+
+    private boolean skipBrowser(Scenario scenario) {
+        if (scenario == null || scenario.getSourceTagNames() == null) {
+            return false;
+        }
+        return scenario.getSourceTagNames().stream().anyMatch(t -> {
+            String lower = t.toLowerCase();
+            return lower.equals("@nobrowser") || lower.equals("@api") || lower.contains("loadtest");
+        });
     }
 }
