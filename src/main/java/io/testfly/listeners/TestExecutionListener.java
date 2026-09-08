@@ -190,6 +190,11 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
             RecordingManager.stop(); // discard frames — test passed in retain-on-failure mode
         }
         capturePerformanceIfEnabled(testId, result);
+        io.testfly.loadtest.LoadTestMetrics ltmSuccess = io.testfly.loadtest.LoadTestRunner.lastMetrics();
+        if (ltmSuccess != null) {
+            ExecutionMetrics.recordLoadTest(testId, ltmSuccess);
+            io.testfly.loadtest.LoadTestRunner.clearLastMetrics();
+        }
         ExecutionMetrics.recordStatus(testId, "PASSED");
         ExecutionMetrics.markEnd(testId);
         saveTraceIfEnabled(testId, result.getMethod().getMethodName(), true);
@@ -251,6 +256,11 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         if (result.getThrowable() != null) {
             ExecutionMetrics.recordError(testId, result.getThrowable());
         }
+        io.testfly.loadtest.LoadTestMetrics ltmFailed = io.testfly.loadtest.LoadTestRunner.lastMetrics();
+        if (ltmFailed != null) {
+            ExecutionMetrics.recordLoadTest(testId, ltmFailed);
+            io.testfly.loadtest.LoadTestRunner.clearLastMetrics();
+        }
         saveTraceIfEnabled(testId, result.getMethod().getMethodName(), false);
 
         // Capture screenshot + AI analysis and send to ReportPortal while the item is
@@ -285,6 +295,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         String testId = result.getMethod().getQualifiedName();
         ExecutionMetrics.recordStatus(testId, "SKIPPED");
         ExecutionMetrics.markEnd(testId);
+        io.testfly.loadtest.LoadTestRunner.clearLastMetrics();
         HookRegistry.onTestEnd(testId, "SKIPPED");
         TestManagementReporter.getInstance().onTestResult(
                 result.getMethod().getConstructorOrMethod().getMethod(), "SKIPPED", null);

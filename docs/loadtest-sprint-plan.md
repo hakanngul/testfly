@@ -172,17 +172,17 @@ public void gatlingLoadTest() {
 
 ### Acceptance Criteria
 
-- [ ] `assertP95Below(300)` — pass when p95 < 300ms, fail with detail message
-- [ ] `assertThroughputAbove(1000)` — pass when rps > 1000
-- [ ] `assertErrorRateBelow(0.01)` — pass when error rate < 1%
-- [ ] `assertSuccessRateAbove(0.99)` — pass when success rate > 99%
-- [ ] `assertNoStatus(500)` — fail if any 500 response
-- [ ] `assertStepP95Below("Login", 200)` — per-step assertion
-- [ ] Fluent chaining: `.assertP95Below(300).assertErrorRateBelow(0.01)` works
-- [ ] `metrics()` returns raw `LoadTestMetrics` for custom assertions
-- [ ] Percentile calculation correct (sorted array, nearest-rank method)
-- [ ] `testfly-metrics.json` includes `loadTests[]` array
-- [ ] Unit testler geçer
+- [x] `assertP95Below(300)` — pass when p95 < 300ms, fail with detail message
+- [x] `assertThroughputAbove(1000)` — pass when rps > 1000
+- [x] `assertErrorRateBelow(0.01)` — pass when error rate < 1%
+- [x] `assertSuccessRateAbove(0.99)` — pass when success rate > 99%
+- [x] `assertNoStatus(500)` — fail if any 500 response
+- [x] `assertStepP95Below("Login", 200)` — per-step assertion
+- [x] Fluent chaining: `.assertP95Below(300).assertErrorRateBelow(0.01)` works
+- [x] `metrics()` returns raw `LoadTestMetrics` for custom assertions
+- [x] Percentile calculation correct (sorted array, nearest-rank method)
+- [x] `testfly-metrics.json` includes `loadTests[]` array
+- [x] Unit testler geçer
 
 ### Definition of Done
 

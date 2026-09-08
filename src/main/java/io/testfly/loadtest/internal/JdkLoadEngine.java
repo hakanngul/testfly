@@ -502,25 +502,10 @@ public final class JdkLoadEngine implements LoadTestEngine {
     // ── Percentile calculation ───────────────────────────────────────────
 
     public static double percentile(double[] sorted, int p) {
-        if (sorted.length == 0)
-            return 0;
-        if (sorted.length == 1)
-            return sorted[0];
-        double rank = (p / 100.0) * (sorted.length - 1);
-        int lower = (int) Math.floor(rank);
-        int upper = (int) Math.ceil(rank);
-        if (lower == upper)
-            return sorted[lower];
-        double fraction = rank - lower;
-        return sorted[lower] + fraction * (sorted[upper] - sorted[lower]);
+        return PercentileCalculator.linearInterpolation(sorted, p);
     }
 
     public static double mean(double[] values) {
-        if (values.length == 0)
-            return 0;
-        double sum = 0;
-        for (double v : values)
-            sum += v;
-        return sum / values.length;
+        return PercentileCalculator.mean(values);
     }
 }

@@ -52,6 +52,7 @@ public final class LoadTestRunner {
         LoadTestMetrics metrics = engine.execute(scenario, config);
 
         LAST_METRICS.set(metrics);
+        io.testfly.metrics.ExecutionMetrics.recordLoadTest(metrics);
 
         return new LoadTestAssert(metrics);
     }

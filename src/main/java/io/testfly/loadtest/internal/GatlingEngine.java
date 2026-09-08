@@ -56,14 +56,13 @@ public final class GatlingEngine implements LoadTestEngine {
             }
         }
 
-        // Dedicated subfolder for this specific run to prevent collisions in parallel
-        // mode
-        String runId = scenario.name().replaceAll("[^a-zA-Z0-9_-]", "_") + "-" + System.currentTimeMillis();
-        File specificResultsDir = new File(config.getResultsDir(), runId);
-        specificResultsDir.mkdirs();
-
         GATLING_LOCK.lock();
         try {
+            // Dedicated subfolder for this specific run to prevent collisions
+            String runId = scenario.name().replaceAll("[^a-zA-Z0-9_-]", "_") + "-" + System.currentTimeMillis();
+            File specificResultsDir = new File(config.getResultsDir(), runId);
+            specificResultsDir.mkdirs();
+
             System.out.println("[LoadTest] Starting Gatling engine: " + scenario.name()
                     + " (" + config.getUsers() + " users, rampUp=" + config.getRampUp()
                     + ", hold=" + config.getHold() + ")");
@@ -71,14 +70,9 @@ public final class GatlingEngine implements LoadTestEngine {
             GatlingRunConfig runConfig = new GatlingRunConfig(scenario, config, baseUrl);
             GatlingRunConfig.set(runConfig);
 
-            if (GatlingBridge.isJavaLangOpened()) {
-                // In-process run (fast, used in maven with --add-opens)
-                runGatlingInProcess(specificResultsDir.getAbsolutePath(), TestFlyGatlingSimulation.class.getName(),
-                        scenario.name());
-            } else {
-                // Forked run with required JVM flags (used in IDE runs with zero extra config)
-                runGatlingForked(specificResultsDir.getAbsolutePath(), runConfig, scenario.name());
-            }
+            // Always run in an isolated JVM subprocess to ensure 100% clean state between
+            // consecutive simulations and prevent Gatling Scala singleton state caching.
+            runGatlingForked(specificResultsDir.getAbsolutePath(), runConfig, scenario.name());
 
             System.out.println("[LoadTest] Gatling execution complete. Parsing results...");
 
@@ -153,7 +147,8 @@ public final class GatlingEngine implements LoadTestEngine {
             cmd.add("-rf");
             cmd.add(resultsDir);
             cmd.add("-rd");
-            cmd.add(runDescription);
+            String cleanDesc = runDescription != null ? runDescription.replaceAll("[^a-zA-Z0-9_-]", "_") : "loadtest";
+            cmd.add(cleanDesc);
 
             ProcessBuilder pb = new ProcessBuilder(cmd);
             pb.inheritIO();

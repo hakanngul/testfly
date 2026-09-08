@@ -2,6 +2,9 @@ package io.testfly.examples.loadtest;
 
 import io.testfly.loadtest.BaseLoadTest;
 import io.testfly.loadtest.LoadTest;
+
+import java.time.Duration;
+
 import org.testng.annotations.Test;
 
 /**
@@ -73,4 +76,17 @@ public class K6SimpleLoadTest extends BaseLoadTest {
                 .send()
                 .assertStatus(200);
     }
+
+    @Test
+    public void assertionsWork() {
+        load("/")
+                .users(10)
+                .hold(Duration.ofSeconds(5))
+                .run()
+                .assertThroughputAbove(50) // RPS > 50
+                .assertP95Below(2000) // p95 < 2000ms (public demo site)
+                .assertErrorRateBelow(0.05) // Hata oranı < %5
+                .assertNoStatus(500); // 500 server error olmamalı
+    }
+
 }

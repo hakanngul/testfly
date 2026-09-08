@@ -179,6 +179,98 @@ public class LoadTestAssertTest {
         new LoadTestAssert(m).assertStepP95Below("NonExistent", 100);
     }
 
+    // ── Additional Assertions & Query Helpers ───────────────────────────
+
+    @Test
+    public void testMinLatencyBelowPasses() {
+        new LoadTestAssert(goodMetrics()).assertMinLatencyBelow(50);
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void testMinLatencyBelowFails() {
+        new LoadTestAssert(goodMetrics()).assertMinLatencyBelow(5);
+    }
+
+    @Test
+    public void testTotalRequestsAbovePasses() {
+        new LoadTestAssert(goodMetrics()).assertTotalRequestsAbove(900);
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void testTotalRequestsAboveFails() {
+        new LoadTestAssert(goodMetrics()).assertTotalRequestsAbove(1000);
+    }
+
+    @Test
+    public void testSuccessfulRequestsAbovePasses() {
+        new LoadTestAssert(goodMetrics()).assertSuccessfulRequestsAbove(900);
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void testSuccessfulRequestsAboveFails() {
+        new LoadTestAssert(goodMetrics()).assertSuccessfulRequestsAbove(995);
+    }
+
+    @Test
+    public void testFailedRequestsBelowPasses() {
+        new LoadTestAssert(goodMetrics()).assertFailedRequestsBelow(10);
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void testFailedRequestsBelowFails() {
+        new LoadTestAssert(goodMetrics()).assertFailedRequestsBelow(5);
+    }
+
+    @Test
+    public void testStepErrorRateBelowPasses() {
+        LoadTestMetrics m = new LoadTestMetrics("Test", 100, 99, 1, 500, 50,
+                40, 60, 80, 100, 10, 150, 0.01, Map.of(200, 99L),
+                30000, 50, "jdk",
+                Map.of("Checkout", new LoadTestMetrics.StepMetrics("Checkout", 50, 49, 1, 75, 0.02)));
+
+        new LoadTestAssert(m).assertStepErrorRateBelow("Checkout", 0.05);
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void testStepErrorRateBelowFails() {
+        LoadTestMetrics m = new LoadTestMetrics("Test", 100, 99, 1, 500, 50,
+                40, 60, 80, 100, 10, 150, 0.01, Map.of(200, 99L),
+                30000, 50, "jdk",
+                Map.of("Checkout", new LoadTestMetrics.StepMetrics("Checkout", 50, 49, 1, 75, 0.05)));
+
+        new LoadTestAssert(m).assertStepErrorRateBelow("Checkout", 0.02);
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void testStepErrorRateBelowMissingStep() {
+        LoadTestMetrics m = new LoadTestMetrics("Test", 100, 99, 1, 500, 50,
+                40, 60, 80, 100, 10, 150, 0.01, Map.of(),
+                30000, 50, "jdk", Map.of());
+
+        new LoadTestAssert(m).assertStepErrorRateBelow("NonExistent", 0.05);
+    }
+
+    @Test
+    public void testMetricsQueryHelpers() {
+        LoadTestMetrics m = new LoadTestMetrics("QueryScenario", 100, 95, 5, 250, 40,
+                30, 50, 70, 90, 10, 120, 0.05,
+                Map.of(200, 95L, 500, 5L), 10000, 10, "gatling",
+                Map.of("Login", new LoadTestMetrics.StepMetrics("Login", 50, 48, 2, 60, 0.04)));
+
+        assertEquals(m.successRate(), 0.95, 0.001);
+        assertEquals(m.statusCodeCount(200), 95L);
+        assertEquals(m.statusCodeCount(404), 0L);
+        assertTrue(m.hasStatusCode(200));
+        assertTrue(m.hasStatusCode(500));
+        assertFalse(m.hasStatusCode(404));
+
+        assertTrue(m.hasStep("Login"));
+        assertFalse(m.hasStep("Logout"));
+        assertNotNull(m.step("Login"));
+        assertNull(m.step("Logout"));
+        assertEquals(m.step("Login").totalRequests(), 50);
+    }
+
     // ── Empty metrics ────────────────────────────────────────────────────
 
     @Test
@@ -189,5 +281,9 @@ public class LoadTestAssertTest {
         assertEquals(empty.throughputRps(), 0.0);
         assertEquals(empty.engine(), "none");
         assertTrue(empty.steps().isEmpty());
+        assertEquals(empty.successRate(), 0.0);
+        assertEquals(empty.statusCodeCount(200), 0L);
+        assertFalse(empty.hasStatusCode(200));
+        assertFalse(empty.hasStep("any"));
     }
 }

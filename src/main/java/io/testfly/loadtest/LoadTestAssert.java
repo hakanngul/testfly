@@ -85,6 +85,41 @@ public final class LoadTestAssert {
         return assertPercentileBelow("max", metrics.maxLatencyMs(), ms);
     }
 
+    /** Asserts min latency is below the given threshold (ms). */
+    public LoadTestAssert assertMinLatencyBelow(double ms) {
+        return assertPercentileBelow("min", metrics.minLatencyMs(), ms);
+    }
+
+    /** Asserts total request count is strictly above the given minimum. */
+    public LoadTestAssert assertTotalRequestsAbove(int count) {
+        if (metrics.totalRequests() <= count) {
+            throw new AssertionError(String.format(
+                    "[LoadTest] %s: total requests %d is not above %d",
+                    metrics.scenarioName(), metrics.totalRequests(), count));
+        }
+        return this;
+    }
+
+    /** Asserts successful request count is strictly above the given minimum. */
+    public LoadTestAssert assertSuccessfulRequestsAbove(int count) {
+        if (metrics.successfulRequests() <= count) {
+            throw new AssertionError(String.format(
+                    "[LoadTest] %s: successful requests %d is not above %d",
+                    metrics.scenarioName(), metrics.successfulRequests(), count));
+        }
+        return this;
+    }
+
+    /** Asserts failed request count is strictly below the given threshold. */
+    public LoadTestAssert assertFailedRequestsBelow(int count) {
+        if (metrics.failedRequests() >= count) {
+            throw new AssertionError(String.format(
+                    "[LoadTest] %s: failed requests %d is not below %d",
+                    metrics.scenarioName(), metrics.failedRequests(), count));
+        }
+        return this;
+    }
+
     // ── Error rate ───────────────────────────────────────────────────────
 
     /** Asserts error rate (0.0–1.0) is below the given threshold. */
