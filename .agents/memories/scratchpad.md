@@ -16,20 +16,19 @@ char_limit: 2200
 ---
 
 ### 1. Aktif Odak ve Son Durum (Current Focus)
-- **Konu:** "2 Yol & 3 Parça" kalıcı hafıza mimarisinin ve Obsidian Graph yapısının TestFly projesine entegrasyonu.
-- **Durum:** Kurulum eksiksiz tamamlandı. Tüm 3 parça (Kural, Harita, Depo) ve 2 yol (Okuma/Yazma) standartları devrede.
+- **Konu:** Archify mimari diyagram yeteneğinin entegrasyonu ve TestFly mimari şemasının üretimi.
+- **Durum:** Archify `.agents/skills/archify` dizinine kuruldu, `MAP.md`'ye bağlandı ve ilk `testfly-architecture.html` diyagramı üretildi.
 
 ### 2. Anlık Bağlam ve Kararlar (Immediate Context)
-- `AGENTS.md` ve `[[rules/memory-protocol]]` anayasal kural olarak bağlandı.
-- Ajanların oturum başı ilk okuma noktası bu `[[memories/scratchpad]]` dosyasıdır.
-- Token koruma için doğrudan kaynak kod taraması yerine `[[MAP]]` üzerinden `[[wiki/...]]` düğümlerine sıçranacaktır.
+- Archify `showcase` kalite standardında 9 doğrulamayı 0 hata ile geçti.
+- Üretilen HTML diyagramı `docs-site/static/diagrams/testfly-architecture.html` konumunda ve `[[wiki/architecture]]` içinde linklendi.
+- Ajanlar bundan sonra mimari ve akış şemalarını Archify ile üretebilir.
 
 ### 3. Tamamlanan Kurulum Görevleri (Completed Tasks)
-- [x] Disk hiyerarşisinin (`.agents/rules`, `soul.md`, `MAP.md`, `memories/`, `wiki/`, `skills/memory-sync/`) kurulması.
-- [x] `[[wiki/index]]` ve temel mimari/domain wiki sayfalarının (`architecture`, `webdriver-lifecycle`, `configuration`, `memory-system`) oluşturulması.
-- [x] `[[skills/memory-sync/SKILL]]` prosedür dokümanının hazırlanması.
-- [x] `[[AGENTS]]` dosyasında hafıza anayasasının işlenmesi.
+- [x] Kalıcı hafıza mimarisinin (`.agents/rules`, `soul`, `MAP`, `memories`, `wiki`, `memory-sync`) kurulması.
+- [x] `[[skills/archify/SKILL]]` kurulumu ve `doctor` doğrulaması.
+- [x] TestFly çekirdek mimarisinin Archify interaktif HTML diyagramı olarak teslim edilmesi.
 
 ### 4. Hızlı Notlar (Scratch Notes)
-- Obsidian Graph View'da çift yönlü bağlantıların çalışması için tüm linkler `[[bağlantı]]` standardındadır.
-- Bir sonraki görevde veya oturum sonunda `[[skills/memory-sync/SKILL]]` çalıştırılarak döngü sürdürülecektir.
+- Obsidian Graph View'da tüm düğümler `[[...]]` standartlarındadır.
+- Archify; mimari, workflow, sequence, dataflow ve lifecycle diyagramlarını destekler.

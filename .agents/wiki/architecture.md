@@ -26,6 +26,10 @@ TestFly, "Selenium'un Spring Boot'u" felsefesiyle tasarlanmış, sıfır konfig�
 3. **Konumlandırıcılar (`locator`):** Rol, etiket ve erişilebilirlik odaklı fluent `Locator` API'si.
 4. **Raporlama Katmanı (`reporting`):** HTML raporlama, JUnit XML ve başarısızlık anında ekran görüntüleri.
 
+## 3. İnteraktif Mimari Şeması
+Archify ile oluşturulmuş, karanlık/aydınlık tema ve sunum modu destekli interaktif mimari şeması:
+- [TestFly Architecture Diagram (HTML)](file:///Users/hagul/Projects/TestFramework/testfly/docs-site/static/diagrams/testfly-architecture.html)
+
 ---
 
 ## İlgili Bağlantılar
@@ -33,3 +37,4 @@ TestFly, "Selenium'un Spring Boot'u" felsefesiyle tasarlanmış, sıfır konfig�
 - Harita: `[[MAP]]`
 - WebDriver Yaşam Döngüsü: `[[wiki/webdriver-lifecycle]]`
 - Yapılandırma: `[[wiki/configuration]]`
+- Archify Becerisi: `[[skills/archify/SKILL]]`

@@ -48,6 +48,7 @@ Ajan, token yakmamak için körlemesine arama yapmaz; önce bu haritaya bakar ve
 - `[[wiki/memory-system]]` — TestFly & Obsidian Graph hafıza sisteminin teknik detayları.
 
 ## 5. İşleyiş Becerileri ve Prosedürler (Skills)
+- `[[skills/archify/SKILL]]` — Sistem mimarisi, iş akışı, sequence ve yaşam döngüsü için interaktif HTML diyagram üreticisi.
 - `[[skills/memory-sync/SKILL]]` — Hafıza budama, scratchpad temizliği ve wiki senkronizasyon rutini.
 - `[[skills/testfly-workflow/SKILL]]` — TestFly framework geliştirme, birim test ve sürüm yönetimi iş akışı.
 - `[[skills/docusaurus-config/SKILL]]` — Dokümantasyon sitesi (Docusaurus) yapılandırma ve derleme adımları.
