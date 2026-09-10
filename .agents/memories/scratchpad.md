@@ -16,19 +16,19 @@ char_limit: 2200
 ---
 
 ### 1. Aktif Odak ve Son Durum (Current Focus)
-- **Konu:** Archify mimari diyagram yeteneğinin entegrasyonu ve TestFly mimari şemasının üretimi.
-- **Durum:** Archify `.agents/skills/archify` dizinine kuruldu, `MAP.md`'ye bağlandı ve ilk `testfly-architecture.html` diyagramı üretildi.
+- **Konu:** TestFly K6 yük testi veri akışının Archify ile modellenmesi ve teslimi.
+- **Durum:** `testfly-k6-dataflow.html` başarıyla üretildi (9 doğrulamadan 0 hatayla geçti), `wiki/load-testing.md` ve `MAP.md` güncellendi.
 
 ### 2. Anlık Bağlam ve Kararlar (Immediate Context)
-- Archify `showcase` kalite standardında 9 doğrulamayı 0 hata ile geçti.
-- Üretilen HTML diyagramı `docs-site/static/diagrams/testfly-architecture.html` konumunda ve `[[wiki/architecture]]` içinde linklendi.
-- Ajanlar bundan sonra mimari ve akış şemalarını Archify ile üretebilir.
+- Yük testi veri akışı 5 aşamada modellendi: Scenario -> Configure -> Execute -> Measure -> Deliver.
+- Şema `docs-site/static/diagrams/testfly-k6-dataflow.html` konumuna yazıldı ve `[[wiki/load-testing]]` sayfasına bağlandı.
 
-### 3. Tamamlanan Kurulum Görevleri (Completed Tasks)
-- [x] Kalıcı hafıza mimarisinin (`.agents/rules`, `soul`, `MAP`, `memories`, `wiki`, `memory-sync`) kurulması.
-- [x] `[[skills/archify/SKILL]]` kurulumu ve `doctor` doğrulaması.
-- [x] TestFly çekirdek mimarisinin Archify interaktif HTML diyagramı olarak teslim edilmesi.
+### 3. Tamamlanan Görevler (Completed Tasks)
+- [x] Archify kurulumu ve ortam doğrulaması.
+- [x] TestFly çekirdek mimari diyagramının üretilmesi (`testfly-architecture.html`).
+- [x] TestFly K6 yük testi veri akışı diyagramının üretilmesi (`testfly-k6-dataflow.html`).
+- [x] `[[wiki/load-testing]]` bilgi sayfasının oluşturulması ve `MAP.md`'ye bağlanması.
 
 ### 4. Hızlı Notlar (Scratch Notes)
-- Obsidian Graph View'da tüm düğümler `[[...]]` standartlarındadır.
-- Archify; mimari, workflow, sequence, dataflow ve lifecycle diyagramlarını destekler.
+- Obsidian Graph View'da tüm sayfalar çift yönlü `[[...]]` standartlarına bağlıdır.
+- Docusaurus derlemesi (`npm run build`) diyagramları static varlık olarak sorunsuz paketler.

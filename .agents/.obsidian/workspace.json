@@ -184,6 +184,7 @@
   },
   "active": "7d971f168029aa09",
   "lastOpenFiles": [
+    "wiki/load-testing.md",
     "skills/archify/assets/template.html",
     "skills/archify/assets/JetBrainsMono-OFL.txt",
     "skills/archify/assets",
@@ -195,7 +196,6 @@
     "skills/archify/scripts/check-update.mjs",
     "skills/archify/scripts/check-render-output.mjs",
     "skills/archify/scripts",
-    "skills/archify/brand-marks/catalog.json",
     "skills/archify/brand-marks/README.md",
     "skills/archify/schemas/README.md",
     "skills/archify/THIRD_PARTY_NOTICES.md",

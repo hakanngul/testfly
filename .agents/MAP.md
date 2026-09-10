@@ -45,6 +45,7 @@ Ajan, token yakmamak için körlemesine arama yapmaz; önce bu haritaya bakar ve
 - `[[wiki/index]]` — Wiki ana giriş kapısı ve kavram dizini.
 - `[[wiki/architecture]]` — TestFly framework mimari katmanları, ThreadLocal yapısı ve modüller.
 - `[[wiki/webdriver-lifecycle]]` — WebDriver yaşam döngüsü (per-test / per-suite) ve izolasyon.
+- `[[wiki/load-testing]]` — K6 / Gatling yük testi veri akışı ve SLO analiz mimarisi.
 - `[[wiki/memory-system]]` — TestFly & Obsidian Graph hafıza sisteminin teknik detayları.
 
 ## 5. İşleyiş Becerileri ve Prosedürler (Skills)
