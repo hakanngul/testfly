@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-10T19:15:00Z",
+  "title": "Design System: TestFly",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Apple Blue",
+        "canonical": "#0071e3",
+        "tonalRamp": ["#002855", "#004a8f", "#005eb8", "#0068d1", "#0071e3", "#0077ed", "#148dff", "#4da3ff"]
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "Electric Blue",
+        "canonical": "#0077ed",
+        "tonalRamp": ["#002b5c", "#004e99", "#0062bf", "#006ed6", "#0077ed", "#1e88f5", "#479cf7", "#70b1f9"]
+      },
+      "neutral-bg": {
+        "role": "neutral",
+        "displayName": "Off-White Canvas",
+        "canonical": "#f5f5f7",
+        "tonalRamp": ["#1d1d1f", "#424245", "#6e6e73", "#86868b", "#d2d2d7", "#e8e8ed", "#f5f5f7", "#ffffff"]
+      },
+      "neutral-surface": {
+        "role": "neutral",
+        "displayName": "Pure Studio White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#1d1d1f", "#333336", "#555558", "#88888d", "#bbbbbf", "#dddddf", "#eeeeef", "#ffffff"]
+      },
+      "neutral-dark-bg": {
+        "role": "neutral",
+        "displayName": "OLED Midnight",
+        "canonical": "#000000",
+        "tonalRamp": ["#000000", "#111112", "#1c1c1e", "#2c2c2e", "#3a3a3c", "#48484a", "#636366", "#8e8e93"]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Deep Ink",
+        "canonical": "#1d1d1f",
+        "tonalRamp": ["#000000", "#111112", "#1d1d1f", "#333336", "#555558", "#77777a", "#aaaaae", "#cccccc"]
+      },
+      "status-pass": {
+        "role": "tertiary",
+        "displayName": "Telemetry Emerald",
+        "canonical": "#97cc64",
+        "tonalRamp": ["#135200", "#237804", "#389e0d", "#52c41a", "#73d13d", "#97cc64", "#b7eb8f", "#d9f7be"]
+      },
+      "status-fail": {
+        "role": "secondary",
+        "displayName": "Telemetry Crimson",
+        "canonical": "#fd5a3e",
+        "tonalRamp": ["#5c0011", "#820014", "#a8071a", "#cf1322", "#f5222d", "#fd5a3e", "#ffa39e", "#ffccc7"]
+      },
+      "status-warn": {
+        "role": "secondary",
+        "displayName": "Telemetry Amber",
+        "canonical": "#ffb238",
+        "tonalRamp": ["#613400", "#874d00", "#ad6800", "#d48806", "#faad14", "#ffb238", "#ffd591", "#ffe7ba"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero declarations and major section titles." },
+      "headline": { "displayName": "Headline", "purpose": "Page titles and modal headers." },
+      "title": { "displayName": "Title", "purpose": "Bento tile headers and card titles." },
+      "body": { "displayName": "Body", "purpose": "Primary readable documentation and guide prose." },
+      "label": { "displayName": "Label / Monospace", "purpose": "Code expressions, telemetry badges, navigation triggers." }
+    },
+    "shadows": [
+      { "name": "shadow-sm", "value": "0 1px 2px rgba(0, 0, 0, 0.04)", "purpose": "Subtle edge definition for pills and tags." },
+      { "name": "shadow-md", "value": "0 4px 16px rgba(0, 0, 0, 0.06)", "purpose": "Resting card and container elevation." },
+      { "name": "shadow-lg", "value": "0 12px 40px rgba(0, 0, 0, 0.10)", "purpose": "Elevated hero frames and floating navigation bars." },
+      { "name": "button-glow", "value": "0 4px 12px rgba(0, 113, 227, 0.25)", "purpose": "Luminous aura underneath primary action buttons." }
+    ],
+    "motion": [
+      { "name": "spring-apple", "value": "cubic-bezier(0.25, 1, 0.5, 1)", "purpose": "Signature natural spring easing across hover transforms." },
+      { "name": "duration-fast", "value": "150ms", "purpose": "Instant color and opacity state transitions." },
+      { "name": "duration-spring", "value": "180ms", "purpose": "Button compression and scale micro-interactions." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "996px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Pill Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary action trigger with Apple Blue background, spring scale, and luminous hover glow.",
+      "html": "<button class=\"ds-btn-primary\">Get Started &rarr;</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 1.4rem; border-radius: 980px; background: #0071e3; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; font-size: 0.9375rem; font-weight: 650; letter-spacing: -0.01em; border: 1px solid transparent; box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 4px 12px rgba(0,113,227,0.22); cursor: pointer; transition: transform 180ms cubic-bezier(0.25, 1, 0.5, 1), background 180ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 180ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-btn-primary:hover { background: #0077ed; transform: translateY(-1px) scale(1.02); box-shadow: 0 4px 10px rgba(0,0,0,0.12), 0 8px 20px rgba(0,113,227,0.32); } .ds-btn-primary:active { transform: scale(0.97); transition-duration: 80ms; }"
+    },
+    {
+      "name": "Secondary Frosted Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Subtle, translucent button using frosted glass blur and delicate border.",
+      "html": "<button class=\"ds-btn-secondary\">Explore Recipes</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 1.4rem; border-radius: 980px; background: rgba(255, 255, 255, 0.72); color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; font-size: 0.9375rem; font-weight: 650; letter-spacing: -0.01em; border: 1px solid rgba(0, 0, 0, 0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); cursor: pointer; transition: transform 180ms cubic-bezier(0.25, 1, 0.5, 1), background 180ms cubic-bezier(0.25, 1, 0.5, 1), border-color 180ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-btn-secondary:hover { background: #ffffff; border-color: rgba(0, 0, 0, 0.16); transform: translateY(-1px); } .ds-btn-secondary:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "Bento Feature Card",
+      "kind": "card",
+      "refersTo": "card-elevated",
+      "description": "Elevated content container with soft squircle corners, subtle border, and ambient shadow.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-eyebrow\">CONVENTION OVER CONFIGURATION</div><h3 class=\"ds-card-title\">Zero Boilerplate Setup</h3><p class=\"ds-card-desc\">Automate in seconds without configuring verbose TestNG listeners or managing driver factories manually.</p></div>",
+      "css": ".ds-card { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(0, 0, 0, 0.06); border-radius: 14px; padding: 24px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06); transition: transform 200ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 200ms cubic-bezier(0.25, 1, 0.5, 1), border-color 200ms cubic-bezier(0.25, 1, 0.5, 1); } .ds-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); border-color: rgba(0, 113, 227, 0.2); } .ds-card-eyebrow { font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 0.72rem; font-weight: 750; letter-spacing: 0.12em; color: #0071e3; text-transform: uppercase; margin-bottom: 8px; } .ds-card-title { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: #1d1d1f; margin: 0 0 8px 0; } .ds-card-desc { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; font-size: 0.9375rem; line-height: 1.55; color: #6e6e73; margin: 0; }"
+    },
+    {
+      "name": "Telemetry Status Pill",
+      "kind": "chip",
+      "refersTo": "chip-status",
+      "description": "High-contrast telemetry indicator chip for test execution outcomes.",
+      "html": "<span class=\"ds-chip-pass\"><span class=\"ds-chip-dot\"></span> Passed (100%)</span>",
+      "css": ".ds-chip-pass { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 980px; background: #f6ffed; border: 1px solid #b7eb8f; color: #2f6b15; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; letter-spacing: -0.01em; } .ds-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: #52c41a; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Cupertino Lab",
+    "overview": "TestFly merges the uncompromising aesthetic polish of Apple hardware product pages with the razor-sharp telemetry clarity of a next-generation engineering testing observatory. Every surface is built around pristine, high-contrast typography, frosted translucent materials (backdrop-filter: blur(20px)), and tactile, fluid micro-interactions powered by natural spring physics.",
+    "keyCharacteristics": [
+      "Frosted Glass Luminosity: Real-time blurred navigation bars, floating status filters, and translucent pill controls.",
+      "Hardware-Grade Tactility: Pill buttons compress on click (0.97x) and lift smoothly on hover (1.02x with subtle luminescence).",
+      "Dual-Surface Consistency: Shared visual language between the developer documentation portal (docs-site) and the interactive test execution timeline (reporting).",
+      "Telemetry Precision: Clear, un-muddled status indicators (emerald pass, crimson fail, amber warning) using legible monospace code typography."
+    ],
+    "rules": [
+      { "name": "The Glass Canvas Rule", "body": "Backgrounds never compete with content; frosted white or OLED black acts as the quiet foundation, while vibrant Apple Blue is applied to ≤10% of any given viewport.", "section": "colors" },
+      { "name": "The Semantic Status Rule", "body": "Status colors belong strictly to test results, validation outcomes, and system alerts. They are never repurposed for generic decorative gradients.", "section": "colors" },
+      { "name": "The Tightening Tracking Rule", "body": "As font size increases, tracking tightens proportionally (from -0.01em on labels to -0.035em on display). Large titles feel sculpted, not loose.", "section": "typography" },
+      { "name": "The Translucent Surface Rule", "body": "Overlaid UI elements must utilize backdrop-filter: blur(20px) with a semi-transparent surface background and a 1px hairline border.", "section": "elevation" },
+      { "name": "The Pure Pill Action Rule", "body": "Every standalone button and clickable filter tag must have a complete pill border-radius (980px). Boxy, sharp-cornered buttons are strictly prohibited.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do maintain the 44px minimum touch target height for all interactive buttons and navigation links.",
+      "Do use backdrop-filter: blur(...) combined with translucent surface backgrounds for sticky headers and elevated overlays.",
+      "Do preserve the spring timing cubic-bezier(0.25, 1, 0.5, 1) across hover transforms and micro-interactions.",
+      "Do test all color pairings against WCAG AA standards (minimum 4.5:1 contrast for normal text).",
+      "Do respect the prefers-reduced-motion media query by falling back to instant transitions."
+    ],
+    "donts": [
+      "Don't use generic saturated blues (like #0000ff); stick to the curated Apple Blue token (#0071e3).",
+      "Don't create sharp 90-degree rectangle buttons; always use the 980px pill radius for action triggers.",
+      "Don't apply heavy, muddy black drop shadows in light mode; use subtle ambient shadows.",
+      "Don't use status colors (emerald, crimson, amber) for decorative backgrounds or marketing slogans.",
+      "Don't nest interactive controls inside other interactive clickable surfaces."
+    ]
+  }
+}
