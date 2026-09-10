@@ -1,0 +1,5 @@
+{
+  "name": "testfly-agents",
+  "description": "TestFly framework mimari geliştirme ve SDET test otomasyon ajanları paketi.",
+  "version": "1.0.0"
+}
