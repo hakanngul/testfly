@@ -184,6 +184,13 @@
   },
   "active": "7d971f168029aa09",
   "lastOpenFiles": [
+    "wiki/test-management.md",
+    "wiki/ai-mcp-automation.md",
+    "wiki/cucumber-bdd.md",
+    "wiki/ci-quality-gates.md",
+    "wiki/accessibility-visual-testing.md",
+    "wiki/spi-extensions.md",
+    "wiki/quarantine-engine.md",
     "wiki/webui-testing.md",
     "wiki/api-testing.md",
     "wiki/api-webui-testing.md",

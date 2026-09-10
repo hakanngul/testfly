@@ -49,6 +49,13 @@ Ajan, token yakmamak için körlemesine arama yapmaz; önce bu haritaya bakar ve
 - `[[wiki/webui-testing]]` — WebUI, SmartLocator ve WaitEngine veri akışı ve mimarisi.
 - `[[wiki/api-webui-testing]]` — API ve WebUI hibrit test veri akışı ve senkronizasyon mimarisi.
 - `[[wiki/load-testing]]` — K6 / Gatling yük testi veri akışı ve SLO analiz mimarisi.
+- `[[wiki/spi-extensions]]` — Java SPI eklenti noktaları (Driver, Report, Hook, Plugin).
+- `[[wiki/ai-mcp-automation]]` — testfly-mcp AI sunucusu, araçlar ve self-healing seçiciler.
+- `[[wiki/accessibility-visual-testing]]` — axe-core WCAG denetimi ve VisualAssert piksel regresyonu.
+- `[[wiki/cucumber-bdd]]` — Cucumber 7 BDD entegrasyonu ve BaseCucumberSteps.
+- `[[wiki/test-management]]` — TestRail ve Xray otomatik sonuç senkronizasyonu.
+- `[[wiki/quarantine-engine]]` — Flakiness karantina motoru, risk puanlama ve @Retryable.
+- `[[wiki/ci-quality-gates]]` — CI kalite kapıları, BuildThresholdEnforcer ve ortam tespiti.
 - `[[wiki/memory-system]]` — TestFly & Obsidian Graph hafıza sisteminin teknik detayları.
 
 ## 5. İşleyiş Becerileri ve Prosedürler (Skills)

@@ -26,12 +26,23 @@ Tüm sayfalar birbirine ve `[[MAP]]` ana haritasına çift yönlü bağlantılar
 - `[[wiki/webui-testing]]` — WebUI, SmartLocator ve WaitEngine veri akışı ve mimarisi.
 - `[[wiki/api-webui-testing]]` — API ve WebUI hibrit test veri akışı ve entegrasyonu.
 - `[[wiki/load-testing]]` — K6 ve Gatling yük testi veri akışı ve mimarisi.
+- `[[wiki/spi-extensions]]` — Java SPI eklenti mimarisi (Driver, Report, Hook, Plugin).
+- `[[wiki/ai-mcp-automation]]` — testfly-mcp AI sunucusu, araçlar ve self-healing seçiciler.
 
-### 2. Kalıcı Hafıza ve Ajan Altyapısı (Agent & Memory)
+### 2. Test Yöntemleri ve Kalite (Testing & Quality)
+- `[[wiki/accessibility-visual-testing]]` — axe-core WCAG 2.2 AA ve VisualAssert piksel regresyonu.
+- `[[wiki/cucumber-bdd]]` — Cucumber 7 BDD entegrasyonu ve BaseCucumberSteps.
+- `[[wiki/test-management]]` — TestRail ve Xray otomatik sonuç senkronizasyonu.
+
+### 3. Güvenilirlik ve CI/CD (Reliability & DevOps)
+- `[[wiki/quarantine-engine]]` — Flakiness karantina motoru, risk puanlama ve @Retryable.
+- `[[wiki/ci-quality-gates]]` — CI kalite kapıları, BuildThresholdEnforcer ve ortam tespiti.
+
+### 4. Kalıcı Hafıza ve Ajan Altyapısı (Agent & Memory)
 - `[[wiki/memory-system]]` — "2 Yol & 3 Parça", TestFly hafıza döngüsü ve Obsidian Graph yapısı.
 - `[[rules/memory-protocol]]` — Ajanlar için bağlayıcı hafıza kuralları.
 
-### 3. Yapılandırma ve Ortamlar (Configuration)
+### 5. Yapılandırma ve Ortamlar (Configuration)
 - `[[wiki/configuration]]` — `testfly.yml`, profil yönetimi ve ortam değişkenleri.
 
 ---

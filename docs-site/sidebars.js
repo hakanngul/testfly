@@ -25,6 +25,7 @@ const sidebars = {
         'migration/coming-from-playwright',
         'migration/from-selenide',
         'migration/from-serenity',
+        'migration/from-restassured',
       ],
     },
     {
@@ -75,6 +76,7 @@ const sidebars = {
         'loadtest/reporting',
         'loadtest/engines',
         'loadtest/examples',
+        'loadtest/distributed-docker-k8s',
       ],
     },
     {
@@ -112,6 +114,7 @@ const sidebars = {
       items: [
         'ci/github-actions',
         'ci/jenkins',
+        'ci/bitbucket-pipelines',
         'ci/quality-gates',
         'ci/ci-metadata',
       ],
@@ -133,6 +136,7 @@ const sidebars = {
         'reporting/html-report',
         'reporting/junit-xml',
         'reporting/report-portal',
+        'reporting/allure',
       ],
     },
     'junit5',
