@@ -19,6 +19,8 @@ public final class ExecutionMetrics {
 
     private static final ConcurrentHashMap<String, TestTiming> TIMINGS = new ConcurrentHashMap<>();
 
+    private static final java.util.List<io.testfly.loadtest.LoadTestMetrics> LOAD_TESTS = new java.util.concurrent.CopyOnWriteArrayList<>();
+
     private static final AtomicLong TOTAL_DURATION = new AtomicLong(0);
 
     private static volatile io.testfly.ci.CiMetadata CI_METADATA = null;
@@ -136,6 +138,46 @@ public final class ExecutionMetrics {
             v.setAiAnalysis(analysis);
             return v;
         });
+    }
+
+    // ==========================================================
+    // Load Testing
+    // ==========================================================
+
+    /** Records load-test metrics into the execution metrics repository. */
+    public static void recordLoadTest(io.testfly.loadtest.LoadTestMetrics metrics) {
+        if (metrics == null) {
+            return;
+        }
+        if (!LOAD_TESTS.contains(metrics)) {
+            LOAD_TESTS.add(metrics);
+        }
+    }
+
+    /**
+     * Records load-test metrics and associates them with the given test ID.
+     */
+    public static void recordLoadTest(String testId, io.testfly.loadtest.LoadTestMetrics metrics) {
+        if (metrics == null) {
+            return;
+        }
+        recordLoadTest(metrics);
+        if (testId != null) {
+            TestTiming timing = TIMINGS.computeIfAbsent(
+                    testId,
+                    id -> new TestTiming(id, Thread.currentThread().getName()));
+            timing.setLoadTestMetrics(metrics);
+        }
+    }
+
+    /** Returns all load test metrics recorded during this execution run. */
+    public static List<io.testfly.loadtest.LoadTestMetrics> getLoadTests() {
+        return Collections.unmodifiableList(LOAD_TESTS);
+    }
+
+    /** Clears all recorded load test metrics. */
+    public static void clearLoadTests() {
+        LOAD_TESTS.clear();
     }
 
     public static TestTiming getTiming(String testId) {
@@ -357,6 +399,9 @@ public final class ExecutionMetrics {
         if (timing.getPerformanceMetrics() != null) {
             testEntry.put("performanceMetrics", timing.getPerformanceMetrics());
         }
+        if (timing.getLoadTestMetrics() != null) {
+            testEntry.put("loadTestMetrics", loadTestMetricsToMap(timing.getLoadTestMetrics()));
+        }
         if (!timing.getSteps().isEmpty()) {
             List<Map<String, Object>> stepList = new ArrayList<>();
             for (io.testfly.steps.StepRecord s : timing.getSteps()) {
@@ -383,6 +428,7 @@ public final class ExecutionMetrics {
         Map<String, Object> report = new LinkedHashMap<>();
 
         Map<String, Map<String, Object>> allTests = new LinkedHashMap<>();
+        List<Map<String, Object>> mergedLoadTests = new ArrayList<>();
 
         // If merge is enabled and previous metrics file exists, load existing tests
         // first
@@ -399,6 +445,13 @@ public final class ExecutionMetrics {
                                 Map<String, Object> testMap = readMapper.convertValue(prevTest, Map.class);
                                 allTests.put(prevTest.get("testId").asText(), testMap);
                             }
+                        }
+                    }
+                    if (prevRoot.has("loadTests") && prevRoot.get("loadTests").isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode prevLt : prevRoot.get("loadTests")) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> ltMap = readMapper.convertValue(prevLt, Map.class);
+                            mergedLoadTests.add(ltMap);
                         }
                     }
                 } catch (Exception e) {
@@ -485,6 +538,12 @@ public final class ExecutionMetrics {
         }
 
         report.put("tests", new ArrayList<>(allTests.values()));
+
+        List<Map<String, Object>> loadTestList = new ArrayList<>(mergedLoadTests);
+        for (io.testfly.loadtest.LoadTestMetrics ltm : LOAD_TESTS) {
+            loadTestList.add(loadTestMetricsToMap(ltm));
+        }
+        report.put("loadTests", loadTestList);
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -576,8 +635,53 @@ public final class ExecutionMetrics {
     public static void reset() {
         START_TIMES.clear();
         TIMINGS.clear();
+        LOAD_TESTS.clear();
         TOTAL_DURATION.set(0);
         CI_METADATA = null;
+    }
+
+    /**
+     * Converts a {@link io.testfly.loadtest.LoadTestMetrics} record to a serializable map.
+     */
+    public static Map<String, Object> loadTestMetricsToMap(io.testfly.loadtest.LoadTestMetrics m) {
+        if (m == null) {
+            return Collections.emptyMap();
+        }
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("scenarioName", m.scenarioName());
+        map.put("engine", m.engine());
+        map.put("users", m.users());
+        map.put("durationMs", m.durationMs());
+        map.put("totalRequests", m.totalRequests());
+        map.put("successfulRequests", m.successfulRequests());
+        map.put("failedRequests", m.failedRequests());
+        map.put("throughputRps", m.throughputRps());
+        map.put("meanLatencyMs", m.meanLatencyMs());
+        map.put("p50LatencyMs", m.p50LatencyMs());
+        map.put("p90LatencyMs", m.p90LatencyMs());
+        map.put("p95LatencyMs", m.p95LatencyMs());
+        map.put("p99LatencyMs", m.p99LatencyMs());
+        map.put("minLatencyMs", m.minLatencyMs());
+        map.put("maxLatencyMs", m.maxLatencyMs());
+        map.put("errorRate", m.errorRate());
+        map.put("statusCodes", m.statusCodes());
+
+        Map<String, Object> stepsMap = new LinkedHashMap<>();
+        if (m.steps() != null) {
+            for (Map.Entry<String, io.testfly.loadtest.LoadTestMetrics.StepMetrics> entry : m.steps().entrySet()) {
+                io.testfly.loadtest.LoadTestMetrics.StepMetrics step = entry.getValue();
+                Map<String, Object> stepData = new LinkedHashMap<>();
+                stepData.put("name", step.name());
+                stepData.put("totalRequests", step.totalRequests());
+                stepData.put("successfulRequests", step.successfulRequests());
+                stepData.put("failedRequests", step.failedRequests());
+                stepData.put("p95LatencyMs", step.p95LatencyMs());
+                stepData.put("errorRate", step.errorRate());
+                stepsMap.put(entry.getKey(), stepData);
+            }
+        }
+        map.put("steps", stepsMap);
+        return map;
     }
 
     // ==========================================================

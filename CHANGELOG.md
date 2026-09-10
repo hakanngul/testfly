@@ -13,6 +13,47 @@ _Nothing yet._
 
 ---
 
+## [1.1.0] — 2026-09-10
+
+### Added — Load & Performance Testing Module
+
+- **Dual-Engine Load Testing Architecture**:
+  - **Gatling Engine**: High-concurrency subprocess execution, automatic simulation generation, stdout/log parsing, and full interactive Gatling HTML report generation linked directly in TestFly reports.
+  - **Lightweight Virtual Thread Engine**: Zero-dependency JDK virtual thread engine for developer machines and fast CI/CD feedback loops.
+- **Fluent Load Testing DSL**:
+  - Declarative scenario builder via `load(url).users(n).during(duration).rampUp(duration).run()` or `loadScenario("name").step(...).run()`.
+  - Seamlessly available in `BaseTest`, `BaseApiTest`, `BaseLoadTest`, and `BaseJUnit5Test`.
+- **Annotation-Driven Execution (`@LoadTest`)**:
+  - Configure load test parameters (`users`, `duration`, `rampUp`, `targetRps`, `engine`, `feeders`, `warmUp`) directly at test class or method level.
+- **Data Feeders (`Feeder`)**:
+  - Built-in CSV, JSON, Array, and custom Supplier feeders with `circular()`, `random()`, and `batch()` iteration strategies.
+- **SLA & Latency Assertions (`LoadTestAssert`)**:
+  - Fluent assertions for percentiles (P50, P90, P95, P99), max response time, min throughput (RPS), error rate thresholds, and HTTP status distributions.
+- **Unified Multi-Channel Reporting**:
+  - **TestFly HTML Report**: Dedicated "Load Testing" tab with interactive KPI cards (Users, RPS, Total Requests, P95, Error Rate), response time percentiles breakdown, status code distribution, and clickable link to Gatling interactive HTML reports.
+  - **Allure Report Adapter**: Adds load test parameters (Users, Engine, RPS, P95, Error Rate), interactive link to Gatling report, summary markdown attachment, and full subprocess execution log attachment.
+  - **ReportPortal Adapter**: Sends load test Markdown summary log entries and attaches subprocess execution logs to the test step.
+
+### Added — Feature Switchboard
+
+- **`features:` master on/off panel** — a single block in `testfly.yml` that sits above every optional module's own settings, so a subsystem can be switched off without hunting down which key controls it or deleting its detailed configuration. Each key is tri-state: absent defers to the module's own flag, `true` forces its primary enable flag on, `false` forces the module off. Covers `ai`, `recording`, `tracing`, `network`, `healing`, `visual`, `performance`, `flakiness`, `quarantine`, `testManagement`, `notifications` and `consoleErrors`.
+- **`FeatureGate`** (`io.testfly.config.FeatureGate`, `@TestFlyApi(since = "1.0.5")`) — single resolution point for the switchboard. `enabled(feature)`, `enabled(feature, moduleDefault)`, `override(feature)`, `knownFeatures()` and `summary()`. Tolerates an unbootstrapped `TestFlyContext`, so the umbrella never blocks a module in a plain unit test. Plugins may gate their own behaviour with a private feature name.
+- **`ai.enabled` AI kill-switch** (default `true`) — until now there was no way to turn AI off globally: `AiAssertEngine` and `ActionCompiler` only checked that the `ai` block existed and `apiKey` was set, so a configured key meant `aiAssert()` and `act()` always ran regardless of `failureAnalysis`/`generatePatch`. Now gates all five surfaces: `AiFailureAnalyzer`, `RemediationPatchGenerator`, `AiHealingEngine`, `AiAssertEngine` and `ActionCompiler`. Also settable via `features.ai`.
+- **Bootstrap diagnostics** — `FrameworkBootstrap` prints the active overrides at suite start (`[TestFly] features: ai=OFF, recording=ON`), and an unrecognised feature name is reported once on stderr rather than silently ignored.
+
+### Changed
+
+- **Tolerant `testfly.yml` parsing** — SnakeYAML's `Constructor` rejected any key without a matching bean property, so a single typo aborted the whole suite with a cryptic `ConstructorException`. Unknown keys are now skipped and reported (`[TestFly] Unknown config key 'headles' on Browser — ignored`); the rest of the configuration stays usable. Detection compares against the bean's real property set rather than SnakeYAML's `MissingProperty` sentinel, so it does not depend on that class staying reachable in future releases.
+- **Explicit calls never fail silently when their feature is off** — a silently skipped check is a false green. `act()` throws `IllegalStateException`, `aiAssert()` fails with an explanatory reason, and `VisualAssert.assertScreenshot()` raises a TestNG `SkipException` so the test is reported as *skipped* rather than passed. Background behaviour (recording, tracing, performance capture, flakiness analysis, notifications, TestRail/Xray push) simply does not run.
+- **`Recording.isRecordAll()` now requires the recorder to be enabled** — `recording.enabled: false` combined with `mode: on` previously reported `true`, so `TestExecutionListener` would record passing tests for a disabled recorder.
+
+### Documentation
+
+- `docs-site/docs/configuration.md` and its Turkish translation gained a **Feature Switchboard** section (resolution rules, supported keys, off-behaviour per call site, diagnostics) plus the `ai.enabled` row.
+- `docs-site/docs/loadtest/` and `docs-site/i18n/tr/.../loadtest/` comprehensive Load Testing guides in English and Turkish.
+
+---
+
 ## [1.0.4] — 2026-09-07
 
 ### Added — Agentic Testing & Autonomous AI

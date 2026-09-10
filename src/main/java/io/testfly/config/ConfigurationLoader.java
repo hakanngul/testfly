@@ -13,6 +13,8 @@ import java.util.Objects;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.introspector.Property;
+import org.yaml.snakeyaml.introspector.PropertyUtils;
 
 public final class ConfigurationLoader {
 
@@ -25,8 +27,9 @@ public final class ConfigurationLoader {
      * <ol>
      * <li>System property {@code -Dtestfly.config=/path/to/file.yml} (explicit
      * override)</li>
-     * <li>{@code ./testfly[-profile].yml} in the current working directory</li>
-     * <li>{@code testfly[-profile].yml} on the classpath (original behaviour)</li>
+     * <li>Classpath: {@code testfly[-profile].yml} (standard Maven/Java convention
+     * in src/test/resources)</li>
+     * <li>Working directory: {@code ./testfly[-profile].yml} (fallback)</li>
      * </ol>
      */
     public static TestFlyConfig load() {
@@ -42,23 +45,23 @@ public final class ConfigurationLoader {
             return loadFromFile(new File(explicitPath));
         }
 
-        // Priority 2: working directory
+        // Priority 2: classpath (standard Maven/Java convention)
+        InputStream inputStream = ConfigurationLoader.class
+                .getClassLoader()
+                .getResourceAsStream(configFile);
+        if (inputStream != null) {
+            return parseAndValidate(inputStream);
+        }
+
+        // Priority 3: working directory (fallback)
         File workingDirFile = new File(configFile);
         if (workingDirFile.exists()) {
             return loadFromFile(workingDirFile);
         }
 
-        // Priority 3: classpath (original behaviour)
-        InputStream inputStream = ConfigurationLoader.class
-                .getClassLoader()
-                .getResourceAsStream(configFile);
-        if (inputStream == null) {
-            throw new IllegalStateException(
-                    "Configuration file '" + configFile + "' not found. " +
-                            "Checked: -Dtestfly.config, working directory, and classpath.");
-        }
-
-        return parseAndValidate(inputStream);
+        throw new IllegalStateException(
+                "Configuration file '" + configFile + "' not found. " +
+                        "Checked: -Dtestfly.config, classpath, and working directory.");
     }
 
     private static TestFlyConfig loadFromFile(File file) {
@@ -77,6 +80,7 @@ public final class ConfigurationLoader {
     private static TestFlyConfig parseAndValidate(InputStream inputStream) {
         LoaderOptions loaderOptions = new LoaderOptions();
         Constructor constructor = new Constructor(TestFlyConfig.class, loaderOptions);
+        constructor.setPropertyUtils(new LenientPropertyUtils());
 
         Yaml yaml = new Yaml(constructor);
         TestFlyConfig config = yaml.load(inputStream);
@@ -87,6 +91,51 @@ public final class ConfigurationLoader {
         validate(config);
 
         return config;
+    }
+
+    /**
+     * SnakeYAML's default {@link Constructor} rejects any YAML key without a
+     * matching bean property, so a single typo in {@code testfly.yml} aborts the
+     * whole suite with a cryptic {@code ConstructorException}. This skips
+     * unknown keys instead and reports each one with its owning bean, keeping
+     * the rest of the configuration usable.
+     *
+     * <p>
+     * Detection compares against the bean's real property set rather than
+     * SnakeYAML's {@code MissingProperty} sentinel, so it does not depend on
+     * that class staying reachable in future SnakeYAML releases.
+     */
+    private static final class LenientPropertyUtils extends PropertyUtils {
+
+        LenientPropertyUtils() {
+            setSkipMissingProperties(true);
+        }
+
+        @Override
+        public Property getProperty(Class<?> type, String name) {
+            for (Property candidate : super.getProperties(type)) {
+                if (candidate.getName().equalsIgnoreCase(name)
+                        || candidate.getName().equalsIgnoreCase(name.replace("-", ""))) {
+                    return candidate;
+                }
+            }
+            Property property = super.getProperty(type, name);
+            if (property != null && !isKnownProperty(type, name)) {
+                System.err.println("[TestFly] Unknown config key '" + name + "' on "
+                        + type.getSimpleName() + " — ignored. Check testfly.yml for a typo.");
+            }
+            return property;
+        }
+
+        private boolean isKnownProperty(Class<?> type, String name) {
+            for (Property candidate : super.getProperties(type)) {
+                if (candidate.getName().equalsIgnoreCase(name)
+                        || candidate.getName().equalsIgnoreCase(name.replace("-", ""))) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     // ── Recursive env-var resolution ────────────────────────────────────────

@@ -28,7 +28,7 @@ Three files. Copy them as-is and `mvn test` goes green against a real Chrome.
     <dependency>
         <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
-        <version>1.0.4</version>
+        <version>1.1.0</version>
     </dependency>
 </dependencies>
 
@@ -151,6 +151,7 @@ Outcomes first — the API that delivers each one is named so you can find it in
 - **File download testing that just works** — `DownloadManager` polls the download dir and handles partial files
 - **Read the test like a spec** — `StepLogger` named steps with timestamps and per-step screenshots
 - **Test UI and API in the same suite** — `BaseApiTest` + fluent `ApiClient` with auth, schema validation, JSONPath; hybrid UI + API tests
+- **Seamless Load & Performance Testing** — declarative load tests side-by-side with UI/API tests using Gatling or lightweight virtual threads, with feeder support, SLA assertions, and multi-channel reports (HTML, Allure, ReportPortal)
 - **Accessibility testing in one line** — `accessibility().withTags("wcag2a","wcag21aa").run()`; axe-core bundled in the JAR, no extra dependency
 - **Autonomous Agentic Testing & Dynamic Goals** — `act("Goal description")` compiles natural language goals into deterministic Selenium actions, frozen into `.testfly/action-cache.json` for 0 ms replay
 - **AI-Driven Self-Healing & Auto-PR Patches** — `DomPruner` token compression (<8K tokens) + LLM healing fallback, plus unified git diff `.patch` generation (`target/remediations/`) for instant `git apply` resolution
@@ -180,7 +181,7 @@ Add to your `pom.xml`:
 <dependency>
     <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.4</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -793,7 +794,7 @@ ci:
 
 ## Project Status
 
-**Current release: v1.0.4** — Agentic Testing with AI-driven self-healing, video recording, network mocking, and comprehensive API testing improvements.
+**Current release: v1.1.0** — Load & Performance Testing with Gatling and Lightweight Virtual Thread Engines, Declarative DSL, Feeder Support, and Multi-Channel Reporting (HTML, Allure, ReportPortal).
 
 See the full version history in **[CHANGELOG.md](CHANGELOG.md)**.
 

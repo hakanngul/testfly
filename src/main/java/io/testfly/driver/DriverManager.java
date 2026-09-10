@@ -107,6 +107,11 @@ public final class DriverManager {
             return; // retry-safe — semaphore permit already held by this thread
         }
 
+        if (isLoadTestActive()) {
+            throw new IllegalStateException(
+                    "[TestFly] WebDriver creation is strictly forbidden during Load Testing. Load tests must never launch browser sessions.");
+        }
+
         Semaphore semaphore = getOrInitSemaphore();
 
         try {
@@ -263,6 +268,11 @@ public final class DriverManager {
      */
     public static WebDriver getDriver() {
 
+        if (isLoadTestActive()) {
+            throw new IllegalStateException(
+                    "[TestFly] WebDriver is not available during Load Testing. Load tests must never interact with browser sessions.");
+        }
+
         java.util.Deque<WebDriver> stack = SESSION_STACK.get();
         if (!stack.isEmpty())
             return stack.peek();
@@ -376,5 +386,32 @@ public final class DriverManager {
         SUITE_DRIVERS.clear();
         DRIVER.remove();
         System.out.println("[TestFly] All suite drivers quit. Released " + released + " session slot(s).");
+    }
+
+    /**
+     * Checks whether the current thread or test context is executing a load test.
+     * During load testing, no WebDriver instance may ever be launched.
+     */
+    public static boolean isLoadTestActive() {
+        if (io.testfly.loadtest.LoadTestRunner.isExecuting()) {
+            return true;
+        }
+        try {
+            Class<?> testClass = TestFlyContext.getCurrentTestClass();
+            java.lang.reflect.Method testMethod = TestFlyContext.getCurrentTestMethod();
+            if (testClass != null) {
+                if (io.testfly.loadtest.BaseLoadTest.class.isAssignableFrom(testClass)
+                        || io.testfly.test.support.LoadTestSupport.class.isAssignableFrom(testClass)
+                        || testClass.isAnnotationPresent(io.testfly.loadtest.LoadTest.class)
+                        || testClass.getName().toLowerCase().contains("loadtest")) {
+                    return true;
+                }
+            }
+            if (testMethod != null && testMethod.isAnnotationPresent(io.testfly.loadtest.LoadTest.class)) {
+                return true;
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
     }
 }

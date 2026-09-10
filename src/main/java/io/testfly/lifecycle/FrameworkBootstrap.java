@@ -3,6 +3,7 @@ package io.testfly.lifecycle;
 import io.testfly.ci.CiEnvironmentDetector;
 import io.testfly.config.ConfigurationLoader;
 import io.testfly.config.DotEnvLoader;
+import io.testfly.config.FeatureGate;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.healing.HealingCache;
 import io.testfly.config.TestFlyDefaults;
@@ -46,6 +47,11 @@ public final class FrameworkBootstrap {
 
         TestFlyContext.initialize(config);
 
+        String featureSummary = FeatureGate.summary();
+        if (!featureSummary.isEmpty()) {
+            System.out.println("[TestFly] features: " + featureSummary);
+        }
+
         // Honor a custom test-id attribute for the accessibility-first locators
         if (config.getLocators() != null && config.getLocators().getTestIdAttribute() != null) {
             io.testfly.locator.Locator.setTestIdAttribute(config.getLocators().getTestIdAttribute());
@@ -57,7 +63,8 @@ public final class FrameworkBootstrap {
         ReportAdapterRegistry.loadAll();
         PluginRegistry.loadAll(config);
 
-        System.out.println("[TestFly] 🤖 AI test authoring: pip install testfly-mcp  →  https://pypi.org/project/testfly-mcp");
+        System.out.println(
+                "[TestFly] 🤖 AI test authoring: pip install testfly-mcp  →  https://pypi.org/project/testfly-mcp");
 
         // Opt-in built-in adapters
         TestFlyConfig.Reporting reporting = config.getReporting();
@@ -79,7 +86,7 @@ public final class FrameworkBootstrap {
         }
 
         Notifications notifs = config.getNotifications();
-        if (notifs != null) {
+        if (notifs != null && FeatureGate.enabled(FeatureGate.NOTIFICATIONS, true)) {
             boolean hasSlack = notifs.getSlack() != null
                     && notifs.getSlack().getWebhookUrl() != null
                     && !notifs.getSlack().getWebhookUrl().isBlank();
@@ -91,6 +98,12 @@ public final class FrameworkBootstrap {
                 System.out.println("[TestFly] Notification adapter enabled"
                         + (hasSlack ? " [Slack]" : "") + (hasTeams ? " [Teams]" : ""));
             }
+        }
+
+        TestFlyConfig.LoadTest loadTestCfg = config.getLoadTest();
+        if (loadTestCfg != null && loadTestCfg.isReportEnabled()) {
+            ReportAdapterRegistry.register(new io.testfly.loadtest.LoadTestReportAdapter());
+            System.out.println("[TestFly] LoadTest report adapter enabled");
         }
     }
 

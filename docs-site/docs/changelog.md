@@ -17,6 +17,40 @@ _Nothing yet._
 
 ---
 
+## [1.1.0] — 2026-09-10
+
+### Added — Load & Performance Testing Module
+
+- **Dual-Engine Load Testing Architecture**:
+  - **Gatling Engine**: High-concurrency subprocess execution, automatic simulation generation, stdout/log parsing, and full interactive Gatling HTML report generation linked directly in TestFly reports.
+  - **Lightweight Virtual Thread Engine**: Zero-dependency JDK virtual thread engine for developer machines and fast CI/CD feedback loops.
+- **Fluent Load Testing DSL**:
+  - Declarative scenario builder via `load(url).users(n).during(duration).rampUp(duration).run()` or `loadScenario("name").step(...).run()`.
+  - Seamlessly available in `BaseTest`, `BaseApiTest`, `BaseLoadTest`, and `BaseJUnit5Test`.
+- **Annotation-Driven Execution (`@LoadTest`)**:
+  - Configure load test parameters (`users`, `duration`, `rampUp`, `targetRps`, `engine`, `feeders`, `warmUp`) directly at test class or method level.
+- **Data Feeders (`Feeder`)**:
+  - Built-in CSV, JSON, Array, and custom Supplier feeders with `circular()`, `random()`, and `batch()` iteration strategies.
+- **SLA & Latency Assertions (`LoadTestAssert`)**:
+  - Fluent assertions for percentiles (P50, P90, P95, P99), max response time, min throughput (RPS), error rate thresholds, and HTTP status distributions.
+- **Unified Multi-Channel Reporting**:
+  - **TestFly HTML Report**: Dedicated "Load Testing" tab with interactive KPI cards (Users, RPS, Total Requests, P95, Error Rate), response time percentiles breakdown, status code distribution, and clickable link to Gatling interactive HTML reports.
+  - **Allure Report Adapter**: Adds load test parameters (Users, Engine, RPS, P95, Error Rate), interactive link to Gatling report, summary markdown attachment, and full subprocess execution log attachment.
+  - **ReportPortal Adapter**: Sends load test Markdown summary log entries and attaches subprocess execution logs to the test step.
+
+### Added — Feature Switchboard
+
+- **`features:` master on/off panel** — master switchboard in `testfly.yml` to effortlessly enable/disable optional subsystems (`ai`, `recording`, `tracing`, `network`, `healing`, `visual`, `performance`, `flakiness`, `quarantine`, `testManagement`, `notifications`, `consoleErrors`).
+- **`FeatureGate`** (`io.testfly.config.FeatureGate`) — unified programmatic gate for feature status.
+- **`ai.enabled` master AI switch** (default `true`) — single switch to gate all AI capabilities.
+
+### Changed
+
+- **Tolerant `testfly.yml` parsing** — unrecognized configuration keys are logged as warnings rather than crashing startup.
+- **Fail-fast on disabled features** — direct programmatic invocations of disabled features fail clearly rather than silently skipping.
+
+---
+
 ## [1.0.4] — 2026-09-07
 
 ### Added — Agentic Testing & Autonomous AI

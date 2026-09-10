@@ -64,4 +64,14 @@ public final class ReportPaths {
     public static File reportDataJson() {
         return new File(baseDir(), "testfly-report-data.json");
     }
+
+    /** {@code <baseDir>/loadtest-report.html} — standalone load test report. */
+    public static File loadTestHtmlReport() {
+        return new File(baseDir(), "loadtest-report.html");
+    }
+
+    /** {@code <baseDir>/loadtest} — directory containing load test output artifacts. */
+    public static File loadTestDir() {
+        return new File(baseDir(), "loadtest");
+    }
 }

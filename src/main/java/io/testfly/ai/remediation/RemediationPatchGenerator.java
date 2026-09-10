@@ -54,7 +54,7 @@ public final class RemediationPatchGenerator {
             }
 
             TestFlyConfig.Ai aiCfg = config.getAi();
-            if (!aiCfg.isGeneratePatch()) {
+            if (!aiCfg.isEnabled() || !aiCfg.isGeneratePatch()) {
                 return null;
             }
 

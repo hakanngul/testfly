@@ -5,13 +5,31 @@ It summarizes the project's architecture, build/test workflows, code conventions
 
 ---
 
+## Persistent Memory & Context Constitution (2 Yol & 3 Parça)
+
+> [!IMPORTANT]
+> Bu projede çalışan tüm AI ajanları **"2 Yol & 3 Parça"** ve **"LLM Wiki / Obsidian Graph"** kurallarına uymakla yükümlüdür. Detaylı anayasa için bkz: [[.agents/rules/memory-protocol.md]].
+
+### Sistemin 3 Temel Parçası
+1. **KURAL (Constitution):** `AGENTS.md` ve [[.agents/rules/memory-protocol.md]]. Ajanın haritayı nasıl okuyacağını, ne zaman yazacağını ve token koruma disiplinini dikte eder.
+2. **HARİTA (Navigational GPS):** [[.agents/MAP.md]]. Tüm modül, kural ve wiki sayfalarının indeksidir. Bilgiye körlemesine dosya tarayarak değil, harita üzerinden `[[sayfa-adi]]` çift yönlü linkleriyle gidilir.
+3. **DEPO (Synthesized Storage):** [[.agents/memories/scratchpad.md]] (kısa hafıza) ve [[.agents/wiki/index.md]] (kalıcı LLM Wiki). Bilgiler ham log olarak değil, sentezlenmiş bilgi grafiği olarak saklanır.
+
+### TestFly Hafıza Döngüsü ve İki Yol Protokolü (Read & Write Path)
+- **Ajan Kimliği (Soul):** [[.agents/soul.md]] — Ajanın kıdemi, yaklaşımı ve kırmızı çizgilerini içeren tek paragraf.
+- **Okuma Yolu (Read Path - Token Koruma):** ASLA proje dosyalarını veya tüm wiki'yi körlemesine tarama. Önce [[.agents/memories/scratchpad.md]] dosyasını oku. Geçmiş karar veya derin domain bilgisi gerekiyorsa [[.agents/MAP.md]] haritasına bak ve sadece ilgili `[[wiki/<dosya>]]` sayfasına nokta atışı git.
+- **Yazma Yolu (Write Path - Sentez & Budama):** Oturum sonunda güncel durumu [[.agents/memories/scratchpad.md]] içine işle. **Maksimum 2.200 karakter sınırına** kesinlikle uy. Karakter dolduğunda kalıcı mimari kararları [[.agents/wiki/<kavram>.md]] olarak oluştur, [[.agents/MAP.md]] haritasına `[[<kavram>]]` olarak bağla ve tamamlanan işleri buda ([[ .agents/skills/memory-sync/SKILL.md ]]).
+- **Obsidian Graph Standardı:** Tüm referanslar çift yönlü `[[...]]` link formatında tutulur ve YAML frontmatter (`tags`, `date`, `status`, `type`) kullanılır.
+
+---
+
 ## Project Overview
 
 **TestFly** is an opinionated, zero-boilerplate Java test-automation framework built on top of Selenium WebDriver.
 It is published to Maven Central as a single JAR that users add as a dependency.
 
 - **Group / Artifact:** `io.testfly:testfly`
-- **Current version:** `1.0.0`
+- **Current version:** `1.1.0`
 - **Java baseline:** 17 (compiled with `--release 17`)
 - **Build tool:** Maven 3.8+
 - **Primary test framework:** TestNG 7.9.0

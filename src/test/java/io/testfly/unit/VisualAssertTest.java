@@ -9,7 +9,6 @@ import org.testng.annotations.Test;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.nio.file.Files;
 
 /**
  * Unit tests for {@link VisualAssert} and {@link VisualTolerance}.

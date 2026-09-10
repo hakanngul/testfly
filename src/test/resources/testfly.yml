@@ -1,6 +1,6 @@
 browser:
   name: chrome
-  headless: false
+  headless: true
   arguments:
     - --start-maximized
     - --disable-notifications

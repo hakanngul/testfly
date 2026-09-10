@@ -84,7 +84,8 @@ public final class AiFailureAnalyzer {
     public static void analyze(String testId, String pageUrl, String pageTitle) {
         try {
             TestFlyConfig.Ai aiCfg = config();
-            if (aiCfg == null || (!aiCfg.isFailureAnalysis() && !aiCfg.isGeneratePatch()))
+            if (aiCfg == null || !aiCfg.isEnabled()
+                    || (!aiCfg.isFailureAnalysis() && !aiCfg.isGeneratePatch()))
                 return;
 
             String apiKey = resolveApiKey(aiCfg.getApiKey());

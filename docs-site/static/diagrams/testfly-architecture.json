@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "TestFly Framework Architecture",
+    "subtitle": "Thread-local Selenium & API test automation framework",
+    "output": "testfly-architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "ui-lifecycle",
+        "label": "Web UI Execution Path",
+        "focus": ["test_runner", "bootstrap", "driver_mgr", "wait_engine", "browser"],
+        "note": "Per-test ThreadLocal WebDriver session lifecycle with auto-waiting WaitEngine."
+      },
+      {
+        "id": "cloud-and-remote",
+        "label": "Cloud & Remote Grid",
+        "focus": ["config", "driver_mgr", "cloud_grid"],
+        "note": "Seamless cloud execution with BrowserStack, Sauce Labs, and Selenium Grid."
+      },
+      {
+        "id": "api-and-load",
+        "label": "API & Load Testing",
+        "focus": ["bootstrap", "api_client", "load_engine", "reporting"],
+        "note": "Fluent ApiClient and built-in load testing engine with multi-channel reporting."
+      }
+    ]
+  },
+  "components": [
+    { "id": "test_runner", "type": "frontend", "label": "Test Suites", "sublabel": "TestNG / JUnit 5", "pos": [40, 270], "size": [130, 60] },
+    { "id": "config", "type": "security", "label": "Configuration", "sublabel": "testfly.yml + ENV", "pos": [40, 120], "size": [130, 60], "tag": "Profile Aware" },
+    { "id": "bootstrap", "type": "backend", "label": "Framework Bootstrap", "sublabel": "Listeners & SPI", "pos": [240, 270], "size": [140, 60] },
+    { "id": "driver_mgr", "type": "backend", "label": "Driver Manager", "sublabel": "ThreadLocal Pool", "pos": [450, 270], "size": [140, 60] },
+    { "id": "wait_engine", "type": "backend", "label": "Wait Engine", "sublabel": "SmartLocator & Waits", "pos": [660, 270], "size": [140, 60] },
+    { "id": "browser", "type": "external", "label": "Browser Session", "sublabel": "Chrome / Firefox / Edge", "pos": [870, 270], "size": [140, 60], "tag": "Local Headless" },
+    { "id": "cloud_grid", "type": "cloud", "label": "Cloud Grid", "sublabel": "BrowserStack / Sauce", "pos": [450, 120], "size": [140, 60] },
+    { "id": "reporting", "type": "database", "label": "Reporting Suite", "sublabel": "HTML, JUnit XML, RP", "pos": [240, 420], "size": [140, 60] },
+    { "id": "api_client", "type": "backend", "label": "ApiClient & DB", "sublabel": "REST, Mail, Postgres", "pos": [450, 420], "size": [140, 60] },
+    { "id": "load_engine", "type": "backend", "label": "Load Engine", "sublabel": "JDK, K6, Gatling", "pos": [660, 420], "size": [140, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "TestFly Core Runtime", "wraps": ["bootstrap", "driver_mgr", "wait_engine", "reporting", "api_client", "load_engine"] }
+  ],
+  "connections": [
+    { "id": "config-to-bootstrap", "from": "config", "to": "bootstrap", "label": "injects", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "tests-to-bootstrap", "from": "test_runner", "to": "bootstrap", "label": "triggers", "variant": "emphasis" },
+    { "id": "bootstrap-to-driver", "from": "bootstrap", "to": "driver_mgr", "label": "init session" },
+    { "id": "driver-to-wait", "from": "driver_mgr", "to": "wait_engine", "label": "binds driver" },
+    { "id": "wait-to-browser", "from": "wait_engine", "to": "browser", "label": "DOM actions", "variant": "emphasis" },
+    { "id": "driver-to-cloud", "from": "driver_mgr", "to": "cloud_grid", "label": "remote", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "id": "bootstrap-to-reporting", "from": "bootstrap", "to": "reporting", "label": "events", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelDy": 24 },
+    { "id": "bootstrap-to-api", "from": "bootstrap", "to": "api_client", "label": "executes", "fromSide": "right", "toSide": "left" },
+    { "id": "api-to-load", "from": "api_client", "to": "load_engine", "label": "feeder" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "WebDriver Lifecycle", "items": ["ThreadLocal isolated driver pool per thread", "Centralized WaitEngine with zero Thread.sleep()", "Automatic retry and self-healing locators"] },
+    { "dot": "cyan", "title": "Ecosystem Integrations", "items": ["Seamless cloud runs on BrowserStack and Sauce Labs", "RestAssured-style fluent ApiClient and DbClient", "Integrated K6 and Gatling load testing runners"] },
+    { "dot": "rose", "title": "Observability & Reports", "items": ["Standalone responsive HTML timeline report", "Automatic failure screenshots and video recordings", "ReportPortal, Allure, Slack and Teams adapters"] }
+  ]
+}

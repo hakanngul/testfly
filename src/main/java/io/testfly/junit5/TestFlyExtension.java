@@ -186,6 +186,13 @@ public class TestFlyExtension
                         context.getRequiredTestMethod(), "FAILED",
                         cause.getMessage());
 
+                io.testfly.loadtest.LoadTestMetrics ltmFailed = io.testfly.loadtest.LoadTestRunner.lastMetrics();
+                if (ltmFailed != null) {
+                    ExecutionMetrics.recordLoadTest(testId, ltmFailed);
+                    io.testfly.reporting.reportportal.ReportPortalAttachmentSender.sendLoadTestMetrics(testId, ltmFailed);
+                    io.testfly.loadtest.LoadTestRunner.clearLastMetrics();
+                }
+
                 // ReportPortal: report test failure
                 if (isRpAvailable()) {
                     rpBridge.testFailed(context, cause);
@@ -218,6 +225,13 @@ public class TestFlyExtension
                 HookRegistry.onTestEnd(testId, "PASSED");
                 TestManagementReporter.getInstance().onTestResult(
                         context.getRequiredTestMethod(), "PASSED", null);
+
+                io.testfly.loadtest.LoadTestMetrics ltmSuccess = io.testfly.loadtest.LoadTestRunner.lastMetrics();
+                if (ltmSuccess != null) {
+                    ExecutionMetrics.recordLoadTest(testId, ltmSuccess);
+                    io.testfly.reporting.reportportal.ReportPortalAttachmentSender.sendLoadTestMetrics(testId, ltmSuccess);
+                    io.testfly.loadtest.LoadTestRunner.clearLastMetrics();
+                }
 
                 // ReportPortal: report test success
                 if (isRpAvailable()) {
@@ -406,9 +420,17 @@ public class TestFlyExtension
     }
 
     private boolean skipBrowser(ExtensionContext context) {
+        Class<?> clazz = context.getRequiredTestClass();
         Method m = context.getRequiredTestMethod();
+        if (io.testfly.loadtest.BaseLoadTest.class.isAssignableFrom(clazz) ||
+                io.testfly.test.support.LoadTestSupport.class.isAssignableFrom(clazz) ||
+                clazz.isAnnotationPresent(io.testfly.loadtest.LoadTest.class) ||
+                m.isAnnotationPresent(io.testfly.loadtest.LoadTest.class) ||
+                clazz.getName().toLowerCase().contains("loadtest")) {
+            return true;
+        }
         return m.isAnnotationPresent(NoBrowser.class) ||
-                context.getRequiredTestClass().isAnnotationPresent(NoBrowser.class);
+                clazz.isAnnotationPresent(NoBrowser.class);
     }
 
     private void capturePerformanceIfEnabled(String testId, ExtensionContext context) {

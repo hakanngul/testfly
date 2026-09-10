@@ -13,13 +13,41 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 
 ## Yayımlanmamış
 
-### Düzeltilenler
+_Henüz bir değişiklik yok._
 
-- **AI model varsayılanları ve girdi doğrulama** — `ai.model` alanı isteğe bağlı hale getirildi ve sağlayıcı bazlı varsayılanlar atandı (`Claude` için `claude-haiku-4-5-20251001`, `Gemini` için `gemini-2.5-flash`); Gemini model adları için regex doğrulaması eklendi.
-- **Oturum önbellek izolasyonu ve komut dosyası güvenliği** — `BrowserSessionCache` ve `PreconditionSessionCache` geri yükleme öncesi `localStorage.clear()` çalıştırır ve verileri `arguments[0]` üzerinden güvenle iletir.
-- **PreCondition retry ve DataProvider ayrımı** — Çok satırlı `@DataProvider` testlerinde oturum önbelleğinin erken geçersiz kılınması düzeltildi; önbellek yalnızca gerçek yeniden denemelerde (`wasRetried()`) temizlenir.
-- **LocatorAssert hata iletimi** — Bekleme sırasında yakalanan genel istisnalar `TimeoutException` ile sınırlandırıldı; böylece sürücü çökmesi gibi altyapı hatalarının gizlenmesi önlendi.
-- **Locator withText eşleştirmesi** — `Locator.withText` varsayılan olarak büyük/küçük harf duyarsız alt dize eşleştirmesi yapar ve tam eşleşme (`exact`) parametresine uyar.
+---
+
+## [1.1.0] — 2026-09-10
+
+### Eklenenler — Yük ve Performans Testi Modülü
+
+- **Çift Motorlu Yük Testi Mimarisi**:
+  - **Gatling Motoru**: Yüksek eşzamanlı alt süreç (subprocess) yürütme, otomatik simülasyon üretimi, konsol/log ayrıştırma ve TestFly raporlarına entegre etkileşimli Gatling HTML raporu.
+  - **Hafif Sanal İş Parçacığı (Virtual Thread) Motoru**: Harici bağımlılık gerektirmeyen, geliştirici makineleri ve hızlı CI/CD döngüleri için optimize edilmiş saf Java sanal iş parçacığı motoru.
+- **Akıcı (Fluent) Yük Testi DSL'i**:
+  - `load(url).users(n).during(duration).rampUp(duration).run()` veya `loadScenario("name").step(...).run()` ile bildirimsel senaryolar.
+  - `BaseTest`, `BaseApiTest`, `BaseLoadTest` ve `BaseJUnit5Test` sınıflarında doğrudan kullanılabilir.
+- **Anotasyon Odaklı Yürütme (`@LoadTest`)**:
+  - Sınıf veya metot düzeyinde `@LoadTest` ile kullanıcı sayısı, süre, kademeli artış (rampUp), hedef RPS, motor ve besleyici ayarları.
+- **Veri Besleyiciler (`Feeder`)**:
+  - `circular()`, `random()` ve `batch()` stratejilerine sahip yerleşik CSV, JSON, Array ve özel Supplier besleyicileri.
+- **SLA ve Gecikme Doğrulamaları (`LoadTestAssert`)**:
+  - Yüzdelik dilimler (P50, P90, P95, P99), maksimum yanıt süresi, minimum RPS ve hata oranı limitleri için akıcı doğrulamalar.
+- **Birleşik Çok Kanallı Raporlama**:
+  - **TestFly HTML Raporu**: Özel "Yük Testi" sekmesi, KPI kartları, yanıt süresi yüzdelikleri, HTTP durum kodları dağılımı ve etkileşimli Gatling rapor linki.
+  - **Allure Rapor Uyarlayıcısı**: Yük testi parametreleri, Gatling rapor linki, özet markdown ve alt süreç log ekleri.
+  - **ReportPortal Uyarlayıcısı**: Adım detaylarına formatlanmış Markdown özet logu ve log dosyası eki.
+
+### Eklenenler — Özellik Santrali (Feature Switchboard)
+
+- **`features:` ana kontrol paneli** — `testfly.yml` içinde tüm opsiyonel modülleri (`ai`, `recording`, `tracing`, `network`, `healing`, `visual`, `performance`, `flakiness`, `quarantine`, `testManagement`, `notifications`, `consoleErrors`) tek bir noktadan açıp kapatma imkanı.
+- **`FeatureGate`** (`io.testfly.config.FeatureGate`) — Özellik durumları için merkezi sorgulama API'si.
+- **`ai.enabled` ana AI anahtarı** — Tüm AI özelliklerini tek bayrakla devre dışı bırakabilme.
+
+### Değiştirilenler
+
+- **Esnek `testfly.yml` ayrıştırma** — Tanınmayan konfigürasyon anahtarları çökmeye sebep olmadan uyarı olarak loglanır.
+- **Kapalı özelliklerde hızlı hata verme** — Devre dışı bırakılmış modüllere yapılan açık çağrılar sessizce geçiştirilmek yerine açıklayıcı hata verir.
 
 ---
 

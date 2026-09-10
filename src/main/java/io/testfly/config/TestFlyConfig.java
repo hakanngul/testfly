@@ -78,8 +78,9 @@ public final class TestFlyConfig {
     public static final class Network {
         private boolean interceptEnabled = false;
 
+        /** Overridable from the umbrella via {@code features.network}. */
         public boolean isInterceptEnabled() {
-            return interceptEnabled;
+            return FeatureGate.enabled(FeatureGate.NETWORK, interceptEnabled);
         }
 
         public void setInterceptEnabled(boolean interceptEnabled) {
@@ -143,7 +144,7 @@ public final class TestFlyConfig {
         }
 
         public boolean isCaptureConsoleErrors() {
-            return captureConsoleErrors;
+            return FeatureGate.enabled(FeatureGate.CONSOLE_ERRORS, captureConsoleErrors);
         }
 
         public void setCaptureConsoleErrors(boolean captureConsoleErrors) {
@@ -852,8 +853,9 @@ public final class TestFlyConfig {
         private int fps = 2;
         private int maxDurationSeconds = 60;
 
+        /** Overridable from the umbrella via {@code features.recording}. */
         public boolean isEnabled() {
-            return enabled;
+            return FeatureGate.enabled(FeatureGate.RECORDING, enabled);
         }
 
         public void setEnabled(boolean enabled) {
@@ -909,11 +911,11 @@ public final class TestFlyConfig {
         }
 
         public boolean isRecordAll() {
-            return "on".equalsIgnoreCase(mode) || "always".equalsIgnoreCase(mode);
+            return isEnabled() && ("on".equalsIgnoreCase(mode) || "always".equalsIgnoreCase(mode));
         }
 
         public boolean shouldRecord() {
-            return enabled && !"off".equalsIgnoreCase(mode);
+            return isEnabled() && !"off".equalsIgnoreCase(mode);
         }
     }
 
@@ -953,16 +955,22 @@ public final class TestFlyConfig {
         private int maxDomTokens = 8000;
         private String testIdAttribute = "data-testid";
 
+        /** Overridable from the umbrella via {@code features.healing}. */
         public boolean isSelfHealing() {
-            return selfHealing;
+            return FeatureGate.enabled(FeatureGate.HEALING, selfHealing);
         }
 
         public void setSelfHealing(boolean v) {
             this.selfHealing = v;
         }
 
+        /**
+         * Overridable from the umbrella via {@code features.healing}. The AI
+         * kill-switch ({@code features.ai} / {@code ai.enabled}) is enforced
+         * separately by {@code AiHealingEngine}.
+         */
         public boolean isAiHealing() {
-            return aiHealing;
+            return FeatureGate.enabled(FeatureGate.HEALING, aiHealing);
         }
 
         public void setAiHealing(boolean v) {
@@ -986,6 +994,35 @@ public final class TestFlyConfig {
         }
     }
 
+    private java.util.Map<String, Boolean> features = new java.util.LinkedHashMap<>();
+
+    /**
+     * Master switchboard for optional framework modules, keyed by module name.
+     *
+     * <p>
+     * Values are tri-state: an absent key (or a {@code null} value) means
+     * "not decided here — the module's own settings apply", while an explicit
+     * {@code true} / {@code false} overrides them.
+     *
+     * <pre>
+     * features:
+     *   ai: false          # disable every AI/agentic surface
+     *   recording: true    # force video recording on
+     * </pre>
+     *
+     * <p>
+     * Read these through {@link FeatureGate} rather than directly — it
+     * applies the tri-state resolution and tolerates an uninitialized context.
+     * Valid names are listed by {@link FeatureGate#knownFeatures()}.
+     */
+    public java.util.Map<String, Boolean> getFeatures() {
+        return features;
+    }
+
+    public void setFeatures(java.util.Map<String, Boolean> features) {
+        this.features = (features != null) ? features : new java.util.LinkedHashMap<>();
+    }
+
     private Ai ai;
 
     public Ai getAi() {
@@ -997,6 +1034,17 @@ public final class TestFlyConfig {
     }
 
     public static final class Ai {
+        /**
+         * Master switch for every AI-driven surface: failure analysis, patch
+         * generation, AI locator healing, {@code aiAssert(...)} and the agentic
+         * {@code act(...)} engine. Defaults to {@code true}; the granular flags
+         * below still decide <em>which</em> surfaces run, but none of them can
+         * run while this is {@code false}.
+         *
+         * <p>
+         * Overridable from the umbrella via {@code features.ai}.
+         */
+        private boolean enabled = true;
         private boolean failureAnalysis = false;
         private boolean generatePatch = false;
         private String provider = "claude";
@@ -1005,6 +1053,15 @@ public final class TestFlyConfig {
         private String model = null;
         private String language = "en";
         private int timeoutSeconds = 20;
+
+        /** Overridable from the umbrella via {@code features.ai}. */
+        public boolean isEnabled() {
+            return FeatureGate.enabled(FeatureGate.AI, enabled);
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
 
         public boolean isFailureAnalysis() {
             return failureAnalysis;
@@ -1125,8 +1182,9 @@ public final class TestFlyConfig {
         private boolean enabled = false;
         private boolean captureOnPass = false;
 
+        /** Overridable from the umbrella via {@code features.tracing}. */
         public boolean isEnabled() {
-            return enabled;
+            return FeatureGate.enabled(FeatureGate.TRACING, enabled);
         }
 
         public void setEnabled(boolean v) {
@@ -1462,8 +1520,9 @@ public final class TestFlyConfig {
         private double ttfbWarnMs = 0;
         private double clsWarn = 0;
 
+        /** Overridable from the umbrella via {@code features.performance}. */
         public boolean isCaptureOnEveryTest() {
-            return captureOnEveryTest;
+            return FeatureGate.enabled(FeatureGate.PERFORMANCE, captureOnEveryTest);
         }
 
         public void setCaptureOnEveryTest(boolean v) {
@@ -1517,8 +1576,9 @@ public final class TestFlyConfig {
         private boolean enabled = true;
         private String cucumberTag = "quarantine";
 
+        /** Overridable from the umbrella via {@code features.quarantine}. */
         public boolean isEnabled() {
-            return enabled;
+            return FeatureGate.enabled(FeatureGate.QUARANTINE, enabled);
         }
 
         public void setEnabled(boolean v) {
@@ -1966,8 +2026,9 @@ public final class TestFlyConfig {
             private boolean autoCreateRun = true;
             private int runId; // populated at runtime; may be set explicitly to skip creation
 
+            /** Overridable from the umbrella via {@code features.testManagement}. */
             public boolean isEnabled() {
-                return enabled;
+                return FeatureGate.enabled(FeatureGate.TEST_MANAGEMENT, enabled);
             }
 
             public void setEnabled(boolean v) {
@@ -2056,8 +2117,9 @@ public final class TestFlyConfig {
             private String projectKey;
             private String testPlanKey;
 
+            /** Overridable from the umbrella via {@code features.testManagement}. */
             public boolean isEnabled() {
-                return enabled;
+                return FeatureGate.enabled(FeatureGate.TEST_MANAGEMENT, enabled);
             }
 
             public void setEnabled(boolean v) {
@@ -2126,6 +2188,194 @@ public final class TestFlyConfig {
 
             public void setTestPlanKey(String v) {
                 this.testPlanKey = v;
+            }
+        }
+    }
+
+    // ── Load Testing ─────────────────────────────────────────────────────
+
+    private LoadTest loadTest;
+
+    public LoadTest getLoadTest() {
+        return loadTest;
+    }
+
+    public void setLoadTest(LoadTest loadTest) {
+        this.loadTest = loadTest;
+    }
+
+    /**
+     * Alias for {@link #setLoadTest(LoadTest)} that accepts the all-lowercase
+     * YAML key {@code loadtest} used in documentation.
+     */
+    public void setLoadtest(LoadTest loadTest) {
+        setLoadTest(loadTest);
+    }
+
+    public LoadTest getLoadtest() {
+        return getLoadTest();
+    }
+
+    /**
+     * Load testing configuration block.
+     *
+     * <pre>
+     * loadtest:
+     *   baseUrl: https://api.example.com
+     *   users: 50
+     *   rampUp: 30s
+     *   hold: 60s
+     *   cooldown: 10s
+     *   engine: auto
+     *   resultsDir: target/loadtest
+     *   reportEnabled: true
+     * </pre>
+     */
+    public static final class LoadTest {
+        private boolean enabled = false;
+        private String baseUrl;
+        private String engine = "auto";
+        private int users = 10;
+        private String rampUp = "10s";
+        private String hold = "30s";
+        private String cooldown = "5s";
+        private int maxUsers = 1000;
+        private String resultsDir = "target/loadtest";
+        private boolean reportEnabled = true;
+        private int requestTimeoutSeconds = 30;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        /**
+         * Engine selection: {@code auto} (Gatling if available, else JDK),
+         * {@code gatling} (require Gatling), or {@code jdk} (always JDK).
+         */
+        public String getEngine() {
+            return engine;
+        }
+
+        public void setEngine(String engine) {
+            this.engine = engine != null ? engine : "auto";
+        }
+
+        public int getUsers() {
+            return users;
+        }
+
+        public void setUsers(int users) {
+            this.users = users > 0 ? users : 10;
+        }
+
+        public String getRampUp() {
+            return rampUp;
+        }
+
+        public void setRampUp(String rampUp) {
+            this.rampUp = rampUp != null ? rampUp : "10s";
+        }
+
+        public String getHold() {
+            return hold;
+        }
+
+        public void setHold(String hold) {
+            this.hold = hold != null ? hold : "30s";
+        }
+
+        public String getCooldown() {
+            return cooldown;
+        }
+
+        public void setCooldown(String cooldown) {
+            this.cooldown = cooldown != null ? cooldown : "5s";
+        }
+
+        public int getMaxUsers() {
+            return maxUsers;
+        }
+
+        public void setMaxUsers(int maxUsers) {
+            this.maxUsers = maxUsers > 0 ? maxUsers : 1000;
+        }
+
+        public String getResultsDir() {
+            return resultsDir;
+        }
+
+        public void setResultsDir(String resultsDir) {
+            this.resultsDir = resultsDir != null ? resultsDir : "target/loadtest";
+        }
+
+        public boolean isReportEnabled() {
+            return reportEnabled;
+        }
+
+        public void setReportEnabled(boolean reportEnabled) {
+            this.reportEnabled = reportEnabled;
+        }
+
+        public int getRequestTimeoutSeconds() {
+            return requestTimeoutSeconds;
+        }
+
+        public void setRequestTimeoutSeconds(int requestTimeoutSeconds) {
+            this.requestTimeoutSeconds = requestTimeoutSeconds > 0 ? requestTimeoutSeconds : 30;
+        }
+
+        // ── Duration parsing helpers ──
+
+        /** Parses {@code rampUp} string ("30s", "2m", "1h") into seconds. */
+        public long getRampUpSeconds() {
+            return parseDurationSeconds(rampUp, 10);
+        }
+
+        /** Parses {@code hold} string into seconds. */
+        public long getHoldSeconds() {
+            return parseDurationSeconds(hold, 30);
+        }
+
+        /** Parses {@code cooldown} string into seconds. */
+        public long getCooldownSeconds() {
+            return parseDurationSeconds(cooldown, 5);
+        }
+
+        /**
+         * Parses a human-readable duration string into seconds.
+         * Supported formats: {@code 30s}, {@code 2m}, {@code 1h}, {@code 500ms},
+         * or a plain integer (interpreted as seconds).
+         */
+        public static long parseDurationSeconds(String value, long defaultSeconds) {
+            if (value == null || value.isBlank())
+                return defaultSeconds;
+            String v = value.trim().toLowerCase();
+            try {
+                if (v.endsWith("ms")) {
+                    return Math.max(0, Long.parseLong(v.substring(0, v.length() - 2).trim()) / 1000);
+                } else if (v.endsWith("s")) {
+                    return Long.parseLong(v.substring(0, v.length() - 1).trim());
+                } else if (v.endsWith("m")) {
+                    return Long.parseLong(v.substring(0, v.length() - 1).trim()) * 60;
+                } else if (v.endsWith("h")) {
+                    return Long.parseLong(v.substring(0, v.length() - 1).trim()) * 3600;
+                } else {
+                    return Long.parseLong(v);
+                }
+            } catch (NumberFormatException e) {
+                return defaultSeconds;
             }
         }
     }

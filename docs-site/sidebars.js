@@ -25,6 +25,7 @@ const sidebars = {
         'migration/coming-from-playwright',
         'migration/from-selenide',
         'migration/from-serenity',
+        'migration/from-restassured',
       ],
     },
     {
@@ -63,6 +64,23 @@ const sidebars = {
     },
     {
       type: 'category',
+      label: 'Load Testing',
+      collapsed: false,
+      items: [
+        'loadtest/getting-started',
+        'loadtest/configuration',
+        'loadtest/fluent-api',
+        'loadtest/annotations',
+        'loadtest/feeders',
+        'loadtest/assertions',
+        'loadtest/reporting',
+        'loadtest/engines',
+        'loadtest/examples',
+        'loadtest/distributed-docker-k8s',
+      ],
+    },
+    {
+      type: 'category',
       label: 'AI & MCP Automation',
       collapsed: false,
       items: [
@@ -96,6 +114,7 @@ const sidebars = {
       items: [
         'ci/github-actions',
         'ci/jenkins',
+        'ci/bitbucket-pipelines',
         'ci/quality-gates',
         'ci/ci-metadata',
       ],
@@ -117,6 +136,7 @@ const sidebars = {
         'reporting/html-report',
         'reporting/junit-xml',
         'reporting/report-portal',
+        'reporting/allure',
       ],
     },
     'junit5',

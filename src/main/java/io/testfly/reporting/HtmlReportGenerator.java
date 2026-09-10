@@ -39,12 +39,17 @@ public final class HtmlReportGenerator {
     }
 
     public static void generate() {
+        generate(ReportPaths.metricsJson());
+    }
+
+    public static void generate(File jsonFile) {
         try {
-            File jsonFile = ReportPaths.metricsJson();
-            if (!jsonFile.exists()) {
+            if (jsonFile == null || !jsonFile.exists()) {
                 System.err.println("[TestFly] Metrics JSON not found. Skipping HTML report.");
                 return;
             }
+
+            File baseDir = jsonFile.getParentFile() != null ? jsonFile.getParentFile() : new File(ReportPaths.baseDir());
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -55,13 +60,13 @@ public final class HtmlReportGenerator {
             String metadataSection = buildMetadataSection(root);
 
             // 2. Load run history from metrics-history directory
-            List<Map<String, Object>> runHistory = loadRunHistory(mapper);
+            File historyDir = new File(baseDir, "metrics-history");
+            List<Map<String, Object>> runHistory = loadRunHistory(mapper, historyDir);
 
             // 3. Collect unique cumulative tests across history + current run
             Map<String, Map<String, Object>> cumulativeTestsMap = new LinkedHashMap<>();
 
             // Historical tests first
-            File historyDir = ReportPaths.metricsHistoryDir();
             if (historyDir.exists() && historyDir.isDirectory()) {
                 File[] histFiles = historyDir
                         .listFiles((dir, name) -> name.startsWith("testfly-metrics-") && name.endsWith(".json"));
@@ -162,7 +167,7 @@ public final class HtmlReportGenerator {
             cumulativeTotals.put("skippedTests", cumSkipped);
             cumulativeTotals.put("flakyTests", cumFlaky);
             cumulativeTotals.put("totalTimeMs", cumDuration);
-            cumulativeTotals.put("averageTimeMs", cumTotal == 0 ? 0 : cumDuration / cumTotal);
+            cumulativeTotals.put("averageTimeMs", cumTotal == 0 ? 0L : cumDuration / cumTotal);
             cumulativeTotals.put("passRate", cumPassRate);
 
             String timestamp = java.time.LocalDateTime.now()
@@ -214,6 +219,24 @@ public final class HtmlReportGenerator {
             } catch (Exception ignored) {
             }
 
+            // Load test metrics
+            List<Map<String, Object>> loadTests = new ArrayList<>();
+            if (root.has("loadTests") && root.get("loadTests").isArray()) {
+                for (JsonNode lt : root.get("loadTests")) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> ltMap = mapper.convertValue(lt, Map.class);
+                    correlateGatlingReport(ltMap, baseDir);
+                    loadTests.add(ltMap);
+                }
+            } else {
+                for (io.testfly.loadtest.LoadTestMetrics ltm : io.testfly.metrics.ExecutionMetrics.getLoadTests()) {
+                    Map<String, Object> ltMap = io.testfly.metrics.ExecutionMetrics.loadTestMetricsToMap(ltm);
+                    correlateGatlingReport(ltMap, baseDir);
+                    loadTests.add(ltMap);
+                }
+            }
+            reportData.put("loadTests", loadTests);
+
             reportData.put("flakiness", flakinessData);
             reportData.put("history", runHistory);
             reportData.put("runTimestamp", timestamp);
@@ -221,7 +244,7 @@ public final class HtmlReportGenerator {
             String reportDataJson = mapper.writeValueAsString(reportData);
 
             // 6. Export standalone testfly-report-data.json
-            File dataJsonFile = ReportPaths.reportDataJson();
+            File dataJsonFile = new File(baseDir, "testfly-report-data.json");
             File dataJsonDir = dataJsonFile.getParentFile();
             if (dataJsonDir != null && !dataJsonDir.exists()) {
                 dataJsonDir.mkdirs();
@@ -234,7 +257,7 @@ public final class HtmlReportGenerator {
             String html = buildHtml(reportDataJson, metadataSection, cumulativeTotals, timestamp, runHistory.size(),
                     mapper.writeValueAsString(runHistory));
 
-            File reportFile = ReportPaths.htmlReport();
+            File reportFile = new File(baseDir, "testfly-report.html");
             File reportDir = reportFile.getParentFile();
             if (reportDir != null && !reportDir.exists()) {
                 reportDir.mkdirs();
@@ -246,7 +269,7 @@ public final class HtmlReportGenerator {
             // 8. Archive a timestamped copy in target/reports/
             String fileTimestamp = java.time.LocalDateTime.now()
                     .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
-            File reportsHistoryDir = ReportPaths.reportsHistoryDir();
+            File reportsHistoryDir = new File(baseDir, "reports");
             if (!reportsHistoryDir.exists()) {
                 reportsHistoryDir.mkdirs();
             }
@@ -266,12 +289,12 @@ public final class HtmlReportGenerator {
 
     private static Map<String, Object> buildEnvironmentMap(JsonNode root) {
         String profile = System.getProperty("testfly.profile", "default");
-        TestFlyConfig config = TestFlyContext.getConfig();
+        TestFlyConfig config = TestFlyContext.isInitialized() ? TestFlyContext.getConfig() : null;
 
-        TestFlyConfig.Browser browserCfg = config.getBrowser();
-        TestFlyConfig.Execution executionCfg = config.getExecution();
-        TestFlyConfig.Retry retryCfg = config.getRetry();
-        TestFlyConfig.Timeouts timeoutsCfg = config.getTimeouts();
+        TestFlyConfig.Browser browserCfg = config != null ? config.getBrowser() : null;
+        TestFlyConfig.Execution executionCfg = config != null ? config.getExecution() : null;
+        TestFlyConfig.Retry retryCfg = config != null ? config.getRetry() : null;
+        TestFlyConfig.Timeouts timeoutsCfg = config != null ? config.getTimeouts() : null;
 
         Map<String, Object> env = new LinkedHashMap<>();
         env.put("profile", profile);
@@ -296,12 +319,12 @@ public final class HtmlReportGenerator {
 
     private static String buildMetadataSection(JsonNode root) {
         String profile = System.getProperty("testfly.profile", "default");
-        TestFlyConfig config = TestFlyContext.getConfig();
+        TestFlyConfig config = TestFlyContext.isInitialized() ? TestFlyContext.getConfig() : null;
 
-        TestFlyConfig.Browser browserCfg = config.getBrowser();
-        TestFlyConfig.Execution executionCfg = config.getExecution();
-        TestFlyConfig.Retry retryCfg = config.getRetry();
-        TestFlyConfig.Timeouts timeoutsCfg = config.getTimeouts();
+        TestFlyConfig.Browser browserCfg = config != null ? config.getBrowser() : null;
+        TestFlyConfig.Execution executionCfg = config != null ? config.getExecution() : null;
+        TestFlyConfig.Retry retryCfg = config != null ? config.getRetry() : null;
+        TestFlyConfig.Timeouts timeoutsCfg = config != null ? config.getTimeouts() : null;
 
         String browser = browserCfg != null ? browserCfg.getName() : "unknown";
         boolean headless = browserCfg != null && browserCfg.isHeadless();
@@ -388,10 +411,9 @@ public final class HtmlReportGenerator {
         sb.append("      </div>\n");
     }
 
-    private static List<Map<String, Object>> loadRunHistory(ObjectMapper mapper) {
+    private static List<Map<String, Object>> loadRunHistory(ObjectMapper mapper, File historyDir) {
         List<Map<String, Object>> list = new ArrayList<>();
-        File historyDir = ReportPaths.metricsHistoryDir();
-        if (!historyDir.exists() || !historyDir.isDirectory()) {
+        if (historyDir == null || !historyDir.exists() || !historyDir.isDirectory()) {
             return list;
         }
         File[] files = historyDir
@@ -460,13 +482,13 @@ public final class HtmlReportGenerator {
 
     private static String buildHtml(String reportDataJson, String metadataSection, Map<String, Object> cumTotals,
             String timestamp, int historyCount, String runHistoryJson) {
-        int cumTotal = (int) cumTotals.getOrDefault("totalTests", 0);
-        long cumPassed = (long) cumTotals.getOrDefault("passedTests", 0L);
-        long cumFailed = (long) cumTotals.getOrDefault("failedTests", 0L);
-        long cumSkipped = (long) cumTotals.getOrDefault("skippedTests", 0L);
-        double cumPassRate = (double) cumTotals.getOrDefault("passRate", 0.0);
-        long cumDuration = (long) cumTotals.getOrDefault("totalTimeMs", 0L);
-        long cumAvg = (long) cumTotals.getOrDefault("averageTimeMs", 0L);
+        int cumTotal = cumTotals.get("totalTests") instanceof Number n ? n.intValue() : 0;
+        long cumPassed = cumTotals.get("passedTests") instanceof Number n ? n.longValue() : 0L;
+        long cumFailed = cumTotals.get("failedTests") instanceof Number n ? n.longValue() : 0L;
+        long cumSkipped = cumTotals.get("skippedTests") instanceof Number n ? n.longValue() : 0L;
+        double cumPassRate = cumTotals.get("passRate") instanceof Number n ? n.doubleValue() : 0.0;
+        long cumDuration = cumTotals.get("totalTimeMs") instanceof Number n ? n.longValue() : 0L;
+        long cumAvg = cumTotals.get("averageTimeMs") instanceof Number n ? n.longValue() : 0L;
 
         String passRateClass = cumPassRate >= 80 ? "rate-good" : cumPassRate >= 60 ? "rate-warn" : "rate-bad";
         String passRateStr = String.format("%.1f", cumPassRate);
@@ -520,5 +542,52 @@ public final class HtmlReportGenerator {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
+    }
+
+    private static void correlateGatlingReport(Map<String, Object> ltMap, File baseDir) {
+        if (ltMap == null) {
+            return;
+        }
+        if (ltMap.get("gatlingReportPath") instanceof String p && !p.isBlank()) {
+            return;
+        }
+        try {
+            File loadTestDir = baseDir != null ? new File(baseDir, "loadtest") : null;
+            if (loadTestDir == null || !loadTestDir.exists() || !loadTestDir.isDirectory()) {
+                loadTestDir = ReportPaths.loadTestDir();
+            }
+            if (!loadTestDir.exists() || !loadTestDir.isDirectory()) {
+                return;
+            }
+            String scenarioName = (String) ltMap.get("scenarioName");
+            List<File> reports = io.testfly.loadtest.LoadTestReportAdapter.findGatlingReports(loadTestDir);
+            if (reports.isEmpty()) {
+                return;
+            }
+            String sanitized = scenarioName != null
+                    ? scenarioName.replaceAll("[^a-zA-Z0-9_-]", "_").toLowerCase()
+                    : null;
+            File matched = null;
+            if (sanitized != null) {
+                for (File r : reports) {
+                    if (r.getAbsolutePath().toLowerCase().contains(sanitized)) {
+                        matched = r;
+                        break;
+                    }
+                }
+            }
+            if (matched == null) {
+                matched = reports.get(0);
+            }
+
+            String absPath = matched.getAbsolutePath();
+            int idx = absPath.indexOf("loadtest" + File.separator);
+            if (idx != -1) {
+                ltMap.put("gatlingReportPath", absPath.substring(idx).replace(File.separatorChar, '/'));
+            } else {
+                ltMap.put("gatlingReportPath", absPath);
+            }
+        } catch (Exception ignored) {
+        }
     }
 }

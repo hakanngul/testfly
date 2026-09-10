@@ -176,7 +176,48 @@ public class AllureReportAdapter implements ReportAdapter {
             addAttachment(attachments, "🤖 AI Failure Analysis", aiFile, "text/plain");
         }
 
-        result.putArray("parameters");
+        ArrayNode parameters = result.putArray("parameters");
+        ArrayNode links = result.putArray("links");
+
+        if (test.has("loadTestMetrics")) {
+            JsonNode lt = test.path("loadTestMetrics");
+            addParameter(parameters, "Load Engine", lt.path("engine").asText("gatling").toUpperCase(Locale.ROOT));
+            if (lt.has("users")) {
+                addParameter(parameters, "Concurrent Users", lt.path("users").asText() + " VUs");
+            }
+            if (lt.has("totalRequests")) {
+                addParameter(parameters, "Total Requests", lt.path("totalRequests").asText());
+            }
+            if (lt.has("throughputRps")) {
+                addParameter(parameters, "Throughput", String.format(Locale.ROOT, "%.1f req/s", lt.path("throughputRps").asDouble()));
+            }
+            if (lt.has("p95LatencyMs")) {
+                addParameter(parameters, "P95 Latency", String.format(Locale.ROOT, "%.0f ms", lt.path("p95LatencyMs").asDouble()));
+            }
+            if (lt.has("errorRate")) {
+                addParameter(parameters, "Error Rate", String.format(Locale.ROOT, "%.2f%%", lt.path("errorRate").asDouble() * 100));
+            }
+
+            // Link to Gatling report
+            String gatlingReport = lt.path("gatlingReportPath").asText("");
+            if (!gatlingReport.isEmpty()) {
+                addLink(links, "📊 Gatling Interactive Report", gatlingReport, "report");
+            }
+
+            // Attach Markdown Load Test Summary
+            String summaryMd = buildLoadTestSummaryMarkdown(lt);
+            String summaryFile = UUID.randomUUID() + "-loadtest-summary.md";
+            Files.writeString(new File(outputDir, summaryFile).toPath(), summaryMd, java.nio.charset.StandardCharsets.UTF_8);
+            addAttachment(attachments, "⚡ Load Test Summary", summaryFile, "text/markdown");
+
+            // Attach Gatling subprocess log if available
+            File subprocessLog = findGatlingSubprocessLog(gatlingReport);
+            if (subprocessLog != null && subprocessLog.exists()) {
+                String logFile = UUID.randomUUID() + "-gatling-subprocess.log";
+                Files.copy(subprocessLog.toPath(), new File(outputDir, logFile).toPath());
+                addAttachment(attachments, "📋 Gatling Subprocess Log", logFile, "text/plain");
+            }
+        }
 
         MAPPER.writerWithDefaultPrettyPrinter()
               .writeValue(new File(outputDir, UUID.randomUUID() + "-result.json"), result);
@@ -234,5 +275,88 @@ public class AllureReportAdapter implements ReportAdapter {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private void addParameter(ArrayNode parameters, String name, String value) {
+        if (value == null || value.isEmpty()) return;
+        ObjectNode param = parameters.addObject();
+        param.put("name",  name);
+        param.put("value", value);
+    }
+
+    private void addLink(ArrayNode links, String name, String url, String type) {
+        if (url == null || url.isEmpty()) return;
+        ObjectNode link = links.addObject();
+        link.put("name", name);
+        link.put("url",  url);
+        link.put("type", type);
+    }
+
+    private File findGatlingSubprocessLog(String gatlingReportPath) {
+        if (gatlingReportPath != null && !gatlingReportPath.isEmpty()) {
+            File rep = new File(gatlingReportPath);
+            File parent = rep.getParentFile();
+            if (parent != null) {
+                File direct = new File(parent, "gatling-subprocess.log");
+                if (direct.exists()) return direct;
+                File grandParent = parent.getParentFile();
+                if (grandParent != null) {
+                    File up = new File(grandParent, "gatling-subprocess.log");
+                    if (up.exists()) return up;
+                }
+            }
+        }
+        File defaultLoc = new File("target/reports/loadtest/gatling-subprocess.log");
+        if (defaultLoc.exists()) return defaultLoc;
+        return null;
+    }
+
+    private String buildLoadTestSummaryMarkdown(JsonNode lt) {
+        StringBuilder sb = new StringBuilder();
+        String scenario = lt.path("scenarioName").asText("Load Scenario");
+        sb.append("# ⚡ Load Test Metrics Summary: ").append(scenario).append("\n\n");
+        sb.append("- **Engine:** ").append(lt.path("engine").asText("gatling").toUpperCase(Locale.ROOT)).append("\n");
+        sb.append("- **Concurrent Users:** ").append(lt.path("users").asInt(0)).append(" VUs\n");
+        sb.append("- **Duration:** ").append(String.format(Locale.ROOT, "%.1fs", lt.path("durationMs").asDouble(0) / 1000.0)).append("\n");
+        sb.append("- **Total Requests:** ").append(lt.path("totalRequests").asLong(0))
+          .append(" (OK: ").append(lt.path("successfulRequests").asLong(0))
+          .append(", KO: ").append(lt.path("failedRequests").asLong(0)).append(")\n");
+        sb.append("- **Throughput:** ").append(String.format(Locale.ROOT, "%.1f req/s", lt.path("throughputRps").asDouble(0))).append("\n");
+        sb.append("- **Error Rate:** ").append(String.format(Locale.ROOT, "%.2f%%", lt.path("errorRate").asDouble(0) * 100)).append("\n\n");
+
+        sb.append("## Latency Percentiles\n\n");
+        sb.append("| Percentile | Latency |\n");
+        sb.append("| :--- | :--- |\n");
+        sb.append("| **Min** | ").append(Math.round(lt.path("minLatencyMs").asDouble(0))).append(" ms |\n");
+        sb.append("| **P50** | ").append(Math.round(lt.path("p50LatencyMs").asDouble(0))).append(" ms |\n");
+        sb.append("| **P75** | ").append(Math.round(lt.path("p75LatencyMs").asDouble(0))).append(" ms |\n");
+        sb.append("| **P90** | ").append(Math.round(lt.path("p90LatencyMs").asDouble(0))).append(" ms |\n");
+        sb.append("| **P95** | ").append(Math.round(lt.path("p95LatencyMs").asDouble(0))).append(" ms |\n");
+        sb.append("| **P99** | ").append(Math.round(lt.path("p99LatencyMs").asDouble(0))).append(" ms |\n");
+        sb.append("| **Max** | ").append(Math.round(lt.path("maxLatencyMs").asDouble(0))).append(" ms |\n");
+        sb.append("| **Mean** | ").append(Math.round(lt.path("meanLatencyMs").asDouble(0))).append(" ms |\n\n");
+
+        if (lt.has("steps") && lt.path("steps").isObject() && lt.path("steps").size() > 0) {
+            sb.append("## Steps Breakdown\n\n");
+            sb.append("| Step | Total | Successful | Failed | P95 Latency | Error Rate |\n");
+            sb.append("| :--- | ---: | ---: | ---: | ---: | ---: |\n");
+            lt.path("steps").fields().forEachRemaining(entry -> {
+                JsonNode st = entry.getValue();
+                sb.append("| `").append(st.path("name").asText(entry.getKey())).append("` | ")
+                  .append(st.path("totalRequests").asLong(0)).append(" | ")
+                  .append(st.path("successfulRequests").asLong(0)).append(" | ")
+                  .append(st.path("failedRequests").asLong(0)).append(" | ")
+                  .append(Math.round(st.path("p95LatencyMs").asDouble(0))).append(" ms | ")
+                  .append(String.format(Locale.ROOT, "%.1f%%", st.path("errorRate").asDouble(0) * 100)).append(" |\n");
+            });
+            sb.append("\n");
+        }
+
+        String reportPath = lt.path("gatlingReportPath").asText("");
+        if (!reportPath.isEmpty()) {
+            sb.append("## Gatling Native Report\n\n");
+            sb.append("- Report file: `").append(reportPath).append("`\n");
+        }
+        return sb.toString();
     }
 }

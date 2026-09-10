@@ -21,10 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: temurin
@@ -35,7 +35,7 @@ jobs:
 
       - name: Upload Surefire reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: unit-test-results
           path: '**/target/surefire-reports/'
@@ -44,7 +44,7 @@ jobs:
 
       - name: Upload AI Remediations and Healing Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ai-agentic-artifacts
           path: |
@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload HTML report and metrics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: testfly-html-report
           path: |
@@ -81,10 +81,10 @@ jobs:
     needs: unit-tests
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: temurin
@@ -105,7 +105,7 @@ jobs:
 
       - name: Upload Failsafe reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: framework-integration-test-results
           path: '**/target/failsafe-reports/'
@@ -128,10 +128,10 @@ jobs:
     needs: unit-tests
     steps:
       - name: Checkout framework
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: temurin
@@ -150,7 +150,7 @@ jobs:
       - name: Checkout consumer project
         id: checkout-consumer
         continue-on-error: true
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ github.repository_owner }}/testfly-test
           path: testfly-test
@@ -194,7 +194,7 @@ jobs:
 
       - name: Upload consumer test reports
         if: always() && steps.consumer-available.outputs.available == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: consumer-test-results
           path: 'testfly-test/target/surefire-reports/'

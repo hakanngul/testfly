@@ -280,6 +280,121 @@ public class AllureReportAdapterTest {
         assertEquals(new AllureReportAdapter().getName(), "allure");
     }
 
+    @Test
+    public void generate_loadTestMetrics_addsParametersAndLinksAndAttachments() throws IOException {
+        File dummyDir = new File("target/reports/loadtest/dummy-run");
+        dummyDir.mkdirs();
+        File dummyLog = new File(dummyDir, "gatling-subprocess.log");
+        Files.writeString(dummyLog.toPath(), "gatling run log line 1\ngatling run log line 2\n");
+        File dummyReport = new File(dummyDir, "index.html");
+        Files.writeString(dummyReport.toPath(), "<html>Gatling Report</html>");
+
+        String ltJson = "\"loadTestMetrics\": {"
+                + "  \"engine\": \"gatling\","
+                + "  \"scenarioName\": \"Checkout Load Test\","
+                + "  \"users\": 20,"
+                + "  \"durationMs\": 10000,"
+                + "  \"totalRequests\": 500,"
+                + "  \"successfulRequests\": 490,"
+                + "  \"failedRequests\": 10,"
+                + "  \"throughputRps\": 50.0,"
+                + "  \"p50LatencyMs\": 40.0,"
+                + "  \"p75LatencyMs\": 60.0,"
+                + "  \"p90LatencyMs\": 90.0,"
+                + "  \"p95LatencyMs\": 120.0,"
+                + "  \"p99LatencyMs\": 200.0,"
+                + "  \"minLatencyMs\": 10.0,"
+                + "  \"maxLatencyMs\": 350.0,"
+                + "  \"meanLatencyMs\": 55.0,"
+                + "  \"errorRate\": 0.02,"
+                + "  \"gatlingReportPath\": \"" + dummyReport.getPath() + "\","
+                + "  \"steps\": {"
+                + "    \"POST /checkout\": {"
+                + "      \"name\": \"POST /checkout\","
+                + "      \"totalRequests\": 500,"
+                + "      \"successfulRequests\": 490,"
+                + "      \"failedRequests\": 10,"
+                + "      \"p95LatencyMs\": 120.0,"
+                + "      \"errorRate\": 0.02"
+                + "    }"
+                + "  }"
+                + "},";
+
+        String json = "{"
+                + "\"totalTests\": 1, \"passedTests\": 1, \"failedTests\": 0,"
+                + "\"skippedTests\": 0, \"passRate\": 100.0,"
+                + "\"flakyTests\": 0, \"recoveredTests\": 0,"
+                + "\"totalTimeMs\": 1000,"
+                + "\"tests\": [{"
+                + "  \"testId\": \"myLoginTest\","
+                + "  \"testClassName\": \"LoginTest\","
+                + "  \"thread\": \"main\","
+                + "  \"status\": \"PASSED\","
+                + ltJson
+                + "  \"totalMs\": 1000"
+                + "}]}";
+        Files.writeString(metricsFile.toPath(), json);
+
+        try {
+            generateSync();
+            JsonNode result = firstResult();
+
+            // Verify parameters
+            JsonNode parameters = result.path("parameters");
+            assertTrue(parameters.isArray(), "Parameters must be an array");
+            boolean foundEngine = false;
+            boolean foundUsers = false;
+            boolean foundThroughput = false;
+            boolean foundP95 = false;
+            boolean foundErrorRate = false;
+
+            for (JsonNode p : parameters) {
+                String name = p.path("name").asText();
+                String val = p.path("value").asText();
+                if ("Load Engine".equals(name) && "GATLING".equals(val)) foundEngine = true;
+                if ("Concurrent Users".equals(name) && "20 VUs".equals(val)) foundUsers = true;
+                if ("Throughput".equals(name) && "50.0 req/s".equals(val)) foundThroughput = true;
+                if ("P95 Latency".equals(name) && "120 ms".equals(val)) foundP95 = true;
+                if ("Error Rate".equals(name) && "2.00%".equals(val)) foundErrorRate = true;
+            }
+
+            assertTrue(foundEngine, "Must find Load Engine parameter");
+            assertTrue(foundUsers, "Must find Concurrent Users parameter");
+            assertTrue(foundThroughput, "Must find Throughput parameter");
+            assertTrue(foundP95, "Must find P95 Latency parameter");
+            assertTrue(foundErrorRate, "Must find Error Rate parameter");
+
+            // Verify links
+            JsonNode links = result.path("links");
+            assertTrue(links.isArray() && links.size() > 0, "Links must contain Gatling report");
+            boolean foundReportLink = false;
+            for (JsonNode l : links) {
+                if ("📊 Gatling Interactive Report".equals(l.path("name").asText())) {
+                    foundReportLink = true;
+                }
+            }
+            assertTrue(foundReportLink, "Must find Gatling Interactive Report link");
+
+            // Verify attachments
+            JsonNode attachments = result.path("attachments");
+            assertTrue(attachments.isArray(), "Attachments must be an array");
+            boolean foundSummary = false;
+            boolean foundSubprocessLog = false;
+            for (JsonNode att : attachments) {
+                String name = att.path("name").asText();
+                if ("⚡ Load Test Summary".equals(name)) foundSummary = true;
+                if ("📋 Gatling Subprocess Log".equals(name)) foundSubprocessLog = true;
+            }
+            assertTrue(foundSummary, "Must find ⚡ Load Test Summary attachment");
+            assertTrue(foundSubprocessLog, "Must find 📋 Gatling Subprocess Log attachment");
+
+        } finally {
+            dummyLog.delete();
+            dummyReport.delete();
+            dummyDir.delete();
+        }
+    }
+
     // ----------------------------------------------------------
     // Cleanup helper
     // ----------------------------------------------------------

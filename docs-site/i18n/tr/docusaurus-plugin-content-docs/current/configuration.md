@@ -76,6 +76,24 @@ Profil dosyalarında **yalnızca değiştirmek istediğiniz alanları tanımlama
 Aşağıdaki açıklamalı şablon, framework'ün desteklediği tüm yapılandırma bloklarını ve önerilen varsayılanları içerir:
 
 ```yaml
+# ── Özellik Panosu (Feature Switchboard) ─────────────────────────────────────
+# Her modülün kendi ayarlarının ÜZERİNDE duran ana aç/kapa paneli.
+# Bir anahtarı hiç yazmazsanız o modülün kendi ayarları geçerli olur;
+# true/false yazarsanız onun üzerine yazılır. Aşağıdaki değerler framework varsayılanlarıdır.
+features:
+  ai: true                          # tüm AI/agentic yüzeyler: act(), aiAssert(), hata analizi, AI healing
+  recording: false                  # tarayıcı çalışmasının MP4/GIF video kaydı
+  tracing: false                    # DOM anlık görüntüleri + çalıştırma zaman çizelgesi
+  network: false                    # CDP ağ yakalama, route mocking, URL engelleme listeleri
+  healing: false                    # locator self-healing (AI yedeği dahil)
+  visual: true                      # görsel regresyon karşılaştırması
+  performance: false                # Core Web Vitals toplama
+  flakiness: true                   # flakiness geçmiş skorlaması
+  quarantine: true                  # karantinadaki testlerin otomatik atlanması
+  testManagement: false             # TestRail / Xray sonuç gönderimi
+  notifications: true               # Slack / Teams çalıştırma bildirimleri
+  consoleErrors: false              # tarayıcı konsol (JS) hatalarının toplanması
+
 # ── Browser (Tarayıcı) ────────────────────────────────────────────────────────
 browser:
   name: chrome                      # chrome | firefox | edge | safari
@@ -143,6 +161,7 @@ locators:
 
 # ── AI Failure Analysis (AI Hata Analizi) ────────────────────────────────────
 ai:
+  enabled: true                     # TÜM AI yüzeyleri için ana anahtar (features.ai ile de ayarlanabilir)
   failureAnalysis: false            # test başarısız olduğunda AI ile kök neden analizi üret
   provider: gemini                  # gemini | claude | openai-compatible
   apiKey: ${AI_API_KEY}             # sağlayıcı API anahtarı
@@ -331,6 +350,84 @@ testmanagement:
 
 ## Detaylı Bölüm Rehberi
 
+## Özellik Panosu (Features) {#features}
+
+Tüm isteğe bağlı framework modülleri için tek bir aç/kapa paneli. Her modülün kendi ayarlarının **üzerinde** durur; böylece bir alt sistemi kapatmak için hangi anahtarın onu yönettiğini aramanız veya modülün detaylı yapılandırmasını silmeniz gerekmez.
+
+```yaml
+features:
+  ai: false          # çalıştırma boyunca hiçbir AI çağrısı yapılmasın
+  recording: true    # recording.enabled false olsa bile videoyu zorla aç
+  healing: false     # locator self-healing kapalı
+```
+
+### Çözümleme
+
+Her anahtar **üç durumlu**dur:
+
+| Değer | Etkisi |
+|---|---|
+| yazılmamış (veya `null`) | Modülün kendi ayarları karar verir. `features:` bloğunu hiç yazmamak, 1.0.5 öncesi davranışı birebir korur. |
+| `true` | Modülün birincil `enabled` bayrağı zorla **açık** yapılır. Alt ayarlara (`recording.mode`, `recording.fps`, …) dokunulmaz. |
+| `false` | Modül kendi ayarları ne derse desin zorla **kapalı** yapılır. |
+
+### Desteklenen anahtarlar
+
+| Anahtar | Üzerine yazdığı ayar | Varsayılan |
+|---|---|---|
+| `ai` | `ai.enabled` — `act()`, `aiAssert()`, hata analizi, patch üretimi ve AI locator healing'i kapsar | `true` |
+| `recording` | `recording.enabled` | `false` |
+| `tracing` | `tracing.enabled` | `false` |
+| `network` | `network.interceptEnabled` | `false` |
+| `healing` | `locators.selfHealing` ve `locators.aiHealing` | `false` |
+| `visual` | *modül bayrağı yok* — kapatılmadığı sürece görsel regresyon kullanılabilir | `true` |
+| `performance` | `performance.captureOnEveryTest` | `false` |
+| `flakiness` | *modül bayrağı yok* — kapatılmadığı sürece flakiness analizi çalışır | `true` |
+| `quarantine` | `quarantine.enabled` | `true` |
+| `testManagement` | `testManagement.testrail.enabled` ve `testManagement.xray.enabled` | `false` |
+| `notifications` | *modül bayrağı yok* — kapatılmadığı sürece Slack/Teams adapter'ları kaydolur | `true` |
+| `consoleErrors` | `browser.captureConsoleErrors` | `false` |
+
+### Bir test özelliği açıkça istediğinde "kapalı" ne demek?
+
+Arka planda çalışan davranışlar (recording, tracing, performance toplama, flakiness analizi, bildirimler, TestRail/Xray gönderimi) hiç çalışmaz.
+
+Bir testin **açıkça** çağırdığı özellikler ise asla sessizce geçmez — çünkü sessizce atlanan bir doğrulama, sahte bir yeşildir:
+
+| Çağrı | Özellik kapalıyken |
+|---|---|
+| `act("...")` | `IllegalStateException: AI features are disabled via ai.enabled=false or features.ai=false in testfly.yml` |
+| `aiAssert(...)` | doğrulama şu gerekçeyle başarısız olur: `AI features are disabled via ai.enabled=false or features.ai=false` |
+| `VisualAssert.assertScreenshot(...)` | TestNG `SkipException` — test **atlandı** olarak raporlanır, geçmiş sayılmaz |
+
+### Tanılama
+
+`FrameworkBootstrap`, suite başlangıcında aktif override'ları yazdırır:
+
+```text
+[TestFly] features: ai=OFF, recording=ON, healing=OFF
+```
+
+Eklentiler kendi davranışlarını özel bir özellik adıyla yönetebilir. Tanınmayan adlar kabul edilir (bir eklentiye ait olabilir) ancak bir kez raporlanır; böylece bir yazım hatası sessizce yutulmak yerine görünür olur:
+
+```text
+[TestFly] Unknown feature name in testfly.yml: 'features.recordng' — ignored. Known features: [...]
+```
+
+Programatik erişim `io.testfly.config.FeatureGate` üzerinden sağlanır:
+
+```java
+FeatureGate.enabled(FeatureGate.AI);                            // yalnızca panel, varsayılan açık
+FeatureGate.enabled(FeatureGate.RECORDING, rec.isEnabled());     // panel, modül bayrağının üzerine yazıyor
+FeatureGate.override(FeatureGate.VISUAL);                       // ham üç-durum, ayarlanmamışsa null
+```
+
+:::note Bilinmeyen anahtarlar artık suite'i düşürmüyor
+`testfly.yml` hoşgörülü biçimde ayrıştırılır: karşılığı olmayan bir anahtar, çalışmayı `ConstructorException` ile çökertmek yerine atlanır ve stderr'e raporlanır (`[TestFly] Unknown config key 'headles' on Browser — ignored`).
+:::
+
+---
+
 ## Tarayıcı (Browser) {#browser}
 
 Tarayıcı sağlama, çalıştırma modu, yetenekler ve süreç argümanlarını yönetir.
@@ -424,6 +521,7 @@ Yapay zeka destekli hata sınıflandırma ve öneri motoru.
 
 | Özellik | Tip | Varsayılan | Açıklama |
 |---|---|---|---|
+| `enabled` | `boolean` | `true` | **Tüm** AI yüzeyleri için ana anahtar: `act()`, `aiAssert()`, hata analizi, patch üretimi ve AI locator healing. Aşağıdaki ayrıntılı anahtarlar *hangilerinin* çalışacağını seçer; bu `false` iken hiçbiri çalışamaz. [`features.ai`](#features) üzerinden de ayarlanabilir. |
 | `failureAnalysis` | `boolean` | `false` | `true` ise test çöktüğünde hata yığını, adım günlüğü ve DOM durumunu LLM modeline gönderir. |
 | `provider` | `string` | `claude` | AI arka ucu: `gemini`, `claude` veya `openai-compatible`. |
 | `apiKey` | `string` | `null` | Seçilen sağlayıcı için yetkilendirme anahtarı. |

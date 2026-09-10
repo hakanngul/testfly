@@ -18,8 +18,11 @@ import java.util.logging.Logger;
 /**
  * AI-driven locator self-healing engine.
  *
- * <p>When static locator fallback strategies fail, this engine sends the pruned DOM
- * and context of the failing locator to an LLM (Claude, Gemini, DeepSeek, OpenAI)
+ * <p>
+ * When static locator fallback strategies fail, this engine sends the pruned
+ * DOM
+ * and context of the failing locator to an LLM (Claude, Gemini, DeepSeek,
+ * OpenAI)
  * to synthesize an accurate replacement selector.
  */
 @TestFlyApi(since = "1.9.0")
@@ -28,7 +31,8 @@ public final class AiHealingEngine {
     private static final Logger LOG = Logger.getLogger(AiHealingEngine.class.getName());
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private AiHealingEngine() {}
+    private AiHealingEngine() {
+    }
 
     /**
      * Attempts to heal a failing locator using LLM intelligence.
@@ -60,6 +64,11 @@ public final class AiHealingEngine {
                 return null;
             }
 
+            if (!aiCfg.isEnabled()) {
+                LOG.fine("[AiHealingEngine] AI disabled via ai.enabled/features.ai. Skipping AI healing.");
+                return null;
+            }
+
             String apiKey = AiFailureAnalyzer.resolveApiKey(aiCfg.getApiKey());
             if (apiKey == null || apiKey.isBlank()) {
                 LOG.fine("[AiHealingEngine] ai.apiKey is not configured. Skipping AI healing.");
@@ -84,7 +93,8 @@ public final class AiHealingEngine {
             try {
                 currentUrl = driver.getCurrentUrl();
                 currentTitle = driver.getTitle();
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
 
             String prompt = buildPrompt(originalLocator.toString(), currentUrl, currentTitle, prunedDom);
             String response = provider.call(apiKey, aiCfg.getModel(), prompt, aiCfg.getTimeoutSeconds());
@@ -138,8 +148,8 @@ public final class AiHealingEngine {
         }
 
         sb.append("\n## Cleaned DOM Snapshot\n```html\n")
-          .append(prunedDom)
-          .append("\n```\n\n");
+                .append(prunedDom)
+                .append("\n```\n\n");
 
         sb.append("## Task\n");
         sb.append("Identify the element that corresponds to the original intention of the failing locator.\n");

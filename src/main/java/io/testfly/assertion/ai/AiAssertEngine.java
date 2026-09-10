@@ -15,7 +15,8 @@ import java.util.logging.Logger;
 /**
  * Core engine for AI-driven semantic assertions.
  *
- * <p>Evaluates whether a web page DOM or element sub-tree satisfies or violates
+ * <p>
+ * Evaluates whether a web page DOM or element sub-tree satisfies or violates
  * natural language expectations using LLM reasoning.
  */
 @TestFlyApi(since = "1.9.0")
@@ -24,18 +25,23 @@ public final class AiAssertEngine {
     private static final Logger LOG = Logger.getLogger(AiAssertEngine.class.getName());
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private AiAssertEngine() {}
+    private AiAssertEngine() {
+    }
 
     /**
-     * Verifies whether the provided HTML context satisfies or violates the condition.
+     * Verifies whether the provided HTML context satisfies or violates the
+     * condition.
      *
-     * @param driver            active WebDriver session (for title/url metadata)
-     * @param contextHtml       pruned HTML of the page or element
-     * @param condition         natural language description of the expectation
-     * @param expectSatisfaction {@code true} for satisfies (positive), {@code false} for violates (negative)
-     * @return {@link AiAssertionResult} containing pass status, confidence, and reason
+     * @param driver             active WebDriver session (for title/url metadata)
+     * @param contextHtml        pruned HTML of the page or element
+     * @param condition          natural language description of the expectation
+     * @param expectSatisfaction {@code true} for satisfies (positive),
+     *                           {@code false} for violates (negative)
+     * @return {@link AiAssertionResult} containing pass status, confidence, and
+     *         reason
      */
-    public static AiAssertionResult verify(WebDriver driver, String contextHtml, String condition, boolean expectSatisfaction) {
+    public static AiAssertionResult verify(WebDriver driver, String contextHtml, String condition,
+            boolean expectSatisfaction) {
         if (condition == null || condition.isBlank()) {
             return new AiAssertionResult(false, 0.0, "Condition statement is empty or null");
         }
@@ -47,6 +53,11 @@ public final class AiAssertEngine {
             }
 
             TestFlyConfig.Ai aiCfg = config.getAi();
+            if (!aiCfg.isEnabled()) {
+                return new AiAssertionResult(false, 0.0,
+                        "AI features are disabled via ai.enabled=false or features.ai=false");
+            }
+
             String apiKey = AiFailureAnalyzer.resolveApiKey(aiCfg.getApiKey());
             if (apiKey == null || apiKey.isBlank()) {
                 return new AiAssertionResult(false, 0.0, "ai.apiKey is not configured");
@@ -63,7 +74,8 @@ public final class AiAssertEngine {
                 try {
                     currentUrl = driver.getCurrentUrl();
                     currentTitle = driver.getTitle();
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
 
             String prompt = buildPrompt(currentUrl, currentTitle, contextHtml, condition, expectSatisfaction);
@@ -84,24 +96,29 @@ public final class AiAssertEngine {
     /**
      * Constructs the structured evaluation prompt.
      */
-    public static String buildPrompt(String url, String title, String html, String condition, boolean expectSatisfaction) {
+    public static String buildPrompt(String url, String title, String html, String condition,
+            boolean expectSatisfaction) {
         StringBuilder sb = new StringBuilder();
         sb.append("You are an expert automated QA semantic validator.\n");
-        sb.append("Evaluate whether the following web page/element state satisfies the natural language requirement.\n\n");
+        sb.append(
+                "Evaluate whether the following web page/element state satisfies the natural language requirement.\n\n");
 
         sb.append("## Page Context\n");
-        if (url != null && !url.isBlank()) sb.append("- URL:   ").append(url).append("\n");
-        if (title != null && !title.isBlank()) sb.append("- Title: ").append(title).append("\n");
+        if (url != null && !url.isBlank())
+            sb.append("- URL:   ").append(url).append("\n");
+        if (title != null && !title.isBlank())
+            sb.append("- Title: ").append(title).append("\n");
 
         sb.append("\n## DOM / Element Content\n```html\n")
-          .append(html != null ? html : "")
-          .append("\n```\n\n");
+                .append(html != null ? html : "")
+                .append("\n```\n\n");
 
         sb.append("## Requirement\n");
         if (expectSatisfaction) {
             sb.append("Verify that the content SATISFIES this condition: \"").append(condition).append("\"\n");
         } else {
-            sb.append("Verify that the content DOES NOT CONTAIN or VIOLATES this condition: \"").append(condition).append("\"\n");
+            sb.append("Verify that the content DOES NOT CONTAIN or VIOLATES this condition: \"").append(condition)
+                    .append("\"\n");
             sb.append("If this forbidden condition is present or observed, test fails.\n");
         }
 
@@ -145,5 +162,6 @@ public final class AiAssertEngine {
     /**
      * Evaluation result of a semantic assertion.
      */
-    public record AiAssertionResult(boolean isPassed, double confidence, String reason) {}
+    public record AiAssertionResult(boolean isPassed, double confidence, String reason) {
+    }
 }

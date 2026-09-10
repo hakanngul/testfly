@@ -116,6 +116,11 @@ public final class ActionCompiler {
         }
 
         TestFlyConfig.Ai aiCfg = config.getAi();
+        if (!aiCfg.isEnabled()) {
+            throw new IllegalStateException(
+                    "AI features are disabled via ai.enabled=false or features.ai=false in testfly.yml");
+        }
+
         String apiKey = AiFailureAnalyzer.resolveApiKey(aiCfg.getApiKey());
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("ai.apiKey is not configured");
