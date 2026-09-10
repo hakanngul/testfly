@@ -285,6 +285,64 @@ public final class TestFlyConfig {
             this.saucelabs = v;
         }
 
+        private Sharding sharding = new Sharding();
+
+        public Sharding getSharding() {
+            return sharding;
+        }
+
+        public void setSharding(Sharding sharding) {
+            this.sharding = sharding;
+        }
+
+        public static final class Sharding {
+            private boolean enabled = false;
+            private int total = 1;
+            private int index = 0;
+            private String strategy = "lpt";
+            private String metricsFile = "target/testfly-metrics.json";
+
+            public boolean isEnabled() {
+                return enabled;
+            }
+
+            public void setEnabled(boolean enabled) {
+                this.enabled = enabled;
+            }
+
+            public int getTotal() {
+                return total;
+            }
+
+            public void setTotal(int total) {
+                this.total = total;
+            }
+
+            public int getIndex() {
+                return index;
+            }
+
+            public void setIndex(int index) {
+                this.index = index;
+            }
+
+            public String getStrategy() {
+                return strategy;
+            }
+
+            public void setStrategy(String strategy) {
+                this.strategy = strategy;
+            }
+
+            public String getMetricsFile() {
+                return metricsFile;
+            }
+
+            public void setMetricsFile(String metricsFile) {
+                this.metricsFile = metricsFile;
+            }
+        }
+
         public static final class BrowserStack {
             private String username;
             private String accessKey;

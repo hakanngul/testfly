@@ -24,9 +24,24 @@ import TabItem from '@theme/TabItem';
 WebDriver binary'leri gerekmez — Selenium Manager browser driver'larını otomatik indirir.
 :::
 
+:::tip TestFly CLI ile Anında Kurulum (Önerilen)
+Tek bir komutla üretime hazır bir TestFly projesi oluşturabilirsiniz:
+
+```bash
+pip install testfly-mcp
+testfly init my-test-suite
+```
+
+Bu komut `pom.xml`, `testfly.yml` ve çalışmaya hazır örnek testleri otomatik üretir. Detaylar için [TestFly CLI Rehberi](/docs/cli)'ne göz atın.
+:::
+
 ---
 
-## Adım 1 — Bağımlılığı Ekle
+## Manuel Kurulum
+
+TestFly'ı mevcut bir projeye ekliyorsanız aşağıdaki adımları izleyin:
+
+### Adım 1 — Bağımlılığı Ekle
 
 <Tabs>
 <TabItem value="maven" label="Maven (pom.xml)">

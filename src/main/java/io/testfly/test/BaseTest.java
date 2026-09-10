@@ -34,7 +34,8 @@ import org.testng.annotations.Listeners;
 @TestFlyApi(since = "0.1.0")
 @Listeners({
                 SuiteExecutionListener.class,
-                TestExecutionListener.class
+                TestExecutionListener.class,
+                io.testfly.sharding.ShardingMethodInterceptor.class
 })
 public abstract class BaseTest implements LocatorSupport, AssertionSupport, ActionSupport, SessionSupport, SoftAssertSupport,
                 TestDataSupport, ApiSupport, ContextSupport, NavigationSupport,

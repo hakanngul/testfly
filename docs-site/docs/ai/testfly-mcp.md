@@ -32,25 +32,29 @@ testfly-mcp --version
 
 ## Command-Line Interface (CLI)
 
-`testfly-mcp` provides a command-line interface with subcommands:
+The package provides the unified `testfly` CLI (also available via `testfly-cli` or `testfly-mcp`):
 
 ```bash
-testfly-mcp --help
+testfly --help
 ```
 
 ### Available Commands
 
 | Command | Description |
 | :--- | :--- |
-| `testfly-mcp --help` | Display options, commands, and usage examples. |
-| `testfly-mcp --version` | Output the installed version (`1.0.0`). |
-| `testfly-mcp doctor` | Run environment and dependency diagnostic checks. |
-| `testfly-mcp tools` | List all 88 available MCP tools with parameter counts and descriptions. |
-| `testfly-mcp tools --search <query>` | Filter tools by name or description keyword. |
-| `testfly-mcp ui` | Launch the **Interactive Web Studio** in your default browser (`http://127.0.0.1:8765`). |
-| `testfly-mcp init-config` | Generate a standard `testfly.yml` template in the current directory. |
-| `testfly-mcp stdio` | Run the MCP server over standard I/O (auto-detected when spawned by IDEs). |
-| `testfly-mcp` (in terminal) | Interactive TTY mode presenting an interactive terminal menu. |
+| `testfly init [name]` | Scaffold a new TestFly project (TestNG, JUnit 5, Cucumber BDD; Web, API, Hybrid). |
+| `testfly doctor` | Run environment and dependency diagnostic checks. |
+| `testfly studio` *(or `ui`)* | Launch the **Interactive Web Studio** in your default browser (`http://127.0.0.1:8765`). |
+| `testfly mcp` *(or `stdio`)* | Run the MCP server over standard I/O (auto-detected when spawned by IDEs/Claude). |
+| `testfly tools` | List all 88 available MCP tools with parameter counts and descriptions. |
+| `testfly tools --search <q>` | Filter tools by name or description keyword. |
+| `testfly init-config` | Generate a standard `testfly.yml` template in the current directory. |
+| `testfly` *(in terminal)* | Interactive TTY mode presenting a step-by-step terminal menu. |
+| `testfly --version` | Output the installed version (`1.0.0`). |
+
+:::tip Dedicated CLI Documentation
+See the full [TestFly CLI Guide](/docs/cli) for complete scaffolding options, flags, and workflow examples.
+:::
 
 ---
 
