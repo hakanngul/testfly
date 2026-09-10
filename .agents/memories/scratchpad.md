@@ -16,18 +16,21 @@ char_limit: 2200
 ---
 
 ### 1. Aktif Odak ve Son Durum (Current Focus)
-- **Konu:** TestFly K6 yük testi veri akışının Archify ile modellenmesi ve teslimi.
-- **Durum:** `testfly-k6-dataflow.html` başarıyla üretildi (9 doğrulamadan 0 hatayla geçti), `wiki/load-testing.md` ve `MAP.md` güncellendi.
+- **Konu:** TestFly API ve WebUI test veri akışlarının ayrı ayrı Archify ile modellenmesi ve teslimi.
+- **Durum:** `testfly-api-dataflow.html` ve `testfly-webui-dataflow.html` şemaları 9 showcase kontrolünden 0 hatayla geçti. `[[wiki/api-testing]]`, `[[wiki/webui-testing]]`, `wiki/index.md` ve `MAP.md` güncellendi.
 
 ### 2. Anlık Bağlam ve Kararlar (Immediate Context)
-- Yük testi veri akışı 5 aşamada modellendi: Scenario -> Configure -> Execute -> Measure -> Deliver.
-- Şema `docs-site/static/diagrams/testfly-k6-dataflow.html` konumuna yazıldı ve `[[wiki/load-testing]]` sayfasına bağlandı.
+- API Akışı: TestNG & Auth -> ApiClient -> Dispatch -> ApiResponse -> Schema/Response Assert (5 aşama).
+- WebUI Akışı: Config -> DriverManager -> WebDriver/BasePage -> SmartLocator/WaitEngine -> Assert/Report (5 aşama).
+- Her iki akış için bağımsız interaktif HTML diyagramları `docs-site/static/diagrams/` altına yerleştirildi.
 
 ### 3. Tamamlanan Görevler (Completed Tasks)
 - [x] Archify kurulumu ve ortam doğrulaması.
-- [x] TestFly çekirdek mimari diyagramının üretilmesi (`testfly-architecture.html`).
-- [x] TestFly K6 yük testi veri akışı diyagramının üretilmesi (`testfly-k6-dataflow.html`).
-- [x] `[[wiki/load-testing]]` bilgi sayfasının oluşturulması ve `MAP.md`'ye bağlanması.
+- [x] TestFly çekirdek mimari diyagramı (`testfly-architecture.html`).
+- [x] TestFly K6 yük testi veri akışı diyagramı (`testfly-k6-dataflow.html`).
+- [x] TestFly API test veri akışı diyagramı (`testfly-api-dataflow.html`).
+- [x] TestFly WebUI test veri akışı diyagramı (`testfly-webui-dataflow.html`).
+- [x] `[[wiki/api-testing]]` ve `[[wiki/webui-testing]]` bilgi sayfalarının oluşturulması, `MAP.md`'ye bağlanması.
 
 ### 4. Hızlı Notlar (Scratch Notes)
 - Obsidian Graph View'da tüm sayfalar çift yönlü `[[...]]` standartlarına bağlıdır.

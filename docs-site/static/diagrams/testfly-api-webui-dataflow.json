@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "TestFly API & WebUI Hybrid Test Data Flow",
+    "subtitle": "State seeding via REST, browser session injection, dual assertion, and unified reporting",
+    "output": "testfly-api-webui-dataflow.html",
+    "viewBox": [1080, 520],
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "api-setup-injection",
+        "label": "API Setup & Session Injection",
+        "focus": ["test_data", "api_client", "scenario_ctx", "storage_helper"],
+        "note": "Fast REST seeding generates auth tokens and entity records, bypassing slow login UI."
+      },
+      {
+        "id": "webui-automation",
+        "label": "WebUI DOM Automation",
+        "focus": ["storage_helper", "wait_locator", "ui_assert"],
+        "note": "Inject active cookies, navigate directly to target views, and interact via WaitEngine."
+      },
+      {
+        "id": "dual-validation",
+        "label": "Dual Validation & Timeline",
+        "focus": ["wait_locator", "api_assert", "ui_assert", "unified_report"],
+        "note": "Verify both browser DOM state and backend REST/DB state within a unified HTML report."
+      }
+    ]
+  },
+  "stages": [
+    { "label": "Setup" },
+    { "label": "Context" },
+    { "label": "Browser" },
+    { "label": "Validate" },
+    { "label": "Report" }
+  ],
+  "nodes": [
+    { "id": "test_data", "type": "database", "label": "Test Data Fixture", "sublabel": "JSON / Model payload", "stage": 0, "row": 2, "tag": "seed data" },
+    { "id": "api_client", "type": "backend", "label": "ApiClient (REST)", "sublabel": "POST /api/auth & seed", "stage": 0, "row": 0, "tag": "HTTP 201" },
+    { "id": "scenario_ctx", "type": "security", "label": "ScenarioContext", "sublabel": "ThreadLocal shared state", "stage": 1, "row": 1, "tag": "tokens & IDs" },
+    { "id": "storage_helper", "type": "cloud", "label": "StorageHelper", "sublabel": "cookie & storage inject", "stage": 2, "row": 0, "tag": "session" },
+    { "id": "wait_locator", "type": "frontend", "label": "WaitEngine & UI", "sublabel": "SmartLocator DOM actions", "stage": 2, "row": 2, "tag": "WebDriver" },
+    { "id": "api_assert", "type": "backend", "label": "Backend Verify", "sublabel": "GET /api/orders/{id}", "stage": 3, "row": 0, "tag": "REST Check" },
+    { "id": "ui_assert", "type": "security", "label": "SeleniumAssert", "sublabel": "DOM element verify", "stage": 3, "row": 2, "tag": "DOM Check" },
+    { "id": "unified_report", "type": "database", "label": "Unified Report", "sublabel": "API & UI timeline", "stage": 4, "row": 1, "tag": "Timeline" }
+  ],
+  "flows": [
+    { "id": "data-to-api", "from": "test_data", "to": "api_client", "label": "payload fixture", "classification": "data input", "variant": "default", "fromSide": "top", "toSide": "bottom", "route": "straight", "labelAt": [100, 271] },
+    { "id": "api-to-ctx", "from": "api_client", "to": "scenario_ctx", "label": "tokens & IDs", "classification": "auth state", "variant": "emphasis", "fromSide": "right", "toSide": "left", "via": [[205, 157], [205, 271]], "labelAt": [204, 205] },
+    { "id": "ctx-to-storage", "from": "scenario_ctx", "to": "storage_helper", "label": "auth cookies", "classification": "session data", "variant": "security", "fromSide": "right", "toSide": "left", "via": [[420, 271], [420, 157]], "labelAt": [420, 205] },
+    { "id": "ctx-to-locator", "from": "scenario_ctx", "to": "wait_locator", "label": "resolved entity IDs", "classification": "parameterized key", "variant": "default", "fromSide": "right", "toSide": "left", "via": [[420, 271], [420, 385]], "labelAt": [420, 342] },
+    { "id": "storage-to-locator", "from": "storage_helper", "to": "wait_locator", "label": "active session", "classification": "logged-in state", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "straight", "labelAt": [530, 271] },
+    { "id": "locator-to-ui-assert", "from": "wait_locator", "to": "ui_assert", "label": "UI elements", "classification": "rendered DOM", "variant": "emphasis", "fromSide": "right", "toSide": "left", "route": "straight", "labelAt": [638, 385] },
+    { "id": "ui-to-api-verify", "from": "ui_assert", "to": "api_assert", "label": "cross-check DB", "classification": "backend sync", "variant": "security", "fromSide": "top", "toSide": "bottom", "route": "straight", "labelAt": [745, 271] },
+    { "id": "api-assert-to-report", "from": "api_assert", "to": "unified_report", "label": "API timings", "classification": "telemetry", "variant": "default", "fromSide": "right", "toSide": "left", "via": [[852, 157], [852, 271]], "labelAt": [852, 205] },
+    { "id": "ui-assert-to-report", "from": "ui_assert", "to": "unified_report", "label": "screenshots", "classification": "visual proof", "variant": "emphasis", "fromSide": "right", "toSide": "left", "via": [[852, 385], [852, 271]], "labelAt": [852, 342] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "API-First Setup & Seeding",
+      "items": [
+        "ApiClient executes REST calls (POST /api/seed) in milliseconds",
+        "Tokens and generated database entity IDs store in ThreadLocal ScenarioContext",
+        "Avoids brittle and slow UI login forms by seeding state directly"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Browser State Injection",
+      "items": [
+        "StorageHelper directly seeds session cookies and localStorage into WebDriver",
+        "Browser opens target page immediately in an authenticated state",
+        "WaitEngine and SmartLocator execute high-speed user journeys"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Dual Assertions & Timeline",
+      "items": [
+        "UI assertions verify rendered elements, text, and visual appearance",
+        "REST assertions verify database persistence and backend state",
+        "StepLogger combines API logs and UI screenshots in a single HTML report"
+      ]
+    }
+  ]
+}

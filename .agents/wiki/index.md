@@ -22,6 +22,9 @@ Tüm sayfalar birbirine ve `[[MAP]]` ana haritasına çift yönlü bağlantılar
 ### 1. Sistem ve Mimari (Architecture)
 - `[[wiki/architecture]]` — TestFly'ın temel mimarisi, katmanlı tasarım ve modül sınırları.
 - `[[wiki/webdriver-lifecycle]]` — ThreadLocal izole WebDriver yaşam döngüsü, yönetim kuralları.
+- `[[wiki/api-testing]]` — REST & GraphQL API test veri akışı ve mimarisi.
+- `[[wiki/webui-testing]]` — WebUI, SmartLocator ve WaitEngine veri akışı ve mimarisi.
+- `[[wiki/api-webui-testing]]` — API ve WebUI hibrit test veri akışı ve entegrasyonu.
 - `[[wiki/load-testing]]` — K6 ve Gatling yük testi veri akışı ve mimarisi.
 
 ### 2. Kalıcı Hafıza ve Ajan Altyapısı (Agent & Memory)
