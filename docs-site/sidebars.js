@@ -113,6 +113,7 @@ const sidebars = {
       type: 'category',
       label: 'CI / CD',
       items: [
+        'ci/smart-test-sharder',
         'ci/github-actions',
         'ci/jenkins',
         'ci/bitbucket-pipelines',

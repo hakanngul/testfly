@@ -34,6 +34,7 @@ Ajan, token yakmamak için körlemesine arama yapmaz; önce bu haritaya bakar ve
 ## 1. Anayasa ve Kurallar (Rules)
 - `[[AGENTS]]` — Proje genel geliştirici/ajan anayasası, teknoloji yığını ve kod standartları.
 - `[[rules/memory-protocol]]` — "2 Yol & 3 Parça", hafıza döngüsü ve token tasarruf kuralları.
+- `[[rules/docusaurus-workflow]]` — docs-site için zorunlu `/docusaurus-config` skill, çift dil ve build kuralları.
 
 ## 2. Kimlik ve Öz (Soul)
 - `[[soul]]` — Ajanın kimliği, kıdemi, kırmızı çizgileri ve çalışma yaklaşımı (Tek paragraf).

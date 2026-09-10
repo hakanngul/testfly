@@ -1,1 +1,2 @@
 io.testfly.listeners.RetryAnnotationTransformer
+io.testfly.sharding.ShardingMethodInterceptor

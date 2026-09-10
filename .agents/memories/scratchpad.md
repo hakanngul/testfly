@@ -16,23 +16,20 @@ char_limit: 2200
 ---
 
 ### 1. Aktif Odak ve Son Durum (Current Focus)
-- **Konu:** TestFly CLI & Scaffolder Dokümantasyonu ve Dağıtık Koşum Hazırlığı.
-- **Durum:** Docusaurus dokümanları (EN ve TR) eksiksiz güncellendi ve `npm run build` ile başarıyla derlendi.
+- **Konu:** Docusaurus Workflow Kuralının Bağlanması ve Smart Test Sharder Açıklaması.
+- **Durum:** `[[rules/docusaurus-workflow]]` anayasa ve haritaya kalıcı kural olarak işlendi.
 
 ### 2. Anlık Bağlam ve Kararlar (Immediate Context)
-- Dokümantasyon Güncellemeleri (`docs-site`):
-  - `docs/cli.md` & `i18n/tr/.../cli.md`: Yeni TestFly CLI ve proje iskeleti (`testfly init`, `doctor`, `studio`, `mcp`) rehberi eklendi.
-  - `sidebars.js`: `cli` sayfası Hızlı Başlangıç yanına eklendi.
-  - `getting-started.md` (EN/TR): Tek komutla `testfly init` hızlı kurulum tavsiyesi eklendi.
-  - `ai/testfly-mcp.md` (EN/TR): Birleşik `testfly` komutları tablosu güncellendi.
-  - `intro.md` (EN/TR): "Yakında" duyurusu "Yayında" olarak güncellendi.
-  - Çift dil (EN & TR) derlemesi hatasız tamamlandı.
+- **Kalıcı Kural:** `docs-site` güncellemelerinde her zaman `/docusaurus-config` skill'i kullanılacak, i18n TR/EN senkronizasyonu yapılacak ve `npm run build` ile doğrulanacak.
+- `AGENTS.md` ve `MAP.md` haritasına kural düğümü bağlandı.
+- Adım 1 ve Adım 2 (Smart Test Sharder) 100% tamamlandı ve doğrulandı.
 
 ### 3. Sıradaki Görevler (Next Up)
 - [x] Adım 1: `testfly-cli` ve `testfly init` entegrasyonu + Dokümantasyon.
-- [ ] Adım 2: Smart Test Sharder (CI/CD LPT Bin-Packing ile dağıtık dengeli test koşumu).
+- [x] Adım 2: Smart Test Sharder (CI/CD LPT Bin-Packing ile dağıtık dengeli test koşumu).
+- [x] Docusaurus workflow kuralının sisteme eklenmesi.
 - [ ] Adım 3: TestFly Autonomous Explorer (Otonom WebUI keşif & otomatik test üretimi).
 
 ### 4. Hızlı Notlar (Scratch Notes)
 - TestFly mimari kararları ve dokümantasyon grafiği `[[wiki/index]]` altında günceldir.
-- Karakter sınırı <= 2.200 kuralına uyuldu (~1.750 karakter).
+- Karakter sınırı <= 2.200 kuralına uyuldu (~1.650 karakter).
