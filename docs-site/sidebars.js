@@ -63,6 +63,22 @@ const sidebars = {
     },
     {
       type: 'category',
+      label: 'Load Testing',
+      collapsed: false,
+      items: [
+        'loadtest/getting-started',
+        'loadtest/configuration',
+        'loadtest/fluent-api',
+        'loadtest/annotations',
+        'loadtest/feeders',
+        'loadtest/assertions',
+        'loadtest/reporting',
+        'loadtest/engines',
+        'loadtest/examples',
+      ],
+    },
+    {
+      type: 'category',
       label: 'AI & MCP Automation',
       collapsed: false,
       items: [

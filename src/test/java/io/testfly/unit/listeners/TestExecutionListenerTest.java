@@ -27,6 +27,7 @@ import java.lang.reflect.Method;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.testng.Assert.*;
 
 /**
  * Unit tests for {@link TestExecutionListener}.
@@ -295,6 +296,23 @@ public class TestExecutionListenerTest {
     }
 
     @Test
+    public void onTestSuccess_recordsLoadTestMetrics() throws Exception {
+        ITestResult result = mockTestResult("loadTestSuccess", false);
+        io.testfly.loadtest.LoadTestMetrics metrics = new io.testfly.loadtest.LoadTestMetrics(
+                "Order Load", 10, 10, 0, 5.0, 20.0, 20.0, 25.0, 30.0, 35.0, 10.0, 40.0, 0.0,
+                java.util.Collections.emptyMap(), 2000L, 2, "gatling", java.util.Collections.emptyMap());
+        io.testfly.loadtest.LoadTestRunner.setLastMetrics(metrics);
+
+        try {
+            listener.onTestSuccess(result);
+            metricsMock.verify(() -> ExecutionMetrics.recordLoadTest(any(), eq(metrics)));
+            assertNull(io.testfly.loadtest.LoadTestRunner.lastMetrics(), "Metrics should be cleared after recording");
+        } finally {
+            io.testfly.loadtest.LoadTestRunner.clearLastMetrics();
+        }
+    }
+
+    @Test
     public void onTestFailure_recordsFailedInMetrics() throws Exception {
         ITestResult result = mockTestResult("statusTest", false);
         when(result.getThrowable()).thenReturn(new AssertionError("Failed"));
@@ -360,7 +378,7 @@ public class TestExecutionListenerTest {
     private void dummyTestMethod() {
     }
 
-    public static class RegularTestClass {
+    public static class RegularTestClass extends io.testfly.test.BaseTest {
     }
 
     public static class ApiTestClass extends io.testfly.test.BaseApiTest {

@@ -84,6 +84,17 @@ public final class LoadTestRunner {
         LAST_METRICS.remove();
     }
 
+    /**
+     * Sets the thread-local metrics (internal / test hook).
+     */
+    public static void setLastMetrics(LoadTestMetrics metrics) {
+        if (metrics == null) {
+            LAST_METRICS.remove();
+        } else {
+            LAST_METRICS.set(metrics);
+        }
+    }
+
     private static LoadTestEngine selectEngine(LoadTestConfig config) {
         String engine = config.getEngine();
 

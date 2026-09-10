@@ -8,6 +8,8 @@ import io.gatling.javaapi.http.HttpRequestActionBuilder;
 import io.testfly.loadtest.LoadStep;
 
 import java.time.Duration;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import static io.gatling.javaapi.core.CoreDsl.*;
@@ -66,6 +68,13 @@ public class TestFlyGatlingSimulation extends Simulation {
     private static ChainBuilder buildStepsChain(GatlingRunConfig cfg) {
         ChainBuilder chain = null;
 
+        if (cfg.feeder != null) {
+            Iterator<Map<String, Object>> feederIterator = createFeederIterator(cfg.feeder);
+            if (feederIterator != null) {
+                chain = feed(feederIterator);
+            }
+        }
+
         for (GatlingRunConfig.GatlingStep step : cfg.steps) {
             HttpRequestActionBuilder req = buildRequest(step);
 
@@ -92,6 +101,45 @@ public class TestFlyGatlingSimulation extends Simulation {
         return chain;
     }
 
+    private static Iterator<Map<String, Object>> createFeederIterator(GatlingRunConfig.GatlingFeederConfig fc) {
+        if (fc == null) {
+            return null;
+        }
+        String type = fc.type != null ? fc.type.toLowerCase() : "";
+        return switch (type) {
+            case "sequence" -> {
+                final String var = fc.variable != null ? fc.variable : "id";
+                final long step = fc.step != null ? fc.step : 1L;
+                final java.util.concurrent.atomic.AtomicLong counter = new java.util.concurrent.atomic.AtomicLong(fc.start != null ? fc.start : 0L);
+                yield java.util.stream.Stream.generate(() -> Map.<String, Object>of(var, counter.getAndAdd(step))).iterator();
+            }
+            case "random" -> {
+                final String var = fc.variable != null ? fc.variable : "id";
+                final int min = fc.min != null ? fc.min : 0;
+                final int max = fc.max != null && fc.max >= min ? fc.max : min + 1000;
+                yield java.util.stream.Stream.generate(() -> Map.<String, Object>of(var, java.util.concurrent.ThreadLocalRandom.current().nextInt(min, max + 1))).iterator();
+            }
+            case "uuid" -> {
+                final String var = fc.variable != null ? fc.variable : "uuid";
+                yield java.util.stream.Stream.generate(() -> Map.<String, Object>of(var, java.util.UUID.randomUUID().toString())).iterator();
+            }
+            case "constant" -> {
+                final String var = fc.variable != null ? fc.variable : "const";
+                final String val = fc.value != null ? fc.value : "";
+                yield java.util.stream.Stream.generate(() -> Map.<String, Object>of(var, val)).iterator();
+            }
+            case "csv", "json", "records" -> {
+                final List<Map<String, Object>> rows = fc.records != null ? fc.records : List.of();
+                if (rows.isEmpty()) {
+                    yield java.util.stream.Stream.generate(() -> Map.<String, Object>of()).iterator();
+                }
+                final java.util.concurrent.atomic.AtomicInteger index = new java.util.concurrent.atomic.AtomicInteger(0);
+                yield java.util.stream.Stream.generate(() -> rows.get(Math.floorMod(index.getAndIncrement(), rows.size()))).iterator();
+            }
+            default -> java.util.stream.Stream.generate(() -> Map.<String, Object>of()).iterator();
+        };
+    }
+
     /**
      * Converts a {@link GatlingRunConfig.GatlingStep} into a Gatling
      * {@link HttpRequestActionBuilder}.
@@ -115,7 +163,7 @@ public class TestFlyGatlingSimulation extends Simulation {
 
         // Query params
         for (Map.Entry<String, Object> qp : step.queryParams.entrySet()) {
-            req = req.queryParam(qp.getKey(), String.valueOf(qp.getValue()));
+            req = req.queryParam(qp.getKey(), toGatlingEl(String.valueOf(qp.getValue())));
         }
 
         // Body

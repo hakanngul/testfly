@@ -1,7 +1,7 @@
 # TestFly Load Testing Module — Sprint Plan
 
-> **Status:** Draft
-> **Date:** 2026-09-07
+> **Status:** Completed
+> **Date:** 2026-09-10
 > **Target Version:** 1.1.0
 > **Total Sprints:** 6
 > **Estimated Duration:** 3-4 weeks
@@ -39,13 +39,13 @@
 
 ### Acceptance Criteria
 
-- [ ] `testfly.yml`'e `loadtest:` block eklendiğinde SnakeYAML bind eder
-- [ ] `@LoadTest(users=200)` annotation'ı class ve method level'da çalışır
-- [ ] `BaseLoadTest` extend eden bir sınıf compile olur
-- [ ] `load("/api/health")` çağrısı `LoadScenario` builder döner (henüz run yok)
-- [ ] Config resolution priority: method > class > YAML > defaults
-- [ ] Duration parsing: `"30s"`, `"2m"`, `"1h"` → `Duration`
-- [ ] Unit testler geçer (`mvn test -Dtest=LoadTestConfigTest`)
+- [x] `testfly.yml`'e `loadtest:` block eklendiğinde SnakeYAML bind eder
+- [x] `@LoadTest(users=200)` annotation'ı class ve method level'da çalışır
+- [x] `BaseLoadTest` extend eden bir sınıf compile olur
+- [x] `load("/api/health")` çağrısı `LoadScenario` builder döner (henüz run yok)
+- [x] Config resolution priority: method > class > YAML > defaults
+- [x] Duration parsing: `"30s"`, `"2m"`, `"1h"` → `Duration`
+- [x] Unit testler geçer (`mvn test -Dtest=LoadTestConfigTest`)
 
 ### Definition of Done
 
@@ -81,16 +81,16 @@ public class MyLoadTest extends BaseLoadTest {
 
 ### Acceptance Criteria
 
-- [ ] `load("/api/health").users(10).hold(Duration.ofSeconds(5)).run()` çalışır
-- [ ] JDK engine 10 concurrent user ile mock server'a istek atar
-- [ ] Ramp-up phase: users gradually added over `rampUp` duration
-- [ ] Hold phase: all users active for `hold` duration
-- [ ] Cooldown phase: users gradually removed
-- [ ] CSV feeder: `${username}`, `${password}` substitution works
-- [ ] Think time: random delay between requests
-- [ ] Multi-step scenario: step1 → extract → step2 uses extracted value
-- [ ] `LoadTestRunner.lastMetrics()` returns results
-- [ ] Unit testler geçer
+- [x] `load("/api/health").users(10).hold(Duration.ofSeconds(5)).run()` çalışır
+- [x] JDK engine 10 concurrent user ile mock server'a istek atar
+- [x] Ramp-up phase: users gradually added over `rampUp` duration
+- [x] Hold phase: all users active for `hold` duration
+- [x] Cooldown phase: users gradually removed
+- [x] CSV feeder: `${username}`, `${password}` substitution works
+- [x] Think time: random delay between requests
+- [x] Multi-step scenario: step1 → extract → step2 uses extracted value
+- [x] `LoadTestRunner.lastMetrics()` returns results
+- [x] Unit testler geçer
 
 ### Definition of Done
 
@@ -134,9 +134,11 @@ public void healthCheck() {
 - [x] `engine: gatling` + Gatling yok → `IllegalStateException` + dependency hint
 - [x] `engine: jdk` → her zaman JDK, Gatling olsa bile
 - [x] Gatling engine: `LoadScenario` → Gatling `Simulation` dönüşümü çalışır
+- [x] Feeder integration: CSV, JSON, Sequence, Random, UUID, Constant feeders Gatling session'a beslenir
 - [x] Gatling results: `simulation.log` → `LoadTestMetrics` parse edilir
 - [x] Percentile values (p50, p95, p99) Gatling'den doğru okunur
 - [x] Netty version conflict yok (Selenium CDP + Gatling birlikte çalışır)
+- [x] Integration testler geçer (`GatlingEngineIntegrationTest`)
 - [x] Unit testler geçer
 
 ### Definition of Done
@@ -222,18 +224,18 @@ public void assertionsWork() {
 
 ### Acceptance Criteria
 
-- [ ] `loadtest.reportEnabled: true` → adapter registered in FrameworkBootstrap
-- [ ] `loadtest.reportEnabled: false` → adapter NOT registered
-- [ ] HTML report'ta "Load Test" tab'ı görünür
-- [ ] Throughput over time line chart render edilir
-- [ ] Latency distribution histogram (p50, p90, p95, p99) render edilir
-- [ ] Error rate timeline render edilir
-- [ ] Per-step breakdown table shows step name, requests, p95, error rate
-- [ ] Status code pie chart shows distribution
-- [ ] Scenario config summary shows users, rampUp, hold, engine used
-- [ ] Gatling native report link (if Gatling engine used)
-- [ ] Report generation failure does NOT fail the build (try/catch)
-- [ ] Unit testler geçer
+- [x] `loadtest.reportEnabled: true` → adapter registered in FrameworkBootstrap
+- [x] `loadtest.reportEnabled: false` → adapter NOT registered
+- [x] HTML report'ta "Load Test" tab'ı görünür
+- [x] Throughput over time line chart render edilir
+- [x] Latency distribution histogram (p50, p90, p95, p99) render edilir
+- [x] Error rate timeline render edilir
+- [x] Per-step breakdown table shows step name, requests, p95, error rate
+- [x] Status code pie chart shows distribution
+- [x] Scenario config summary shows users, rampUp, hold, engine used
+- [x] Gatling native report link (if Gatling engine used)
+- [x] Report generation failure does NOT fail the build (try/catch)
+- [x] Unit testler geçer
 
 ### Definition of Done
 
@@ -277,17 +279,17 @@ target/
 
 ### Acceptance Criteria
 
-- [ ] All docs pages render correctly in Docusaurus (EN + TR)
-- [ ] Sidebar navigation includes Load Testing section
-- [ ] Consumer project has 3+ working load test examples:
+- [x] All docs pages render correctly in Docusaurus (EN + TR)
+- [x] Sidebar navigation includes Load Testing section
+- [x] Consumer project has 3+ working load test examples:
   - Simple single-endpoint load test
   - Multi-step scenario with feeder
   - Annotation-driven load test
-- [ ] CHANGELOG updated with 1.1.0 entry
-- [ ] Version bumped across all files (per AGENTS.md checklist)
-- [ ] `mvn clean verify` passes
-- [ ] `cd docs-site && npm run build` passes
-- [ ] Consumer project `mvn test` passes with load test examples
+- [x] CHANGELOG updated with 1.1.0 entry
+- [x] Version bumped across all files (per AGENTS.md checklist)
+- [x] `mvn clean verify` passes
+- [x] `cd docs-site && npm run build` passes
+- [x] Consumer project `mvn test` passes with load test examples
 
 ### Definition of Done
 
@@ -374,13 +376,13 @@ Sprint 1 (Foundation)
 
 Per AGENTS.md version-bump checklist:
 
-- [ ] `pom.xml` → `1.1.0`
-- [ ] `README.md` → dependency snippet + "Current release" line
-- [ ] `CHANGELOG.md` → new 1.1.0 entry
-- [ ] `docs-site/docs/getting-started.md` → version
-- [ ] `docs-site/docs/junit5.md` → version
-- [ ] `docs-site/docs/changelog.md` → version
-- [ ] `docs-site/src/pages/index.js` → version
+- [x] `pom.xml` → `1.1.0`
+- [x] `README.md` → dependency snippet + "Current release" line
+- [x] `CHANGELOG.md` → new 1.1.0 entry
+- [x] `docs-site/docs/getting-started.md` → version
+- [x] `docs-site/docs/junit5.md` → version
+- [x] `docs-site/docs/changelog.md` → version
+- [x] `docs-site/src/pages/index.js` → version
 - [ ] Git tag `v1.1.0`
 - [ ] GitHub Actions release workflow → Maven Central deploy
 - [ ] Consumer project (testfly-test) → pin to 1.1.0, run load test examples

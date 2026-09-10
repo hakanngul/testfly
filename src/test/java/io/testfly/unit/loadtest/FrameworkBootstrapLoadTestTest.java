@@ -117,6 +117,7 @@ public class FrameworkBootstrapLoadTestTest {
     public void bootstrap_withReportEnabledTrue_registersLoadTestReportAdapter() throws Exception {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
+                resetState();
                 String yaml = """
                         execution:
                           mode: local
@@ -150,6 +151,7 @@ public class FrameworkBootstrapLoadTestTest {
     public void bootstrap_withReportEnabledFalse_doesNotRegisterLoadTestReportAdapter() throws Exception {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
+                resetState();
                 String yaml = """
                         execution:
                           mode: local

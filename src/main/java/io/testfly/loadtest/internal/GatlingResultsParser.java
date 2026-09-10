@@ -172,7 +172,11 @@ public final class GatlingResultsParser {
                 }
             }
 
-            Map<Integer, Long> statusCodes = parseStatusCodes(new File(statsFile.getParentFile(), "simulation.log"));
+            File simLog = new File(statsFile.getParentFile(), "simulation.log");
+            if (!simLog.exists() && statsFile.getParentFile() != null && statsFile.getParentFile().getParentFile() != null) {
+                simLog = new File(statsFile.getParentFile().getParentFile(), "simulation.log");
+            }
+            Map<Integer, Long> statusCodes = parseStatusCodes(simLog);
             if (statusCodes.isEmpty()) {
                 if (okReqs > 0) statusCodes.put(200, (long) okReqs);
                 if (koReqs > 0) statusCodes.put(500, (long) koReqs);
@@ -265,20 +269,31 @@ public final class GatlingResultsParser {
         }
     }
 
+    private static final java.util.regex.Pattern STATUS_CODE_PATTERN =
+            java.util.regex.Pattern.compile("(?:found\\s+|status\\s+)?([1-5]\\d{2})");
+
     private static Map<Integer, Long> parseStatusCodes(File simLog) {
         Map<Integer, Long> codes = new LinkedHashMap<>();
-        if (!simLog.exists())
+        if (simLog == null || !simLog.exists())
             return codes;
         try {
             for (String line : java.nio.file.Files.readAllLines(simLog.toPath(), java.nio.charset.StandardCharsets.ISO_8859_1)) {
                 if (!line.startsWith("REQUEST"))
                     continue;
                 String[] parts = line.split("\t");
-                if (parts.length > 6) {
-                    String msg = parts[6].trim();
-                    if (msg.matches("\\d{3}.*")) {
-                        int code = Integer.parseInt(msg.substring(0, 3));
-                        codes.merge(code, 1L, Long::sum);
+                if (parts.length >= 6) {
+                    String status = parts[5].trim();
+                    String msg = parts.length > 6 ? parts[6].trim() : "";
+                    if ("OK".equalsIgnoreCase(status)) {
+                        codes.merge(200, 1L, Long::sum);
+                    } else {
+                        java.util.regex.Matcher m = STATUS_CODE_PATTERN.matcher(msg);
+                        if (m.find()) {
+                            int code = Integer.parseInt(m.group(1));
+                            codes.merge(code, 1L, Long::sum);
+                        } else {
+                            codes.merge(500, 1L, Long::sum);
+                        }
                     }
                 }
             }

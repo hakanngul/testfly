@@ -1,6 +1,7 @@
 package io.testfly.reporting.reportportal;
 
 import java.io.File;
+import java.util.Locale;
 
 /**
  * Sends screenshot and AI failure-analysis artifacts to ReportPortal.
@@ -48,10 +49,15 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
             return; // RP client not on classpath
         }
 
-        if (!io.testfly.internal.TestFlyContext.isInitialized()) {
+        io.testfly.config.TestFlyConfig cfg;
+        try {
+            if (!io.testfly.internal.TestFlyContext.isInitialized()) {
+                return;
+            }
+            cfg = io.testfly.internal.TestFlyContext.getConfig();
+        } catch (IllegalStateException e) {
             return;
         }
-        io.testfly.config.TestFlyConfig cfg = io.testfly.internal.TestFlyContext.getConfig();
         if (cfg == null || cfg.getReporting() == null
                 || cfg.getReporting().getReportPortal() == null
                 || !cfg.getReporting().getReportPortal().isEnabled()) {
@@ -89,12 +95,125 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
                 sent++;
             } else {
                 System.err.println("[TestFly] ReportPortal AI analysis not sent for " + testId
-                        + " (no active RP test item?)");
+                    + " (no active RP test item?)");
             }
         }
 
         if (sent > 0) {
             System.out.println("[TestFly] ReportPortal attachments sent for " + testId + ": " + sent + " log(s)");
         }
+    }
+
+    /**
+     * Sends formatted Gatling load test summary metrics and the subprocess execution log
+     * to ReportPortal for {@code testId}. Must be called while the RP test item is open.
+     *
+     * @param testId  fully-qualified test id
+     * @param metrics the load test metrics
+     */
+    public static void sendLoadTestMetrics(String testId, io.testfly.loadtest.LoadTestMetrics metrics) {
+        if (!ReportPortalLogger.isAvailable() || metrics == null) {
+            return;
+        }
+
+        io.testfly.config.TestFlyConfig cfg;
+        try {
+            if (!io.testfly.internal.TestFlyContext.isInitialized()) {
+                return;
+            }
+            cfg = io.testfly.internal.TestFlyContext.getConfig();
+        } catch (IllegalStateException e) {
+            return;
+        }
+        if (cfg == null || cfg.getReporting() == null
+                || cfg.getReporting().getReportPortal() == null
+                || !cfg.getReporting().getReportPortal().isEnabled()) {
+            return;
+        }
+        String key = io.testfly.config.DotEnvLoader.resolve(cfg.getReporting().getReportPortal().getApiKey());
+        if (key == null || key.trim().isEmpty() || key.startsWith("${")) {
+            return;
+        }
+
+        String markdown = buildLoadTestMarkdown(metrics);
+        boolean logged = ReportPortalLogger.log(markdown, "INFO");
+        if (logged) {
+            System.out.println("[TestFly] ReportPortal load test metrics sent for " + testId);
+        }
+
+        File logFile = findSubprocessLog(metrics);
+        if (logFile != null && logFile.exists()) {
+            ReportPortalLogger.logWithAttachment("📋 Gatling Subprocess Execution Log", "INFO", logFile);
+        }
+    }
+
+    private static String buildLoadTestMarkdown(io.testfly.loadtest.LoadTestMetrics metrics) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("⚡ **Gatling Load Test Metrics Summary**\n\n");
+        sb.append("• **Scenario:** `").append(metrics.scenarioName()).append("`\n");
+        sb.append("• **Engine:** ").append(metrics.engine() != null ? metrics.engine().toUpperCase(Locale.ROOT) : "GATLING").append("\n");
+        sb.append("• **Concurrent Users:** ").append(metrics.users()).append(" VUs\n");
+        sb.append("• **Duration:** ").append(String.format(Locale.ROOT, "%.1fs", metrics.durationMs() / 1000.0)).append("\n");
+        sb.append("• **Total Requests:** ").append(metrics.totalRequests())
+          .append(" (OK: ").append(metrics.successfulRequests())
+          .append(", KO: ").append(metrics.failedRequests()).append(")\n");
+        sb.append("• **Throughput:** ").append(String.format(Locale.ROOT, "%.1f req/s", metrics.throughputRps())).append("\n");
+        sb.append("• **Error Rate:** ").append(String.format(Locale.ROOT, "%.2f%%", metrics.errorRate() * 100)).append("\n\n");
+
+        sb.append("**Latency Breakdown:**\n");
+        sb.append("• P50: ").append(Math.round(metrics.p50LatencyMs())).append(" ms | ")
+          .append("P90: ").append(Math.round(metrics.p90LatencyMs())).append(" ms | ")
+          .append("P95: ").append(Math.round(metrics.p95LatencyMs())).append(" ms | ")
+          .append("P99: ").append(Math.round(metrics.p99LatencyMs())).append(" ms\n");
+        sb.append("• Min: ").append(Math.round(metrics.minLatencyMs())).append(" ms | ")
+          .append("Mean: ").append(Math.round(metrics.meanLatencyMs())).append(" ms | ")
+          .append("Max: ").append(Math.round(metrics.maxLatencyMs())).append(" ms\n\n");
+
+        if (metrics.steps() != null && !metrics.steps().isEmpty()) {
+            sb.append("**Scenario Steps:**\n\n");
+            sb.append("| Step | Total | OK | KO | P95 | Error % |\n");
+            sb.append("| :--- | ---: | ---: | ---: | ---: | ---: |\n");
+            for (io.testfly.loadtest.LoadTestMetrics.StepMetrics st : metrics.steps().values()) {
+                sb.append("| `").append(st.name()).append("` | ")
+                  .append(st.totalRequests()).append(" | ")
+                  .append(st.successfulRequests()).append(" | ")
+                  .append(st.failedRequests()).append(" | ")
+                  .append(Math.round(st.p95LatencyMs())).append(" ms | ")
+                  .append(String.format(Locale.ROOT, "%.1f%%", st.errorRate() * 100)).append(" |\n");
+            }
+            sb.append("\n");
+        }
+
+        File loadTestDir = io.testfly.reporting.ReportPaths.loadTestDir();
+        if (loadTestDir.exists()) {
+            java.util.List<File> reps = io.testfly.loadtest.LoadTestReportAdapter.findGatlingReports(loadTestDir);
+            if (!reps.isEmpty()) {
+                sb.append("📊 **Gatling Native HTML Report:** `").append(reps.get(0).getPath()).append("`\n");
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private static File findSubprocessLog(io.testfly.loadtest.LoadTestMetrics metrics) {
+        File loadTestDir = io.testfly.reporting.ReportPaths.loadTestDir();
+        if (loadTestDir.exists()) {
+            java.util.List<File> reps = io.testfly.loadtest.LoadTestReportAdapter.findGatlingReports(loadTestDir);
+            for (File rep : reps) {
+                File p = rep.getParentFile();
+                if (p != null) {
+                    File direct = new File(p, "gatling-subprocess.log");
+                    if (direct.exists()) return direct;
+                    File gp = p.getParentFile();
+                    if (gp != null) {
+                        File up = new File(gp, "gatling-subprocess.log");
+                        if (up.exists()) return up;
+                    }
+                }
+            }
+        }
+        File def = new File("target/reports/loadtest/gatling-subprocess.log");
+        if (def.exists()) return def;
+        return null;
     }
 }

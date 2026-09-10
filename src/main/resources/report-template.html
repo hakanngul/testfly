@@ -1610,6 +1610,9 @@
                 if (matchingNav) matchingNav.classList.add('active');
             }
             try { localStorage.setItem('testfly-active-tab', tabId); } catch (e) { }
+            if (tabId === 'loadtest') {
+                setTimeout(renderLoadTestCharts, 50);
+            }
         }
 
         (function initTab() {
@@ -2469,8 +2472,12 @@
                 container.innerHTML = loadTests.map((lt, idx) => {
                     const isSuccess = (lt.failedRequests || 0) === 0;
                     const errRate = ((lt.errorRate || 0) * 100).toFixed(2);
-                    const gatlingBtn = lt.gatlingReportPath
-                        ? `<a href="${escapeHtml(lt.gatlingReportPath)}" target="_blank" class="btn btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;background:var(--primary);color:#ffffff;box-shadow:var(--shadow-sm);transition:var(--transition-smooth);">
+                    let gatlingUrl = lt.gatlingReportPath || '';
+                    if (gatlingUrl && !gatlingUrl.startsWith('/') && !gatlingUrl.startsWith('http') && window.location.pathname.includes('/reports/')) {
+                        gatlingUrl = '../' + gatlingUrl;
+                    }
+                    const gatlingBtn = gatlingUrl
+                        ? `<a href="${escapeHtml(gatlingUrl)}" target="_blank" class="btn btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;background:var(--primary);color:#ffffff;box-shadow:var(--shadow-sm);transition:var(--transition-smooth);">
                             <span>📊</span> Open Gatling Report &rarr;
                            </a>`
                         : '';

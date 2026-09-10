@@ -146,6 +146,11 @@ public final class LoadTestAssert {
 
     // ── Status codes ─────────────────────────────────────────────────────
 
+    /** Asserts that at least one response had the given status code. */
+    public LoadTestAssert assertStatus(int status) {
+        return assertStatusCodeCount(status, 1);
+    }
+
     /**
      * Asserts that at least {@code minCount} responses had the given status code.
      */

@@ -36,6 +36,57 @@ public abstract class LoadTestFeeder {
     /** Returns {@code true} if this feeder can supply more values. */
     public abstract boolean hasNext();
 
+    /**
+     * Internal metadata descriptor for bridge engines (Gatling, etc.).
+     */
+    public record FeederDescriptor(
+            String type,
+            String path,
+            String variable,
+            Long start,
+            Long step,
+            Integer min,
+            Integer max,
+            String value,
+            List<Map<String, Object>> records) {
+    }
+
+    /**
+     * Inspects and describes this feeder for serialization or bridge execution.
+     */
+    public FeederDescriptor describe() {
+        if (this instanceof CsvFeeder c) {
+            return new FeederDescriptor("csv", c.path, null, null, null, null, null, null, new ArrayList<>(c.rows));
+        }
+        if (this instanceof JsonFeeder j) {
+            return new FeederDescriptor("json", j.path, null, null, null, null, null, null, new ArrayList<>(j.rows));
+        }
+        if (this instanceof SequenceFeeder s) {
+            return new FeederDescriptor("sequence", null, s.variable, s.start, s.step, null, null, null, null);
+        }
+        if (this instanceof RandomFeeder r) {
+            return new FeederDescriptor("random", null, r.variable, null, null, r.min, r.max, null, null);
+        }
+        if (this instanceof UuidFeeder u) {
+            return new FeederDescriptor("uuid", null, u.variable, null, null, null, null, null, null);
+        }
+        if (this instanceof ConstantFeeder cf) {
+            return new FeederDescriptor("constant", null, cf.variable, null, null, null, null, cf.value, null);
+        }
+        List<Map<String, Object>> sampled = new ArrayList<>();
+        reset();
+        int count = 0;
+        while (hasNext() && count < 5000) {
+            Map<String, Object> n = next();
+            if (n == null)
+                break;
+            sampled.add(n);
+            count++;
+        }
+        reset();
+        return new FeederDescriptor("records", null, null, null, null, null, null, null, sampled);
+    }
+
     // ── Factory methods ──────────────────────────────────────────────────
 
     /**

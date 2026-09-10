@@ -193,6 +193,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         io.testfly.loadtest.LoadTestMetrics ltmSuccess = io.testfly.loadtest.LoadTestRunner.lastMetrics();
         if (ltmSuccess != null) {
             ExecutionMetrics.recordLoadTest(testId, ltmSuccess);
+            io.testfly.reporting.reportportal.ReportPortalAttachmentSender.sendLoadTestMetrics(testId, ltmSuccess);
             io.testfly.loadtest.LoadTestRunner.clearLastMetrics();
         }
         ExecutionMetrics.recordStatus(testId, "PASSED");
@@ -259,6 +260,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         io.testfly.loadtest.LoadTestMetrics ltmFailed = io.testfly.loadtest.LoadTestRunner.lastMetrics();
         if (ltmFailed != null) {
             ExecutionMetrics.recordLoadTest(testId, ltmFailed);
+            io.testfly.reporting.reportportal.ReportPortalAttachmentSender.sendLoadTestMetrics(testId, ltmFailed);
             io.testfly.loadtest.LoadTestRunner.clearLastMetrics();
         }
         saveTraceIfEnabled(testId, result.getMethod().getMethodName(), false);
@@ -393,20 +395,9 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         return pkg.contains("loadtest") || simpleName.contains("loadtest");
     }
 
-    private boolean isUnitTest(ITestResult result) {
-        Class<?> clazz = result.getTestClass().getRealClass();
-        return clazz.getName().startsWith("io.testfly.unit.");
-    }
-
     /** Returns true for tests that must not create/use a WebDriver. */
     private boolean skipBrowser(ITestResult result) {
-        Class<?> clazz = result.getTestClass().getRealClass();
-        // ONLY classes that extend BaseTest are Web UI tests that need a browser
-        boolean isWebTest = io.testfly.test.BaseTest.class.isAssignableFrom(clazz);
-        if (!isWebTest) {
-            return true;
-        }
-        return isApiTest(result) || isNoBrowserTest(result) || isLoadTest(result) || isUnitTest(result);
+        return isApiTest(result) || isNoBrowserTest(result) || isLoadTest(result);
     }
 
     private void applyUseAuth(ITestResult result) {

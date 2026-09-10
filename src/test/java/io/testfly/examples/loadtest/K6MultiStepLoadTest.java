@@ -78,7 +78,7 @@ public class K6MultiStepLoadTest extends BaseLoadTest {
                 .and()
 
                 .step("Product")
-                .get("/product.php?id=${productId}")
+                .get("/?id=${productId}")
                 .and()
 
                 .feed(LoadTestFeeder.sequence("productId", 1, 1))

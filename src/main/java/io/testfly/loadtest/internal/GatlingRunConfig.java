@@ -39,6 +39,7 @@ final class GatlingRunConfig {
     public long thinkTimeFixedMs = -1;
     public long thinkTimeMinMs = -1;
     public long thinkTimeMaxMs = -1;
+    public GatlingFeederConfig feeder;
     public List<GatlingStep> steps = new ArrayList<>();
 
     public GatlingRunConfig() {
@@ -60,6 +61,23 @@ final class GatlingRunConfig {
         this.thinkTimeMinMs = scenario.thinkTimeMinMs();
         this.thinkTimeMaxMs = scenario.thinkTimeMaxMs();
 
+        if (scenario.feeder() != null) {
+            io.testfly.loadtest.LoadTestFeeder.FeederDescriptor desc = scenario.feeder().describe();
+            if (desc != null) {
+                GatlingFeederConfig fc = new GatlingFeederConfig();
+                fc.type = desc.type();
+                fc.path = desc.path();
+                fc.variable = desc.variable();
+                fc.start = desc.start();
+                fc.step = desc.step();
+                fc.min = desc.min();
+                fc.max = desc.max();
+                fc.value = desc.value();
+                fc.records = desc.records();
+                this.feeder = fc;
+            }
+        }
+
         for (LoadStep step : scenario.steps()) {
             GatlingStep gs = new GatlingStep();
             gs.name = step.name();
@@ -68,7 +86,15 @@ final class GatlingRunConfig {
             gs.headers.putAll(step.headers());
             gs.queryParams.putAll(step.queryParams());
             if (step.body() != null) {
-                gs.body = step.body().toString();
+                if (step.body() instanceof String s) {
+                    gs.body = s;
+                } else {
+                    try {
+                        gs.body = MAPPER.writeValueAsString(step.body());
+                    } catch (Exception e) {
+                        gs.body = step.body().toString();
+                    }
+                }
             }
             gs.extractions.putAll(step.extractions());
 
@@ -101,6 +127,19 @@ final class GatlingRunConfig {
 
     static GatlingRunConfig load(File file) throws IOException {
         return MAPPER.readValue(file, GatlingRunConfig.class);
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class GatlingFeederConfig {
+        public String type;
+        public String path;
+        public String variable;
+        public Long start;
+        public Long step;
+        public Integer min;
+        public Integer max;
+        public String value;
+        public List<Map<String, Object>> records;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

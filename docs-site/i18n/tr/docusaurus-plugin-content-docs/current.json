@@ -34,5 +34,9 @@
   "sidebar.docsSidebar.category.Reporting": {
     "message": "Raporlama",
     "description": "The label for category Reporting in sidebar docsSidebar"
+  },
+  "sidebar.docsSidebar.category.Load Testing": {
+    "message": "Yük Testi",
+    "description": "The label for category Load Testing in sidebar docsSidebar"
   }
 }

@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+_Nothing yet._
+
+---
+
+## [1.1.0] — 2026-09-10
+
+### Added — Load & Performance Testing Module
+
+- **Dual-Engine Load Testing Architecture**:
+  - **Gatling Engine**: High-concurrency subprocess execution, automatic simulation generation, stdout/log parsing, and full interactive Gatling HTML report generation linked directly in TestFly reports.
+  - **Lightweight Virtual Thread Engine**: Zero-dependency JDK virtual thread engine for developer machines and fast CI/CD feedback loops.
+- **Fluent Load Testing DSL**:
+  - Declarative scenario builder via `load(url).users(n).during(duration).rampUp(duration).run()` or `loadScenario("name").step(...).run()`.
+  - Seamlessly available in `BaseTest`, `BaseApiTest`, `BaseLoadTest`, and `BaseJUnit5Test`.
+- **Annotation-Driven Execution (`@LoadTest`)**:
+  - Configure load test parameters (`users`, `duration`, `rampUp`, `targetRps`, `engine`, `feeders`, `warmUp`) directly at test class or method level.
+- **Data Feeders (`Feeder`)**:
+  - Built-in CSV, JSON, Array, and custom Supplier feeders with `circular()`, `random()`, and `batch()` iteration strategies.
+- **SLA & Latency Assertions (`LoadTestAssert`)**:
+  - Fluent assertions for percentiles (P50, P90, P95, P99), max response time, min throughput (RPS), error rate thresholds, and HTTP status distributions.
+- **Unified Multi-Channel Reporting**:
+  - **TestFly HTML Report**: Dedicated "Load Testing" tab with interactive KPI cards (Users, RPS, Total Requests, P95, Error Rate), response time percentiles breakdown, status code distribution, and clickable link to Gatling interactive HTML reports.
+  - **Allure Report Adapter**: Adds load test parameters (Users, Engine, RPS, P95, Error Rate), interactive link to Gatling report, summary markdown attachment, and full subprocess execution log attachment.
+  - **ReportPortal Adapter**: Sends load test Markdown summary log entries and attaches subprocess execution logs to the test step.
+
 ### Added — Feature Switchboard
 
 - **`features:` master on/off panel** — a single block in `testfly.yml` that sits above every optional module's own settings, so a subsystem can be switched off without hunting down which key controls it or deleting its detailed configuration. Each key is tri-state: absent defers to the module's own flag, `true` forces its primary enable flag on, `false` forces the module off. Covers `ai`, `recording`, `tracing`, `network`, `healing`, `visual`, `performance`, `flakiness`, `quarantine`, `testManagement`, `notifications` and `consoleErrors`.
@@ -25,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Documentation
 
 - `docs-site/docs/configuration.md` and its Turkish translation gained a **Feature Switchboard** section (resolution rules, supported keys, off-behaviour per call site, diagnostics) plus the `ai.enabled` row.
+- `docs-site/docs/loadtest/` and `docs-site/i18n/tr/.../loadtest/` comprehensive Load Testing guides in English and Turkish.
 
 ---
 

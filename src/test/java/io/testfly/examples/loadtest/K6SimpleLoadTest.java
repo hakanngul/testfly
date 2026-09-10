@@ -83,7 +83,7 @@ public class K6SimpleLoadTest extends BaseLoadTest {
                 .users(10)
                 .hold(Duration.ofSeconds(5))
                 .run()
-                .assertThroughputAbove(50) // RPS > 50
+                .assertThroughputAbove(20) // RPS > 20 (public demo site network latency buffer)
                 .assertP95Below(2000) // p95 < 2000ms (public demo site)
                 .assertErrorRateBelow(0.05) // Hata oranı < %5
                 .assertNoStatus(500); // 500 server error olmamalı

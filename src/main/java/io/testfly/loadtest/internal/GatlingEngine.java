@@ -151,11 +151,23 @@ public final class GatlingEngine implements LoadTestEngine {
             cmd.add(cleanDesc);
 
             ProcessBuilder pb = new ProcessBuilder(cmd);
-            pb.inheritIO();
+            File logFile = new File(resultsDir, "gatling-subprocess.log");
+            pb.redirectErrorStream(true);
+            pb.redirectOutput(logFile);
             Process process = pb.start();
             int exitCode = process.waitFor();
             if (exitCode != 0) {
                 System.err.println("[LoadTest] Gatling subprocess finished with exit code: " + exitCode);
+                if (logFile.exists()) {
+                    try {
+                        List<String> lines = java.nio.file.Files.readAllLines(logFile.toPath());
+                        int start = Math.max(0, lines.size() - 25);
+                        for (int i = start; i < lines.size(); i++) {
+                            System.err.println("  [gatling] " + lines.get(i));
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
             }
         } finally {
             tempConfig.delete();
