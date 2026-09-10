@@ -93,6 +93,24 @@ Profile files **only need to declare the properties they wish to override**. Tes
 The following commented template demonstrates every supported configuration block with recommended defaults:
 
 ```yaml
+# ── Feature Switchboard ──────────────────────────────────────────────────────
+# Master on/off panel that sits ABOVE each module's own settings.
+# Omit a key to let that module's own config decide; set true/false to override it.
+# Values shown below are the framework defaults.
+features:
+  ai: true                          # every AI/agentic surface: act(), aiAssert(), failure analysis, AI healing
+  recording: false                  # MP4/GIF video capture of browser execution
+  tracing: false                    # DOM snapshots + execution timeline
+  network: false                    # CDP interception, route mocking, URL blocklists
+  healing: false                    # locator self-healing, including the AI fallback
+  visual: true                      # visual regression comparison
+  performance: false                # Core Web Vitals collection
+  flakiness: true                   # flakiness history scoring
+  quarantine: true                  # automatic skipping of quarantined tests
+  testManagement: false             # TestRail / Xray result push
+  notifications: true               # Slack / Teams run notifications
+  consoleErrors: false              # browser console (JS) error collection
+
 # ── Browser ──────────────────────────────────────────────────────────────────
 browser:
   name: chrome                      # chrome | firefox | edge | safari
@@ -162,6 +180,7 @@ locators:
 
 # ── AI Failure Analysis & Agentic Testing ─────────────────────────────────────
 ai:
+  enabled: true                     # master switch for EVERY AI surface (also settable via features.ai)
   failureAnalysis: false            # generate AI root-cause analysis on test failure
   generatePatch: false              # generate unified git diff .patch files for test failures
   actionCache: true                 # cache compiled action plans for act() in .testfly/action-cache.json
@@ -352,6 +371,84 @@ testmanagement:
 
 ## Detailed Section Guide
 
+## Feature Switchboard {#features}
+
+A single on/off panel for every optional framework module. It sits **above** each module's own settings, so you can disable a subsystem without hunting down which key controls it — and without deleting the module's detailed configuration.
+
+```yaml
+features:
+  ai: false          # no AI calls anywhere in the run
+  recording: true    # force video on, even though recording.enabled is false
+  healing: false     # no locator self-healing
+```
+
+### Resolution
+
+Each key is **tri-state**:
+
+| Value | Effect |
+|---|---|
+| absent (or `null`) | The module's own settings decide. Omitting the whole `features:` block reproduces pre-1.0.5 behaviour exactly. |
+| `true` | The module's primary enable flag is forced **on**. Sub-settings (`recording.mode`, `recording.fps`, …) are left untouched. |
+| `false` | The module is forced **off**, whatever its own settings say. |
+
+### Supported keys
+
+| Key | Overrides | Default |
+|---|---|---|
+| `ai` | `ai.enabled` — gates `act()`, `aiAssert()`, failure analysis, patch generation and AI locator healing | `true` |
+| `recording` | `recording.enabled` | `false` |
+| `tracing` | `tracing.enabled` | `false` |
+| `network` | `network.interceptEnabled` | `false` |
+| `healing` | `locators.selfHealing` and `locators.aiHealing` | `false` |
+| `visual` | *no module flag* — visual regression is available unless switched off | `true` |
+| `performance` | `performance.captureOnEveryTest` | `false` |
+| `flakiness` | *no module flag* — flakiness analysis runs unless switched off | `true` |
+| `quarantine` | `quarantine.enabled` | `true` |
+| `testManagement` | `testManagement.testrail.enabled` and `testManagement.xray.enabled` | `false` |
+| `notifications` | *no module flag* — Slack/Teams adapters register unless switched off | `true` |
+| `consoleErrors` | `browser.captureConsoleErrors` | `false` |
+
+### What "off" means when a test asks for the feature
+
+Background behaviour (recording, tracing, performance capture, flakiness analysis, notifications, TestRail/Xray push) simply does not run.
+
+Features a test invokes **explicitly** never fail silently, because a silently skipped check is a false green:
+
+| Call | With the feature off |
+|---|---|
+| `act("...")` | `IllegalStateException: AI features are disabled via ai.enabled=false or features.ai=false in testfly.yml` |
+| `aiAssert(...)` | assertion fails with reason `AI features are disabled via ai.enabled=false or features.ai=false` |
+| `VisualAssert.assertScreenshot(...)` | TestNG `SkipException` — the test is reported as **skipped**, not passed |
+
+### Diagnostics
+
+`FrameworkBootstrap` prints the active overrides at suite start:
+
+```text
+[TestFly] features: ai=OFF, recording=ON, healing=OFF
+```
+
+Plugins may gate their own behaviour with a private feature name. Unrecognised names are accepted (a plugin might own them) but reported once, so a typo is visible rather than silently ignored:
+
+```text
+[TestFly] Unknown feature name in testfly.yml: 'features.recordng' — ignored. Known features: [...]
+```
+
+Programmatic access is available through `io.testfly.config.FeatureGate`:
+
+```java
+FeatureGate.enabled(FeatureGate.AI);              // umbrella only, defaults to on
+FeatureGate.enabled(FeatureGate.RECORDING, rec.isEnabled());  // umbrella over a module flag
+FeatureGate.override(FeatureGate.VISUAL);         // raw tri-state, null when not configured
+```
+
+:::note Unknown keys no longer abort the suite
+`testfly.yml` is parsed tolerantly: a key with no matching configuration property is skipped and reported on stderr (`[TestFly] Unknown config key 'headles' on Browser — ignored`) instead of failing the run with a `ConstructorException`.
+:::
+
+---
+
 ## Browser {#browser}
 
 Controls WebDriver browser provisioning, execution mode, capabilities, and process arguments.
@@ -447,6 +544,7 @@ AI-driven test triage, automated root-cause suggestion, and agentic execution en
 
 | Property | Type | Default | Description |
 |---|---|---|---|
+| `enabled` | `boolean` | `true` | Master switch for **every** AI surface: `act()`, `aiAssert()`, failure analysis, patch generation and AI locator healing. The granular flags below choose *which* surfaces run; none of them can run while this is `false`. Also settable from the umbrella via [`features.ai`](#features). |
 | `failureAnalysis` | `boolean` | `false` | When `true`, automatically sends failure stack traces, step logs, and DOM state to the LLM upon test failure. |
 | `generatePatch` | `boolean` | `false` | When `true`, automatically generates a unified git diff `.patch` file in `target/remediations/` on test failure. |
 | `actionCache` | `boolean` | `true` | When `true`, freezes compiled action plans for `act()` into `.testfly/action-cache.json` for deterministic 0 ms replay. |

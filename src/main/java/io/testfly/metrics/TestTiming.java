@@ -116,6 +116,10 @@ public class TestTiming {
     public io.testfly.performance.PerformanceMetrics getPerformanceMetrics()  { return performanceMetrics; }
     public void setPerformanceMetrics(io.testfly.performance.PerformanceMetrics v) { this.performanceMetrics = v; }
 
+    private io.testfly.loadtest.LoadTestMetrics loadTestMetrics;
+    public io.testfly.loadtest.LoadTestMetrics getLoadTestMetrics() { return loadTestMetrics; }
+    public void setLoadTestMetrics(io.testfly.loadtest.LoadTestMetrics v) { this.loadTestMetrics = v; }
+
     private final java.util.List<io.testfly.steps.StepRecord> steps =
             new java.util.concurrent.CopyOnWriteArrayList<>();
 

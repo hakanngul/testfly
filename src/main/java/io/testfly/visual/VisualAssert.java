@@ -122,6 +122,12 @@ public final class VisualAssert {
     // ------------------------------------------------------------------
 
     public static void compare(String name, BufferedImage current, VisualTolerance tolerance) {
+        if (!io.testfly.config.FeatureGate.enabled(io.testfly.config.FeatureGate.VISUAL, true)) {
+            // Skipped rather than silently passed — a disabled comparison must stay visible
+            // in reports.
+            throw new org.testng.SkipException(
+                    "Visual regression disabled via features.visual=false in testfly.yml: " + name);
+        }
         File baseline = baselineFile(name);
 
         // Update mode — force overwrite baseline

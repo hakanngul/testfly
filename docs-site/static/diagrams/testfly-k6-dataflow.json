@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "TestFly K6 Load Test Data Flow",
+    "subtitle": "High-throughput workload generation, latency analysis, and quality gates",
+    "output": "testfly-k6-dataflow.html",
+    "viewBox": [1080, 520],
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "workload-injection",
+        "label": "Workload & Data Injection",
+        "focus": ["scenario_dsl", "data_feeder", "annotation_cfg", "load_engine"],
+        "note": "Author load scenarios in Java, parameterize with feeders, and configure virtual user schedules."
+      },
+      {
+        "id": "traffic-and-latency",
+        "label": "Concurrent SUT Traffic",
+        "focus": ["load_engine", "target_sut", "percentiles"],
+        "note": "Dispatch high-concurrency HTTP requests to target SUT and capture raw response times."
+      },
+      {
+        "id": "slo-and-reporting",
+        "label": "SLO Verification & Reports",
+        "focus": ["percentiles", "assertions", "report_adapter"],
+        "note": "Calculate percentiles (p50, p95, p99), enforce SLO gates, and generate interactive HTML reports."
+      }
+    ]
+  },
+  "stages": [
+    { "label": "Scenario" },
+    { "label": "Configure" },
+    { "label": "Execute" },
+    { "label": "Measure" },
+    { "label": "Deliver" }
+  ],
+  "nodes": [
+    { "id": "scenario_dsl", "type": "frontend", "label": "LoadScenario DSL", "sublabel": "endpoint steps", "stage": 0, "row": 0, "tag": "Java DSL" },
+    { "id": "data_feeder", "type": "database", "label": "LoadTestFeeder", "sublabel": "CSV / JSON records", "stage": 0, "row": 2, "tag": "datasets" },
+    { "id": "annotation_cfg", "type": "security", "label": "@LoadTest Config", "sublabel": "vUsers & schedule", "stage": 1, "row": 1, "tag": "workload" },
+    { "id": "load_engine", "type": "cloud", "label": "K6 / Gatling Engine", "sublabel": "concurrent runners", "stage": 2, "row": 1, "tag": "traffic generator" },
+    { "id": "target_sut", "type": "external", "label": "Target SUT", "sublabel": "https://test.k6.io", "stage": 3, "row": 0, "tag": "HTTPS" },
+    { "id": "percentiles", "type": "backend", "label": "Percentile Engine", "sublabel": "p50, p90, p95, p99", "stage": 3, "row": 2, "tag": "latencies" },
+    { "id": "assertions", "type": "security", "label": "LoadTestAssert", "sublabel": "p95 & error gates", "stage": 4, "row": 0, "tag": "SLO Check" },
+    { "id": "report_adapter", "type": "database", "label": "HTML & XML Reports", "sublabel": "interactive timeline", "stage": 4, "row": 2, "tag": "artifacts" }
+  ],
+  "flows": [
+    { "id": "scenario-to-cfg", "from": "scenario_dsl", "to": "annotation_cfg", "label": "scenario definition", "classification": "definition", "variant": "emphasis", "fromSide": "right", "toSide": "left", "via": [[205, 157], [205, 271]], "labelAt": [204, 205] },
+    { "id": "feeder-to-cfg", "from": "data_feeder", "to": "annotation_cfg", "label": "dataset feed", "classification": "parameterized data", "variant": "default", "fromSide": "right", "toSide": "left", "via": [[222, 385], [222, 271]], "labelAt": [220, 342] },
+    { "id": "cfg-to-engine", "from": "annotation_cfg", "to": "load_engine", "label": "workload model", "classification": "execution model", "variant": "emphasis", "route": "straight", "labelAt": [426, 258] },
+    { "id": "engine-to-sut", "from": "load_engine", "to": "target_sut", "label": "concurrent HTTP load", "classification": "traffic flood", "variant": "emphasis", "fromSide": "right", "toSide": "left", "via": [[638, 271], [638, 157]], "labelAt": [638, 205] },
+    { "id": "sut-to-percentiles", "from": "target_sut", "to": "percentiles", "label": "response latencies", "classification": "timing samples", "variant": "default", "fromSide": "bottom", "toSide": "top", "route": "straight", "labelAt": [745, 271] },
+    { "id": "percentiles-to-assert", "from": "percentiles", "to": "assertions", "label": "p95 & error rates", "classification": "computed stats", "variant": "security", "fromSide": "top", "toSide": "left", "via": [[745, 300], [870, 300], [870, 157]], "labelAt": [820, 230] },
+    { "id": "percentiles-to-report", "from": "percentiles", "to": "report_adapter", "label": "timeline metrics", "classification": "time series", "variant": "default", "route": "straight", "labelAt": [852, 415] },
+    { "id": "assert-to-report", "from": "assertions", "to": "report_adapter", "label": "gate outcomes", "classification": "test results", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "straight", "labelAt": [960, 271] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Scenario & Workload",
+      "items": [
+        "Fluent Java LoadScenario DSL declares multi-step browsing journeys",
+        "@LoadTest controls virtual users, ramp-up schedules, and hold periods",
+        "LoadTestFeeder seamlessly injects CSV and JSON parameterized datasets"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "High-Throughput Execution",
+      "items": [
+        "Concurrent load engines flood the target endpoints (e.g. test.k6.io)",
+        "Zero browser overhead during load execution for maximum RPS",
+        "High-precision millisecond timing captured for every individual request"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Analysis & Quality Gates",
+      "items": [
+        "Automated percentile calculation (p50, p90, p95, p99, min, max, avg)",
+        "Strict SLO assertions with assertP95Below() and assertErrorRateBelow()",
+        "Automatic HTML performance timeline and JUnit XML artifact generation"
+      ]
+    }
+  ]
+}

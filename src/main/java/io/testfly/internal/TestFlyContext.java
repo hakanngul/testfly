@@ -58,9 +58,8 @@ public final class TestFlyContext {
         return CONFIG.get() != null;
     }
 
-    // ==========================================================
-    // Current Test Tracking (Per Thread)
-    // ==========================================================
+    private static final ThreadLocal<Class<?>> CURRENT_TEST_CLASS = new ThreadLocal<>();
+    private static final ThreadLocal<java.lang.reflect.Method> CURRENT_TEST_METHOD = new ThreadLocal<>();
 
     public static void setCurrentTestId(String testId) {
         CURRENT_TEST.set(testId);
@@ -72,5 +71,24 @@ public final class TestFlyContext {
 
     public static void clearCurrentTestId() {
         CURRENT_TEST.remove();
+    }
+
+    public static void setCurrentTest(Class<?> testClass, java.lang.reflect.Method testMethod) {
+        CURRENT_TEST_CLASS.set(testClass);
+        CURRENT_TEST_METHOD.set(testMethod);
+    }
+
+    public static Class<?> getCurrentTestClass() {
+        return CURRENT_TEST_CLASS.get();
+    }
+
+    public static java.lang.reflect.Method getCurrentTestMethod() {
+        return CURRENT_TEST_METHOD.get();
+    }
+
+    public static void clearCurrentTest() {
+        CURRENT_TEST.remove();
+        CURRENT_TEST_CLASS.remove();
+        CURRENT_TEST_METHOD.remove();
     }
 }

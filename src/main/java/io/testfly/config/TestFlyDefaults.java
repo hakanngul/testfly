@@ -6,12 +6,14 @@ import java.util.Map;
 /**
  * Programmatic overrides for TestFly config defaults.
  *
- * <p>Values set here are applied <em>after</em> YAML loading but only for
+ * <p>
+ * Values set here are applied <em>after</em> YAML loading but only for
  * fields whose YAML value is {@code null} or zero (i.e. not explicitly set
  * by the user's config file). This means YAML always wins over defaults
  * registered here.
  *
- * <p>Typical use: a shared test-base JAR that establishes org-wide defaults,
+ * <p>
+ * Typical use: a shared test-base JAR that establishes org-wide defaults,
  * which individual projects can override via their own {@code testfly.yml}.
  *
  * <pre>
@@ -23,28 +25,36 @@ import java.util.Map;
  *
  * <h3>Supported keys</h3>
  * <ul>
- *   <li>{@code browser.name} — String</li>
- *   <li>{@code browser.headless} — Boolean (only applied when YAML omits the field — primitives default false)</li>
- *   <li>{@code timeouts.explicit} — Integer (seconds)</li>
- *   <li>{@code timeouts.pageLoad} — Integer (seconds)</li>
- *   <li>{@code execution.maxActiveSessions} — Integer</li>
- *   <li>{@code execution.threadCount} — Integer</li>
- *   <li>{@code retry.enabled} — Boolean</li>
- *   <li>{@code retry.maxAttempts} — Integer</li>
+ * <li>{@code browser.name} — String</li>
+ * <li>{@code browser.headless} — Boolean (only applied when YAML omits the
+ * field — primitives default false)</li>
+ * <li>{@code timeouts.explicit} — Integer (seconds)</li>
+ * <li>{@code timeouts.pageLoad} — Integer (seconds)</li>
+ * <li>{@code execution.maxActiveSessions} — Integer</li>
+ * <li>{@code execution.threadCount} — Integer</li>
+ * <li>{@code retry.enabled} — Boolean</li>
+ * <li>{@code retry.maxAttempts} — Integer</li>
+ * <li>{@code loadtest.users} — Integer</li>
+ * <li>{@code loadtest.rampUp} — String (e.g. "30s")</li>
+ * <li>{@code loadtest.hold} — String (e.g. "60s")</li>
+ * <li>{@code loadtest.engine} — String ("auto", "gatling", "jdk")</li>
  * </ul>
  */
 public final class TestFlyDefaults {
 
     private static final Map<String, Object> overrides = new ConcurrentHashMap<>();
 
-    private TestFlyDefaults() {}
+    private TestFlyDefaults() {
+    }
 
     /** Sets a default value for the given config key. */
     public static void set(String key, Object value) {
         overrides.put(key, value);
     }
 
-    /** Returns the registered default for the given key, or {@code null} if none. */
+    /**
+     * Returns the registered default for the given key, or {@code null} if none.
+     */
     public static Object get(String key) {
         return overrides.get(key);
     }
@@ -64,53 +74,91 @@ public final class TestFlyDefaults {
         applyTimeoutDefaults(config);
         applyExecutionDefaults(config);
         applyRetryDefaults(config);
+        applyLoadTestDefaults(config);
     }
 
     private static void applyBrowserDefaults(TestFlyConfig config) {
         TestFlyConfig.Browser browser = config.getBrowser();
-        if (browser == null) return;
+        if (browser == null)
+            return;
 
         if (browser.getName() == null) {
             String name = (String) overrides.get("browser.name");
-            if (name != null) browser.setName(name);
+            if (name != null)
+                browser.setName(name);
         }
     }
 
     private static void applyTimeoutDefaults(TestFlyConfig config) {
         TestFlyConfig.Timeouts timeouts = config.getTimeouts();
-        if (timeouts == null) return;
+        if (timeouts == null)
+            return;
 
         if (timeouts.getExplicit() == 0) {
             Integer val = (Integer) overrides.get("timeouts.explicit");
-            if (val != null) timeouts.setExplicit(val);
+            if (val != null)
+                timeouts.setExplicit(val);
         }
         if (timeouts.getPageLoad() == 0) {
             Integer val = (Integer) overrides.get("timeouts.pageLoad");
-            if (val != null) timeouts.setPageLoad(val);
+            if (val != null)
+                timeouts.setPageLoad(val);
         }
     }
 
     private static void applyExecutionDefaults(TestFlyConfig config) {
         TestFlyConfig.Execution execution = config.getExecution();
-        if (execution == null) return;
+        if (execution == null)
+            return;
 
         if (execution.getMaxActiveSessions() == 0) {
             Integer val = (Integer) overrides.get("execution.maxActiveSessions");
-            if (val != null) execution.setMaxActiveSessions(val);
+            if (val != null)
+                execution.setMaxActiveSessions(val);
         }
         if (execution.getThreadCount() == 0) {
             Integer val = (Integer) overrides.get("execution.threadCount");
-            if (val != null) execution.setThreadCount(val);
+            if (val != null)
+                execution.setThreadCount(val);
         }
     }
 
     private static void applyRetryDefaults(TestFlyConfig config) {
         TestFlyConfig.Retry retry = config.getRetry();
-        if (retry == null) return;
+        if (retry == null)
+            return;
 
         if (retry.getRawMaxAttempts() == null) {
             Integer val = (Integer) overrides.get("retry.maxAttempts");
-            if (val != null) retry.setMaxAttempts(val);
+            if (val != null)
+                retry.setMaxAttempts(val);
+        }
+    }
+
+    private static void applyLoadTestDefaults(TestFlyConfig config) {
+        TestFlyConfig.LoadTest lt = config.getLoadTest();
+        if (lt == null)
+            return;
+
+        if (lt.getUsers() == 10) {
+            Integer val = (Integer) overrides.get("loadtest.users");
+            if (val != null)
+                lt.setUsers(val);
+        }
+        if ("10s".equals(lt.getRampUp())) {
+            String val = (String) overrides.get("loadtest.rampUp");
+            if (val != null)
+                lt.setRampUp(val);
+        }
+        if ("30s".equals(lt.getHold())) {
+            String val = (String) overrides.get("loadtest.hold");
+            if (val != null)
+                lt.setHold(val);
+        }
+        if ("auto".equals(lt.getEngine())) {
+            String val = (String) overrides.get("loadtest.engine");
+            if (val != null)
+                lt.setEngine(val);
         }
     }
 }

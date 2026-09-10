@@ -290,6 +290,22 @@ public class TestFlyExtensionTest {
     }
 
     @Test
+    public void afterEach_onSuccess_recordsLoadTestMetrics() {
+        io.testfly.loadtest.LoadTestMetrics metrics = new io.testfly.loadtest.LoadTestMetrics(
+                "Order Load", 10, 10, 0, 5.0, 20.0, 20.0, 25.0, 30.0, 35.0, 10.0, 40.0, 0.0,
+                java.util.Collections.emptyMap(), 2000L, 2, "gatling", java.util.Collections.emptyMap());
+        io.testfly.loadtest.LoadTestRunner.setLastMetrics(metrics);
+
+        try {
+            extension.afterEach(mockContext);
+            metricsMock.verify(() -> ExecutionMetrics.recordLoadTest(TEST_ID, metrics), times(1));
+            assertNull(io.testfly.loadtest.LoadTestRunner.lastMetrics(), "Metrics must be cleared after test");
+        } finally {
+            io.testfly.loadtest.LoadTestRunner.clearLastMetrics();
+        }
+    }
+
+    @Test
     public void afterEach_onFailure_recordsFailedStatus() {
         when(mockContext.getExecutionException())
                 .thenReturn(Optional.of(new AssertionError("test failed")));

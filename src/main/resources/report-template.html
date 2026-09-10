@@ -1199,6 +1199,13 @@
                     </div>
                     <span id="nav-flaky-count" class="nav-count status-flaky" style="display:none;">0</span>
                 </li>
+                <li id="nav-loadtest" class="nav-item" onclick="showTab('loadtest', this)" style="display:none;">
+                    <div class="nav-item-left">
+                        <span>&#9889;</span>
+                        <span>Load Tests</span>
+                    </div>
+                    <span id="nav-loadtest-count" class="nav-count" style="background: rgba(24, 144, 255, 0.2); color: var(--primary);">0</span>
+                </li>
             </ul>
         </aside>
 
@@ -1495,6 +1502,69 @@
                 </div>
             </div>
 
+            <!-- ═══════════════ LOAD TESTING TAB ═══════════════ -->
+            <div id="tab-loadtest" class="tab-pane">
+                <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <h2 style="font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px;">
+                            <span>&#9889;</span> Load Testing &amp; Performance Analysis
+                        </h2>
+                        <span id="loadtestSubtitle" style="font-size:13px;color:var(--text-muted);">
+                            Simulated load execution metrics, latency percentiles, throughput, and Gatling reports
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Load Test KPI Summary -->
+                <div class="kpi-grid" id="loadtest-kpis">
+                    <div class="stat-card">
+                        <div class="stat-top">
+                            <span class="stat-label">Scenarios</span>
+                            <span class="nav-count">&#128640; RUNS</span>
+                        </div>
+                        <div id="lt-total-scenarios" class="stat-value">0</div>
+                        <div class="stat-meta">Executed load scenarios</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-top">
+                            <span class="stat-label">Total Requests</span>
+                            <span class="nav-count">&#128236; HTTP</span>
+                        </div>
+                        <div id="lt-total-requests" class="stat-value">0</div>
+                        <div class="stat-meta" id="lt-successful-meta">0 successful</div>
+                    </div>
+                    <div class="stat-card card-rate">
+                        <div class="stat-top">
+                            <span class="stat-label">Avg Throughput</span>
+                            <span class="status-badge" style="background: rgba(24,144,255,0.1); color: var(--primary);">RPS</span>
+                        </div>
+                        <div id="lt-avg-throughput" class="stat-value">0</div>
+                        <div class="stat-meta">Requests per second</div>
+                    </div>
+                    <div class="stat-card card-passed">
+                        <div class="stat-top">
+                            <span class="stat-label">Overall P95</span>
+                            <span class="status-badge status-passed">LATENCY</span>
+                        </div>
+                        <div id="lt-overall-p95" class="stat-value">0 ms</div>
+                        <div class="stat-meta" id="lt-p99-meta">P99: 0 ms</div>
+                    </div>
+                    <div class="stat-card card-failed">
+                        <div class="stat-top">
+                            <span class="stat-label">Error Rate</span>
+                            <span id="lt-error-badge" class="status-badge status-passed">0.0%</span>
+                        </div>
+                        <div id="lt-error-rate" class="stat-value">0.0%</div>
+                        <div class="stat-meta" id="lt-failed-meta">0 failed requests</div>
+                    </div>
+                </div>
+
+                <!-- Load Test Scenarios List Container -->
+                <div id="loadtest-scenarios-container" style="display:flex;flex-direction:column;gap:20px;margin-top:20px;">
+                    <!-- Dynamically rendered scenarios -->
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -1540,6 +1610,9 @@
                 if (matchingNav) matchingNav.classList.add('active');
             }
             try { localStorage.setItem('testfly-active-tab', tabId); } catch (e) { }
+            if (tabId === 'loadtest') {
+                setTimeout(renderLoadTestCharts, 50);
+            }
         }
 
         (function initTab() {
@@ -1568,6 +1641,7 @@
             try { localStorage.setItem('testfly-theme', next); } catch (e) { }
             updateThemeIcon();
             renderCharts();
+            renderLoadTestCharts();
         }
 
         function updateThemeIcon() {
@@ -1700,6 +1774,7 @@
             renderFailureTable(tests);
             renderHistoryTable();
             renderFlakinessTable();
+            renderLoadTests();
         }
 
         // ── Charts Rendering (Allure Standard Color Palette) ──
@@ -2322,6 +2397,370 @@
                 if (s) { e.preventDefault(); s.focus(); }
             }
         });
+
+        let loadTestChartInstances = [];
+
+        function renderLoadTests() {
+            const loadTests = reportData.loadTests || [];
+            const navLoadTest = document.getElementById('nav-loadtest');
+            const navCount = document.getElementById('nav-loadtest-count');
+            const container = document.getElementById('loadtest-scenarios-container');
+
+            if (!loadTests || loadTests.length === 0) {
+                if (navLoadTest) navLoadTest.style.display = 'none';
+                if (container) {
+                    container.innerHTML = `
+                        <div class="card" style="padding:32px;text-align:center;color:var(--text-muted);">
+                            <div style="font-size:32px;margin-bottom:8px;">⚡</div>
+                            <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;">No Load Tests Recorded</div>
+                            <div style="font-size:13px;">Execute a TestFly load scenario using <code>load(url).users(N).run()</code> to populate performance and latency metrics.</div>
+                        </div>
+                    `;
+                }
+                return;
+            }
+
+            // Show sidebar tab
+            if (navLoadTest) navLoadTest.style.display = 'flex';
+            if (navCount) navCount.innerText = loadTests.length;
+
+            // Compute summary KPIs
+            let totalRequests = 0;
+            let totalSuccessful = 0;
+            let totalFailed = 0;
+            let totalThroughput = 0;
+            let maxP95 = 0;
+            let maxP99 = 0;
+
+            loadTests.forEach(lt => {
+                totalRequests += (lt.totalRequests || 0);
+                totalSuccessful += (lt.successfulRequests || 0);
+                totalFailed += (lt.failedRequests || 0);
+                totalThroughput += (lt.throughputRps || 0);
+                if ((lt.p95LatencyMs || 0) > maxP95) maxP95 = lt.p95LatencyMs;
+                if ((lt.p99LatencyMs || 0) > maxP99) maxP99 = lt.p99LatencyMs;
+            });
+
+            const overallErrorRate = totalRequests > 0 ? (totalFailed / totalRequests) : 0;
+            const errorRatePercent = (overallErrorRate * 100).toFixed(1) + '%';
+
+            const elScenarios = document.getElementById('lt-total-scenarios');
+            const elReq = document.getElementById('lt-total-requests');
+            const elSuccMeta = document.getElementById('lt-successful-meta');
+            const elThp = document.getElementById('lt-avg-throughput');
+            const elP95 = document.getElementById('lt-overall-p95');
+            const elP99Meta = document.getElementById('lt-p99-meta');
+            const elErr = document.getElementById('lt-error-rate');
+            const elErrBadge = document.getElementById('lt-error-badge');
+            const elFailMeta = document.getElementById('lt-failed-meta');
+
+            if (elScenarios) elScenarios.innerText = loadTests.length;
+            if (elReq) elReq.innerText = totalRequests.toLocaleString();
+            if (elSuccMeta) elSuccMeta.innerText = totalSuccessful.toLocaleString() + ' successful';
+            if (elThp) elThp.innerText = Math.round(totalThroughput).toLocaleString() + ' rps';
+            if (elP95) elP95.innerText = Math.round(maxP95) + ' ms';
+            if (elP99Meta) elP99Meta.innerText = 'Max P99: ' + Math.round(maxP99) + ' ms';
+            if (elErr) elErr.innerText = errorRatePercent;
+            if (elFailMeta) elFailMeta.innerText = totalFailed.toLocaleString() + ' failed requests';
+            if (elErrBadge) {
+                elErrBadge.innerText = errorRatePercent;
+                elErrBadge.className = 'status-badge ' + (overallErrorRate === 0 ? 'status-passed' : overallErrorRate < 0.05 ? 'status-broken' : 'status-failed');
+            }
+
+            // Render scenario cards
+            if (container) {
+                container.innerHTML = loadTests.map((lt, idx) => {
+                    const isSuccess = (lt.failedRequests || 0) === 0;
+                    const errRate = ((lt.errorRate || 0) * 100).toFixed(2);
+                    let gatlingUrl = lt.gatlingReportPath || '';
+                    if (gatlingUrl && !gatlingUrl.startsWith('/') && !gatlingUrl.startsWith('http') && window.location.pathname.includes('/reports/')) {
+                        gatlingUrl = '../' + gatlingUrl;
+                    }
+                    const gatlingBtn = gatlingUrl
+                        ? `<a href="${escapeHtml(gatlingUrl)}" target="_blank" class="btn btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;background:var(--primary);color:#ffffff;box-shadow:var(--shadow-sm);transition:var(--transition-smooth);">
+                            <span>📊</span> Open Gatling Report &rarr;
+                           </a>`
+                        : '';
+
+                    // Steps table
+                    let stepsHtml = '';
+                    if (lt.steps && Object.keys(lt.steps).length > 0) {
+                        const stepRows = Object.values(lt.steps).map(st => {
+                            const stErr = ((st.errorRate || 0) * 100).toFixed(1);
+                            return `
+                                <tr>
+                                    <td style="font-weight:600;color:var(--text);font-family:var(--font-mono);">${escapeHtml(st.name || 'Step')}</td>
+                                    <td style="text-align:right;font-family:var(--font-mono);">${(st.totalRequests || 0).toLocaleString()}</td>
+                                    <td style="text-align:right;font-family:var(--font-mono);color:var(--good);">${(st.successfulRequests || 0).toLocaleString()}</td>
+                                    <td style="text-align:right;font-family:var(--font-mono);color:${(st.failedRequests || 0) > 0 ? 'var(--bad)' : 'var(--text-muted)'};">${(st.failedRequests || 0).toLocaleString()}</td>
+                                    <td style="text-align:right;font-family:var(--font-mono);font-weight:600;">${Math.round(st.p95LatencyMs || 0)} ms</td>
+                                    <td style="text-align:right;font-family:var(--font-mono);"><span class="status-badge ${(st.errorRate || 0) === 0 ? 'status-passed' : 'status-failed'}">${stErr}%</span></td>
+                                </tr>
+                            `;
+                        }).join('');
+
+                        stepsHtml = `
+                            <div style="margin-top:16px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);">
+                                <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;gap:6px;background:var(--surface-subtle);">
+                                    <span>🐾</span> Scenario Step Breakdown
+                                </div>
+                                <div class="table-wrap">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Step Name</th>
+                                                <th style="text-align:right;">Total Requests</th>
+                                                <th style="text-align:right;">Successful</th>
+                                                <th style="text-align:right;">Failed</th>
+                                                <th style="text-align:right;">P95 Latency</th>
+                                                <th style="text-align:right;">Error Rate</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>${stepRows}</tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    return `
+                        <div class="card" style="padding:22px;border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-sm);">
+                            <!-- Header Row -->
+                            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;">
+                                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+                                    <span style="font-size:16px;font-weight:800;color:var(--text);letter-spacing:-0.01em;">${escapeHtml(lt.scenarioName || 'Load Scenario')}</span>
+                                    <span class="status-badge" style="background:rgba(24,144,255,0.12);color:var(--primary);font-weight:700;">${(lt.engine || 'Gatling').toUpperCase()}</span>
+                                    <span class="status-badge" style="background:var(--surface-hover);color:var(--text);font-family:var(--font-mono);">👥 ${lt.users || 0} users</span>
+                                    <span class="status-badge" style="background:var(--surface-hover);color:var(--text);font-family:var(--font-mono);">⏱️ ${((lt.durationMs || 0) / 1000).toFixed(1)}s</span>
+                                    <span class="status-badge ${isSuccess ? 'status-passed' : 'status-failed'}">${isSuccess ? '✔ PASSED' : '✖ FAILED (' + lt.failedRequests + ' err)'}</span>
+                                </div>
+                                <div>${gatlingBtn}</div>
+                            </div>
+
+                            <!-- Scenario Config & Specs Summary Bar -->
+                            <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:10px 16px;background:var(--surface-subtle);border-radius:8px;border:1px solid var(--border);font-size:12px;margin-bottom:16px;">
+                                <div><span style="color:var(--text-muted);">Engine:</span> <strong style="color:var(--primary);text-transform:uppercase;">${escapeHtml(lt.engine || 'gatling')}</strong></div>
+                                <div><span style="color:var(--text-muted);">Concurrent Users:</span> <strong>${lt.users || 0} VUs</strong></div>
+                                <div><span style="color:var(--text-muted);">Duration:</span> <strong>${((lt.durationMs || 0) / 1000).toFixed(1)}s</strong></div>
+                                <div><span style="color:var(--text-muted);">Total Requests:</span> <strong>${(lt.totalRequests || 0).toLocaleString()}</strong></div>
+                                <div><span style="color:var(--text-muted);">Throughput:</span> <strong style="color:var(--good);font-family:var(--font-mono);">${(lt.throughputRps || 0).toFixed(1)} req/s</strong></div>
+                                <div><span style="color:var(--text-muted);">Error Rate:</span> <strong style="color:${(lt.errorRate || 0) === 0 ? 'var(--good)' : 'var(--bad)'};font-family:var(--font-mono);">${errRate}%</strong></div>
+                            </div>
+
+                            <!-- Mini Latency Tiles -->
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));gap:10px;margin-bottom:16px;">
+                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;">
+                                    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">P50 (Median)</div>
+                                    <div style="font-size:16px;font-weight:800;font-family:var(--font-mono);color:var(--primary);margin-top:2px;">${Math.round(lt.p50LatencyMs || 0)} <span style="font-size:11px;">ms</span></div>
+                                </div>
+                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;">
+                                    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">P90</div>
+                                    <div style="font-size:16px;font-weight:800;font-family:var(--font-mono);color:var(--text);margin-top:2px;">${Math.round(lt.p90LatencyMs || 0)} <span style="font-size:11px;">ms</span></div>
+                                </div>
+                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;">
+                                    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">P95</div>
+                                    <div style="font-size:16px;font-weight:800;font-family:var(--font-mono);color:var(--flaky);margin-top:2px;">${Math.round(lt.p95LatencyMs || 0)} <span style="font-size:11px;">ms</span></div>
+                                </div>
+                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;">
+                                    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">P99</div>
+                                    <div style="font-size:16px;font-weight:800;font-family:var(--font-mono);color:var(--bad);margin-top:2px;">${Math.round(lt.p99LatencyMs || 0)} <span style="font-size:11px;">ms</span></div>
+                                </div>
+                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;">
+                                    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Mean</div>
+                                    <div style="font-size:16px;font-weight:800;font-family:var(--font-mono);color:var(--text-secondary);margin-top:2px;">${Math.round(lt.meanLatencyMs || 0)} <span style="font-size:11px;">ms</span></div>
+                                </div>
+                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;">
+                                    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Min / Max</div>
+                                    <div style="font-size:14px;font-weight:800;font-family:var(--font-mono);color:var(--text-muted);margin-top:3px;">${Math.round(lt.minLatencyMs || 0)} / ${Math.round(lt.maxLatencyMs || 0)} <span style="font-size:10px;">ms</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Charts Grid: Latency Histogram & Status Codes Distribution -->
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:16px;">
+                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:10px;padding:14px;">
+                                    <div style="font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;color:var(--text-secondary);">
+                                        <span>⏱️</span> Latency Distribution (ms)
+                                    </div>
+                                    <div style="height:200px;position:relative;">
+                                        <canvas id="lt-chart-latency-${idx}"></canvas>
+                                    </div>
+                                </div>
+                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:10px;padding:14px;">
+                                    <div style="font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;color:var(--text-secondary);">
+                                        <span>📊</span> HTTP Status Codes
+                                    </div>
+                                    <div style="height:200px;position:relative;">
+                                        <canvas id="lt-chart-status-${idx}"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Steps Breakdown Table -->
+                            ${stepsHtml}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            renderLoadTestCharts();
+        }
+
+        function renderLoadTestCharts() {
+            if (!window.Chart) return;
+            const loadTests = reportData.loadTests || [];
+            if (!loadTests || loadTests.length === 0) return;
+
+            // Destroy previous charts
+            loadTestChartInstances.forEach(c => {
+                try { c.destroy(); } catch (e) { }
+            });
+            loadTestChartInstances = [];
+
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const textColor = isDark ? '#9ca3af' : '#475569';
+            const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
+            loadTests.forEach((lt, idx) => {
+                // 1. Latency Bar Chart
+                const latCanvas = document.getElementById(`lt-chart-latency-${idx}`);
+                if (latCanvas) {
+                    const min = Math.round(lt.minLatencyMs || 0);
+                    const mean = Math.round(lt.meanLatencyMs || 0);
+                    const p50 = Math.round(lt.p50LatencyMs || 0);
+                    const p90 = Math.round(lt.p90LatencyMs || 0);
+                    const p95 = Math.round(lt.p95LatencyMs || 0);
+                    const p99 = Math.round(lt.p99LatencyMs || 0);
+                    const max = Math.round(lt.maxLatencyMs || 0);
+
+                    const latChart = new Chart(latCanvas, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Min', 'Mean', 'P50 (Median)', 'P90', 'P95', 'P99', 'Max'],
+                            datasets: [{
+                                label: 'Latency (ms)',
+                                data: [min, mean, p50, p90, p95, p99, max],
+                                backgroundColor: [
+                                    'rgba(82, 196, 26, 0.45)',
+                                    'rgba(24, 144, 255, 0.45)',
+                                    'rgba(24, 144, 255, 0.55)',
+                                    'rgba(250, 140, 22, 0.55)',
+                                    'rgba(250, 140, 22, 0.70)',
+                                    'rgba(245, 34, 45, 0.65)',
+                                    'rgba(245, 34, 45, 0.85)'
+                                ],
+                                borderColor: [
+                                    '#52c41a',
+                                    '#1890ff',
+                                    '#1890ff',
+                                    '#fa8c16',
+                                    '#fa8c16',
+                                    '#f5222d',
+                                    '#f5222d'
+                                ],
+                                borderWidth: 1.5,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) { return context.parsed.y + ' ms'; }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: textColor, font: { family: 'Inter', size: 10 } }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: gridColor },
+                                    ticks: {
+                                        color: textColor,
+                                        font: { family: 'JetBrains Mono', size: 10 },
+                                        callback: function(v) { return v + ' ms'; }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    loadTestChartInstances.push(latChart);
+                }
+
+                // 2. Status Codes Doughnut Chart
+                const statusCanvas = document.getElementById(`lt-chart-status-${idx}`);
+                if (statusCanvas) {
+                    const statusCodes = lt.statusCodes || {};
+                    let labels = Object.keys(statusCodes);
+                    let data = Object.values(statusCodes);
+
+                    if (labels.length === 0) {
+                        labels = ['200'];
+                        data = [lt.successfulRequests || 0];
+                    }
+
+                    const bgColors = labels.map(lbl => {
+                        const code = String(lbl).trim().split(' ')[0];
+                        if (code.startsWith('2')) return '#97cc64'; // Green
+                        if (code.startsWith('3')) return '#1890ff'; // Blue
+                        if (code.startsWith('4')) return '#ffb238'; // Warning/Amber
+                        if (code.startsWith('5')) return '#fd5a3e'; // Red
+                        return '#8c8c8c';                           // Gray
+                    });
+
+                    const displayLabels = labels.map(lbl => {
+                        const code = String(lbl).trim().split(' ')[0];
+                        if (code === '200') return '200 OK';
+                        if (code === '201') return '201 Created';
+                        if (code === '204') return '204 No Content';
+                        if (code === '400') return '400 Bad Request';
+                        if (code === '401') return '401 Unauthorized';
+                        if (code === '403') return '403 Forbidden';
+                        if (code === '404') return '404 Not Found';
+                        if (code === '500') return '500 Server Error';
+                        if (code === '502') return '502 Bad Gateway';
+                        if (code === '503') return '503 Service Unavailable';
+                        return 'HTTP ' + code;
+                    });
+
+                    const statusChart = new Chart(statusCanvas, {
+                        type: 'doughnut',
+                        data: {
+                            labels: displayLabels,
+                            datasets: [{
+                                data: data,
+                                backgroundColor: bgColors,
+                                borderColor: isDark ? '#1f2937' : '#ffffff',
+                                borderWidth: 2,
+                                hoverOffset: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '68%',
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        color: textColor,
+                                        font: { family: 'Inter', size: 11, weight: '600' },
+                                        padding: 10,
+                                        usePointStyle: true
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    loadTestChartInstances.push(statusChart);
+                }
+            });
+        }
 
         function escapeHtml(s) {
             if (!s) return '';
