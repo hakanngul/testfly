@@ -58,6 +58,7 @@ Ajan, token yakmamak için körlemesine arama yapmaz; önce bu haritaya bakar ve
 - `[[wiki/quarantine-engine]]` — Flakiness karantina motoru, risk puanlama ve @Retryable.
 - `[[wiki/ci-quality-gates]]` — CI kalite kapıları, BuildThresholdEnforcer ve ortam tespiti.
 - `[[wiki/memory-system]]` — TestFly & Obsidian Graph hafıza sisteminin teknik detayları.
+- `[[wiki/roadmap]]` — TestFly sürüm fazları, tamamlananlar ve gelecek otonom özellikler yol haritası.
 
 ## 5. İşleyiş Becerileri ve Prosedürler (Skills)
 - `[[skills/archify/SKILL]]` — Sistem mimarisi, iş akışı, sequence ve yaşam döngüsü için interaktif HTML diyagram üreticisi.

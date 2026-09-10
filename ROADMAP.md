@@ -32,7 +32,9 @@ Most users find a framework by searching, not by browsing GitHub.
 - ✅ More built-in `WaitEngine` conditions requested by users.
 - ✅ Additional first-class browser providers (Edge, Safari) via the existing SPI.
 - ✅ CI metadata capture — provider, build, branch, commit, and build URL auto-detected from major CI/CD platforms and surfaced in HTML/JUnit reports and metrics JSON.
-- **testfly-mcp** *(coming soon)* — MCP server is under development. Once released, keep codegen output framework-native and accessibility-first as the API evolves.
+- ✅ **TestFly CLI & Scaffolder (`testfly init`)** — Official developer CLI and project generator for TestNG, JUnit 5, and Cucumber BDD.
+- ✅ **Smart Test Sharder (LPT Bin-Packing)** — Mathematical multi-worker CI/CD load balancing via Longest Processing Time bin-packing.
+- ✅ **TestFly MCP Server** — Standard Model Context Protocol server exposing 88 browser automation and codegen tools to Claude Code, Cursor, and IDE assistants.
 
 ### Ongoing quality
 
@@ -148,6 +150,33 @@ Most users find a framework by searching, not by browsing GitHub.
 - ✅ Community contribution guidelines — see CONTRIBUTING.md
 - ✅ Versioned plugin ecosystem — `FrameworkVersion`, `minFrameworkVersion()`, `IncompatiblePluginException`
 - ✅ Backward compatibility guarantees — `@TestFlyApi` annotation, policy in CONTRIBUTING.md
+
+---
+
+## Phase 6 – Autonomous Testing & AI-Driven Ecosystem (v1.2+)
+
+**Status:** In Progress
+**Goal:** Transform TestFly into an autonomous, self-generating, self-healing, and self-optimizing test intelligence platform
+
+### Planned Features
+
+1. **TestFly Autonomous Explorer (`testfly explore`)**
+   - Headless autonomous crawler that traverses target web apps, handles authentication, and discovers forms, buttons, and state transitions.
+   - Extracts clean Accessibility Trees (`getByRole`, `getByLabel`, `getByTestId`) rather than brittle CSS/XPath.
+   - Automatically generates idiomatic TestFly Page Objects (`BasePage`) and complete TestNG/JUnit 5 test classes (`BaseTest`) without manual coding.
+
+2. **AI Root-Cause & Auto-Fix Analyzer**
+   - Automatically diagnoses test failures by correlating DOM mutations, CDP console errors, and network interception traces.
+   - Outputs precise root-cause analysis (e.g. *"Button click timed out because `/api/v1/auth` returned 500"*).
+   - Generates PR suggestions or automatic selector/assertion diffs to fix broken tests.
+
+3. **Visual Layout Shift & Smart UI AI**
+   - AI-powered perceptual visual regression testing beyond rigid pixel-by-pixel comparisons.
+   - Detects responsive layout breaks, element overlapping, text clipping, and CSS regressions across viewports without false positives from dynamic content.
+
+4. **Synthetic Test Data Factory (`@TestDataFactory`)**
+   - Context-aware synthetic test data generator producing realistic localized data (names, identification numbers, addresses, credit cards).
+   - Integrates natively with `@TestData` to generate dynamic mock API payloads and database seeds on the fly.
 
 ---
 
