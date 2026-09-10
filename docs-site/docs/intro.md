@@ -77,10 +77,8 @@ TestFly **is** that framework — already built, maintained, tested, thread-safe
 
 ---
 
-:::tip AI-powered test authoring — Coming Soon
-**TestFly MCP** — an MCP server that lets Claude or GitHub Copilot control a real browser,
-record your session, and generate ready-to-run TestFly test code — is **coming soon**.
-Stay tuned for the public release.
+:::tip TestFly CLI & AI-Powered MCP Automation
+**TestFly CLI & MCP Server** is now live! Scaffold new projects in seconds with `testfly init`, run diagnostics with `testfly doctor`, or let AI assistants (Claude, Cursor, Copilot) drive real browsers and generate idiomatic TestFly code with 88 built-in tools. See the [TestFly CLI Guide](/docs/cli) and [AI & MCP Overview](/docs/ai/overview).
 :::
 
 ---

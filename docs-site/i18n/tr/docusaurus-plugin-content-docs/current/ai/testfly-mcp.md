@@ -32,25 +32,29 @@ testfly-mcp --version
 
 ## Komut Satırı Arayüzü (CLI)
 
-`testfly-mcp` zengin bir komut setiyle gelir:
+Paket, birleşik `testfly` CLI komutunu sunar (`testfly-cli` veya `testfly-mcp` ile de çağrılabilir):
 
 ```bash
-testfly-mcp --help
+testfly --help
 ```
 
 ### Kullanılabilir Komutlar
 
 | Komut | Açıklama |
 | :--- | :--- |
-| `testfly-mcp --help` | Kullanım seçeneklerini, komutları ve örnekleri gösterir. |
-| `testfly-mcp --version` | Yüklü sürüm numarasını (`1.0.0`) basar. |
-| `testfly-mcp doctor` | Python, Selenium, Chrome ve IDE ayarlarını tarayıp sistem teşhis raporu verir. |
-| `testfly-mcp tools` | Kullanılabilir 88 MCP aracını parametreleriyle listeler. |
-| `testfly-mcp tools --search <kelime>` | Araçlar içinde ada veya açıklamaya göre arama yapar. |
-| `testfly-mcp ui` | Varsayılan tarayıcınızda **Etkileşimli Web Stüdyosu**'nu açar (`http://127.0.0.1:8765`). |
-| `testfly-mcp init-config` | Bulunduğunuz dizine standart `testfly.yml` şablonu oluşturur. |
-| `testfly-mcp stdio` | MCP stdio sunucusunu başlatır (IDE veya Claude bağlandığında otomatik çalışır). |
-| `testfly-mcp` (terminalde doğrudan) | Terminali algılar ve etkileşimli seçim menüsü sunar. |
+| `testfly init [name]` | Yeni TestFly projesi oluşturur (TestNG, JUnit 5, Cucumber BDD; Web, API, Hibrit). |
+| `testfly doctor` | Python, Selenium, Chrome ve IDE ayarlarını tarayıp sistem teşhis raporu verir. |
+| `testfly studio` *(veya `ui`)* | Varsayılan tarayıcınızda **Etkileşimli Web Stüdyosu**'nu açar (`http://127.0.0.1:8765`). |
+| `testfly mcp` *(veya `stdio`)* | MCP stdio sunucusunu başlatır (IDE veya Claude bağlandığında otomatik çalışır). |
+| `testfly tools` | Kullanılabilir 88 MCP aracını parametreleriyle listeler. |
+| `testfly tools --search <kelime>` | Araçlar içinde ada veya açıklamaya göre arama yapar. |
+| `testfly init-config` | Bulunduğunuz dizine standart `testfly.yml` şablonu oluşturur. |
+| `testfly` *(terminalde doğrudan)* | Terminali algılar ve etkileşimli seçim menüsü sunar. |
+| `testfly --version` | Yüklü sürüm numarasını (`1.0.0`) basar. |
+
+:::tip Ayrıntılı CLI Dokümantasyonu
+Tüm proje şablonu seçenekleri ve parametre detayları için [TestFly CLI Rehberi](/docs/cli) sayfasına bakın.
+:::
 
 ---
 

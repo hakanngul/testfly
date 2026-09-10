@@ -77,8 +77,8 @@ TestFly **bu tekerleği yeniden icat etme derdini bitirir** — endüstri standa
 
 ---
 
-:::tip AI destekli test yazımı — Yakında
-**TestFly MCP** — Claude veya GitHub Copilot'ın gerçek bir tarayıcıyı kontrol ederek oturumunuzu kaydedip hazır TestFly test kodu üretmesini sağlayan MCP sunucusu — **yakında** yayında olacak. Takipte kalın.
+:::tip TestFly CLI & Yapay Zeka Destekli MCP Otomasyonu
+**TestFly CLI & MCP Sunucusu** artık yayında! `testfly init` ile saniyeler içinde yeni proje oluşturun, `testfly doctor` ile ortamınızı denetleyin veya yapay zeka asistanlarının (Claude, Cursor, Copilot) 88 yerleşik araçla gerçek tarayıcıları yönetmesini sağlayın. İncelemek için: [TestFly CLI Rehberi](/docs/cli) ve [Yapay Zeka & MCP Genel Bakış](/docs/ai/overview).
 :::
 
 ---

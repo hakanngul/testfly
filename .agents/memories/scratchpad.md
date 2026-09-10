@@ -16,21 +16,23 @@ char_limit: 2200
 ---
 
 ### 1. Aktif Odak ve Son Durum (Current Focus)
-- **Konu:** TestFly için tespit edilen eksik konuların yazılması ve MCP ile blogda yayımlanması.
-- **Durum:** TestFly Bölüm 9, 10 ve 11 makaleleri MCP üzerinden başarıyla yayımlandı.
+- **Konu:** TestFly CLI & Scaffolder Dokümantasyonu ve Dağıtık Koşum Hazırlığı.
+- **Durum:** Docusaurus dokümanları (EN ve TR) eksiksiz güncellendi ve `npm run build` ile başarıyla derlendi.
 
 ### 2. Anlık Bağlam ve Kararlar (Immediate Context)
-- Yayımlanan Makaleler:
-  1. TestFly Bölüm 9: K6 & Gatling Yük Testi (`testfly-part-9-k6-gatling-load-testing-in-java`).
-  2. TestFly Bölüm 10: E-Posta ve 2FA Doğrulama Testleri (`testfly-part-10-email-and-2fa-testing-mailhog-mailtrap-imap`).
-  3. TestFly Bölüm 11: Selenium 4 CDP Ağ Manipülasyonu (`testfly-part-11-selenium-cdp-network-interception-and-mocking`).
-- Tüm makaleler iki dilli (TR/EN), SSS/FAQ şemalı ve AI alıntılanabilir formatta yazıldı.
+- Dokümantasyon Güncellemeleri (`docs-site`):
+  - `docs/cli.md` & `i18n/tr/.../cli.md`: Yeni TestFly CLI ve proje iskeleti (`testfly init`, `doctor`, `studio`, `mcp`) rehberi eklendi.
+  - `sidebars.js`: `cli` sayfası Hızlı Başlangıç yanına eklendi.
+  - `getting-started.md` (EN/TR): Tek komutla `testfly init` hızlı kurulum tavsiyesi eklendi.
+  - `ai/testfly-mcp.md` (EN/TR): Birleşik `testfly` komutları tablosu güncellendi.
+  - `intro.md` (EN/TR): "Yakında" duyurusu "Yayında" olarak güncellendi.
+  - Çift dil (EN & TR) derlemesi hatasız tamamlandı.
 
-### 3. Tamamlanan Görevler (Completed Tasks)
-- [x] TestFly API ve WebUI veri akışları ayrı ayrı Archify ile modellendi ve teslim edildi.
-- [x] Docusaurus docs-site ve LLM Wiki eksiklikleri tamamlandı ve derlendi.
-- [x] TestFly Bölüm 9, 10 ve 11 makaleleri `hakan-gul-portfolio` MCP ile canlıya alındı.
+### 3. Sıradaki Görevler (Next Up)
+- [x] Adım 1: `testfly-cli` ve `testfly init` entegrasyonu + Dokümantasyon.
+- [ ] Adım 2: Smart Test Sharder (CI/CD LPT Bin-Packing ile dağıtık dengeli test koşumu).
+- [ ] Adım 3: TestFly Autonomous Explorer (Otonom WebUI keşif & otomatik test üretimi).
 
 ### 4. Hızlı Notlar (Scratch Notes)
-- Obsidian Graph View'da tüm 14 wiki sayfası birbirine çift yönlü linklerle bağlıdır.
-- Karakter sınırı <= 2.200 kuralına tam uyum sağlandı.
+- TestFly mimari kararları ve dokümantasyon grafiği `[[wiki/index]]` altında günceldir.
+- Karakter sınırı <= 2.200 kuralına uyuldu (~1.750 karakter).
