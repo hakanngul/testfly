@@ -20,38 +20,42 @@ testfly record https://www.saucedemo.com
 
 ## Mimari Genel Bakış
 
-```mermaid
-flowchart LR
-    subgraph Browser ["Google Chrome (Refakatçi)"]
-        DOM[Canlı Web Uygulaması]
-        Injected[Enjekte Edilen Kaydedici JS]
-        DOM --> Injected
-    end
-
-    subgraph Server ["TestFly MCP Sunucusu (Yerel)"]
-        Runner[Port & Süreç Yöneticisi]
-        HTTP[/api/event & /api/mode]
-        SSE[SSE Akışı /api/stream]
-        Codegen[TestFly Java Kod Üretici]
-    end
-
-    subgraph Studio ["TestFly Web Studio (:8765)"]
-        Timeline[Kayıtlı Adımlar Zaman Çizelgesi]
-        LocatorTester[Akıllı Seçici Test Edici]
-        CodePreview[Çoklu Mimari Kod Merkezi]
-    end
-
-    subgraph Project ["Test Projeniz"]
-        Pages["src/test/java/.../pages/"]
-        Tests["src/test/java/.../tests/"]
-        Features["src/test/resources/features/"]
-    end
-
-    Injected -- "POST /api/event (tıklama, yazma, doğrulama)" --> HTTP
-    HTTP --> Codegen
-    Codegen --> SSE
-    SSE -- Gerçek zamanlı kod & adımlar --> Studio
-    Studio -- "Save to Project" --> Project
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              GOOGLE CHROME (REFAKATÇİ)                                 │
+│  ┌────────────────────────────────────┐       ┌─────────────────────────────────────┐  │
+│  │        Canlı Web Uygulaması        │ ────▶ │     Enjekte Edilen Kaydedici JS     │  │
+│  │ (Tıklamalar, Metin Girişi, Seçim)  │       │ (Olay Yakalayıcı & Birleştirici)    │  │
+│  └────────────────────────────────────┘       └──────────────────┬──────────────────┘  │
+└──────────────────────────────────────────────────────────────────┼─────────────────────┘
+                                                                   │ POST /api/event (Canlı Kullanıcı Eylemleri)
+                                                                   ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                       TESTFLY YEREL SUNUCU & KOD ÜRETİM MOTORU                         │
+│  ┌────────────────────────┐      ┌─────────────────────────┐      ┌─────────────────┐  │
+│  │  HTTP Sunucu & Modlar  │ ───▶ │   TestFly Kod Üretici   │ ───▶ │   SSE Yayını    │  │
+│  │  (/api/event, /mode)   │      │ (POM, TestNG, Cucumber) │      │  (/api/stream)  │  │
+│  └────────────────────────┘      └─────────────────────────┘      └────────┬────────┘  │
+└────────────────────────────────────────────────────────────────────────────┼───────────┘
+                                                                             │ Gerçek Zamanlı Akış
+                                                                             ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              TESTFLY WEB STÜDYOSU (:8765)                              │
+│  ┌────────────────────────┐      ┌─────────────────────────┐      ┌─────────────────┐  │
+│  │  Kayıtlı Adım Zaman    │      │   Akıllı Seçici Testi   │      │  Çoklu Mimari   │  │
+│  │  Çizelgesi (Events)    │      │ (Canlı Eşleşme Kontrol) │      │   Kod Merkezi   │  │
+│  └────────────────────────┘      └─────────────────────────┘      └────────┬────────┘  │
+└────────────────────────────────────────────────────────────────────────────┼───────────┘
+                                                                             │ "Save to Project"
+                                                                             ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   TEST PROJENİZ                                        │
+│  ┌────────────────────────┐      ┌─────────────────────────┐      ┌─────────────────┐  │
+│  │  src/test/java/...     │      │   src/test/java/...     │      │src/test/resource│  │
+│  │        /pages/         │      │        /tests/          │      │  s/features/    │  │
+│  │  (BasePage Sınıfları)  │      │  (BaseTest & Koşucular) │      │(.feature BDD)   │  │
+│  └────────────────────────┘      └─────────────────────────┘      └─────────────────┘  │
+└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---

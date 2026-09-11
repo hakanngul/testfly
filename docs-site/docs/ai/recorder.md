@@ -20,38 +20,42 @@ testfly record https://www.saucedemo.com
 
 ## Architecture Overview
 
-```mermaid
-flowchart LR
-    subgraph Browser ["Google Chrome (Companion)"]
-        DOM[Live Web Application]
-        Injected[Injected Recorder JS]
-        DOM --> Injected
-    end
-
-    subgraph Server ["TestFly MCP Server (Localhost)"]
-        Runner[Recorder Runner & Port Manager]
-        HTTP[/api/event & /api/mode]
-        SSE[SSE Stream /api/stream]
-        Codegen[TestFly Java Codegen Engine]
-    end
-
-    subgraph Studio ["TestFly Web Studio (:8765)"]
-        Timeline[Recorded Steps Timeline]
-        LocatorTester[Smart Locator Tester]
-        CodePreview[Multi-Framework Code Center]
-    end
-
-    subgraph Project ["Your Test Repository"]
-        Pages["src/test/java/.../pages/"]
-        Tests["src/test/java/.../tests/"]
-        Features["src/test/resources/features/"]
-    end
-
-    Injected -- "POST /api/event (clicks, typing, asserts)" --> HTTP
-    HTTP --> Codegen
-    Codegen --> SSE
-    SSE -- Real-time code & events --> Studio
-    Studio -- "Save to Project" --> Project
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              GOOGLE CHROME (COMPANION)                                 │
+│  ┌────────────────────────────────────┐       ┌─────────────────────────────────────┐  │
+│  │       Live Web Application         │ ────▶ │     Injected Recorder JS (CDP)      │  │
+│  │   (Clicks, Typing, Hover, Select)  │       │ (Event Interceptor & Debounce Buff) │  │
+│  └────────────────────────────────────┘       └──────────────────┬──────────────────┘  │
+└──────────────────────────────────────────────────────────────────┼─────────────────────┘
+                                                                   │ POST /api/event (Live User Actions)
+                                                                   ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        TESTFLY LOCAL SERVER & CODEGEN ENGINE                           │
+│  ┌────────────────────────┐      ┌─────────────────────────┐      ┌─────────────────┐  │
+│  │  HTTP Server & Mode    │ ───▶ │ TestFly Codegen Engine  │ ───▶ │  SSE Broadcast  │  │
+│  │  (/api/event, /mode)   │      │ (POM, TestNG, Cucumber) │      │  (/api/stream)  │  │
+│  └────────────────────────┘      └─────────────────────────┘      └────────┬────────┘  │
+└────────────────────────────────────────────────────────────────────────────┼───────────┘
+                                                                             │ Real-time Stream
+                                                                             ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              TESTFLY WEB STUDIO (:8765)                                │
+│  ┌────────────────────────┐      ┌─────────────────────────┐      ┌─────────────────┐  │
+│  │ Recorded Step Timeline │      │  Smart Locator Tester   │      │ Multi-Framework │  │
+│  │ (Actions, Assertions)  │      │ (Live Match Validator)  │      │   Code Center   │  │
+│  └────────────────────────┘      └─────────────────────────┘      └────────┬────────┘  │
+└────────────────────────────────────────────────────────────────────────────┼───────────┘
+                                                                             │ "Save to Project"
+                                                                             ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                               YOUR TEST REPOSITORY                                     │
+│  ┌────────────────────────┐      ┌─────────────────────────┐      ┌─────────────────┐  │
+│  │  src/test/java/...     │      │   src/test/java/...     │      │src/test/resource│  │
+│  │        /pages/         │      │        /tests/          │      │  s/features/    │  │
+│  │  (BasePage Objects)    │      │  (BaseTest & Runners)   │      │(.feature files) │  │
+│  └────────────────────────┘      └─────────────────────────┘      └─────────────────┘  │
+└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
