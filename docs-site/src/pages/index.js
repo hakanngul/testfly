@@ -93,6 +93,23 @@ const heroTabs = [
     When the agent executes goal "Add backpack to cart and navigate to checkout"
     Then the page satisfies AI condition "Shopping cart contains Sauce Labs Backpack"`,
   },
+  {
+    id: 'recorder',
+    label: '🎥 Live Recorder',
+    filename: 'testfly record https://app.com',
+    language: 'bash',
+    code: `# 1. Launch interactive Chrome companion & web studio (:8765)
+$ testfly record https://www.saucedemo.com
+
+# 2. Injected companion captures clicks, debounced typing & visual assertions
+# 3. TestFly synthesizes & saves multi-file Java tests with compiler guards:
+#    ✔ src/test/java/com/example/pages/InventoryPage.java  (BasePage)
+#    ✔ src/test/java/com/example/tests/CheckoutTest.java   (BaseTest)
+#    ✔ src/test/resources/features/checkout.feature       (Cucumber BDD)
+
+# 4. Connect AI coding assistants (Claude, Cursor, Copilot) to 88 tools
+$ testfly mcp`,
+  },
 ];
 
 // ─── Feature Data ─────────────────────────────────────────────────────────────
@@ -187,10 +204,15 @@ assertThatPage()
           <path d="m15 9-6 6" />
         </svg>
       ),
-      title: isTr ? 'Model Context Protocol (88 Yerleşik MCP Aracı)' : 'Model Context Protocol (88 MCP Tools)',
+      title: isTr ? 'Model Context Protocol & Canlı Web Kaydedici' : 'Model Context Protocol & Live Recorder',
       description: isTr
-        ? 'Claude Code, JetBrains AI Assistant, GitHub Copilot ve Google Antigravity için 88 tarayıcı otomasyon aracı. Hayali seçiciler yerine canlı tarayıcıdan doğrulanmış kod üretimi.'
-        : 'Native MCP server exposing 88 browser automation tools to Claude Code, JetBrains AI, Copilot, and Google Antigravity. Inspects live accessibility trees for 100% verified test generation.',
+        ? 'Claude Code, Cursor, Copilot ve JetBrains AI için 88 tarayıcı otomasyon aracı sunan yerleşik MCP sunucusu. testfly record komutuyla canlı Chrome oturumunu dinleyip derleme korumalı Page Object ve BDD testleri üretir.'
+        : 'Native MCP server exposing 88 browser automation tools to Claude Code, Cursor, Copilot, and JetBrains AI. Includes an interactive Chrome companion (testfly record) for zero-boilerplate Page Object and BDD codegen.',
+      code: `# 1. Live web recording with Chrome companion
+testfly record https://www.saucedemo.com
+
+# 2. Run MCP server for IDE coding assistants
+testfly mcp`,
     },
   ];
 }
@@ -308,6 +330,34 @@ function getMoreFeatures(isTr) {
       short: isTr
         ? 'Java ServiceLoader ile özel driver sağlayıcıları, yaşam döngüsü kancaları ve rapor adaptörleri ekleyin.'
         : 'Plug in custom driver providers, lifecycle hooks, and report adapters via standard Java SPI.',
+    },
+    {
+      icon: '🎙️',
+      title: isTr ? 'İnteraktif Web Kaydedici (testfly record)' : 'Interactive Web Recorder (testfly record)',
+      short: isTr
+        ? 'Canlı Chrome oturumunda gezinirken tıklama, yazım ve doğrulamaları yakalar; Page Object ve BDD üretir.'
+        : 'Stream live Chrome clicks, debounced typing, and toolbar assertions to generate Page Objects and BDD.',
+    },
+    {
+      icon: '🤖',
+      title: isTr ? 'TestFly MCP Sunucusu (88 Araç)' : 'TestFly MCP Server (88 Tools)',
+      short: isTr
+        ? 'Claude Code, Cursor ve Copilot için 88 tarayıcı otomasyon aracıyla canlı DOM denetimi ve test üretimi.'
+        : 'Protocol-native MCP server giving Claude, Cursor, and Copilot 88 live tools for verified test generation.',
+    },
+    {
+      icon: '💻',
+      title: isTr ? 'TestFly CLI Geliştirici Deneyimi' : 'TestFly CLI Toolkit',
+      short: isTr
+        ? 'testfly record, testfly mcp, testfly ui ve testfly doctor komutlarıyla eksiksiz terminal araç kiti.'
+        : 'Unified terminal suite featuring testfly record, testfly mcp, testfly ui, and testfly doctor.',
+    },
+    {
+      icon: '🧩',
+      title: isTr ? 'IDE Eklentileri (IntelliJ & VS Code)' : 'IDE Plugins (IntelliJ & VS Code)',
+      short: isTr
+        ? 'JetBrains AI Assistant ve VS Code için tek tıkla yapılandırılan sıfır-konfigürasyon eklentileri.'
+        : 'Zero-config plugins for JetBrains AI Assistant and VS Code with status bar actions and diagnostics.',
     },
   ];
 }
@@ -443,6 +493,72 @@ void verifyInvoiceSummary() {
     badgeAfterEn: '0.1s instant restore · 80% faster suites',
     badgeAfterTr: '0.1s anında oturum · %80 daha hızlı koşan suite',
   },
+  {
+    id: 'recorder',
+    labelEn: '🎥 Live Recorder & Codegen',
+    labelTr: '🎥 Canlı Kaydedici & Kod Üretimi',
+    taglineEn: 'Hours of manual DevTools element inspection and boilerplate classes vs. instant record-in-Chrome Java codegen',
+    taglineTr: 'Saatler süren manuel DevTools element incelemesi ve şablon sınıflar yerine tarayıcıda gezinerek anında Java testi üretimi',
+    filename: 'CartPage.java',
+    beforeEn: `// Plain Selenium: Inspecting elements one-by-one in Chrome DevTools
+// Manually typing 50+ lines of brittle XPath and Page Object boilerplate:
+public class CartPage {
+    private By checkoutBtn = By.xpath("//*[@id='checkout']");
+    private By firstName = By.xpath("//input[@name='firstName']");
+    private By postalCode = By.cssSelector(".postal-code-input");
+
+    public void fillFormAndSubmit(String fName, String zip) {
+        driver.findElement(firstName).sendKeys(fName);
+        driver.findElement(postalCode).sendKeys(zip);
+        driver.findElement(checkoutBtn).click();
+    }
+} // Fragile XPaths break on minor frontend changes...`,
+    beforeTr: `// Geleneksel Selenium: Chrome DevTools ile elementleri tek tek inceleme
+// Elle 50+ satır kırılgan XPath ve Page Object şablon kodu yazma zahmeti:
+public class CartPage {
+    private By checkoutBtn = By.xpath("//*[@id='checkout']");
+    private By firstName = By.xpath("//input[@name='firstName']");
+    private By postalCode = By.cssSelector(".postal-code-input");
+
+    public void fillFormAndSubmit(String fName, String zip) {
+        driver.findElement(firstName).sendKeys(fName);
+        driver.findElement(postalCode).sendKeys(zip);
+        driver.findElement(checkoutBtn).click();
+    }
+} // En ufak arayüz güncellemesinde kırılgan XPath'ler çöker...`,
+    afterEn: `// TestFly Interactive Recorder ($ testfly record https://app.com):
+// Injected Chrome companion streams clicks, typing & toolbar assertions live.
+// Real-time Page Object Model synthesis with compiler safeguards:
+public class CartPage extends BasePage {
+    private final Locator checkoutBtn = getByTestId("checkout");
+    private final Locator firstName = getByTestId("firstName");
+
+    public CartPage proceedToCheckout(String name) {
+        firstName.type(name);
+        checkoutBtn.click();
+        return this;
+    }
+}
+// Saved directly to src/test/java/.../CartPage.java with 1-click!`,
+    afterTr: `// TestFly Interactive Recorder ($ testfly record https://app.com):
+// Chrome eşlikçisi tıklamaları, yazımları ve doğrulamaları anında dinler.
+// Java derleyici güvenceleriyle anlık Page Object Model sentezi:
+public class CartPage extends BasePage {
+    private final Locator checkoutBtn = getByTestId("checkout");
+    private final Locator firstName = getByTestId("firstName");
+
+    public CartPage proceedToCheckout(String name) {
+        firstName.type(name);
+        checkoutBtn.click();
+        return this;
+    }
+}
+// Tek tıkla doğrudan src/test/java/.../CartPage.java dizinine kaydedilir!`,
+    badgeBeforeEn: 'DevTools inspection · 45m per page',
+    badgeBeforeTr: 'Manuel DevTools · Sayfa başına 45dk',
+    badgeAfterEn: '1 command · Live POM & BDD codegen',
+    badgeAfterTr: 'Tek komut · Canlı POM ve BDD üretimi',
+  },
 ];
 
 function getFaqs(isTr) {
@@ -467,6 +583,10 @@ function getFaqs(isTr) {
       {
         q: 'TestFly MCP sunucusu IDE asistanlarıyla (Claude Code, IntelliJ, Copilot) nasıl entegre olur?',
         a: "TestFly, 88 adet tarayıcı otomasyon aracı sunan yerleşik bir Model Context Protocol (MCP) sunucusuna sahiptir. AI asistanınız kör kod yazmak yerine canlı tarayıcıyı inceler, erişilebilirlik ağacından doğru elementleri seçer ve hatasız TestFly Java kodları üretir.",
+      },
+      {
+        q: 'testfly record komutu ve Interactive Recorder stüdyosu nasıl çalışır?',
+        a: "testfly record <url> komutunu çalıştırdığınızda TestFly izole bir Google Chrome penceresi açar ve CDP aracılığıyla injected_recorder.js betiğini otomatik enjekte eder. Tarayıcıdaki tıklamalar, tuş vuruşları (debounced typing) ve görsel doğrulamalar (isVisible, hasText) SSE üzerinden yerel stüdyoya (:8765) iletilir. Stüdyo anlık olarak Page Object Model, TestNG, JUnit 5 veya Cucumber BDD kodları derler. 'Save to Project' butonuna bastığınızda dosyalar Java anahtar kelime güvenceleriyle (örn. continueElement) doğrudan src/test/java/ projenize yazılır.",
       },
       {
         q: 'Ham Selenium WebDriver ve CDP API\'larına doğrudan erişebilir miyim?',
@@ -495,6 +615,10 @@ function getFaqs(isTr) {
     {
       q: 'How does the TestFly MCP server integrate with AI coding tools?',
       a: 'TestFly provides a built-in Model Context Protocol (MCP) server exposing 88 browser automation tools. AI assistants like Claude Code, JetBrains AI Assistant, GitHub Copilot, and Google Antigravity can inspect live browsers, query the accessibility tree, and generate reliable, production-grade TestFly Java code rather than hallucinating selectors.',
+    },
+    {
+      q: 'How does testfly record and the Interactive Recorder studio work?',
+      a: "Running testfly record <url> launches an isolated Google Chrome instance with automated CDP script injection. User clicks, coalesced keystrokes, and toolbar assertions (isVisible, hasText) are streamed via SSE to the local web studio (:8765). The studio synthesizes production-ready Page Object Model, TestNG, JUnit 5, or Cucumber BDD code in real time. Clicking 'Save to Project' writes clean, compiler-safe classes directly into your project's src/test/java/ directory.",
     },
     {
       q: 'Can I still drop down to the raw Selenium WebDriver and CDP APIs?',
@@ -647,6 +771,177 @@ function HeroCodeShowcase() {
   );
 }
 
+const recorderTabs = [
+  {
+    id: 'pom',
+    label: '📄 Page Object (BasePage)',
+    filename: 'com/example/pages/InventoryPage.java',
+    language: 'java',
+    code: `package com.example.pages;
+
+import io.testfly.test.BasePage;
+import io.testfly.locator.Locator;
+import org.openqa.selenium.WebDriver;
+
+public class InventoryPage extends BasePage {
+
+    // Accessibility-first locators captured from live Chrome DOM
+    private final Locator backpackBtn = getByTestId("add-to-cart-sauce-labs-backpack");
+    private final Locator cartBadge = getByTestId("shopping-cart-badge");
+    private final Locator checkoutBtn = getByTestId("checkout");
+
+    public InventoryPage(WebDriver driver) {
+        super(driver);
+    }
+
+    public InventoryPage addBackpackToCart() {
+        backpackBtn.click();
+        return this;
+    }
+
+    public InventoryPage proceedToCheckout() {
+        checkoutBtn.click();
+        return this;
+    }
+}`,
+  },
+  {
+    id: 'test',
+    label: '🧪 POM Test (BaseTest)',
+    filename: 'com/example/tests/InventoryTest.java',
+    language: 'java',
+    code: `package com.example.tests;
+
+import com.example.pages.InventoryPage;
+import io.testfly.test.BaseTest;
+import org.testng.annotations.Test;
+
+public class InventoryTest extends BaseTest {
+
+    @Test
+    public void testRecordedCheckoutFlow() {
+        open("https://www.saucedemo.com/inventory.html");
+
+        InventoryPage page = new InventoryPage(getDriver());
+        page.addBackpackToCart()
+            .proceedToCheckout();
+
+        // 👁️ Visual assertion captured live from Studio toolbar
+        assertThat(getByTestId("title"))
+            .isVisible()
+            .hasText("Checkout: Your Information");
+    }
+}`,
+  },
+  {
+    id: 'bdd',
+    label: '🥒 Cucumber BDD',
+    filename: 'src/test/resources/features/inventory.feature',
+    language: 'gherkin',
+    code: `Feature: Live Recorded E-Commerce Journey
+  Background:
+    Given the user opens "https://www.saucedemo.com/inventory.html"
+
+  Scenario: Add backpack to cart and proceed to checkout
+    When the user clicks element "add-to-cart-sauce-labs-backpack"
+    Then the element "shopping-cart-badge" is visible
+    And the element "shopping-cart-badge" has text "1"
+    When the user clicks element "checkout"
+    Then the page title equals "Swag Labs"`,
+  },
+  {
+    id: 'terminal',
+    label: '💻 CLI & MCP ($ testfly record)',
+    filename: 'Terminal ($ testfly record)',
+    language: 'bash',
+    code: `# 1. Start zero-setup Chrome companion and Web Studio (:8765)
+$ testfly record https://www.saucedemo.com
+
+# 2. Injected Chrome companion streams clicks, debounced typing & assertions
+# 3. Live Smart Locator Tester reports: "getByTestId('checkout') -> 1 match"
+# 4. Click 'Save to Project' (saved with Java reserved keyword safeguards):
+#    ✔ src/test/java/com/example/pages/InventoryPage.java
+#    ✔ src/test/java/com/example/tests/InventoryTest.java
+# 5. Connect AI coding assistants (Claude, Cursor, Copilot) to 88 live tools
+$ testfly mcp`,
+  },
+];
+
+function RecorderCodeShowcase() {
+  const [activeTab, setActiveTab] = useState(0);
+  const current = recorderTabs[activeTab];
+  const { colorMode } = useColorMode();
+
+  const lightTheme = {
+    plain: { color: '#1d1d1f', backgroundColor: '#f5f5f7' },
+    styles: [
+      { types: ['comment', 'prolog', 'doctype', 'cdata'], style: { color: '#6e6e73' } },
+      { types: ['punctuation'], style: { color: '#1d1d1f' } },
+      { types: ['property', 'tag', 'boolean', 'number', 'constant', 'symbol'], style: { color: '#0071e3' } },
+      { types: ['selector', 'attr-name', 'string', 'char', 'builtin'], style: { color: '#248a3d' } },
+      { types: ['operator', 'entity', 'url'], style: { color: '#ff9500' } },
+      { types: ['atrule', 'attr-value', 'keyword'], style: { color: '#af52de' } },
+      { types: ['function', 'class-name'], style: { color: '#ff3b30' } },
+      { types: ['regexp', 'important', 'variable'], style: { color: '#ff9500' } },
+    ],
+  };
+
+  const darkTheme = {
+    plain: { color: '#f5f5f7', backgroundColor: '#1c1c1e' },
+    styles: [
+      { types: ['comment', 'prolog', 'doctype', 'cdata'], style: { color: '#8e8e93' } },
+      { types: ['punctuation'], style: { color: '#f5f5f7' } },
+      { types: ['property', 'tag', 'boolean', 'number', 'constant', 'symbol'], style: { color: '#0a84ff' } },
+      { types: ['selector', 'attr-name', 'string', 'char', 'builtin'], style: { color: '#30d158' } },
+      { types: ['operator', 'entity', 'url'], style: { color: '#ff9f0a' } },
+      { types: ['atrule', 'attr-value', 'keyword'], style: { color: '#bf5af2' } },
+      { types: ['function', 'class-name'], style: { color: '#ff453a' } },
+      { types: ['regexp', 'important', 'variable'], style: { color: '#ff9f0a' } },
+    ],
+  };
+
+  const prismTheme = colorMode === 'dark' ? darkTheme : lightTheme;
+
+  return (
+    <div className={styles.codeWindow}>
+      <div className={styles.codeWindowBar}>
+        <div className={styles.codeWindowDots}>
+          <span className={styles.dot} style={{ background: '#ff5f57' }} />
+          <span className={styles.dot} style={{ background: '#febc2e' }} />
+          <span className={styles.dot} style={{ background: '#28c840' }} />
+        </div>
+        <div className={styles.codeTabList} role="tablist">
+          {recorderTabs.map((tab, idx) => (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={activeTab === idx}
+              className={`${styles.codeTab} ${activeTab === idx ? styles.codeTabActive : ''}`}
+              onClick={() => setActiveTab(idx)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <span className={styles.codeWindowFilename}>{current.filename}</span>
+      </div>
+      <Highlight theme={prismTheme} code={current.code.trim()} language={current.language}>
+        {({ className: hlClass, style, tokens, getLineProps, getTokenProps }) => (
+          <pre className={`${styles.codeWindowBody} ${hlClass}`} style={{ ...style, background: 'transparent' }}>
+            {tokens.map((line, i) => (
+              <div key={i} {...getLineProps({ line })}>
+                {line.map((token, key) => (
+                  <span key={key} {...getTokenProps({ token })} />
+                ))}
+              </div>
+            ))}
+          </pre>
+        )}
+      </Highlight>
+    </div>
+  );
+}
+
 function ReportPreview() {
   return (
     <div className={styles.reportPreview} aria-hidden>
@@ -754,8 +1049,8 @@ export default function Home() {
 
               <p className={styles.heroSubtitle}>
                 {isTr
-                  ? "Modern mühendislik ekipleri için geliştirilmiş, sıfır ek yüklü Java test otomasyon SDK'sı. TestFly; Selenium 4 altyapısını otonom Agentic AI, kendi kendini onaran seçiciler ve 88 yerleşik MCP aracıyla tek bir konfigürasyonsuz mimaride birleştirir."
-                  : 'An opinionated, zero-overhead Java test automation SDK engineered for modern teams. TestFly unifies convention-over-configuration Selenium 4 with autonomous Agentic AI, self-healing locators, and 88 protocol-native MCP tools.'}
+                  ? "Modern mühendislik ekipleri için geliştirilmiş, sıfır ek yüklü Java test otomasyon SDK'sı. TestFly; Selenium 4 altyapısını otonom Agentic AI, kendi kendini onaran seçiciler, interaktif Chrome web kaydedicisi ve 88 yerleşik MCP aracıyla tek bir konfigürasyonsuz mimaride birleştirir."
+                  : 'An opinionated, zero-overhead Java test automation SDK engineered for modern teams. TestFly unifies convention-over-configuration Selenium 4 with autonomous Agentic AI, self-healing locators, an interactive Chrome web recorder, and 88 protocol-native MCP tools.'}
               </p>
 
               <div className={styles.heroBottom}>
@@ -763,8 +1058,11 @@ export default function Home() {
                   <Link className={styles.buttonPrimary} to="/docs/getting-started">
                     {isTr ? 'Hemen Başlayın' : 'Get Started'}
                   </Link>
-                  <Link className={styles.buttonSecondary} to="/docs/ai/agentic-testing">
-                    {isTr ? '🤖 Otonom AI Rehberi' : '🤖 Agentic AI Guide'}
+                  <Link className={styles.buttonSecondary} to="/docs/ai/recorder">
+                    {isTr ? '🎥 Canlı Web Kaydedici' : '🎥 Live Web Recorder'}
+                  </Link>
+                  <Link className={styles.buttonSecondary} to="/docs/ai/overview">
+                    {isTr ? '🤖 AI & MCP Rehberi' : '🤖 AI & MCP Guide'}
                   </Link>
                   <Link className={styles.buttonSecondary} to="https://github.com/hakanngul/testfly">
                     GitHub
@@ -1015,6 +1313,113 @@ export default function Home() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Interactive Recorder & MCP Section ───────────────────────────── */}
+        <section className={styles.recorderSection}>
+          <div className="container">
+            <div className={styles.recorderInner}>
+              <div className={styles.recorderText} data-reveal>
+                <span className={styles.sectionEyebrow}>
+                  {isTr ? 'Canlı Tarayıcı Eşlikçisi & Model Context Protocol' : 'Live Browser Companion & Model Context Protocol'}
+                </span>
+                <h2 className={styles.recorderTitle}>
+                  {isTr ? (
+                    <>
+                      Chrome'da gezinirken kaydedin,
+                      <br />
+                      <span className={styles.recorderTitleAccent}>üretime hazır Java testleri üretin</span>
+                    </>
+                  ) : (
+                    <>
+                      Record in Chrome,
+                      <br />
+                      <span className={styles.recorderTitleAccent}>compile to production Java</span>
+                    </>
+                  )}
+                </h2>
+                <p className={styles.recorderSubtitle}>
+                  {isTr
+                    ? 'TestFly etkileşimli kayıt stüdyosu; tıklamalarınızı, form girişlerinizi ve görsel web doğrulamalarınızı gerçek zamanlı SSE ile dinler. Java derleyici güvenceleriyle (örn. continueElement) temiz Page Object ve Cucumber BDD testlerini doğrudan projenize yazar.'
+                    : "TestFly's interactive companion studio streams your clicks, typing, and visual assertions over real-time SSE. Emits clean Page Object Model and Cucumber BDD tests with compiler safeguards, saved directly to your repository in seconds."}
+                </p>
+
+                <div className={styles.recorderPills}>
+                  <div className={styles.recorderPill}>
+                    <span className={styles.recorderPillIcon}>🎥</span>
+                    <div>
+                      <strong>
+                        {isTr ? 'Sıfır Kurulumlu Chrome Eşlikçisi (testfly record)' : 'Zero-Setup Chrome Companion (testfly record)'}
+                      </strong>
+                      <span>
+                        {isTr
+                          ? 'Otomatik CDP script enjeksiyonlu izole Chrome penceresi ve port çakışmasız canlı stüdyo (:8765)'
+                          : 'Isolated Chrome launch with automated CDP script injection and dynamic port fallback (:8765)'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.recorderPill}>
+                    <span className={styles.recorderPillIcon}>👁️</span>
+                    <div>
+                      <strong>
+                        {isTr ? 'Görsel Web Doğrulama Araç Çubuğu' : 'Visual Web Assertion Toolbar'}
+                      </strong>
+                      <span>
+                        {isTr
+                          ? 'Tek tıkla isVisible(), isEnabled() ve hasText() doğrulamaları (tam ve içeren metin modlarıyla)'
+                          : 'One-click isVisible(), isEnabled(), and hasText() assertions with exact/contains match modals'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.recorderPill}>
+                    <span className={styles.recorderPillIcon}>🏗️</span>
+                    <div>
+                      <strong>
+                        {isTr ? "4'ü 1 Arada Çoklu Mimari Kod Sentezi" : '4-in-1 Multi-Framework Java Codegen'}
+                      </strong>
+                      <span>
+                        {isTr
+                          ? 'Page Object Model (BasePage), bağımsız TestNG (BaseTest), JUnit 5 ve Cucumber BDD desteği'
+                          : 'Real-time synthesis across Page Object Model (BasePage), standalone TestNG, JUnit 5, and Cucumber BDD'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.recorderPill}>
+                    <span className={styles.recorderPillIcon}>🤖</span>
+                    <div>
+                      <strong>
+                        {isTr ? '88 Yerleşik MCP Aracı & IDE Eklentileri' : '88 Native MCP Protocol Tools & IDE Plugins'}
+                      </strong>
+                      <span>
+                        {isTr
+                          ? "Claude Code, Cursor, Copilot ve JetBrains AI'ı canlı DOM'a bağlayan protokol ve IDE eklentileri"
+                          : 'Standard Model Context Protocol connecting Claude, Cursor, Copilot, and JetBrains AI to live DOMs'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.recorderActions}>
+                  <Link className={styles.buttonPrimary} to="/docs/ai/recorder">
+                    {isTr ? '🎥 Canlı Kaydedici Rehberi' : '🎥 Explore Interactive Recorder'}
+                  </Link>
+                  <Link className={styles.buttonSecondary} to="/docs/ai/overview">
+                    {isTr ? '🤖 AI & MCP Mimarisi' : '🤖 AI & MCP Architecture'}
+                  </Link>
+                  <Link className={styles.buttonSecondary} to="/docs/cli">
+                    {isTr ? '💻 CLI Kılavuzu' : '💻 CLI Reference'}
+                  </Link>
+                </div>
+              </div>
+
+              <div className={styles.recorderCode} data-reveal style={{ '--i': 1 }}>
+                <RecorderCodeShowcase />
+              </div>
             </div>
           </div>
         </section>
