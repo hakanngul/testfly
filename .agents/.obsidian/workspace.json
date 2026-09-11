@@ -184,6 +184,7 @@
   },
   "active": "7d971f168029aa09",
   "lastOpenFiles": [
+    "wiki/roadmap.md",
     "rules/docusaurus-workflow.md",
     "skills/docusaurus-config/SKILL.md",
     "skills/automation-architecture/references/recipes.md",
@@ -218,7 +219,6 @@
     "plugins/testfly-agents/agents/testfly_qa_agent.md",
     "memories/scratchpad.md",
     "MAP.md",
-    "wiki/test-management.md",
-    "wiki/ai-mcp-automation.md"
+    "wiki/test-management.md"
   ]
 }

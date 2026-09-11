@@ -1,63 +1,66 @@
 ---
 id: interactive-studio
-title: Etkileşimli Web Stüdyosu
-sidebar_label: Etkileşimli Web Stüdyosu
+title: İnteraktif Web Stüdyosu
+sidebar_label: İnteraktif Web Stüdyosu
 sidebar_position: 4
-description: TestFly MCP Web Stüdyosu ile tarayıcı denetimi, görsel kod üretimi ve testfly.yml yönetimi.
+description: Görsel test üretimi, tarayıcı deneme alanı, canlı refakatçi kaydı ve TestFly Web Stüdyosu ile yapılandırma yönetimi.
 ---
 
-# Etkileşimli Web Stüdyosu
+# İnteraktif Web Stüdyosu
 
-**TestFly MCP Stüdyosu**, QA mühendisleri ve geliştiricilerin doğrudan web tarayıcısı üzerinden canlı tarayıcı oturumlarını yönetmesini, MCP araçlarını test etmesini ve TestFly Java kodları üretmesini sağlayan sıfır bağımlılıklı yerel bir web uygulamasıdır.
+**TestFly Web Stüdyosu**, QA ekiplerinin ve geliştiricilerin tarayıcıları görsel olarak kontrol etmesini, MCP araçlarını denemesini, üretime hazır Java kodları üretmesini ve proje ayarlarını yönetmesini sağlayan yerel ve sıfır bağımlılıklı bir web arayüzüdür.
 
 ```bash
-testfly-mcp ui
+# Stüdyoyu http://127.0.0.1:8765 adresinde başlatır
+testfly studio
 ```
 
-Komutu çalıştırdığınızda stüdyo **`http://127.0.0.1:8765`** adresinde açılır ve varsayılan tarayıcınız otomatik olarak başlatılır.
+*(Ayrıca `testfly ui` takma adını da kullanabilirsiniz).*
 
 ---
 
-## Modüller ve Özellikler
+## Stüdyo Modları
 
-### 1. Browser Playground (Tarayıcı Denetimi)
-**Browser Playground**, canlı tarayıcı oturumlarını görsel olarak incelemenizi sağlar:
+Web Stüdyosu birbirini tamamlayan iki ana modda çalışır:
 
-- **Çalıştırma Modları:**
-  - **🤖 Headless (Arka Plan):** Chrome masaüstünüzde harici bir pencere açmadan sessizce arka planda çalışır ve ekran görüntüleri doğrudan **Live Preview** paneline akar. *(Varsayılan)*
-  - **🖥️ Visible Window:** Görsel hata ayıklama için Google Chrome'u masaüstünüzde fiziksel bir pencere olarak açar.
-- **Gezinme ve Eylemler:** URL girip **Go** diyerek sayfayı yükleyin. Canlı öğelere tıklayın veya metin yazın.
-- **Canlı Önizleme (Live Preview):** Sayfa geçişlerinden veya tıklamalardan sonra yüksek çözünürlüklü ekran görüntüsü otomatik olarak güncellenir.
-- **Inspect Elements:** Sayfada tespit edilen tüm interaktif giriş alanlarını, butonları ve linkleri listeler.
-- **A11y Audit:** Sayfadaki erişilebilirlik hatalarını (eksik label, renk kontrastı vb.) anında denetler.
+### 1. Bağımsız Deneme Alanı Modu (`testfly studio`)
+Manuel tarayıcı keşfi, araç incelemesi ve yapılandırma düzenlemeleri için tasarlanmıştır:
+- **Tarayıcı Yürütme Modları:** Pop-up pencereler olmadan ekran görüntüsü akışı sunan **🤖 Headless (Arka Plan)** ve görsel inceleme sunan **🖥️ Görünür Pencere** arasında seçim yapabilirsiniz.
+- **Araçlar Dizini (88 Araç):** Tüm MCP araçlarını arayabilir, parametre şemalarını inceleyebilir ve özel JSON girdileriyle doğrudan çalıştırabilirsiniz.
+- **Görsel `testfly.yml` Editörü:** Senkronize form kontrolleri ve YAML önizlemesi ile tek tıkla proje köküne kaydetme imkanı sunar.
+- **Ortam Tanılaması:** Python, Selenium, Chrome ve IDE entegrasyonlarının sağlık durumunu görsel olarak gösterir.
 
----
+### 2. Canlı Refakatçi Kayıt Modu (`testfly record <url>`)
+Gerçek kullanıcı akışlarının Google Chrome üzerinde canlı kaydedilmesi için tasarlanmıştır:
+- **Chrome Refakatçisi:** DOM olay yakalayıcı betikler ve gevşetilmiş güvenlik parametreleriyle Google Chrome'u otomatik başlatır.
+- **Canlı Olay Akışı (SSE):** Tıklamalar, birleştirilmiş metin girişleri ve özel assertion adımlarının anlık akışı.
+- **Doğrulama (Assertion) Araç Çubuğu:** Öğe görünürlüğü, etkinlik durumu ve tam/içerik metin doğrulamalarını tek tıkla kaydetme.
+- **Akıllı Seçici Test Edici:** Canlı sayfa üzerinde anlık seçici doğrulama.
+- **Çoklu Mimari Java Kod Üretimi:** Page Object Model (`BasePage` + `BaseTest`), TestNG, JUnit 5 ve Cucumber BDD için eşzamanlı renklendirilmiş kod çıktısı.
+- **Projeye Kaydetme:** Page Object sınıflarını `pages/`, Test sınıflarını `tests/` ve Gherkin dosyalarını `resources/features/` klasörlerine temiz şekilde ayrıştırarak kaydetme.
 
-### 2. Codegen Studio (Kod Üretimi)
-Canlı tarayıcı oturumunu doğrudan TestFly Java kodlarına dönüştürür:
-
-- **Desteklenen Kalıplar:**
-  - **Page Object Modeli:** `BasePage` extend eden, modern a11y seçicilerine sahip sınıflar üretir.
-  - **TestNG Testleri:** `BaseTest` extend eden, `assertThat(getDriver()).hasTitle(...)` içeren test sınıfları üretir.
-  - **JUnit 5 Testleri:** `BaseJUnit5Test` extend eden test sınıfları üretir.
-  - **Cucumber BDD:** Gherkin feature dosyası, `BaseCucumberSteps` ve `BaseCucumberTest` runner'ı üretir.
-- **Tek Tıkla Kopyalama:** Renklendirilmiş Java kodunu tek tıkla panoya kopyalayıp projenize yapıştırabilirsiniz.
+> [!TIP]
+> Canlı refakatçi kaydedicinin adım adım kullanım rehberi için [İnteraktif Kaydedici Kılavuzu](./recorder.md) sayfasına göz atın.
 
 ---
 
-### 3. Tools Directory (88 Araç)
-- 88 MCP aracını ada veya açıklamaya göre arayın ve filtreleyin.
-- JSON parametre şemalarını inceleyin.
-- Canlı oturum üzerinde herhangi bir aracı özel JSON girdileriyle test edin ve çıktısını anlık görüntüleyin.
+## Görsel `testfly.yml` Editörü
+
+Test yürütme parametrelerini yönetmek yerleşik düzenleyici ile çok kolaydır:
+
+1. **Yürütme Ayarları:** Yerel yürütme, Selenium Grid adresleri, paralel yürütme modu (`methods` vs `classes`), iş parçacığı (thread) sayısı ve maksimum oturum limitlerini ayarlayın.
+2. **Tarayıcı Profilleri:** Varsayılan tarayıcı (`chrome`, `firefox`, `edge`), pencere boyutları, headless tercihi ve özel başlatma argümanlarını seçin.
+3. **Zaman Aşımları & Yeniden Deneme:** Açık bekleme eşikleri, sayfa yükleme süreleri ve flaky test yeniden deneme ilkelerini (`enabled`, `maxAttempts`) yapılandırın.
+4. **Raporlama Entegrasyonları:** HTML raporları, Allure 2 ve ReportPortal çıktılarını etkinleştirin.
+5. **Doğrudan Projeye Eşitleme:** Manuel kopyalama gerektirmeden **"Save testfly.yml to Project Root"** butonuyla ayarları doğrudan proje kökünüze kaydedin.
 
 ---
 
-### 4. Görsel `testfly.yml` Editörü
-- Tarayıcı türünü (`chrome`, `firefox`, `edge`), çalışma modunu (`local` / `grid`), thread sayısını ve timeout sürelerini form üzerinden belirleyin.
-- Canlı senkronize YAML önizlemesini inceleyin.
-- **"Save testfly.yml to Project Root"** butonuna basarak dosyayı doğrudan proje kökünüze kaydedin.
+## Port Yönetimi ve Çakışma Çözümü
 
----
-
-### 5. Sistem Teşhisi (Doctor)
-- Python ortamı, Selenium kütüphanesi, Google Chrome binary yolu ve IDE konfigürasyonlarını doğrulayan yerleşik kontrol paneli.
+Web Stüdyosu varsayılan olarak `8765` portunu kullanır. Bu port başka bir uygulama veya açık bir oturum tarafından kullanılıyorsa:
+- Sunucu sonraki portları (`8766`, `8767`, ...) 20 denemeye kadar otomatik olarak tarar.
+- Aktif port konsola yazdırılır ve varsayılan masaüstü tarayıcınızda otomatik olarak açılır:
+  ```text
+  ✓ TestFly Web Studio running at: http://127.0.0.1:8766
+  ```

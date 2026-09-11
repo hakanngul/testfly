@@ -5,131 +5,111 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TestFly &mdash; Test Execution &amp; Quality Report</title>
-    <style>
-        /* System font fallbacks defined BEFORE Google Fonts link */
-        :root {
-            --font-main-fallback: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --font-mono-fallback: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        }
-    </style>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
-        rel="stylesheet"
-        onerror="document.documentElement.style.setProperty('--font-main', 'var(--font-main-fallback)');document.documentElement.style.setProperty('--font-mono', 'var(--font-mono-fallback)');">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"
         onerror="window.Chart=function(){this.destroy=function(){}};Chart.prototype={};"></script>
     <style>
         :root {
-            --appbar-h: 64px;
+            --appbar-h: 56px;
             --sidebar-w: 240px;
-            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            --font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            --transition-smooth: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --ease-spring: cubic-bezier(0.25, 1, 0.5, 1);
+            --transition-smooth: all 0.2s var(--ease-spring);
 
-            /* Allure Standard Status Palette - Crisp, Clean & Professional */
+            /* Primary Accent (Apple Blue per DESIGN.md) */
+            --primary: #0071e3;
+            --primary-hover: #0077ed;
+            --primary-active: #005bb5;
+            --primary-bg: rgba(0, 113, 227, 0.08);
+            --primary-border: rgba(0, 113, 227, 0.25);
+
+            /* Telemetry Status Palette (Allure compatible green & red) */
             --good: #97cc64;
             --good-text: #2f6b15;
-            --good-bg: #f6ffed;
-            --good-border: #b7eb8f;
+            --good-bg: rgba(151, 204, 100, 0.14);
+            --good-border: rgba(151, 204, 100, 0.32);
 
             --bad: #fd5a3e;
             --bad-text: #cf1322;
-            --bad-bg: #fff1f0;
-            --bad-border: #ffa39e;
+            --bad-bg: rgba(253, 90, 62, 0.14);
+            --bad-border: rgba(253, 90, 62, 0.32);
 
             --warn: #ffb238;
             --warn-text: #d46b08;
-            --warn-bg: #fff7e6;
-            --warn-border: #ffd591;
+            --warn-bg: rgba(255, 178, 56, 0.14);
+            --warn-border: rgba(255, 178, 56, 0.32);
 
             --skipped: #8c8c8c;
             --skipped-text: #595959;
-            --skipped-bg: #f5f5f5;
-            --skipped-border: #d9d9d9;
+            --skipped-bg: rgba(140, 140, 140, 0.12);
+            --skipped-border: rgba(140, 140, 140, 0.28);
 
-            --flaky: #fa8c16;
-            --flaky-bg: rgba(250, 140, 22, 0.1);
-            --flaky-border: rgba(250, 140, 22, 0.3);
+            --flaky: #ff9500;
+            --flaky-bg: rgba(255, 149, 0, 0.12);
+            --flaky-border: rgba(255, 149, 0, 0.32);
 
-            --healed: #13c2c2;
-            --healed-bg: rgba(19, 194, 194, 0.1);
-            --healed-border: rgba(19, 194, 194, 0.3);
+            --healed: #0071e3;
+            --healed-bg: rgba(0, 113, 227, 0.1);
+            --healed-border: rgba(0, 113, 227, 0.25);
 
-            /* Allure Blue / Primary */
-            --primary: #1890ff;
-            --primary-hover: #40a9ff;
-            --primary-active: #096dd9;
-            --primary-bg: #e6f7ff;
-            --primary-border: #91d5ff;
-
-            /* Light theme surfaces */
-            --bg: #f4f6f8;
+            /* Light theme surfaces (Off-white studio canvas) */
+            --bg: #f5f5f7;
             --surface: #ffffff;
             --surface-elevated: #ffffff;
-            --surface-subtle: #f8fafc;
-            --surface-hover: #edf2f7;
-            --border: #e2e8f0;
-            --border-subtle: #edf2f7;
-            --text: #1e293b;
-            --text-secondary: #475569;
-            --text-muted: #94a3b8;
-            --appbar-bg: #1e293b;
-            --appbar-text: #ffffff;
-            --appbar-border: #0f172a;
-            --code-bg: #0f172a;
-            --code-text: #e2e8f0;
-            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+            --surface-subtle: #fafafc;
+            --surface-hover: #f0f0f4;
+            --border: #e5e5ea;
+            --border-subtle: #f2f2f7;
+            --text: #1d1d1f;
+            --text-secondary: #6e6e73;
+            --text-muted: #86868b;
+            --appbar-bg: rgba(255, 255, 255, 0.85);
+            --appbar-text: #1d1d1f;
+            --appbar-border: rgba(0, 0, 0, 0.08);
+            --code-bg: #f0f4f8;
+            --code-text: #1d1d1f;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 12px 32px -4px rgba(0, 0, 0, 0.08);
         }
 
         [data-theme="dark"] {
-            /* Allure Dark Surfaces */
-            --bg: #111827;
-            --surface: #1f2937;
-            --surface-elevated: #243042;
-            --surface-subtle: #182232;
-            --surface-hover: #2d3d52;
-            --border: #374151;
-            --border-subtle: #2b3544;
-            --text: #f9fafb;
-            --text-secondary: #9ca3af;
-            --text-muted: #6b7280;
-            --appbar-bg: #111827;
+            /* OLED Midnight Luxury */
+            --bg: #000000;
+            --surface: #1c1c1e;
+            --surface-elevated: #242426;
+            --surface-subtle: #121214;
+            --surface-hover: #2c2c2e;
+            --border: rgba(255, 255, 255, 0.1);
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --text: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-muted: #86868b;
+            --appbar-bg: rgba(28, 28, 30, 0.85);
             --appbar-text: #ffffff;
-            --appbar-border: #374151;
+            --appbar-border: rgba(255, 255, 255, 0.1);
 
-            --good: #97cc64;
             --good-text: #95de64;
-            --good-bg: rgba(82, 196, 26, 0.14);
-            --good-border: rgba(82, 196, 26, 0.35);
+            --good-bg: rgba(151, 204, 100, 0.16);
+            --good-border: rgba(151, 204, 100, 0.35);
 
-            --bad: #fd5a3e;
             --bad-text: #ff7875;
-            --bad-bg: rgba(245, 34, 45, 0.14);
-            --bad-border: rgba(245, 34, 45, 0.35);
+            --bad-bg: rgba(253, 90, 62, 0.16);
+            --bad-border: rgba(253, 90, 62, 0.35);
 
-            --warn: #ffb238;
             --warn-text: #ffc069;
-            --warn-bg: rgba(250, 140, 22, 0.14);
-            --warn-border: rgba(250, 140, 22, 0.35);
+            --warn-bg: rgba(255, 178, 56, 0.16);
+            --warn-border: rgba(255, 178, 56, 0.35);
 
-            --skipped: #9ca3af;
             --skipped-text: #d1d5db;
-            --skipped-bg: rgba(156, 163, 175, 0.14);
-            --skipped-border: rgba(156, 163, 175, 0.3);
+            --skipped-bg: rgba(140, 140, 140, 0.16);
+            --skipped-border: rgba(140, 140, 140, 0.32);
 
-            --primary: #1890ff;
-            --primary-bg: rgba(24, 144, 255, 0.14);
-            --primary-border: rgba(24, 144, 255, 0.35);
-
-            --code-bg: #0b0f19;
-            --code-text: #e2e8f0;
-            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
-            --shadow-md: 0 4px 10px 0 rgba(0, 0, 0, 0.35);
-            --shadow-lg: 0 12px 28px -4px rgba(0, 0, 0, 0.45);
+            --code-bg: #11141a;
+            --code-text: #e5e5ea;
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 14px 0 rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 14px 36px -4px rgba(0, 0, 0, 0.65);
         }
 
         *,
@@ -140,21 +120,53 @@
             padding: 0;
         }
 
+        /* Browser Surface Theming */
+        ::selection {
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 980px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
         body {
             font-family: var(--font-main);
             background: var(--bg);
             color: var(--text);
-            transition: background 0.2s ease, color 0.2s ease;
+            transition: background 0.25s ease, color 0.25s ease;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
 
-        /* ── Top App Bar ── */
+        /* ── Top App Bar (Frosted Glass) ── */
         .app-bar {
             background: var(--appbar-bg);
-            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid var(--appbar-border);
             padding: 0 24px;
             height: var(--appbar-h);
             position: sticky;
@@ -164,13 +176,12 @@
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
-            box-shadow: var(--shadow-sm);
         }
 
         .app-bar-left {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
         }
 
         .brand-logo {
@@ -178,49 +189,38 @@
             align-items: center;
             gap: 10px;
             text-decoration: none;
-            color: #ffffff;
+            color: var(--text);
         }
 
         .brand-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
             background: var(--primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #fff;
-            font-size: 17px;
+            color: #ffffff;
+            font-size: 15px;
             font-weight: 800;
-            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.4);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
         }
 
         .brand-text-wrap h1 {
-            font-size: 16px;
+            font-size: 17px;
             font-weight: 700;
-            letter-spacing: -0.01em;
+            letter-spacing: -0.02em;
+            color: var(--text);
             display: flex;
             align-items: center;
             gap: 8px;
-            color: #ffffff;
         }
 
         .brand-text-wrap p {
             font-size: 11px;
-            color: #94a3b8;
-            margin-top: 2px;
+            color: var(--text-muted);
+            margin-top: 1px;
             font-family: var(--font-mono);
-        }
-
-        .version-tag {
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: rgba(24, 144, 255, 0.2);
-            color: #69c0ff;
-            letter-spacing: 0.05em;
         }
 
         .app-bar-center {
@@ -233,25 +233,30 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 5px 12px;
-            border-radius: 8px;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 980px;
             font-size: 12px;
+            transition: var(--transition-smooth);
+        }
+
+        .run-selector-wrap:hover {
+            border-color: var(--primary-border);
         }
 
         .run-selector-label {
-            color: #94a3b8;
+            color: var(--text-muted);
             font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
         .run-select {
             background: transparent;
             border: none;
-            color: #ffffff;
+            color: var(--text);
             font-family: var(--font-main);
             font-size: 12px;
             font-weight: 600;
@@ -261,41 +266,23 @@
         }
 
         .run-select option {
-            background: #1f2937;
-            color: #f9fafb;
+            background: var(--surface);
+            color: var(--text);
         }
 
         .app-bar-right {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
         }
 
-        .header-chip {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            padding: 5px 10px;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #e2e8f0;
-        }
-
-        .header-chip.rate-badge {
-            background: rgba(151, 204, 100, 0.2);
-            border-color: rgba(151, 204, 100, 0.4);
-            color: #b7eb8f;
-        }
-
+        /* Pill Action Buttons (Pure Pill Rule per DESIGN.md) */
         .btn-action {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: #ffffff;
-            border-radius: 8px;
-            padding: 6px 12px;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 980px;
+            padding: 6px 14px;
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
@@ -306,8 +293,13 @@
         }
 
         .btn-action:hover {
-            background: rgba(255, 255, 255, 0.18);
-            border-color: var(--primary);
+            background: var(--surface-hover);
+            border-color: var(--primary-border);
+            transform: scale(1.02) translateY(-1px);
+        }
+
+        .btn-action:active {
+            transform: scale(0.97);
         }
 
         /* ── Main Layout ── */
@@ -317,7 +309,7 @@
             min-height: 0;
         }
 
-        /* ── Sidebar ── */
+        /* ── Sidebar Navigation ── */
         .sidebar {
             width: var(--sidebar-w);
             background: var(--surface);
@@ -339,8 +331,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 9px 12px;
-            border-radius: 8px;
+            padding: 8px 12px;
+            border-radius: 980px;
             font-size: 13px;
             font-weight: 500;
             color: var(--text-secondary);
@@ -370,8 +362,9 @@
         .nav-count {
             font-size: 11px;
             font-weight: 700;
+            font-family: var(--font-mono);
             padding: 2px 7px;
-            border-radius: 12px;
+            border-radius: 980px;
             background: var(--surface-subtle);
             border: 1px solid var(--border);
             color: var(--text-secondary);
@@ -412,13 +405,13 @@
             }
         }
 
-        /* ── Suite Overview Banner ── */
+        /* ── Suite Overview Header ── */
         .suite-banner {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 24px;
+            padding: 14px 20px;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -431,38 +424,17 @@
             gap: 12px;
         }
 
-        .banner-icon {
-            width: 38px;
-            height: 38px;
-            border-radius: 8px;
-            background: var(--primary-bg);
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: bold;
-        }
-
         .banner-text h2 {
-            font-size: 15px;
+            font-size: 22px;
             font-weight: 700;
+            letter-spacing: -0.03em;
             color: var(--text);
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .banner-text p {
             font-size: 12px;
             color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        .banner-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            margin-top: 1px;
         }
 
         .btn-toggle-view {
@@ -471,22 +443,220 @@
             color: var(--text);
             font-size: 12px;
             font-weight: 600;
-            padding: 7px 14px;
-            border-radius: 8px;
+            padding: 6px 14px;
+            border-radius: 980px;
             cursor: pointer;
             transition: var(--transition-smooth);
         }
 
         .btn-toggle-view:hover {
-            border-color: var(--primary);
+            border-color: var(--primary-border);
             background: var(--surface-hover);
         }
 
-        /* ── KPI Cards Grid (TOTALS) ── */
+        /* ── Telemetry Summary Capsule ── */
+        .telemetry-capsule {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 18px 24px;
+            margin-bottom: 22px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition-smooth);
+        }
+
+        .telemetry-capsule:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-border);
+        }
+
+        .capsule-ring-wrap {
+            position: relative;
+            width: 76px;
+            height: 76px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .capsule-ring-svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .capsule-ring-track {
+            fill: none;
+            stroke: var(--surface-subtle);
+            stroke-width: 9;
+        }
+
+        [data-theme="dark"] .capsule-ring-track {
+            stroke: rgba(255, 255, 255, 0.08);
+        }
+
+        .capsule-ring-fill {
+            fill: none;
+            stroke: #97cc64;
+            stroke-width: 9;
+            stroke-linecap: round;
+            stroke-dasharray: 238.76;
+            stroke-dashoffset: 4.77;
+            transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.3s ease;
+        }
+
+        .capsule-ring-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: var(--font-mono);
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            color: var(--text);
+            line-height: 1;
+            pointer-events: none;
+        }
+
+        .capsule-body {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .capsule-pills-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .capsule-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 980px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            line-height: 1.4;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            cursor: pointer;
+            outline: none;
+            transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+        }
+
+        .capsule-pill:hover {
+            transform: scale(1.02);
+        }
+
+        .capsule-pill:active {
+            transform: scale(0.97);
+        }
+
+        .capsule-pill strong {
+            font-weight: 700;
+        }
+
+        .capsule-pill.pill-passed {
+            background: var(--good-bg);
+            border-color: var(--good-border);
+            color: var(--good-text);
+        }
+
+        .capsule-pill.pill-healed {
+            background: var(--warn-bg);
+            border-color: var(--warn-border);
+            color: var(--warn-text);
+        }
+
+        .capsule-pill.pill-failed {
+            background: var(--surface-subtle);
+            border-color: var(--border);
+            color: var(--text-muted);
+        }
+
+        .capsule-pill.pill-failed.has-failed {
+            background: var(--bad-bg);
+            border-color: var(--bad-border);
+            color: var(--bad-text);
+        }
+
+        .capsule-pill.pill-flaky {
+            background: var(--flaky-bg);
+            border-color: var(--flaky-border);
+            color: var(--flaky);
+        }
+
+        .capsule-bar-track {
+            width: 100%;
+            height: 7px;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: 980px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .capsule-bar-fill {
+            height: 100%;
+            background: #97cc64;
+            border-radius: 980px;
+            transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease;
+        }
+
+        .capsule-meta-line {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: var(--text-muted);
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            line-height: 1.4;
+        }
+
+        .capsule-meta-dot {
+            color: var(--text-muted);
+            opacity: 0.6;
+            user-select: none;
+        }
+
+        @media (max-width: 640px) {
+            .telemetry-capsule {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 16px;
+                gap: 16px;
+            }
+            .capsule-ring-wrap {
+                margin: 0 auto;
+            }
+            .capsule-pills-row {
+                justify-content: center;
+            }
+            .capsule-meta-line {
+                font-size: 12px;
+                justify-content: center;
+            }
+        }
+
+        /* ── KPI Grid ── */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
+            gap: 14px;
             margin-bottom: 24px;
         }
 
@@ -494,7 +664,7 @@
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 18px 20px;
+            padding: 16px 18px;
             box-shadow: var(--shadow-sm);
             display: flex;
             flex-direction: column;
@@ -518,16 +688,17 @@
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.04em;
             color: var(--text-muted);
         }
 
         .stat-value {
-            font-size: 26px;
+            font-size: 28px;
             font-weight: 800;
-            letter-spacing: -0.02em;
+            letter-spacing: -0.03em;
             color: var(--text);
             font-family: var(--font-mono);
+            line-height: 1.15;
         }
 
         .stat-meta {
@@ -535,7 +706,7 @@
             color: var(--text-muted);
         }
 
-        /* Status colors on cards */
+        /* Telemetry colors on cards */
         .stat-card.card-passed .stat-value {
             color: var(--good);
         }
@@ -552,17 +723,17 @@
             color: var(--primary);
         }
 
-        /* ── Status Badges ── */
+        /* ── Status Badges (Pure Pill per DESIGN.md) ── */
         .status-badge {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            padding: 3px 8px;
-            border-radius: 6px;
+            padding: 2px 8px;
+            border-radius: 980px;
             font-family: var(--font-mono);
         }
 
@@ -602,20 +773,25 @@
             border: 1px solid var(--healed-border);
         }
 
-        /* ── Charts Row ── */
-        .charts-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 24px;
+        .status-badge.risk-high {
+            background: var(--bad-bg);
+            color: var(--bad-text);
+            border: 1px solid var(--bad-border);
         }
 
-        @media (max-width: 1024px) {
-            .charts-row {
-                grid-template-columns: 1fr;
-            }
+        .status-badge.risk-watch {
+            background: var(--warn-bg);
+            color: var(--warn-text);
+            border: 1px solid var(--warn-border);
         }
 
+        .status-badge.risk-stable {
+            background: var(--good-bg);
+            color: var(--good-text);
+            border: 1px solid var(--good-border);
+        }
+
+        /* ── Standard Card ── */
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -625,7 +801,7 @@
         }
 
         .card-header {
-            padding: 14px 20px;
+            padding: 12px 18px;
             border-bottom: 1px solid var(--border);
             font-size: 13px;
             font-weight: 700;
@@ -637,7 +813,21 @@
         }
 
         .card-body {
-            padding: 20px;
+            padding: 18px;
+        }
+
+        /* ── Charts Row ── */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
         }
 
         .chart-container {
@@ -650,14 +840,14 @@
         .slow-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
 
         .slow-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 14px;
+            padding: 8px 12px;
             background: var(--surface-subtle);
             border: 1px solid var(--border-subtle);
             border-radius: 8px;
@@ -679,21 +869,21 @@
             color: var(--primary);
         }
 
-        /* ── Metadata Grid ── */
+        /* ── Build Metadata Grid ── */
         .metadata-card {
             margin-bottom: 24px;
         }
 
         .meta-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
         }
 
         .meta-item {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
             padding: 10px 14px;
             background: var(--surface-subtle);
             border: 1px solid var(--border-subtle);
@@ -701,10 +891,11 @@
         }
 
         .meta-label {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-muted);
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
         .meta-value {
@@ -729,13 +920,13 @@
         }
 
         .filter-toolbar {
-            padding: 12px 18px;
+            padding: 10px 16px;
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
             background: var(--surface-subtle);
         }
 
@@ -749,8 +940,8 @@
         .filter-pill {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 5px 12px;
+            border-radius: 980px;
+            padding: 4px 12px;
             font-size: 12px;
             font-weight: 600;
             color: var(--text-secondary);
@@ -759,7 +950,7 @@
         }
 
         .filter-pill:hover {
-            border-color: var(--primary);
+            border-color: var(--primary-border);
             color: var(--text);
         }
 
@@ -775,9 +966,9 @@
             gap: 8px;
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 6px 12px;
-            min-width: 240px;
+            border-radius: 980px;
+            padding: 5px 12px;
+            min-width: 220px;
         }
 
         .search-container input {
@@ -785,7 +976,7 @@
             outline: none;
             background: transparent;
             color: var(--text);
-            font-size: 13px;
+            font-size: 12px;
             width: 100%;
         }
 
@@ -794,14 +985,14 @@
             font-size: 10px;
             background: var(--surface-subtle);
             border: 1px solid var(--border);
-            padding: 2px 6px;
+            padding: 1px 5px;
             border-radius: 4px;
             color: var(--text-muted);
         }
 
-        /* ── Tests Table ── */
         .table-wrap {
             overflow-x: auto;
+            border-radius: inherit;
         }
 
         table {
@@ -813,13 +1004,35 @@
 
         thead th {
             padding: 12px 18px;
-            background: var(--surface);
+            background: var(--surface-subtle);
             color: var(--text-muted);
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             border-bottom: 1px solid var(--border);
             letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 14px 18px;
+            vertical-align: middle;
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border-subtle);
+            transition: background 0.15s ease;
+        }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: var(--surface-hover);
         }
 
         tbody tr.group-header {
@@ -833,7 +1046,7 @@
         }
 
         tbody tr.group-header td {
-            padding: 10px 18px;
+            padding: 11px 18px;
             font-weight: 700;
             color: var(--text);
             font-size: 13px;
@@ -850,10 +1063,210 @@
         }
 
         tbody tr.group-member td {
-            padding: 12px 18px;
+            padding: 13px 18px;
         }
 
-        /* Detail Drawer */
+        /* ── Table Cells & Identity Hierarchy ── */
+        #testTable,
+        #failureTable,
+        #historyTable,
+        #flakinessTable {
+            width: 100%;
+            min-width: 820px;
+            table-layout: fixed;
+        }
+
+        .test-identity-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+            text-align: left;
+        }
+
+        .test-name {
+            font-weight: 600;
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .test-identity-link {
+            font-weight: 600;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 13px;
+            line-height: 1.4;
+            transition: color 0.15s ease;
+            word-break: break-word;
+        }
+
+        .test-identity-link:hover {
+            color: var(--primary);
+        }
+
+        .test-identity-meta {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: -0.01em;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        .test-badge-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+
+        /* ── Group Header & Badges ── */
+        .group-header-flex {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: 12px;
+        }
+
+        .group-header-left {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .group-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        .group-header-badges {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .group-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 980px;
+            background: var(--surface);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            font-variant-numeric: tabular-nums;
+            line-height: 1.3;
+        }
+
+        .group-badge-pass {
+            color: var(--good);
+            background: var(--good-bg);
+            border-color: var(--good-border);
+        }
+
+        .group-badge-fail {
+            color: var(--bad);
+            background: var(--bad-bg);
+            border-color: var(--bad-border);
+        }
+
+        .group-badge-skip {
+            color: var(--text-muted);
+            background: var(--surface);
+        }
+
+        /* ── Error Snippet Badge ── */
+        .error-snippet-badge {
+            display: inline-block;
+            max-width: 100%;
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            color: var(--bad);
+            background: var(--bad-bg);
+            border: 1px solid var(--bad-border);
+            border-radius: 6px;
+            padding: 4px 10px;
+            line-height: 1.35;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            box-sizing: border-box;
+            cursor: default;
+        }
+
+        .action-cell-wrap {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .policy-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 9px;
+            border-radius: 980px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            line-height: 1.3;
+        }
+
+        .policy-chip.chip-quarantine {
+            background: var(--bad-bg);
+            color: var(--bad-text);
+            border: 1px solid var(--bad-border);
+        }
+
+        .policy-chip.chip-monitored {
+            background: var(--surface-subtle);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .btn-inspect-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            border-radius: 980px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            color: var(--text);
+            background: var(--surface-subtle);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            outline: none;
+            white-space: nowrap;
+            text-decoration: none;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-inspect-pill:hover {
+            background: var(--surface-hover);
+            border-color: var(--primary-border);
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .btn-inspect-pill:active {
+            transform: scale(0.97);
+        }
+
+        .stat-card.stat-card-active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary), var(--shadow-sm);
+        }
+
+        /* ── Detail Drawer (Clean & Distilled) ── */
         tr.detail-row {
             background: var(--surface-subtle);
         }
@@ -863,26 +1276,132 @@
         }
 
         .drawer-content {
-            padding: 20px 24px;
+            padding: 16px 20px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            border-left: 3px solid var(--primary);
+            gap: 14px;
+            background: var(--surface-subtle);
+            border-bottom: 1px solid var(--border);
         }
 
-        /* ── Step Timeline ── */
+        /* Video Replay Card */
+        .video-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .video-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+        }
+
+        .video-player-wrap {
+            display: flex;
+            justify-content: center;
+            background: #000000;
+            border-radius: 8px;
+            overflow: hidden;
+            max-height: 380px;
+        }
+
+        /* AI Analysis Card */
+        .ai-card {
+            background: var(--primary-bg);
+            border: 1px solid var(--primary-border);
+            border-radius: 10px;
+            padding: 12px 16px;
+        }
+
+        .ai-card-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+            letter-spacing: -0.01em;
+        }
+
+        .ai-card-body {
+            font-size: 12px;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        /* Stack Trace Box */
+        .stack-trace-box {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px;
+            overflow-x: auto;
+        }
+
+        .stack-trace-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stack-trace-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-family: var(--font-mono);
+            letter-spacing: 0.04em;
+        }
+
+        .btn-copy {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 980px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-copy:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #ffffff;
+        }
+
+        pre.stack-trace {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--bad-text);
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* Step Timeline */
         .timeline-wrap {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            margin-top: 8px;
+            gap: 4px;
+            margin-top: 6px;
         }
 
         .timeline-step {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 6px 12px;
+            gap: 10px;
+            padding: 6px 10px;
             border-radius: 6px;
             background: var(--surface);
             border: 1px solid var(--border-subtle);
@@ -893,14 +1412,14 @@
             font-family: var(--font-mono);
             font-size: 11px;
             color: var(--text-muted);
-            min-width: 55px;
+            min-width: 50px;
         }
 
         .step-pill {
             font-size: 10px;
             font-weight: 700;
             padding: 1px 6px;
-            border-radius: 4px;
+            border-radius: 980px;
             font-family: var(--font-mono);
         }
 
@@ -930,26 +1449,11 @@
             word-break: break-word;
         }
 
-        /* API Tracing Box inside Timeline */
-        .api-step-box {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            width: 100%;
-        }
-
-        .api-step-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-weight: 600;
-        }
-
         .api-step-details {
             background: var(--code-bg);
             border: 1px solid var(--border);
             border-radius: 6px;
-            padding: 10px 14px;
+            padding: 8px 12px;
             font-family: var(--font-mono);
             font-size: 11px;
             color: var(--code-text);
@@ -959,106 +1463,10 @@
             line-height: 1.45;
         }
 
-        /* Flakiness Risk Badges */
-        .status-badge.risk-high {
-            background: var(--bad-bg);
-            color: var(--bad-text);
-            border: 1px solid var(--bad-border);
-        }
-
-        .status-badge.risk-watch {
-            background: var(--warn-bg);
-            color: var(--warn-text);
-            border: 1px solid var(--warn-border);
-        }
-
-        .status-badge.risk-stable {
-            background: var(--good-bg);
-            color: var(--good-text);
-            border: 1px solid var(--good-border);
-        }
-
-        /* ── Stack Trace Box with Copy Button ── */
-        .stack-trace-box {
-            position: relative;
-            background: var(--code-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 16px 20px;
-            overflow-x: auto;
-        }
-
-        .stack-trace-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .stack-trace-title {
-            font-size: 11px;
-            font-weight: 700;
-            color: #94a3b8;
-            text-transform: uppercase;
-            font-family: var(--font-mono);
-        }
-
-        .btn-copy {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #ffffff;
-            font-size: 11px;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: var(--transition-smooth);
-        }
-
-        .btn-copy:hover {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
-
-        pre.stack-trace {
-            font-family: var(--font-mono);
-            font-size: 12px;
-            color: #fca5a5;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-
-        /* ── AI Failure Analysis Card ── */
-        .ai-card {
-            background: rgba(24, 144, 255, 0.05);
-            border: 1px solid var(--primary-border);
-            border-radius: 8px;
-            padding: 14px 18px;
-        }
-
-        .ai-card-title {
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 6px;
-        }
-
-        .ai-card-body {
-            font-size: 12px;
-            color: var(--text);
-            line-height: 1.5;
-        }
-
-        /* ── Screenshot Preview & Lightbox ── */
+        /* Screenshot Thumbnails & Lightbox */
         .screenshot-thumb {
-            width: 48px;
-            height: 32px;
+            width: 44px;
+            height: 28px;
             object-fit: cover;
             border-radius: 4px;
             border: 1px solid var(--border);
@@ -1067,15 +1475,15 @@
         }
 
         .screenshot-thumb:hover {
-            transform: scale(1.1);
+            transform: scale(1.08);
         }
 
         .lightbox-modal {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(8px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -1087,13 +1495,68 @@
         }
 
         .lightbox-img {
-            max-width: 90vw;
+            max-width: 92vw;
             max-height: 90vh;
             border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
         }
 
-        /* ── Footer ── */
+        /* Load Test Styles */
+        .loadtest-scenario-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .loadtest-header-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .loadtest-badge-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .loadtest-mini-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .loadtest-mini-tile {
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 6px 10px;
+            text-align: center;
+        }
+
+        .loadtest-mini-tile-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .loadtest-mini-tile-value {
+            font-size: 15px;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            color: var(--text);
+            margin-top: 2px;
+        }
+
+        /* Footer */
         .footer {
             margin-top: 32px;
             padding: 20px 0;
@@ -1103,7 +1566,8 @@
             color: var(--text-muted);
         }
 
-        .closed .chevron {
+        .closed .chevron,
+        .chevron.closed {
             transform: rotate(-90deg);
         }
 
@@ -1111,13 +1575,14 @@
             display: inline-block;
             transition: transform 0.2s ease;
             margin-right: 6px;
+            font-size: 10px;
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Embedded JSON Data Store (Allure Style) -->
+    <!-- Embedded JSON Data Store -->
     <script id="testfly-data" type="application/json">{{TESTFLY_DATA_JSON}}</script>
 
     <!-- Top Navigation Appbar -->
@@ -1126,31 +1591,23 @@
             <a href="#" class="brand-logo">
                 <div class="brand-icon">&#9992;</div>
                 <div class="brand-text-wrap">
-                    <h1>TestFly Report <span class="version-tag">Allure Style</span></h1>
-                    <p id="appbar-timestamp">Generated: {{RUN_TIMESTAMP}}</p>
+                    <h1>TestFly Report</h1>
+                    <p id="appbar-timestamp">{{RUN_TIMESTAMP}}</p>
                 </div>
             </a>
         </div>
 
         <div class="app-bar-center">
             <div class="run-selector-wrap">
-                <span class="run-selector-label">&#128197; View:</span>
+                <span class="run-selector-label">View:</span>
                 <select id="runSelect" class="run-select" onchange="onRunSelectChange(this.value)">
-                    <option value="cumulative">📊 Suite Total (All Tests)</option>
-                    <option value="latest">Latest Run (testfly-report.html)</option>
+                    <option value="cumulative">Suite Total (All Tests)</option>
+                    <option value="latest">Latest Run</option>
                 </select>
             </div>
         </div>
 
         <div class="app-bar-right">
-            <div class="header-chip rate-badge">
-                <span>Pass Rate:</span>
-                <strong id="appbar-pass-rate">{{PASS_RATE}}%</strong>
-            </div>
-            <div class="header-chip">
-                <span>Wall Time:</span>
-                <strong id="appbar-duration">{{TOTAL_TIME_MS}} ms</strong>
-            </div>
             <button type="button" class="btn-action" onclick="toggleExpandAll()">
                 <span id="expandAllIcon">&#x25BC;</span>
                 <span id="expandAllText">Expand All</span>
@@ -1167,44 +1624,38 @@
             <ul class="nav-list">
                 <li class="nav-item active" onclick="showTab('dashboard', this)">
                     <div class="nav-item-left">
-                        <span>&#128202;</span>
                         <span>Dashboard</span>
                     </div>
                 </li>
                 <li class="nav-item" onclick="showTab('tests', this)">
                     <div class="nav-item-left">
-                        <span>&#129514;</span>
                         <span>Test Cases</span>
                     </div>
                     <span id="nav-total-tests" class="nav-count">{{TOTAL_TESTS}}</span>
                 </li>
                 <li class="nav-item" onclick="showTab('failures', this)">
                     <div class="nav-item-left">
-                        <span>&#9888;</span>
                         <span>Defects / Failures</span>
                     </div>
                     <span id="nav-failed-tests" class="nav-count">{{FAILURE_BADGE}}</span>
                 </li>
                 <li id="nav-history" class="nav-item" onclick="showTab('history', this)">
                     <div class="nav-item-left">
-                        <span>&#128338;</span>
                         <span>Run History</span>
                     </div>
                     <span class="nav-count">{{HISTORY_COUNT}}</span>
                 </li>
                 <li id="nav-flakiness" class="nav-item" onclick="showTab('flakiness', this)">
                     <div class="nav-item-left">
-                        <span>&#127919;</span>
                         <span>Flakiness Radar</span>
                     </div>
                     <span id="nav-flaky-count" class="nav-count status-flaky" style="display:none;">0</span>
                 </li>
                 <li id="nav-loadtest" class="nav-item" onclick="showTab('loadtest', this)" style="display:none;">
                     <div class="nav-item-left">
-                        <span>&#9889;</span>
                         <span>Load Tests</span>
                     </div>
-                    <span id="nav-loadtest-count" class="nav-count" style="background: rgba(24, 144, 255, 0.2); color: var(--primary);">0</span>
+                    <span id="nav-loadtest-count" class="nav-count" style="background: var(--primary-bg); color: var(--primary);">0</span>
                 </li>
             </ul>
         </aside>
@@ -1215,45 +1666,84 @@
             <!-- ═══════════════ DASHBOARD TAB ═══════════════ -->
             <div id="tab-dashboard" class="tab-pane active">
 
-                <!-- Suite Overview Banner -->
+                <!-- Suite Overview Header -->
                 <div class="suite-banner">
                     <div class="banner-info">
-                        <div class="banner-icon">&#9874;</div>
                         <div class="banner-text">
                             <h2 id="view-mode-title">Cumulative Suite Total</h2>
-                            <p id="view-mode-subtitle">Displaying cumulative test metrics across recorded test
-                                executions</p>
+                            <p id="view-mode-subtitle">Displaying cumulative test metrics across recorded executions</p>
                         </div>
                     </div>
-                    <div class="banner-actions">
-                        <button type="button" id="btnToggleViewMode" class="btn-toggle-view"
-                            onclick="toggleViewMode()">Switch to Current Run</button>
+                    <button type="button" id="btnToggleViewMode" class="btn-toggle-view"
+                        onclick="toggleViewMode()">Switch to Current Run</button>
+                </div>
+
+                <!-- Telemetry Summary Capsule -->
+                <div class="telemetry-capsule">
+                    <div class="capsule-ring-wrap" title="Pass Rate">
+                        <svg class="capsule-ring-svg" viewBox="0 0 100 100">
+                            <circle class="capsule-ring-track" cx="50" cy="50" r="38"></circle>
+                            <circle id="capsule-ring-fill" class="capsule-ring-fill" cx="50" cy="50" r="38"></circle>
+                        </svg>
+                        <div id="capsule-pass-rate" class="capsule-ring-text">{{PASS_RATE}}%</div>
+                    </div>
+                    <div class="capsule-body">
+                        <div class="capsule-pills-row">
+                            <button type="button" class="capsule-pill pill-passed" id="capsule-pill-passed"
+                                onclick="filterFromCapsule('PASSED')" title="View Passed Tests">
+                                <strong id="capsule-count-passed">{{PASSED}}</strong> passed
+                            </button>
+                            <button type="button" class="capsule-pill pill-healed" id="capsule-pill-healed"
+                                onclick="filterFromCapsule('HEALED')" title="View Healed Tests">
+                                <strong id="capsule-count-healed">0</strong> healed
+                            </button>
+                            <button type="button" class="capsule-pill pill-failed" id="capsule-pill-failed"
+                                onclick="filterFromCapsule('FAILED')" title="View Failed Tests">
+                                <strong id="capsule-count-failed">{{FAILED}}</strong> failed
+                            </button>
+                            <button type="button" class="capsule-pill pill-flaky" id="capsule-pill-flaky"
+                                onclick="filterFromCapsule('FLAKY')" title="View Flaky Tests" style="display:none;">
+                                <strong id="capsule-count-flaky">0</strong> flaky
+                            </button>
+                        </div>
+                        <div class="capsule-bar-track">
+                            <div id="capsule-bar-fill" class="capsule-bar-fill" style="width: {{PASS_RATE}}%;"></div>
+                        </div>
+                        <div class="capsule-meta-line" id="capsule-meta-line">
+                            <span id="capsule-meta-suite">AgenticSuite</span>
+                            <span class="capsule-meta-dot">·</span>
+                            <span id="capsule-meta-duration">{{TOTAL_TIME_MS}} ms</span>
+                            <span class="capsule-meta-dot">·</span>
+                            <span id="capsule-meta-browser">chrome</span>
+                            <span class="capsule-meta-dot">·</span>
+                            <span id="capsule-meta-mode">Thread-isolated</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- TOTAL KPI CARDS (Dashboard displays TOTAL) -->
+                <!-- KPI Cards -->
                 <div class="kpi-grid">
                     <div class="stat-card">
                         <div class="stat-top">
                             <span class="stat-label">Total Tests</span>
-                            <span class="nav-count">&#128203; TOTAL</span>
+                            <span class="nav-count">TOTAL</span>
                         </div>
                         <div id="kpi-total-tests" class="stat-value">{{TOTAL_TESTS}}</div>
-                        <div class="stat-meta">Unique tests in test suite</div>
+                        <div class="stat-meta">Unique tests in suite</div>
                     </div>
 
                     <div class="stat-card card-passed">
                         <div class="stat-top">
-                            <span class="stat-label">Total Passed</span>
+                            <span class="stat-label">Passed</span>
                             <span class="status-badge status-passed">PASS</span>
                         </div>
                         <div id="kpi-total-passed" class="stat-value">{{PASSED}}</div>
-                        <div class="stat-meta">Tests passing successfully</div>
+                        <div class="stat-meta">Tests passing cleanly</div>
                     </div>
 
                     <div class="stat-card card-failed">
                         <div class="stat-top">
-                            <span class="stat-label">Total Failed</span>
+                            <span class="stat-label">Failed</span>
                             <span class="status-badge status-failed">FAIL</span>
                         </div>
                         <div id="kpi-total-failed" class="stat-value">{{FAILED}}</div>
@@ -1262,26 +1752,26 @@
 
                     <div class="stat-card card-skipped">
                         <div class="stat-top">
-                            <span class="stat-label">Total Skipped</span>
+                            <span class="stat-label">Skipped</span>
                             <span class="status-badge status-skipped">SKIP</span>
                         </div>
                         <div id="kpi-total-skipped" class="stat-value">{{SKIPPED}}</div>
-                        <div class="stat-meta">Tests bypassed or skipped</div>
+                        <div class="stat-meta">Bypassed or ignored</div>
                     </div>
 
                     <div class="stat-card card-rate">
                         <div class="stat-top">
-                            <span class="stat-label">Overall Pass Rate</span>
+                            <span class="stat-label">Pass Rate</span>
                             <span id="kpi-pass-rate-badge" class="nav-count">{{PASS_RATE}}%</span>
                         </div>
                         <div id="kpi-pass-rate" class="stat-value">{{PASS_RATE}}%</div>
-                        <div class="stat-meta">Cumulative success ratio</div>
+                        <div class="stat-meta">Success ratio</div>
                     </div>
 
                     <div class="stat-card">
                         <div class="stat-top">
-                            <span class="stat-label">Total Duration</span>
-                            <span class="nav-count">&#9201; TIME</span>
+                            <span class="stat-label">Wall Duration</span>
+                            <span class="nav-count">TIME</span>
                         </div>
                         <div id="kpi-duration" class="stat-value">{{TOTAL_TIME_MS}} ms</div>
                         <div id="kpi-avg-duration" class="stat-meta">Average: {{AVG_TIME_MS}} ms</div>
@@ -1291,7 +1781,7 @@
                 <!-- Charts Row -->
                 <div class="charts-row">
                     <div class="card">
-                        <div class="card-header">Test Outcome Distribution (Allure Palette)</div>
+                        <div class="card-header">Test Outcome Distribution</div>
                         <div class="card-body">
                             <div class="chart-container">
                                 <canvas id="donutChart"></canvas>
@@ -1311,7 +1801,7 @@
 
                 <!-- Slowest Tests Card -->
                 <div class="card" style="margin-bottom:24px;">
-                    <div class="card-header">&#9201; Slowest Tests in Suite</div>
+                    <div class="card-header">Slowest Tests in Suite</div>
                     <div class="card-body">
                         <div id="slowestTestsList" class="slow-list"></div>
                     </div>
@@ -1321,15 +1811,14 @@
                 {{METADATA}}
 
                 <div class="footer">
-                    Generated with pride by <strong>TestFly Automation Framework</strong> &bull; Allure-Style
-                    JSON-Driven Architecture
+                    TestFly Automation Framework &bull; Execution Report
                 </div>
             </div>
 
             <!-- ═══════════════ TEST CASES TAB ═══════════════ -->
             <div id="tab-tests" class="tab-pane">
                 <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-                    <h2 style="font-size:18px;font-weight:700;">Test Cases</h2>
+                    <h2 style="font-size:22px;font-weight:700;letter-spacing:-0.03em;">Test Cases</h2>
                     <span id="testTabSubtitle" style="font-size:13px;color:var(--text-muted);">{{TOTAL_TESTS}} Total
                         Tests Executed</span>
                 </div>
@@ -1351,7 +1840,6 @@
                         </div>
 
                         <div class="search-container">
-                            <span>&#128269;</span>
                             <input type="text" id="searchInput" placeholder="Filter tests, classes, or errors..."
                                 oninput="applySearch()">
                             <span class="kbd-hint">/</span>
@@ -1362,12 +1850,12 @@
                         <table id="testTable">
                             <thead>
                                 <tr>
-                                    <th style="width:36px;"></th>
-                                    <th>Test Identifier</th>
-                                    <th>Status</th>
-                                    <th style="text-align:right;">Logic (ms)</th>
-                                    <th style="text-align:right;">Total (ms)</th>
-                                    <th style="text-align:center;">Screenshot</th>
+                                    <th style="width: 44px; text-align: center;"></th>
+                                    <th style="width: 46%;">Test Identifier</th>
+                                    <th style="width: 12%; text-align: center;">Status</th>
+                                    <th style="width: 12%; text-align: right;">Logic</th>
+                                    <th style="width: 12%; text-align: right;">Total</th>
+                                    <th style="width: 14%; text-align: center;">Screenshot</th>
                                 </tr>
                             </thead>
                             <tbody id="testTableBody">
@@ -1381,7 +1869,7 @@
             <!-- ═══════════════ FAILURES TAB ═══════════════ -->
             <div id="tab-failures" class="tab-pane">
                 <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-                    <h2 style="font-size:18px;font-weight:700;">Failure Triage (Defects)</h2>
+                    <h2 style="font-size:22px;font-weight:700;letter-spacing:-0.03em;">Failure Triage</h2>
                     <span id="failuresTabSubtitle" style="font-size:13px;font-weight:600;color:var(--bad);">Failures
                         detected</span>
                 </div>
@@ -1391,12 +1879,12 @@
                         <table id="failureTable">
                             <thead>
                                 <tr>
-                                    <th style="width:36px;"></th>
-                                    <th>Test Identifier</th>
-                                    <th>Status</th>
-                                    <th>Error Snippet</th>
-                                    <th style="text-align:right;">Duration</th>
-                                    <th style="text-align:center;">Screenshot</th>
+                                    <th style="width: 44px; text-align: center;"></th>
+                                    <th style="width: 32%;">Test Identifier</th>
+                                    <th style="width: 10%; text-align: center;">Status</th>
+                                    <th style="width: 33%;">Error Snippet</th>
+                                    <th style="width: 11%; text-align: right;">Duration</th>
+                                    <th style="width: 10%; text-align: center;">Screenshot</th>
                                 </tr>
                             </thead>
                             <tbody id="failureTableBody">
@@ -1410,24 +1898,24 @@
             <!-- ═══════════════ RUN HISTORY TAB ═══════════════ -->
             <div id="tab-history" class="tab-pane">
                 <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-                    <h2 style="font-size:18px;font-weight:700;">Execution Run History &amp; Quality Trends</h2>
+                    <h2 style="font-size:22px;font-weight:700;letter-spacing:-0.03em;">Run History &amp; Quality Trends</h2>
                     <span style="font-size:13px;color:var(--text-muted);">Historical runs preserved in
                         target/reports/</span>
                 </div>
 
                 <div class="card table-card">
                     <div class="table-wrap">
-                        <table>
+                        <table id="historyTable">
                             <thead>
                                 <tr>
-                                    <th>Timestamp</th>
-                                    <th>Pass Rate</th>
-                                    <th>Total Tests</th>
-                                    <th>Passed</th>
-                                    <th>Failed</th>
-                                    <th>Skipped</th>
-                                    <th>Duration</th>
-                                    <th>Report</th>
+                                    <th style="width: 24%;">Timestamp</th>
+                                    <th style="width: 13%; text-align: center;">Pass Rate</th>
+                                    <th style="width: 10%; text-align: right;">Total</th>
+                                    <th style="width: 10%; text-align: right;">Passed</th>
+                                    <th style="width: 10%; text-align: right;">Failed</th>
+                                    <th style="width: 10%; text-align: right;">Skipped</th>
+                                    <th style="width: 11%; text-align: right;">Duration</th>
+                                    <th style="width: 12%; text-align: center;">Report</th>
                                 </tr>
                             </thead>
                             <tbody id="historyTableBody"></tbody>
@@ -1439,7 +1927,7 @@
             <!-- ═══════════════ FLAKINESS RADAR TAB ═══════════════ -->
             <div id="tab-flakiness" class="tab-pane">
                 <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-                    <h2 style="font-size:18px;font-weight:700;">Flakiness Radar &amp; Stability Analysis</h2>
+                    <h2 style="font-size:22px;font-weight:700;letter-spacing:-0.03em;">Flakiness Radar &amp; Stability Analysis</h2>
                     <span id="flakinessSubtitle" style="font-size:13px;color:var(--text-muted);">Historical test
                         reliability tracking</span>
                 </div>
@@ -1450,7 +1938,7 @@
                         title="Show all scored tests">
                         <div class="stat-top">
                             <span class="stat-label">Analysed Tests</span>
-                            <span class="nav-count">&#128269; SCORED</span>
+                            <span class="nav-count">SCORED</span>
                         </div>
                         <div id="flaky-total" class="stat-value">0</div>
                         <div class="stat-meta">Tests tracked across runs</div>
@@ -1462,7 +1950,7 @@
                             <span class="status-badge status-failed">HIGH</span>
                         </div>
                         <div id="flaky-high" class="stat-value">0</div>
-                        <div class="stat-meta">Intermittent failure rate &ge; 33%</div>
+                        <div class="stat-meta">Failure rate &ge; 33%</div>
                     </div>
                     <div class="stat-card" style="cursor:pointer;" onclick="filterFlakiness('WATCH')"
                         title="Filter to Watch List tests">
@@ -1471,7 +1959,7 @@
                             <span class="status-badge status-broken">WATCH</span>
                         </div>
                         <div id="flaky-watch" class="stat-value">0</div>
-                        <div class="stat-meta">Failure rate between 10% - 33%</div>
+                        <div class="stat-meta">Failure rate 10% - 33%</div>
                     </div>
                     <div class="stat-card card-passed" style="cursor:pointer;" onclick="filterFlakiness('STABLE')"
                         title="Filter to Stable tests">
@@ -1489,11 +1977,11 @@
                         <table id="flakinessTable">
                             <thead>
                                 <tr>
-                                    <th>Test Identifier</th>
-                                    <th style="text-align:center;">Risk Level</th>
-                                    <th style="text-align:right;">Failure Rate</th>
-                                    <th style="text-align:right;">Fails / Runs</th>
-                                    <th style="text-align:center;">Action</th>
+                                    <th style="width: 44%;">Test Identifier</th>
+                                    <th style="width: 13%; text-align: center;">Risk Level</th>
+                                    <th style="width: 13%; text-align: right;">Failure Rate</th>
+                                    <th style="width: 13%; text-align: right;">Fails / Runs</th>
+                                    <th style="width: 17%; text-align: right;">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="flakinessTableBody"></tbody>
@@ -1506,11 +1994,9 @@
             <div id="tab-loadtest" class="tab-pane">
                 <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
                     <div>
-                        <h2 style="font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px;">
-                            <span>&#9889;</span> Load Testing &amp; Performance Analysis
-                        </h2>
+                        <h2 style="font-size:22px;font-weight:700;letter-spacing:-0.03em;">Load Testing &amp; Performance</h2>
                         <span id="loadtestSubtitle" style="font-size:13px;color:var(--text-muted);">
-                            Simulated load execution metrics, latency percentiles, throughput, and Gatling reports
+                            Simulated load metrics, latency percentiles, throughput, and Gatling execution reports
                         </span>
                     </div>
                 </div>
@@ -1520,7 +2006,7 @@
                     <div class="stat-card">
                         <div class="stat-top">
                             <span class="stat-label">Scenarios</span>
-                            <span class="nav-count">&#128640; RUNS</span>
+                            <span class="nav-count">RUNS</span>
                         </div>
                         <div id="lt-total-scenarios" class="stat-value">0</div>
                         <div class="stat-meta">Executed load scenarios</div>
@@ -1528,15 +2014,15 @@
                     <div class="stat-card">
                         <div class="stat-top">
                             <span class="stat-label">Total Requests</span>
-                            <span class="nav-count">&#128236; HTTP</span>
+                            <span class="nav-count">HTTP</span>
                         </div>
                         <div id="lt-total-requests" class="stat-value">0</div>
                         <div class="stat-meta" id="lt-successful-meta">0 successful</div>
                     </div>
                     <div class="stat-card card-rate">
                         <div class="stat-top">
-                            <span class="stat-label">Avg Throughput</span>
-                            <span class="status-badge" style="background: rgba(24,144,255,0.1); color: var(--primary);">RPS</span>
+                            <span class="stat-label">Throughput</span>
+                            <span class="status-badge" style="background: var(--primary-bg); color: var(--primary);">RPS</span>
                         </div>
                         <div id="lt-avg-throughput" class="stat-value">0</div>
                         <div class="stat-meta">Requests per second</div>
@@ -1547,7 +2033,7 @@
                             <span class="status-badge status-passed">LATENCY</span>
                         </div>
                         <div id="lt-overall-p95" class="stat-value">0 ms</div>
-                        <div class="stat-meta" id="lt-p99-meta">P99: 0 ms</div>
+                        <div class="stat-meta" id="lt-p99-meta">Max P99: 0 ms</div>
                     </div>
                     <div class="stat-card card-failed">
                         <div class="stat-top">
@@ -1560,7 +2046,7 @@
                 </div>
 
                 <!-- Load Test Scenarios List Container -->
-                <div id="loadtest-scenarios-container" style="display:flex;flex-direction:column;gap:20px;margin-top:20px;">
+                <div id="loadtest-scenarios-container" style="display:flex;flex-direction:column;gap:18px;margin-top:16px;">
                     <!-- Dynamically rendered scenarios -->
                 </div>
             </div>
@@ -1581,7 +2067,7 @@
     </div>
 
     <script>
-        // ── Global State from Embedded JSON (Allure-Style SPA) ──
+        // ── Global State from Embedded JSON ──
         let reportData = {};
         try {
             const raw = document.getElementById('testfly-data').textContent;
@@ -1596,6 +2082,51 @@
         let execChartInst = null;
         let activeFilter = 'ALL';
         let allExpanded = false;
+
+        // ── Security & Sanitization Helpers ──
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function isSafeReportPath(p) {
+            if (!p || typeof p !== 'string') return false;
+            const clean = p.trim();
+            if (clean.includes(':') || clean.includes('\\') || clean.startsWith('//') || clean.includes('..')) {
+                return false;
+            }
+            return /^(?:reports\/)?[a-zA-Z0-9_\-]+\.html$/i.test(clean);
+        }
+
+        function sanitizeMediaSrc(src) {
+            if (!src || typeof src !== 'string') return '';
+            const trimmed = src.trim();
+            if (/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-zA-Z0-9+/=]+$/i.test(trimmed)) {
+                return trimmed;
+            }
+            if (/^data:video\/(?:mp4|webm);base64,[a-zA-Z0-9+/=]+$/i.test(trimmed)) {
+                return trimmed;
+            }
+            if (/^(?:[a-zA-Z0-9_\-\.\/]+\/)*(?:[a-zA-Z0-9_\-]+\.(?:png|jpe?g|webp|gif|mp4|webm))$/i.test(trimmed) &&
+                !trimmed.includes(':') && !trimmed.startsWith('//') && !trimmed.includes('..')) {
+                return trimmed;
+            }
+            return '';
+        }
+
+        function isSafeUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            const trimmed = url.trim();
+            if (trimmed.startsWith('//') || trimmed.includes('\\') || /^\s*javascript:/i.test(trimmed) || /^\s*data:/i.test(trimmed)) {
+                return false;
+            }
+            return /^(?:https?:\/\/[^\s"'<>]+|(?:\.\.\/|\.\/|\/)?[a-zA-Z0-9_\-\.\/]+)$/i.test(trimmed);
+        }
 
         // ── Tab Switching ──
         function showTab(tabId, el) {
@@ -1647,7 +2178,7 @@
         function updateThemeIcon() {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             const icon = document.getElementById('themeIcon');
-            if (icon) icon.innerHTML = isDark ? '&#9788;' : '&#9790;';
+            if (icon) icon.textContent = isDark ? '\u2600' : '\u263E';
         }
 
         // ── Run Switcher / Dropdown Population ──
@@ -1659,10 +2190,11 @@
             const isInReportsDir = currentPath.includes('/reports/');
 
             history.forEach(run => {
+                if (!run || !isSafeReportPath(run.reportPath)) return;
                 const opt = document.createElement('option');
                 opt.value = run.reportPath;
-                opt.text = `${run.timestamp} (${run.passRate}% pass, ${run.totalTests} tests)`;
-                if (isInReportsDir && currentPath.includes(run.rawTimestamp)) {
+                opt.text = `${run.timestamp || ''} (${run.passRate || 0}% pass, ${run.totalTests || 0} tests)`;
+                if (isInReportsDir && run.rawTimestamp && currentPath.includes(run.rawTimestamp)) {
                     opt.selected = true;
                 }
                 select.appendChild(opt);
@@ -1678,7 +2210,7 @@
             if (val === 'latest') {
                 const isInReportsDir = window.location.pathname.includes('/reports/');
                 if (isInReportsDir) {
-                    window.location.href = '../testfly-report.html';
+                    window.location.assign('../testfly-report.html');
                 } else {
                     currentViewMode = 'current';
                     renderView();
@@ -1686,16 +2218,21 @@
                 return;
             }
             // Historical report path navigation
-            const isInReportsDir = window.location.pathname.includes('/reports/');
-            if (isInReportsDir) {
-                window.location.href = val.replace('reports/', '');
-            } else {
-                window.location.href = val;
+            if (isSafeReportPath(val)) {
+                const isInReportsDir = window.location.pathname.includes('/reports/');
+                const target = isInReportsDir ? val.replace(/^reports\//, '') : val;
+                if (/^[a-zA-Z0-9_\-]+\.html$/i.test(target) || /^reports\/[a-zA-Z0-9_\-]+\.html$/i.test(target)) {
+                    window.location.assign('./' + encodeURI(target));
+                }
             }
         }
 
         function toggleViewMode() {
             currentViewMode = (currentViewMode === 'cumulative') ? 'current' : 'cumulative';
+            const select = document.getElementById('runSelect');
+            if (select) {
+                select.value = (currentViewMode === 'cumulative') ? 'cumulative' : 'latest';
+            }
             renderView();
         }
 
@@ -1747,12 +2284,6 @@
             if (elDuration) elDuration.innerText = duration + ' ms';
             if (elAvg) elAvg.innerText = 'Average: ' + avgDuration + ' ms';
 
-            // Header chips
-            const appRate = document.getElementById('appbar-pass-rate');
-            const appDur = document.getElementById('appbar-duration');
-            if (appRate) appRate.innerText = passRate + '%';
-            if (appDur) appDur.innerText = duration + ' ms';
-
             // Nav counters
             const navTot = document.getElementById('nav-total-tests');
             const navFail = document.getElementById('nav-failed-tests');
@@ -1768,6 +2299,7 @@
             const failSub = document.getElementById('failuresTabSubtitle');
             if (failSub) failSub.innerText = `${failed} Failures Detected`;
 
+            renderTelemetryCapsule(tests, totals, isCum);
             renderCharts(passed, failed, skipped);
             renderSlowestTests(tests);
             renderTestTable(tests);
@@ -1777,11 +2309,106 @@
             renderLoadTests();
         }
 
-        // ── Charts Rendering (Allure Standard Color Palette) ──
+        // ── Telemetry Summary Capsule Rendering ──
+        function renderTelemetryCapsule(tests, totals, isCum) {
+            const totalTests = totals.totalTests || 0;
+            const passed = totals.passedTests || 0;
+            const failed = totals.failedTests || 0;
+            const passRate = totals.passRate != null ? totals.passRate : (totalTests === 0 ? 0 : Math.round((passed * 1000.0) / totalTests) / 10);
+            const durationMs = totals.totalTimeMs || 0;
+
+            const healedCount = tests.filter(t => (t.healedCount || 0) > 0).length;
+            const flakyCount = (totals.flakyTests != null) ? totals.flakyTests : tests.filter(t => (t.retryCount || 0) > 0).length;
+
+            const rateVal = Math.min(100, Math.max(0, passRate));
+            const circumference = 238.761; // 2 * Math.PI * 38
+            const offset = circumference * (1 - (rateVal / 100));
+
+            const ringFill = document.getElementById('capsule-ring-fill');
+            const ringText = document.getElementById('capsule-pass-rate');
+            const statusColor = rateVal >= 80 ? '#97cc64' : (rateVal >= 60 ? 'var(--warn)' : 'var(--bad)');
+
+            if (ringFill) {
+                ringFill.style.strokeDashoffset = offset.toFixed(2);
+                ringFill.style.stroke = statusColor;
+            }
+            if (ringText) {
+                ringText.innerText = Math.round(rateVal) + '%';
+            }
+
+            const countPassed = document.getElementById('capsule-count-passed');
+            const countHealed = document.getElementById('capsule-count-healed');
+            const countFailed = document.getElementById('capsule-count-failed');
+            const countFlaky = document.getElementById('capsule-count-flaky');
+            const pillFailed = document.getElementById('capsule-pill-failed');
+            const pillFlaky = document.getElementById('capsule-pill-flaky');
+
+            if (countPassed) countPassed.innerText = passed;
+            if (countHealed) countHealed.innerText = healedCount;
+            if (countFailed) countFailed.innerText = failed;
+            if (countFlaky) countFlaky.innerText = flakyCount;
+
+            if (pillFailed) {
+                if (failed > 0) {
+                    pillFailed.classList.add('has-failed');
+                } else {
+                    pillFailed.classList.remove('has-failed');
+                }
+            }
+
+            if (pillFlaky) {
+                pillFlaky.style.display = flakyCount > 0 ? 'inline-flex' : 'none';
+            }
+
+            const barFill = document.getElementById('capsule-bar-fill');
+            if (barFill) {
+                barFill.style.width = rateVal + '%';
+                barFill.style.background = statusColor;
+            }
+
+            const metaSuite = document.getElementById('capsule-meta-suite');
+            const metaDuration = document.getElementById('capsule-meta-duration');
+            const metaBrowser = document.getElementById('capsule-meta-browser');
+            const metaMode = document.getElementById('capsule-meta-mode');
+
+            const env = reportData.environment || {};
+            const summary = reportData.summary || {};
+            const suiteName = summary.suiteName || (isCum ? 'AgenticSuite (Cumulative)' : 'AgenticSuite');
+            if (metaSuite) metaSuite.innerText = suiteName;
+
+            const durStr = durationMs >= 1000
+                ? (durationMs / 1000).toFixed(1) + 's'
+                : durationMs + ' ms';
+            if (metaDuration) metaDuration.innerText = durStr;
+
+            let browser = env.browser || 'chrome';
+            browser = browser.replace(/\s*\(headless\)/i, '').trim();
+            if (metaBrowser) metaBrowser.innerText = browser;
+
+            let mode = 'Thread-isolated';
+            if (env.parallel && env.parallel !== 'none') {
+                mode = env.parallel === 'methods' ? 'Thread-isolated' : `Parallel (${env.parallel})`;
+            } else if (env.executionMode && env.executionMode !== 'unknown') {
+                mode = env.executionMode.charAt(0).toUpperCase() + env.executionMode.slice(1);
+            }
+            if (metaMode) metaMode.innerText = mode;
+        }
+
+        function filterFromCapsule(filter) {
+            showTab('tests');
+            const matchingBtn = document.querySelector(`.filter-pill[onclick*="'${filter}'"]`);
+            if (matchingBtn) {
+                setFilter(filter, matchingBtn);
+            } else {
+                setFilter(filter);
+            }
+        }
+
+        // ── Charts Rendering ──
         function renderCharts(passed, failed, skipped) {
             if (!window.Chart) return;
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            const textColor = isDark ? '#9ca3af' : '#475569';
+            const textColor = isDark ? '#a1a1a6' : '#6e6e73';
             const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
 
             // 1. Donut Chart
@@ -1794,23 +2421,23 @@
                         labels: ['Passed', 'Failed', 'Skipped'],
                         datasets: [{
                             data: [passed, failed, skipped],
-                            backgroundColor: ['#97cc64', '#fd5a3e', '#8c8c8c'], // Allure Standard Colors
-                            borderColor: isDark ? '#1f2937' : '#ffffff',
-                            borderWidth: 3,
-                            hoverOffset: 6
+                            backgroundColor: ['#97cc64', '#fd5a3e', '#8c8c8c'],
+                            borderColor: isDark ? '#1c1c1e' : '#ffffff',
+                            borderWidth: 2,
+                            hoverOffset: 4
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        cutout: '72%',
+                        cutout: '74%',
                         plugins: {
                             legend: {
                                 position: 'bottom',
                                 labels: {
                                     color: textColor,
                                     font: { family: 'Inter', size: 12, weight: '600' },
-                                    padding: 16,
+                                    padding: 14,
                                     usePointStyle: true
                                 }
                             }
@@ -1831,8 +2458,8 @@
                         datasets: [{
                             label: 'Duration (ms)',
                             data: [p.p50 || 0, p.p90 || 0, p.p95 || 0, p.p99 || 0],
-                            backgroundColor: 'rgba(24, 144, 255, 0.45)', // Allure Blue
-                            borderColor: '#1890ff',
+                            backgroundColor: 'rgba(0, 113, 227, 0.45)',
+                            borderColor: '#0071e3',
                             borderWidth: 1.5,
                             borderRadius: 6
                         }]
@@ -1861,31 +2488,262 @@
         function renderSlowestTests(tests) {
             const wrap = document.getElementById('slowestTestsList');
             if (!wrap) return;
-            const sorted = [...tests].sort((a, b) => (b.totalMs || 0) - (a.totalMs || 0)).slice(0, 5);
+            wrap.textContent = '';
+            const sorted = [...tests].sort((a, b) => (Number(b.totalMs) || 0) - (Number(a.totalMs) || 0)).slice(0, 5);
             if (sorted.length === 0) {
-                wrap.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">No tests recorded.</div>';
+                const empty = document.createElement('div');
+                empty.style.color = 'var(--text-muted)';
+                empty.style.fontSize = '12px';
+                empty.textContent = 'No tests recorded.';
+                wrap.appendChild(empty);
                 return;
             }
-            wrap.innerHTML = sorted.map(t => {
+            sorted.forEach(t => {
+                const item = document.createElement('div');
+                item.className = 'slow-item';
+
+                const left = document.createElement('div');
+                left.className = 'slow-item-left';
+
+                const badge = document.createElement('span');
+                const rawStatus = (t.status || 'UNKNOWN').toUpperCase();
                 const statusClass = (t.status || '').toLowerCase();
-                return `
-            <div class="slow-item">
-                <div class="slow-item-left">
-                    <span class="status-badge status-${statusClass}">${t.status || 'UNKNOWN'}</span>
-                    <strong style="color:var(--text);">${escapeHtml(t.testId || '')}</strong>
-                </div>
-                <span class="slow-duration">${t.totalMs || 0} ms</span>
-            </div>
-        `;
-            }).join('');
+                badge.className = 'status-badge status-' + statusClass;
+                badge.textContent = rawStatus;
+
+                const strong = document.createElement('strong');
+                strong.style.color = 'var(--text)';
+                strong.style.fontSize = '12px';
+                strong.textContent = t.testId || '';
+
+                left.appendChild(badge);
+                left.appendChild(strong);
+
+                const dur = document.createElement('span');
+                dur.className = 'slow-duration';
+                dur.textContent = (Number(t.totalMs) || 0) + ' ms';
+
+                item.appendChild(left);
+                item.appendChild(dur);
+                wrap.appendChild(item);
+            });
         }
 
-        // ── Render Test Cases Table with Class Grouping ──
+        // ── Drawer Content Builder Helper ──
+        function createDrawerContent(test, prefix, idx) {
+            const drawer = document.createElement('div');
+            drawer.className = 'drawer-content';
+
+            // 1. Video Replay
+            if (test.recordingBase64) {
+                const safeVideoSrc = sanitizeMediaSrc(test.recordingBase64);
+                if (safeVideoSrc) {
+                    const card = document.createElement('div');
+                    card.className = 'video-card';
+
+                    const cardHdr = document.createElement('div');
+                    cardHdr.className = 'video-card-header';
+                    const cardTitle = document.createElement('span');
+                    cardTitle.textContent = 'Execution Video Recording';
+                    const fsBtn = document.createElement('button');
+                    fsBtn.type = 'button';
+                    fsBtn.className = 'btn-copy';
+                    fsBtn.textContent = 'Fullscreen';
+                    fsBtn.onclick = () => openLightbox(safeVideoSrc);
+                    cardHdr.appendChild(cardTitle);
+                    cardHdr.appendChild(fsBtn);
+                    card.appendChild(cardHdr);
+
+                    const playerWrap = document.createElement('div');
+                    playerWrap.className = 'video-player-wrap';
+                    const isMp4 = test.recordingType === 'mp4' || safeVideoSrc.startsWith('data:video');
+                    if (isMp4) {
+                        const videoEl = document.createElement('video');
+                        videoEl.controls = true;
+                        videoEl.autoplay = true;
+                        videoEl.loop = true;
+                        videoEl.playsInline = true;
+                        videoEl.style.maxWidth = '100%';
+                        videoEl.style.maxHeight = '380px';
+                        videoEl.style.outline = 'none';
+                        videoEl.style.borderRadius = '6px';
+
+                        const srcEl = document.createElement('source');
+                        srcEl.src = safeVideoSrc;
+                        srcEl.type = 'video/mp4';
+                        videoEl.appendChild(srcEl);
+                        videoEl.appendChild(document.createTextNode('Your browser does not support the video tag.'));
+                        playerWrap.appendChild(videoEl);
+                    } else {
+                        const imgEl = document.createElement('img');
+                        imgEl.src = safeVideoSrc;
+                        imgEl.style.maxWidth = '100%';
+                        imgEl.style.maxHeight = '380px';
+                        imgEl.style.objectFit = 'contain';
+                        imgEl.style.cursor = 'pointer';
+                        imgEl.title = 'Click to view full size video recording';
+                        imgEl.onclick = () => openLightbox(safeVideoSrc);
+                        playerWrap.appendChild(imgEl);
+                    }
+                    card.appendChild(playerWrap);
+                    drawer.appendChild(card);
+                }
+            }
+
+            // 2. AI Failure Analysis
+            if (test.aiAnalysis) {
+                const aiCard = document.createElement('div');
+                if (prefix === '') aiCard.id = 'ai-analysis-card';
+                aiCard.className = 'ai-card';
+                const aiTitle = document.createElement('div');
+                aiTitle.className = 'ai-card-title';
+                aiTitle.textContent = 'AI Failure Analysis';
+                const aiBody = document.createElement('div');
+                aiBody.className = 'ai-card-body';
+                aiBody.textContent = test.aiAnalysis;
+                aiCard.appendChild(aiTitle);
+                aiCard.appendChild(aiBody);
+                drawer.appendChild(aiCard);
+            }
+
+            // 3. Stack Trace
+            if (test.stackTrace) {
+                const traceBox = document.createElement('div');
+                traceBox.className = 'stack-trace-box';
+                const traceHdr = document.createElement('div');
+                traceHdr.className = 'stack-trace-header';
+                const traceTitle = document.createElement('span');
+                traceTitle.className = 'stack-trace-title';
+                traceTitle.textContent = 'Stack Trace';
+                const copyBtn = document.createElement('button');
+                copyBtn.type = 'button';
+                copyBtn.className = 'btn-copy';
+                copyBtn.textContent = 'Copy Stack Trace';
+                copyBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    copyStackTrace(copyBtn, test.stackTrace || '');
+                };
+                traceHdr.appendChild(traceTitle);
+                traceHdr.appendChild(copyBtn);
+                traceBox.appendChild(traceHdr);
+
+                const pre = document.createElement('pre');
+                pre.className = 'stack-trace';
+                pre.textContent = test.stackTrace;
+                traceBox.appendChild(pre);
+                drawer.appendChild(traceBox);
+            }
+
+            // 4. Step Execution Timeline
+            const steps = test.steps || [];
+            const timelineDiv = document.createElement('div');
+            const timelineTitle = document.createElement('strong');
+            timelineTitle.style.fontSize = '11px';
+            timelineTitle.style.textTransform = 'uppercase';
+            timelineTitle.style.letterSpacing = '0.04em';
+            timelineTitle.style.color = 'var(--text-muted)';
+            timelineTitle.textContent = 'Step Execution Timeline';
+            timelineDiv.appendChild(timelineTitle);
+
+            const timelineWrap = document.createElement('div');
+            timelineWrap.className = 'timeline-wrap';
+
+            if (steps.length === 0) {
+                const noSteps = document.createElement('div');
+                noSteps.style.fontSize = '12px';
+                noSteps.style.color = 'var(--text-muted)';
+                noSteps.textContent = 'No individual steps logged.';
+                timelineWrap.appendChild(noSteps);
+            } else {
+                steps.forEach(s => {
+                    const rawName = s.name || '';
+                    const isApiStep = rawName.startsWith('[API]');
+                    const hasMultiline = rawName.includes('\n');
+                    const pillStatus = (s.status || 'info').toLowerCase();
+
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = 'timeline-step';
+
+                    if (isApiStep && hasMultiline) {
+                        stepDiv.style.flexDirection = 'column';
+                        stepDiv.style.alignItems = 'flex-start';
+                        stepDiv.style.gap = '6px';
+
+                        const topRow = document.createElement('div');
+                        topRow.style.display = 'flex';
+                        topRow.style.alignItems = 'center';
+                        topRow.style.gap = '10px';
+                        topRow.style.width = '100%';
+
+                        const offsetSpan = document.createElement('span');
+                        offsetSpan.className = 'step-offset';
+                        offsetSpan.textContent = '+' + (s.offsetMs || 0) + 'ms';
+
+                        const pillSpan = document.createElement('span');
+                        pillSpan.className = 'step-pill ' + pillStatus;
+                        pillSpan.textContent = s.status || 'INFO';
+
+                        const lines = rawName.split('\n');
+                        const headerLine = lines[0];
+                        const detailLines = lines.slice(1).join('\n');
+
+                        const nameSpan = document.createElement('span');
+                        nameSpan.className = 'step-text';
+                        nameSpan.style.fontWeight = '600';
+                        nameSpan.textContent = headerLine;
+
+                        topRow.appendChild(offsetSpan);
+                        topRow.appendChild(pillSpan);
+                        topRow.appendChild(nameSpan);
+                        stepDiv.appendChild(topRow);
+
+                        const preDetails = document.createElement('pre');
+                        preDetails.className = 'api-step-details';
+                        preDetails.textContent = detailLines;
+                        stepDiv.appendChild(preDetails);
+                    } else {
+                        const offsetSpan = document.createElement('span');
+                        offsetSpan.className = 'step-offset';
+                        offsetSpan.textContent = '+' + (s.offsetMs || 0) + 'ms';
+
+                        const pillSpan = document.createElement('span');
+                        pillSpan.className = 'step-pill ' + pillStatus;
+                        pillSpan.textContent = s.status || 'INFO';
+
+                        const nameSpan = document.createElement('span');
+                        nameSpan.className = 'step-text';
+                        nameSpan.textContent = rawName;
+
+                        stepDiv.appendChild(offsetSpan);
+                        stepDiv.appendChild(pillSpan);
+                        stepDiv.appendChild(nameSpan);
+                    }
+                    timelineWrap.appendChild(stepDiv);
+                });
+            }
+            timelineDiv.appendChild(timelineWrap);
+            drawer.appendChild(timelineDiv);
+
+            return drawer;
+        }
+
+        // ── Render Test Cases Table ──
         function renderTestTable(tests) {
             const tbody = document.getElementById('testTableBody');
             if (!tbody) return;
+            tbody.textContent = '';
+
             if (tests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted);">No tests matching criteria.</td></tr>';
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 6;
+                td.style.textAlign = 'center';
+                td.style.padding = '36px';
+                td.style.color = 'var(--text-muted)';
+                td.style.fontWeight = '500';
+                td.textContent = 'No tests matching criteria.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
                 return;
             }
 
@@ -1897,237 +2755,542 @@
                 groups[cls].push({ ...t, globalIdx: idx });
             });
 
-            let html = '';
             Object.keys(groups).forEach(cls => {
                 const members = groups[cls];
                 const passCount = members.filter(m => m.status === 'PASSED').length;
                 const failCount = members.filter(m => m.status === 'FAILED').length;
                 const skipCount = members.filter(m => m.status === 'SKIPPED').length;
 
-                html += `
-            <tr class="group-header" data-group="${escapeHtml(cls)}" onclick="toggleGroup('${escapeHtml(cls)}')">
-                <td colspan="6">
-                    <span id="gicon-${escapeHtml(cls)}" class="chevron">&#x25BC;</span>
-                    <strong>${escapeHtml(cls)}</strong>
-                    <span style="font-size:11px;font-weight:normal;color:var(--text-muted);margin-left:8px;">
-                        (${members.length} tests &bull; <span style="color:var(--good);">${passCount} passed</span>${failCount > 0 ? ` &bull; <span style="color:var(--bad);">${failCount} failed</span>` : ''})
-                    </span>
-                </td>
-            </tr>
-        `;
+                // Group header row
+                const htr = document.createElement('tr');
+                htr.className = 'group-header';
+                htr.setAttribute('data-group', cls);
+                htr.onclick = () => toggleGroup(cls);
 
+                const htd = document.createElement('td');
+                htd.colSpan = 6;
+
+                const flex = document.createElement('div');
+                flex.className = 'group-header-flex';
+
+                const left = document.createElement('div');
+                left.className = 'group-header-left';
+                const gicon = document.createElement('span');
+                gicon.id = 'gicon-' + cls;
+                gicon.className = 'chevron';
+                gicon.textContent = '▼';
+                const gtitle = document.createElement('span');
+                gtitle.className = 'group-title';
+                gtitle.textContent = cls;
+                left.appendChild(gicon);
+                left.appendChild(gtitle);
+                flex.appendChild(left);
+
+                const badges = document.createElement('div');
+                badges.className = 'group-header-badges';
+
+                const bTot = document.createElement('span');
+                bTot.className = 'group-badge';
+                bTot.textContent = members.length + ' tests';
+                badges.appendChild(bTot);
+
+                const bPass = document.createElement('span');
+                bPass.className = 'group-badge group-badge-pass';
+                bPass.textContent = passCount + ' passed';
+                badges.appendChild(bPass);
+
+                if (failCount > 0) {
+                    const bFail = document.createElement('span');
+                    bFail.className = 'group-badge group-badge-fail';
+                    bFail.textContent = failCount + ' failed';
+                    badges.appendChild(bFail);
+                }
+                if (skipCount > 0) {
+                    const bSkip = document.createElement('span');
+                    bSkip.className = 'group-badge group-badge-skip';
+                    bSkip.textContent = skipCount + ' skipped';
+                    badges.appendChild(bSkip);
+                }
+                flex.appendChild(badges);
+                htd.appendChild(flex);
+                htr.appendChild(htd);
+                tbody.appendChild(htr);
+
+                // Members
                 members.forEach(m => {
-                    const isHealed = (m.healedCount > 0);
-                    const isFlaky = (m.retryCount > 0);
+                    const isHealed = Boolean(m.healedCount > 0);
+                    const isFlaky = Boolean(m.retryCount > 0);
+                    const rawStatus = (m.status || 'UNKNOWN').toUpperCase();
                     const statusClass = (m.status || '').toLowerCase();
-                    const screenshotHtml = m.screenshotBase64
-                        ? `<img src="${m.screenshotBase64}" class="screenshot-thumb" onclick="openLightbox(this.src)" title="View screenshot">`
-                        : `<span style="color:var(--text-muted);">—</span>`;
+                    const idParts = splitTestIdentifier(m.testId || '');
+                    const showMeta = idParts.secondary && (cls === 'General' || idParts.secondary !== cls);
+                    const logicMsStr = (m.testLogicMs != null ? m.testLogicMs : 0) + ' ms';
+                    const totalMsStr = (m.totalMs != null ? m.totalMs : 0) + ' ms';
 
-                    html += `
-                <tr class="group-member" data-group="${escapeHtml(cls)}" data-status="${escapeHtml(m.status || '')}" data-test="${escapeHtml(m.testId || '')}" data-healed="${isHealed}" onclick="toggleDetail(${m.globalIdx})">
-                    <td style="text-align:center;"><span id="icon-${m.globalIdx}" class="chevron" style="margin:0;">&#x25B6;</span></td>
-                    <td>
-                        <div style="font-weight:600;color:var(--text);">${escapeHtml(m.testId || '')}</div>
-                        ${isFlaky ? `<span class="status-badge status-flaky" style="margin-top:4px;">Flaky (Retries: ${m.retryCount})</span>` : ''}
-                        ${isHealed ? `<span class="status-badge status-healed" style="margin-top:4px;">Healed</span>` : ''}
-                    </td>
-                    <td><span class="status-badge status-${statusClass}">${m.status || 'UNKNOWN'}</span></td>
-                    <td style="text-align:right;font-family:var(--font-mono);">${m.testLogicMs || 0}</td>
-                    <td style="text-align:right;font-family:var(--font-mono);font-weight:600;">${m.totalMs || 0}</td>
-                    <td style="text-align:center;" onclick="event.stopPropagation()">${screenshotHtml}</td>
-                </tr>
-                <tr id="detail-${m.globalIdx}" class="detail-row" style="display:none;">
-                    <td colspan="6">
-                        <div class="drawer-content">
-                            <!-- Video Recording (Failure Replay) Card -->
-                            ${m.recordingBase64 ? `
-                                <div class="video-card" style="margin-bottom:16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px;">
-                                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                                        <span style="font-size:12px;font-weight:600;text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:6px;">
-                                            &#127916; Execution Video Recording
-                                        </span>
-                                        <button type="button" class="btn-copy" onclick="openLightbox('${m.recordingBase64}')">Open Fullscreen</button>
-                                    </div>
-                                    <div style="display:flex;justify-content:center;background:#000;border-radius:6px;overflow:hidden;max-height:380px;">
-                                        ${(m.recordingType === 'mp4' || (m.recordingBase64 && m.recordingBase64.startsWith('data:video'))) ? `
-                                            <video controls autoplay loop playsinline style="max-width:100%;max-height:380px;outline:none;border-radius:6px;">
-                                                <source src="${m.recordingBase64}" type="video/mp4">
-                                                Your browser does not support the video tag.
-                                            </video>
-                                        ` : `
-                                            <img src="${m.recordingBase64}" style="max-width:100%;max-height:380px;object-fit:contain;cursor:pointer;" onclick="openLightbox(this.src)" title="Click to view full size video recording">
-                                        `}
-                                    </div>
-                                </div>
-                            ` : ''}
+                    const mtr = document.createElement('tr');
+                    mtr.className = 'group-member';
+                    mtr.setAttribute('data-group', cls);
+                    mtr.setAttribute('data-status', m.status || '');
+                    mtr.setAttribute('data-test', m.testId || '');
+                    mtr.setAttribute('data-healed', String(isHealed));
+                    mtr.onclick = () => toggleDetail(m.globalIdx);
 
-                            <!-- AI Failure Analysis Card -->
-                            ${m.aiAnalysis ? `
-                                <div id="ai-analysis-card" class="ai-card">
-                                    <div class="ai-card-title">&#129302; AI Failure Analysis</div>
-                                    <div class="ai-card-body">${escapeHtml(m.aiAnalysis)}</div>
-                                </div>
-                            ` : ''}
+                    // TD 0: Chevron
+                    const td0 = document.createElement('td');
+                    td0.style.textAlign = 'center';
+                    const chevron = document.createElement('span');
+                    chevron.id = 'icon-' + m.globalIdx;
+                    chevron.className = 'chevron';
+                    chevron.style.margin = '0';
+                    chevron.textContent = '▶';
+                    td0.appendChild(chevron);
+                    mtr.appendChild(td0);
 
-                            <!-- Stack Trace Box -->
-                            ${m.stackTrace ? `
-                                <div class="stack-trace-box">
-                                    <div class="stack-trace-header">
-                                        <span class="stack-trace-title">Stack Trace</span>
-                                        <button type="button" class="btn-copy" onclick="copyStackTrace(event, this)">Copy Stack Trace</button>
-                                    </div>
-                                    <pre class="stack-trace">${escapeHtml(m.stackTrace)}</pre>
-                                </div>
-                            ` : ''}
-
-                            <!-- Step Execution Timeline -->
-                            <div>
-                                <strong style="font-size:12px;text-transform:uppercase;color:var(--text-muted);">Step Execution Timeline</strong>
-                                <div class="timeline-wrap">
-                                    ${(m.steps && m.steps.length > 0) ? m.steps.map(s => {
-                        const rawName = s.name || '';
-                        const isApiStep = rawName.startsWith('[API]');
-                        const hasMultiline = rawName.includes('\n');
-                        const pillStatus = (s.status || 'info').toLowerCase();
-
-                        if (isApiStep && hasMultiline) {
-                            const lines = rawName.split('\n');
-                            const headerLine = lines[0];
-                            const detailLines = lines.slice(1).join('\n');
-                            return `
-                                                <div class="timeline-step" style="flex-direction:column;align-items:flex-start;gap:6px;">
-                                                    <div style="display:flex;align-items:center;gap:12px;width:100%;">
-                                                        <span class="step-offset">+${s.offsetMs || 0}ms</span>
-                                                        <span class="step-pill ${pillStatus}">${s.status || 'INFO'}</span>
-                                                        <span class="step-text" style="font-weight:600;">${escapeHtml(headerLine)}</span>
-                                                    </div>
-                                                    <pre class="api-step-details">${escapeHtml(detailLines)}</pre>
-                                                </div>
-                                            `;
+                    // TD 1: Identity
+                    const td1 = document.createElement('td');
+                    const idCell = document.createElement('div');
+                    idCell.className = 'test-identity-cell';
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'test-name';
+                    nameSpan.textContent = idParts.primary;
+                    idCell.appendChild(nameSpan);
+                    if (showMeta) {
+                        const metaSpan = document.createElement('span');
+                        metaSpan.className = 'test-identity-meta';
+                        metaSpan.textContent = idParts.secondary;
+                        idCell.appendChild(metaSpan);
+                    }
+                    if (isFlaky || isHealed) {
+                        const bRow = document.createElement('div');
+                        bRow.className = 'test-badge-row';
+                        if (isFlaky) {
+                            const flkBadge = document.createElement('span');
+                            flkBadge.className = 'status-badge status-flaky';
+                            flkBadge.textContent = 'Flaky (' + m.retryCount + ' retries)';
+                            bRow.appendChild(flkBadge);
                         }
+                        if (isHealed) {
+                            const hldBadge = document.createElement('span');
+                            hldBadge.className = 'status-badge status-healed';
+                            hldBadge.textContent = 'Healed';
+                            bRow.appendChild(hldBadge);
+                        }
+                        idCell.appendChild(bRow);
+                    }
+                    td1.appendChild(idCell);
+                    mtr.appendChild(td1);
 
-                        return `
-                                            <div class="timeline-step">
-                                                <span class="step-offset">+${s.offsetMs || 0}ms</span>
-                                                <span class="step-pill ${pillStatus}">${s.status || 'INFO'}</span>
-                                                <span class="step-text">${escapeHtml(rawName)}</span>
-                                            </div>
-                                        `;
-                    }).join('') : '<div style="font-size:12px;color:var(--text-muted);">No individual steps logged.</div>'}
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            `;
+                    // TD 2: Status badge
+                    const td2 = document.createElement('td');
+                    td2.style.textAlign = 'center';
+                    const statBadge = document.createElement('span');
+                    statBadge.className = 'status-badge status-' + statusClass;
+                    statBadge.textContent = rawStatus;
+                    td2.appendChild(statBadge);
+                    mtr.appendChild(td2);
+
+                    // TD 3: Logic ms
+                    const td3 = document.createElement('td');
+                    td3.style.textAlign = 'right';
+                    td3.style.fontFamily = 'var(--font-mono)';
+                    td3.style.fontSize = '12.5px';
+                    td3.style.color = 'var(--text-secondary)';
+                    td3.style.fontVariantNumeric = 'tabular-nums';
+                    td3.textContent = logicMsStr;
+                    mtr.appendChild(td3);
+
+                    // TD 4: Total ms
+                    const td4 = document.createElement('td');
+                    td4.style.textAlign = 'right';
+                    td4.style.fontFamily = 'var(--font-mono)';
+                    td4.style.fontSize = '12.5px';
+                    td4.style.fontWeight = '700';
+                    td4.style.color = 'var(--text)';
+                    td4.style.fontVariantNumeric = 'tabular-nums';
+                    td4.textContent = totalMsStr;
+                    mtr.appendChild(td4);
+
+                    // TD 5: Screenshot
+                    const td5 = document.createElement('td');
+                    td5.style.textAlign = 'center';
+                    td5.onclick = (e) => e.stopPropagation();
+                    if (m.screenshotBase64) {
+                        const safeScr = sanitizeMediaSrc(m.screenshotBase64);
+                        if (safeScr) {
+                            const img = document.createElement('img');
+                            img.src = safeScr;
+                            img.className = 'screenshot-thumb';
+                            img.title = 'View screenshot';
+                            img.onclick = () => openLightbox(safeScr);
+                            td5.appendChild(img);
+                        } else {
+                            const dash = document.createElement('span');
+                            dash.style.color = 'var(--text-muted)';
+                            dash.textContent = '—';
+                            td5.appendChild(dash);
+                        }
+                    } else {
+                        const dash = document.createElement('span');
+                        dash.style.color = 'var(--text-muted)';
+                        dash.textContent = '—';
+                        td5.appendChild(dash);
+                    }
+                    mtr.appendChild(td5);
+                    tbody.appendChild(mtr);
+
+                    // Detail row
+                    const trDetail = document.createElement('tr');
+                    trDetail.id = 'detail-' + m.globalIdx;
+                    trDetail.className = 'detail-row';
+                    trDetail.style.display = 'none';
+                    const tdDetail = document.createElement('td');
+                    tdDetail.colSpan = 6;
+                    tdDetail.appendChild(createDrawerContent(m, '', m.globalIdx));
+                    trDetail.appendChild(tdDetail);
+                    tbody.appendChild(trDetail);
                 });
             });
 
-            tbody.innerHTML = html;
             applySearch();
         }
 
-        // ── Render Failures Table (Defects Tab) ──
+        // ── Render Failures Table ──
         function renderFailureTable(tests) {
             const tbody = document.getElementById('failureTableBody');
             if (!tbody) return;
+            tbody.textContent = '';
+
             const failures = tests.filter(t => t.status === 'FAILED');
             if (failures.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:36px;color:var(--good);font-weight:600;">&#127881; Zero Failures! All tests passed successfully.</td></tr>';
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 6;
+                td.style.textAlign = 'center';
+                td.style.padding = '48px 24px';
+
+                const wrap = document.createElement('div');
+                wrap.style.display = 'inline-flex';
+                wrap.style.flexDirection = 'column';
+                wrap.style.alignItems = 'center';
+                wrap.style.gap = '10px';
+
+                const badge = document.createElement('span');
+                badge.className = 'status-badge status-passed';
+                badge.style.fontSize = '12px';
+                badge.style.padding = '5px 14px';
+                badge.style.letterSpacing = '0.02em';
+                badge.textContent = 'ZERO FAILURES';
+
+                const msg = document.createElement('span');
+                msg.style.fontSize = '13px';
+                msg.style.color = 'var(--text-secondary)';
+                msg.style.fontWeight = '500';
+                msg.textContent = 'Zero Failures! All tests passed cleanly.';
+
+                wrap.appendChild(badge);
+                wrap.appendChild(msg);
+                td.appendChild(wrap);
+                tr.appendChild(td);
+                tbody.appendChild(tr);
                 return;
             }
-            tbody.innerHTML = failures.map((f, idx) => {
-                const screenshotHtml = f.screenshotBase64
-                    ? `<img src="${f.screenshotBase64}" class="screenshot-thumb" onclick="openLightbox(this.src)">`
-                    : `<span style="color:var(--text-muted);">—</span>`;
-                return `
-            <tr class="group-member" onclick="toggleFailureDetail(${idx})">
-                <td style="text-align:center;"><span id="ficon-${idx}" class="chevron" style="margin:0;">&#x25B6;</span></td>
-                <td><strong>${escapeHtml(f.testId || '')}</strong></td>
-                <td><span class="status-badge status-failed">FAIL</span></td>
-                <td style="color:var(--bad);max-width:350px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(f.errorMessage || 'Failure')}</td>
-                <td style="text-align:right;font-family:var(--font-mono);">${f.totalMs || 0} ms</td>
-                <td style="text-align:center;" onclick="event.stopPropagation()">${screenshotHtml}</td>
-            </tr>
-            <tr id="fdetail-${idx}" class="detail-row" style="display:none;">
-                <td colspan="6">
-                    <div class="drawer-content">
-                        <!-- Video Recording (Failure Replay) Card -->
-                        ${f.recordingBase64 ? `
-                            <div class="video-card" style="margin-bottom:16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px;">
-                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                                    <span style="font-size:12px;font-weight:600;text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:6px;">
-                                        &#127916; Execution Video Recording
-                                    </span>
-                                    <button type="button" class="btn-copy" onclick="openLightbox('${f.recordingBase64}')">Open Fullscreen</button>
-                                </div>
-                                <div style="display:flex;justify-content:center;background:#000;border-radius:6px;overflow:hidden;max-height:380px;">
-                                    ${(f.recordingType === 'mp4' || (f.recordingBase64 && f.recordingBase64.startsWith('data:video'))) ? `
-                                        <video controls autoplay loop playsinline style="max-width:100%;max-height:380px;outline:none;border-radius:6px;">
-                                            <source src="${f.recordingBase64}" type="video/mp4">
-                                            Your browser does not support the video tag.
-                                        </video>
-                                    ` : `
-                                        <img src="${f.recordingBase64}" style="max-width:100%;max-height:380px;object-fit:contain;cursor:pointer;" onclick="openLightbox(this.src)" title="Click to view full size video recording">
-                                    `}
-                                </div>
-                            </div>
-                        ` : ''}
-                        ${f.aiAnalysis ? `
-                            <div class="ai-card">
-                                <div class="ai-card-title">&#129302; AI Failure Analysis</div>
-                                <div class="ai-card-body">${escapeHtml(f.aiAnalysis)}</div>
-                            </div>
-                        ` : ''}
-                        ${f.stackTrace ? `
-                            <div class="stack-trace-box">
-                                <div class="stack-trace-header">
-                                    <span class="stack-trace-title">Stack Trace</span>
-                                    <button type="button" class="btn-copy" onclick="copyStackTrace(event, this)">Copy Stack Trace</button>
-                                </div>
-                                <pre class="stack-trace">${escapeHtml(f.stackTrace)}</pre>
-                            </div>
-                        ` : ''}
-                    </div>
-                </td>
-            </tr>
-        `;
-            }).join('');
+
+            failures.forEach((f, idx) => {
+                const idParts = splitTestIdentifier(f.testId || '');
+                const totalMs = Number(f.totalMs) || 0;
+                const durStr = totalMs >= 1000 ? (totalMs / 1000).toFixed(1) + 's' : totalMs + ' ms';
+
+                // Main row
+                const tr = document.createElement('tr');
+                tr.className = 'group-member';
+                tr.onclick = () => toggleFailureDetail(idx);
+
+                // TD 0: Chevron
+                const tdChevron = document.createElement('td');
+                tdChevron.style.textAlign = 'center';
+                const chevron = document.createElement('span');
+                chevron.id = 'ficon-' + idx;
+                chevron.className = 'chevron';
+                chevron.style.margin = '0';
+                chevron.textContent = '▶';
+                tdChevron.appendChild(chevron);
+                tr.appendChild(tdChevron);
+
+                // TD 1: Identity
+                const tdId = document.createElement('td');
+                const idCell = document.createElement('div');
+                idCell.className = 'test-identity-cell';
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'test-name';
+                nameSpan.textContent = idParts.primary;
+                idCell.appendChild(nameSpan);
+                if (idParts.secondary) {
+                    const metaSpan = document.createElement('span');
+                    metaSpan.className = 'test-identity-meta';
+                    metaSpan.textContent = idParts.secondary;
+                    idCell.appendChild(metaSpan);
+                }
+                tdId.appendChild(idCell);
+                tr.appendChild(tdId);
+
+                // TD 2: FAIL badge
+                const tdStatus = document.createElement('td');
+                tdStatus.style.textAlign = 'center';
+                const failBadge = document.createElement('span');
+                failBadge.className = 'status-badge status-failed';
+                failBadge.textContent = 'FAIL';
+                tdStatus.appendChild(failBadge);
+                tr.appendChild(tdStatus);
+
+                // TD 3: Error message snippet
+                const tdErr = document.createElement('td');
+                const errBadge = document.createElement('div');
+                errBadge.className = 'error-snippet-badge';
+                const errMsg = f.errorMessage || 'Failure';
+                errBadge.title = errMsg;
+                errBadge.textContent = errMsg;
+                tdErr.appendChild(errBadge);
+                tr.appendChild(tdErr);
+
+                // TD 4: Duration
+                const tdDur = document.createElement('td');
+                tdDur.style.textAlign = 'right';
+                tdDur.style.fontFamily = 'var(--font-mono)';
+                tdDur.style.fontSize = '12.5px';
+                tdDur.style.color = 'var(--text-secondary)';
+                tdDur.style.fontVariantNumeric = 'tabular-nums';
+                tdDur.textContent = durStr;
+                tr.appendChild(tdDur);
+
+                // TD 5: Screenshot
+                const tdScreen = document.createElement('td');
+                tdScreen.style.textAlign = 'center';
+                tdScreen.onclick = (e) => e.stopPropagation();
+                if (f.screenshotBase64) {
+                    const safeScr = sanitizeMediaSrc(f.screenshotBase64);
+                    if (safeScr) {
+                        const img = document.createElement('img');
+                        img.src = safeScr;
+                        img.className = 'screenshot-thumb';
+                        img.title = 'View screenshot';
+                        img.onclick = () => openLightbox(safeScr);
+                        tdScreen.appendChild(img);
+                    } else {
+                        const dash = document.createElement('span');
+                        dash.style.color = 'var(--text-muted)';
+                        dash.textContent = '—';
+                        tdScreen.appendChild(dash);
+                    }
+                } else {
+                    const dash = document.createElement('span');
+                    dash.style.color = 'var(--text-muted)';
+                    dash.textContent = '—';
+                    tdScreen.appendChild(dash);
+                }
+                tr.appendChild(tdScreen);
+
+                tbody.appendChild(tr);
+
+                // Detail row (Drawer)
+                const trDetail = document.createElement('tr');
+                trDetail.id = 'fdetail-' + idx;
+                trDetail.className = 'detail-row';
+                trDetail.style.display = 'none';
+
+                const tdDetail = document.createElement('td');
+                tdDetail.colSpan = 6;
+                tdDetail.appendChild(createDrawerContent(f, 'f', idx));
+                trDetail.appendChild(tdDetail);
+
+                tbody.appendChild(trDetail);
+            });
         }
 
         // ── Render Run History Table ──
         function renderHistoryTable() {
             const tbody = document.getElementById('historyTableBody');
             if (!tbody) return;
+            tbody.textContent = '';
             const list = reportData.history || [];
             if (list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">No archived run history available yet.</td></tr>';
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 8;
+                td.style.textAlign = 'center';
+                td.style.padding = '32px';
+                td.style.color = 'var(--text-muted)';
+                td.textContent = 'No archived run history available yet.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
                 return;
             }
             const isInReports = window.location.pathname.includes('/reports/');
-            tbody.innerHTML = list.map(h => {
-                const link = isInReports ? (h.reportPath || '').replace('reports/', '') : (h.reportPath || '#');
-                return `
-        <tr>
-            <td><strong>${escapeHtml(h.timestamp || '')}</strong></td>
-            <td><strong style="color:${h.passRate >= 80 ? 'var(--good)' : 'var(--bad)'}">${h.passRate}%</strong></td>
-            <td>${h.totalTests}</td>
-            <td style="color:var(--good);">${h.passedTests}</td>
-            <td style="color:var(--bad);">${h.failedTests}</td>
-            <td style="color:var(--skipped);">${h.skippedTests}</td>
-            <td style="font-family:var(--font-mono);">${h.totalTimeMs} ms</td>
-            <td><a href="${escapeHtml(link)}" target="_blank" style="color:var(--primary);font-weight:600;text-decoration:none;">View Report &rarr;</a></td>
-        </tr>
-    `;
-            }).join('');
+            list.forEach((h, idx) => {
+                const isCurrentRun = (idx === 0);
+                const passRate = Number(h.passRate) || 0;
+                const isGood = passRate >= 80;
+                const isWarn = passRate >= 60 && passRate < 80;
+                const badgeClass = isGood ? 'status-passed' : (isWarn ? 'status-flaky' : 'status-failed');
+                const totalTimeMs = Number(h.totalTimeMs) || 0;
+                const durStr = totalTimeMs >= 1000 ? (totalTimeMs / 1000).toFixed(1) + 's' : totalTimeMs + ' ms';
+
+                const tr = document.createElement('tr');
+
+                // TD 1: Timestamp + Current chip
+                const tdTime = document.createElement('td');
+                tdTime.style.fontFamily = 'var(--font-mono)';
+                tdTime.style.fontSize = '12.5px';
+                tdTime.style.color = 'var(--text)';
+                tdTime.style.fontVariantNumeric = 'tabular-nums';
+                const flexDiv = document.createElement('div');
+                flexDiv.style.display = 'inline-flex';
+                flexDiv.style.alignItems = 'center';
+                flexDiv.style.gap = '8px';
+                const timeStrong = document.createElement('strong');
+                timeStrong.textContent = h.timestamp || '';
+                flexDiv.appendChild(timeStrong);
+                if (isCurrentRun) {
+                    const chip = document.createElement('span');
+                    chip.className = 'policy-chip chip-monitored';
+                    chip.style.fontSize = '10px';
+                    chip.style.padding = '1px 6px';
+                    chip.style.color = 'var(--primary)';
+                    chip.style.borderColor = 'var(--primary-border)';
+                    chip.style.background = 'var(--primary-bg)';
+                    chip.textContent = 'CURRENT';
+                    flexDiv.appendChild(chip);
+                }
+                tdTime.appendChild(flexDiv);
+                tr.appendChild(tdTime);
+
+                // TD 2: Pass rate badge
+                const tdRate = document.createElement('td');
+                tdRate.style.textAlign = 'center';
+                const rateBadge = document.createElement('span');
+                rateBadge.className = 'status-badge ' + badgeClass;
+                rateBadge.style.minWidth = '56px';
+                rateBadge.style.justifyContent = 'center';
+                rateBadge.textContent = passRate + '%';
+                tdRate.appendChild(rateBadge);
+                tr.appendChild(tdRate);
+
+                // TD 3: Total tests
+                const tdTot = document.createElement('td');
+                tdTot.style.textAlign = 'right';
+                tdTot.style.fontFamily = 'var(--font-mono)';
+                tdTot.style.fontSize = '12.5px';
+                tdTot.style.color = 'var(--text)';
+                tdTot.style.fontVariantNumeric = 'tabular-nums';
+                tdTot.textContent = String(h.totalTests || 0);
+                tr.appendChild(tdTot);
+
+                // TD 4: Passed
+                const tdPass = document.createElement('td');
+                tdPass.style.textAlign = 'right';
+                tdPass.style.fontFamily = 'var(--font-mono)';
+                tdPass.style.fontSize = '12.5px';
+                tdPass.style.color = 'var(--good)';
+                tdPass.style.fontWeight = '700';
+                tdPass.style.fontVariantNumeric = 'tabular-nums';
+                tdPass.textContent = String(h.passedTests || 0);
+                tr.appendChild(tdPass);
+
+                // TD 5: Failed
+                const tdFail = document.createElement('td');
+                tdFail.style.textAlign = 'right';
+                tdFail.style.fontFamily = 'var(--font-mono)';
+                tdFail.style.fontSize = '12.5px';
+                tdFail.style.fontVariantNumeric = 'tabular-nums';
+                const failedCount = Number(h.failedTests) || 0;
+                tdFail.style.color = failedCount > 0 ? 'var(--bad)' : 'var(--text-muted)';
+                tdFail.style.fontWeight = failedCount > 0 ? '700' : '400';
+                tdFail.textContent = String(failedCount);
+                tr.appendChild(tdFail);
+
+                // TD 6: Skipped
+                const tdSkip = document.createElement('td');
+                tdSkip.style.textAlign = 'right';
+                tdSkip.style.fontFamily = 'var(--font-mono)';
+                tdSkip.style.fontSize = '12.5px';
+                tdSkip.style.color = 'var(--text-muted)';
+                tdSkip.style.fontVariantNumeric = 'tabular-nums';
+                tdSkip.textContent = String(h.skippedTests || 0);
+                tr.appendChild(tdSkip);
+
+                // TD 7: Duration
+                const tdDur = document.createElement('td');
+                tdDur.style.textAlign = 'right';
+                tdDur.style.fontFamily = 'var(--font-mono)';
+                tdDur.style.fontSize = '12.5px';
+                tdDur.style.color = 'var(--text-secondary)';
+                tdDur.style.fontVariantNumeric = 'tabular-nums';
+                tdDur.textContent = durStr;
+                tr.appendChild(tdDur);
+
+                // TD 8: Action
+                const tdAction = document.createElement('td');
+                tdAction.style.textAlign = 'center';
+                if (isCurrentRun) {
+                    const span = document.createElement('span');
+                    span.className = 'btn-inspect-pill';
+                    span.style.opacity = '0.65';
+                    span.style.cursor = 'default';
+                    span.title = 'Currently viewing this execution report';
+                    span.textContent = 'Current';
+                    tdAction.appendChild(span);
+                } else {
+                    const rawPath = String(h.reportPath || '');
+                    const cleanPath = isInReports ? rawPath.replace(/^reports\//, '') : rawPath;
+                    const a = document.createElement('a');
+                    a.className = 'btn-inspect-pill';
+                    a.style.textDecoration = 'none';
+                    a.target = '_blank';
+                    a.title = 'Open archived execution report';
+                    if (isSafeReportPath(cleanPath)) {
+                        a.href = './' + encodeURI(cleanPath);
+                    } else {
+                        a.href = '#';
+                    }
+                    a.textContent = 'View →';
+                    tdAction.appendChild(a);
+                }
+                tr.appendChild(tdAction);
+
+                tbody.appendChild(tr);
+            });
         }
 
         let currentFlakinessFilter = 'ALL';
 
         function filterFlakiness(risk) {
             currentFlakinessFilter = risk;
+            document.querySelectorAll('#tab-flakiness .stat-card').forEach(card => {
+                const cardOnclick = card.getAttribute('onclick') || '';
+                if (cardOnclick.includes(`'${risk}'`)) {
+                    card.classList.add('stat-card-active');
+                } else {
+                    card.classList.remove('stat-card-active');
+                }
+            });
             renderFlakinessTable();
+        }
+
+        function splitTestIdentifier(rawId) {
+            if (!rawId) return { primary: 'Unknown Test', secondary: '' };
+            if (rawId.includes('#')) {
+                const idx = rawId.indexOf('#');
+                const file = rawId.substring(0, idx);
+                const scenario = rawId.substring(idx + 1);
+                return { primary: scenario, secondary: file };
+            }
+            const lastDot = rawId.lastIndexOf('.');
+            if (lastDot > 0) {
+                return {
+                    primary: rawId.substring(lastDot + 1),
+                    secondary: rawId.substring(0, lastDot)
+                };
+            }
+            return { primary: rawId, secondary: '' };
         }
 
         function inspectTestCase(testId) {
@@ -2190,9 +3353,18 @@
 
             const tbody = document.getElementById('flakinessTableBody');
             if (!tbody) return;
+            tbody.textContent = '';
 
             if (allScores.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);">No flakiness history data collected yet. Run test suites with flakiness enabled to build history.</td></tr>';
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 5;
+                td.style.textAlign = 'center';
+                td.style.padding = '32px';
+                td.style.color = 'var(--text-muted)';
+                td.textContent = 'No flakiness history data collected yet. Run test suites with flakiness enabled to build history.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
                 return;
             }
 
@@ -2201,35 +3373,119 @@
                 : allScores.filter(s => (s.risk || 'STABLE').toUpperCase() === currentFlakinessFilter);
 
             if (filteredScores.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">No tests matching filter: <strong>${escapeHtml(currentFlakinessFilter)}</strong>. <a href="javascript:void(0)" onclick="filterFlakiness('ALL')" style="color:var(--primary);font-weight:600;">Show all</a></td></tr>`;
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 5;
+                td.style.textAlign = 'center';
+                td.style.padding = '24px';
+                td.style.color = 'var(--text-muted)';
+                td.appendChild(document.createTextNode('No tests matching filter: '));
+                const strong = document.createElement('strong');
+                strong.textContent = currentFlakinessFilter;
+                td.appendChild(strong);
+                td.appendChild(document.createTextNode('. '));
+                const showAllLink = document.createElement('a');
+                showAllLink.href = 'javascript:void(0)';
+                showAllLink.style.color = 'var(--primary)';
+                showAllLink.style.fontWeight = '600';
+                showAllLink.textContent = 'Show all';
+                showAllLink.onclick = () => filterFlakiness('ALL');
+                td.appendChild(showAllLink);
+                tr.appendChild(td);
+                tbody.appendChild(tr);
                 return;
             }
 
-            tbody.innerHTML = filteredScores.map(s => {
+            filteredScores.forEach(s => {
                 const risk = (s.risk || 'STABLE').toUpperCase();
                 const badgeClass = risk === 'HIGH' ? 'risk-high' : risk === 'WATCH' ? 'risk-watch' : 'risk-stable';
                 const rateColor = risk === 'HIGH' ? 'var(--bad)' : risk === 'WATCH' ? 'var(--flaky)' : 'var(--good)';
-                const safeTestId = escapeHtml(s.testId || '');
+                const rawTestId = s.testId || '';
+                const idParts = splitTestIdentifier(rawTestId);
 
-                return `
-            <tr>
-                <td>
-                    <a href="javascript:void(0)" onclick="inspectTestCase('${escapeHtml(s.testId || '')}')" style="color:var(--primary);font-weight:600;text-decoration:none;" title="Click to inspect this test case">
-                        ${safeTestId}
-                    </a>
-                </td>
-                <td style="text-align:center;"><span class="status-badge ${badgeClass}">${risk}</span></td>
-                <td style="text-align:right;font-family:var(--font-mono);font-weight:700;color:${rateColor};">${s.failureRate}%</td>
-                <td style="text-align:right;font-family:var(--font-mono);">${s.failCount || 0} / ${s.runsAnalysed || 0}</td>
-                <td style="text-align:center;">
-                    <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-                        ${risk === 'HIGH' ? '<span style="color:var(--bad);font-weight:600;font-size:11px;">Quarantine Recommended</span>' : '<span style="color:var(--text-muted);font-size:11px;">Monitored</span>'}
-                        <button type="button" class="btn-copy" style="padding:2px 8px;font-size:11px;cursor:pointer;" onclick="inspectTestCase('${escapeHtml(s.testId || '')}')">Inspect &rarr;</button>
-                    </div>
-                </td>
-            </tr>
-        `;
-            }).join('');
+                const tr = document.createElement('tr');
+
+                // Col 1: Identity
+                const tdId = document.createElement('td');
+                const cell = document.createElement('div');
+                cell.className = 'test-identity-cell';
+
+                const link = document.createElement('a');
+                link.href = 'javascript:void(0)';
+                link.className = 'test-identity-link';
+                link.title = `Click to inspect this test case: ${rawTestId}`;
+                link.textContent = idParts.primary;
+                link.onclick = () => inspectTestCase(rawTestId);
+                cell.appendChild(link);
+
+                if (idParts.secondary) {
+                    const metaSpan = document.createElement('span');
+                    metaSpan.className = 'test-identity-meta';
+                    metaSpan.textContent = idParts.secondary;
+                    cell.appendChild(metaSpan);
+                }
+                tdId.appendChild(cell);
+                tr.appendChild(tdId);
+
+                // Col 2: Risk Badge
+                const tdRisk = document.createElement('td');
+                tdRisk.style.textAlign = 'center';
+                const badge = document.createElement('span');
+                badge.className = `status-badge ${badgeClass}`;
+                badge.textContent = risk;
+                tdRisk.appendChild(badge);
+                tr.appendChild(tdRisk);
+
+                // Col 3: Failure Rate
+                const tdRate = document.createElement('td');
+                tdRate.style.textAlign = 'right';
+                tdRate.style.fontFamily = 'var(--font-mono)';
+                tdRate.style.fontWeight = '700';
+                tdRate.style.color = rateColor;
+                tdRate.style.fontVariantNumeric = 'tabular-nums';
+                tdRate.textContent = `${s.failureRate}%`;
+                tr.appendChild(tdRate);
+
+                // Col 4: Failure Count / Runs
+                const tdRuns = document.createElement('td');
+                tdRuns.style.textAlign = 'right';
+                tdRuns.style.fontFamily = 'var(--font-mono)';
+                tdRuns.style.fontVariantNumeric = 'tabular-nums';
+                tdRuns.style.color = 'var(--text-secondary)';
+                tdRuns.textContent = `${s.failCount || 0} / ${s.runsAnalysed || 0}`;
+                tr.appendChild(tdRuns);
+
+                // Col 5: Action (policy chip + inspect button)
+                const tdAction = document.createElement('td');
+                tdAction.style.textAlign = 'right';
+                const actWrap = document.createElement('div');
+                actWrap.className = 'action-cell-wrap';
+
+                const chip = document.createElement('span');
+                if (risk === 'HIGH') {
+                    chip.className = 'policy-chip chip-quarantine';
+                    chip.title = 'Recommended action: Quarantine test to prevent CI pipeline blockage';
+                    chip.textContent = 'Quarantine';
+                } else {
+                    chip.className = 'policy-chip chip-monitored';
+                    chip.title = 'Test is currently monitored for stability';
+                    chip.textContent = 'Monitored';
+                }
+                actWrap.appendChild(chip);
+
+                const inspectBtn = document.createElement('button');
+                inspectBtn.type = 'button';
+                inspectBtn.className = 'btn-inspect-pill';
+                inspectBtn.title = 'Inspect test details & logs';
+                inspectBtn.textContent = 'Inspect \u2192';
+                inspectBtn.onclick = () => inspectTestCase(rawTestId);
+                actWrap.appendChild(inspectBtn);
+
+                tdAction.appendChild(actWrap);
+                tr.appendChild(tdAction);
+
+                tbody.appendChild(tr);
+            });
         }
 
         // ── Accordions & Drawer Toggles ──
@@ -2274,7 +3530,7 @@
             const text = document.getElementById('expandAllText');
             const icon = document.getElementById('expandAllIcon');
             if (text) text.innerText = allExpanded ? 'Collapse All' : 'Expand All';
-            if (icon) icon.innerHTML = allExpanded ? '&#x25B2;' : '&#x25BC;';
+            if (icon) icon.textContent = allExpanded ? '\u25B2' : '\u25BC';
         }
 
         // ── Search & Filter ──
@@ -2315,23 +3571,17 @@
             });
 
             document.querySelectorAll('#testTable tbody tr.group-header').forEach(hdr => {
-                const g = hdr.getAttribute('data-group') || '';
-                hdr.style.display = visibleGroups.has(g) ? '' : 'none';
+                const grp = hdr.getAttribute('data-group');
+                hdr.style.display = visibleGroups.has(grp) ? '' : 'none';
             });
         }
 
         // ── Copy Stack Trace ──
-        function copyStackTrace(event, btn) {
-            event.stopPropagation();
-            const box = btn.closest('.stack-trace-box');
-            if (!box) return;
-            const pre = box.querySelector('pre.stack-trace');
-            if (!pre) return;
-
-            navigator.clipboard.writeText(pre.innerText).then(() => {
+        function copyStackTrace(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
                 const orig = btn.innerText;
-                btn.innerText = '✓ Copied!';
-                btn.style.color = '#97cc64';
+                btn.innerText = 'Copied!';
+                btn.style.color = 'var(--good)';
                 setTimeout(() => {
                     btn.innerText = orig;
                     btn.style.color = '';
@@ -2343,18 +3593,20 @@
 
         // ── Lightbox Modal ──
         function openLightbox(src) {
+            const safeSrc = sanitizeMediaSrc(src);
+            if (!safeSrc) return;
             const modal = document.getElementById('lightbox');
             const img = document.getElementById('lightbox-img');
             const video = document.getElementById('lightbox-video');
             const videoSource = document.getElementById('lightbox-video-source');
             if (!modal) return;
 
-            const isVideo = src && (src.startsWith('data:video') || src.endsWith('.mp4'));
+            const isVideo = safeSrc.startsWith('data:video') || safeSrc.endsWith('.mp4');
             if (isVideo) {
                 if (img) img.style.display = 'none';
                 if (video && videoSource) {
                     video.style.display = 'block';
-                    videoSource.src = src;
+                    videoSource.src = safeSrc;
                     video.load();
                     video.play().catch(() => { });
                 }
@@ -2365,7 +3617,7 @@
                 }
                 if (img) {
                     img.style.display = 'block';
-                    img.src = src;
+                    img.src = safeSrc;
                 }
             }
             modal.classList.add('open');
@@ -2409,13 +3661,31 @@
             if (!loadTests || loadTests.length === 0) {
                 if (navLoadTest) navLoadTest.style.display = 'none';
                 if (container) {
-                    container.innerHTML = `
-                        <div class="card" style="padding:32px;text-align:center;color:var(--text-muted);">
-                            <div style="font-size:32px;margin-bottom:8px;">⚡</div>
-                            <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;">No Load Tests Recorded</div>
-                            <div style="font-size:13px;">Execute a TestFly load scenario using <code>load(url).users(N).run()</code> to populate performance and latency metrics.</div>
-                        </div>
-                    `;
+                    container.textContent = '';
+                    const emptyCard = document.createElement('div');
+                    emptyCard.className = 'card';
+                    emptyCard.style.padding = '32px';
+                    emptyCard.style.textAlign = 'center';
+                    emptyCard.style.color = 'var(--text-muted)';
+
+                    const title = document.createElement('div');
+                    title.style.fontSize = '15px';
+                    title.style.fontWeight = '600';
+                    title.style.color = 'var(--text)';
+                    title.style.marginBottom = '4px';
+                    title.textContent = 'No Load Tests Recorded';
+
+                    const subtitle = document.createElement('div');
+                    subtitle.style.fontSize = '13px';
+                    subtitle.appendChild(document.createTextNode('Execute a TestFly load scenario using '));
+                    const code = document.createElement('code');
+                    code.textContent = 'load(url).users(N).run()';
+                    subtitle.appendChild(code);
+                    subtitle.appendChild(document.createTextNode(' to populate performance metrics.'));
+
+                    emptyCard.appendChild(title);
+                    emptyCard.appendChild(subtitle);
+                    container.appendChild(emptyCard);
                 }
                 return;
             }
@@ -2469,137 +3739,281 @@
 
             // Render scenario cards
             if (container) {
-                container.innerHTML = loadTests.map((lt, idx) => {
+                container.textContent = '';
+                loadTests.forEach((lt, idx) => {
                     const isSuccess = (lt.failedRequests || 0) === 0;
-                    const errRate = ((lt.errorRate || 0) * 100).toFixed(2);
-                    let gatlingUrl = lt.gatlingReportPath || '';
-                    if (gatlingUrl && !gatlingUrl.startsWith('/') && !gatlingUrl.startsWith('http') && window.location.pathname.includes('/reports/')) {
-                        gatlingUrl = '../' + gatlingUrl;
-                    }
-                    const gatlingBtn = gatlingUrl
-                        ? `<a href="${escapeHtml(gatlingUrl)}" target="_blank" class="btn btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;background:var(--primary);color:#ffffff;box-shadow:var(--shadow-sm);transition:var(--transition-smooth);">
-                            <span>📊</span> Open Gatling Report &rarr;
-                           </a>`
-                        : '';
+                    const card = document.createElement('div');
+                    card.className = 'loadtest-scenario-card';
 
-                    // Steps table
-                    let stepsHtml = '';
+                    // 1. Header Row
+                    const headerRow = document.createElement('div');
+                    headerRow.className = 'loadtest-header-row';
+
+                    const badgeGroup = document.createElement('div');
+                    badgeGroup.className = 'loadtest-badge-group';
+
+                    const titleSpan = document.createElement('span');
+                    titleSpan.style.fontSize = '15px';
+                    titleSpan.style.fontWeight = '700';
+                    titleSpan.style.color = 'var(--text)';
+                    titleSpan.style.letterSpacing = '-0.01em';
+                    titleSpan.textContent = lt.scenarioName || 'Load Scenario';
+                    badgeGroup.appendChild(titleSpan);
+
+                    const engineBadge = document.createElement('span');
+                    engineBadge.className = 'status-badge';
+                    engineBadge.style.background = 'var(--primary-bg)';
+                    engineBadge.style.color = 'var(--primary)';
+                    engineBadge.textContent = (lt.engine || 'Gatling').toUpperCase();
+                    badgeGroup.appendChild(engineBadge);
+
+                    const usersBadge = document.createElement('span');
+                    usersBadge.className = 'status-badge';
+                    usersBadge.style.background = 'var(--surface-hover)';
+                    usersBadge.style.color = 'var(--text)';
+                    usersBadge.textContent = `${lt.users || 0} users`;
+                    badgeGroup.appendChild(usersBadge);
+
+                    const durBadge = document.createElement('span');
+                    durBadge.className = 'status-badge';
+                    durBadge.style.background = 'var(--surface-hover)';
+                    durBadge.style.color = 'var(--text)';
+                    durBadge.textContent = `${((lt.durationMs || 0) / 1000).toFixed(1)}s`;
+                    badgeGroup.appendChild(durBadge);
+
+                    const statusBadge = document.createElement('span');
+                    statusBadge.className = `status-badge ${isSuccess ? 'status-passed' : 'status-failed'}`;
+                    statusBadge.textContent = isSuccess ? 'PASSED' : `FAILED (${lt.failedRequests} err)`;
+                    badgeGroup.appendChild(statusBadge);
+
+                    headerRow.appendChild(badgeGroup);
+
+                    // Gatling Button
+                    const gatlingWrap = document.createElement('div');
+                    let rawGatling = lt.gatlingReportPath || '';
+                    if (rawGatling && !rawGatling.startsWith('/') && !rawGatling.startsWith('http') && window.location.pathname.includes('/reports/')) {
+                        rawGatling = '../' + rawGatling;
+                    }
+                    if (rawGatling && (isSafeUrl(rawGatling) || isSafeReportPath(rawGatling))) {
+                        const gatlingLink = document.createElement('a');
+                        gatlingLink.href = rawGatling;
+                        gatlingLink.target = '_blank';
+                        gatlingLink.rel = 'noopener noreferrer';
+                        gatlingLink.className = 'btn-action';
+                        gatlingLink.style.textDecoration = 'none';
+                        gatlingLink.style.background = 'var(--primary)';
+                        gatlingLink.style.color = '#ffffff';
+                        gatlingLink.style.borderColor = 'var(--primary)';
+                        gatlingLink.textContent = 'Open Gatling Report \u2192';
+                        gatlingWrap.appendChild(gatlingLink);
+                    }
+                    headerRow.appendChild(gatlingWrap);
+                    card.appendChild(headerRow);
+
+                    // 2. Mini Latency Tiles
+                    const miniGrid = document.createElement('div');
+                    miniGrid.className = 'loadtest-mini-grid';
+
+                    const tiles = [
+                        { label: 'P50 Median', value: Math.round(lt.p50LatencyMs || 0), unit: 'ms', color: 'var(--primary)' },
+                        { label: 'P90', value: Math.round(lt.p90LatencyMs || 0), unit: 'ms' },
+                        { label: 'P95', value: Math.round(lt.p95LatencyMs || 0), unit: 'ms', color: 'var(--flaky)' },
+                        { label: 'P99', value: Math.round(lt.p99LatencyMs || 0), unit: 'ms', color: 'var(--bad)' },
+                        { label: 'Mean', value: Math.round(lt.meanLatencyMs || 0), unit: 'ms' },
+                        { label: 'Throughput', value: (lt.throughputRps || 0).toFixed(1), unit: 'rps', color: 'var(--good)' }
+                    ];
+
+                    tiles.forEach(t => {
+                        const tile = document.createElement('div');
+                        tile.className = 'loadtest-mini-tile';
+
+                        const lbl = document.createElement('div');
+                        lbl.className = 'loadtest-mini-tile-label';
+                        lbl.textContent = t.label;
+                        tile.appendChild(lbl);
+
+                        const val = document.createElement('div');
+                        val.className = 'loadtest-mini-tile-value';
+                        if (t.color) val.style.color = t.color;
+                        val.appendChild(document.createTextNode(`${t.value} `));
+
+                        const unitSpan = document.createElement('span');
+                        unitSpan.style.fontSize = '10px';
+                        unitSpan.textContent = t.unit;
+                        val.appendChild(unitSpan);
+
+                        tile.appendChild(val);
+                        miniGrid.appendChild(tile);
+                    });
+                    card.appendChild(miniGrid);
+
+                    // 3. Charts Grid: Latency Histogram & Status Codes
+                    const chartsGrid = document.createElement('div');
+                    chartsGrid.style.display = 'grid';
+                    chartsGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+                    chartsGrid.style.gap = '14px';
+
+                    // Latency Box
+                    const latBox = document.createElement('div');
+                    latBox.style.background = 'var(--surface-subtle)';
+                    latBox.style.border = '1px solid var(--border-subtle)';
+                    latBox.style.borderRadius = '10px';
+                    latBox.style.padding = '12px';
+
+                    const latHeader = document.createElement('div');
+                    latHeader.style.fontSize = '11px';
+                    latHeader.style.fontWeight = '700';
+                    latHeader.style.marginBottom = '8px';
+                    latHeader.style.color = 'var(--text-muted)';
+                    latHeader.style.textTransform = 'uppercase';
+                    latHeader.style.letterSpacing = '0.04em';
+                    latHeader.textContent = 'Latency Distribution (ms)';
+                    latBox.appendChild(latHeader);
+
+                    const latWrap = document.createElement('div');
+                    latWrap.style.height = '190px';
+                    latWrap.style.position = 'relative';
+                    const latCanvas = document.createElement('canvas');
+                    latCanvas.id = `lt-chart-latency-${idx}`;
+                    latWrap.appendChild(latCanvas);
+                    latBox.appendChild(latWrap);
+                    chartsGrid.appendChild(latBox);
+
+                    // Status Codes Box
+                    const statBox = document.createElement('div');
+                    statBox.style.background = 'var(--surface-subtle)';
+                    statBox.style.border = '1px solid var(--border-subtle)';
+                    statBox.style.borderRadius = '10px';
+                    statBox.style.padding = '12px';
+
+                    const statHeader = document.createElement('div');
+                    statHeader.style.fontSize = '11px';
+                    statHeader.style.fontWeight = '700';
+                    statHeader.style.marginBottom = '8px';
+                    statHeader.style.color = 'var(--text-muted)';
+                    statHeader.style.textTransform = 'uppercase';
+                    statHeader.style.letterSpacing = '0.04em';
+                    statHeader.textContent = 'HTTP Status Codes';
+                    statBox.appendChild(statHeader);
+
+                    const statWrap = document.createElement('div');
+                    statWrap.style.height = '190px';
+                    statWrap.style.position = 'relative';
+                    const statCanvas = document.createElement('canvas');
+                    statCanvas.id = `lt-chart-status-${idx}`;
+                    statWrap.appendChild(statCanvas);
+                    statBox.appendChild(statWrap);
+                    chartsGrid.appendChild(statBox);
+
+                    card.appendChild(chartsGrid);
+
+                    // 4. Steps Breakdown Table
                     if (lt.steps && Object.keys(lt.steps).length > 0) {
-                        const stepRows = Object.values(lt.steps).map(st => {
-                            const stErr = ((st.errorRate || 0) * 100).toFixed(1);
-                            return `
-                                <tr>
-                                    <td style="font-weight:600;color:var(--text);font-family:var(--font-mono);">${escapeHtml(st.name || 'Step')}</td>
-                                    <td style="text-align:right;font-family:var(--font-mono);">${(st.totalRequests || 0).toLocaleString()}</td>
-                                    <td style="text-align:right;font-family:var(--font-mono);color:var(--good);">${(st.successfulRequests || 0).toLocaleString()}</td>
-                                    <td style="text-align:right;font-family:var(--font-mono);color:${(st.failedRequests || 0) > 0 ? 'var(--bad)' : 'var(--text-muted)'};">${(st.failedRequests || 0).toLocaleString()}</td>
-                                    <td style="text-align:right;font-family:var(--font-mono);font-weight:600;">${Math.round(st.p95LatencyMs || 0)} ms</td>
-                                    <td style="text-align:right;font-family:var(--font-mono);"><span class="status-badge ${(st.errorRate || 0) === 0 ? 'status-passed' : 'status-failed'}">${stErr}%</span></td>
-                                </tr>
-                            `;
-                        }).join('');
+                        const stepWrap = document.createElement('div');
+                        stepWrap.style.marginTop = '14px';
+                        stepWrap.style.border = '1px solid var(--border)';
+                        stepWrap.style.borderRadius = '10px';
+                        stepWrap.style.overflow = 'hidden';
+                        stepWrap.style.background = 'var(--surface)';
 
-                        stepsHtml = `
-                            <div style="margin-top:16px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);">
-                                <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;gap:6px;background:var(--surface-subtle);">
-                                    <span>🐾</span> Scenario Step Breakdown
-                                </div>
-                                <div class="table-wrap">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Step Name</th>
-                                                <th style="text-align:right;">Total Requests</th>
-                                                <th style="text-align:right;">Successful</th>
-                                                <th style="text-align:right;">Failed</th>
-                                                <th style="text-align:right;">P95 Latency</th>
-                                                <th style="text-align:right;">Error Rate</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>${stepRows}</tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        `;
+                        const stepHeader = document.createElement('div');
+                        stepHeader.style.padding = '8px 14px';
+                        stepHeader.style.borderBottom = '1px solid var(--border)';
+                        stepHeader.style.fontSize = '11px';
+                        stepHeader.style.fontWeight = '700';
+                        stepHeader.style.textTransform = 'uppercase';
+                        stepHeader.style.color = 'var(--text-muted)';
+                        stepHeader.style.background = 'var(--surface-subtle)';
+                        stepHeader.style.letterSpacing = '0.04em';
+                        stepHeader.textContent = 'Scenario Step Breakdown';
+                        stepWrap.appendChild(stepHeader);
+
+                        const tableWrap = document.createElement('div');
+                        tableWrap.className = 'table-wrap';
+                        const table = document.createElement('table');
+
+                        const thead = document.createElement('thead');
+                        const htr = document.createElement('tr');
+                        [
+                            { text: 'Step Name', align: 'left' },
+                            { text: 'Total Requests', align: 'right' },
+                            { text: 'Successful', align: 'right' },
+                            { text: 'Failed', align: 'right' },
+                            { text: 'P95 Latency', align: 'right' },
+                            { text: 'Error Rate', align: 'right' }
+                        ].forEach(col => {
+                            const th = document.createElement('th');
+                            th.textContent = col.text;
+                            if (col.align !== 'left') th.style.textAlign = col.align;
+                            htr.appendChild(th);
+                        });
+                        thead.appendChild(htr);
+                        table.appendChild(thead);
+
+                        const tbody = document.createElement('tbody');
+                        Object.values(lt.steps).forEach(st => {
+                            const stErr = ((st.errorRate || 0) * 100).toFixed(1);
+                            const str = document.createElement('tr');
+
+                            // Name
+                            const tdName = document.createElement('td');
+                            tdName.style.fontWeight = '600';
+                            tdName.style.color = 'var(--text)';
+                            tdName.style.fontFamily = 'var(--font-mono)';
+                            tdName.textContent = st.name || 'Step';
+                            str.appendChild(tdName);
+
+                            // Total
+                            const tdTotal = document.createElement('td');
+                            tdTotal.style.textAlign = 'right';
+                            tdTotal.style.fontFamily = 'var(--font-mono)';
+                            tdTotal.textContent = (st.totalRequests || 0).toLocaleString();
+                            str.appendChild(tdTotal);
+
+                            // Successful
+                            const tdSucc = document.createElement('td');
+                            tdSucc.style.textAlign = 'right';
+                            tdSucc.style.fontFamily = 'var(--font-mono)';
+                            tdSucc.style.color = 'var(--good)';
+                            tdSucc.textContent = (st.successfulRequests || 0).toLocaleString();
+                            str.appendChild(tdSucc);
+
+                            // Failed
+                            const tdFail = document.createElement('td');
+                            tdFail.style.textAlign = 'right';
+                            tdFail.style.fontFamily = 'var(--font-mono)';
+                            tdFail.style.color = (st.failedRequests || 0) > 0 ? 'var(--bad)' : 'var(--text-muted)';
+                            tdFail.textContent = (st.failedRequests || 0).toLocaleString();
+                            str.appendChild(tdFail);
+
+                            // P95 Latency
+                            const tdP95 = document.createElement('td');
+                            tdP95.style.textAlign = 'right';
+                            tdP95.style.fontFamily = 'var(--font-mono)';
+                            tdP95.style.fontWeight = '600';
+                            tdP95.textContent = `${Math.round(st.p95LatencyMs || 0)} ms`;
+                            str.appendChild(tdP95);
+
+                            // Error Rate
+                            const tdErr = document.createElement('td');
+                            tdErr.style.textAlign = 'right';
+                            tdErr.style.fontFamily = 'var(--font-mono)';
+                            const errBadge = document.createElement('span');
+                            errBadge.className = `status-badge ${(st.errorRate || 0) === 0 ? 'status-passed' : 'status-failed'}`;
+                            errBadge.textContent = `${stErr}%`;
+                            tdErr.appendChild(errBadge);
+                            str.appendChild(tdErr);
+
+                            tbody.appendChild(str);
+                        });
+                        table.appendChild(tbody);
+                        tableWrap.appendChild(table);
+                        stepWrap.appendChild(tableWrap);
+                        card.appendChild(stepWrap);
                     }
 
-                    return `
-                        <div class="card" style="padding:22px;border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-sm);">
-                            <!-- Header Row -->
-                            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;">
-                                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
-                                    <span style="font-size:16px;font-weight:800;color:var(--text);letter-spacing:-0.01em;">${escapeHtml(lt.scenarioName || 'Load Scenario')}</span>
-                                    <span class="status-badge" style="background:rgba(24,144,255,0.12);color:var(--primary);font-weight:700;">${(lt.engine || 'Gatling').toUpperCase()}</span>
-                                    <span class="status-badge" style="background:var(--surface-hover);color:var(--text);font-family:var(--font-mono);">👥 ${lt.users || 0} users</span>
-                                    <span class="status-badge" style="background:var(--surface-hover);color:var(--text);font-family:var(--font-mono);">⏱️ ${((lt.durationMs || 0) / 1000).toFixed(1)}s</span>
-                                    <span class="status-badge ${isSuccess ? 'status-passed' : 'status-failed'}">${isSuccess ? '✔ PASSED' : '✖ FAILED (' + lt.failedRequests + ' err)'}</span>
-                                </div>
-                                <div>${gatlingBtn}</div>
-                            </div>
-
-                            <!-- Scenario Config & Specs Summary Bar -->
-                            <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:10px 16px;background:var(--surface-subtle);border-radius:8px;border:1px solid var(--border);font-size:12px;margin-bottom:16px;">
-                                <div><span style="color:var(--text-muted);">Engine:</span> <strong style="color:var(--primary);text-transform:uppercase;">${escapeHtml(lt.engine || 'gatling')}</strong></div>
-                                <div><span style="color:var(--text-muted);">Concurrent Users:</span> <strong>${lt.users || 0} VUs</strong></div>
-                                <div><span style="color:var(--text-muted);">Duration:</span> <strong>${((lt.durationMs || 0) / 1000).toFixed(1)}s</strong></div>
-                                <div><span style="color:var(--text-muted);">Total Requests:</span> <strong>${(lt.totalRequests || 0).toLocaleString()}</strong></div>
-                                <div><span style="color:var(--text-muted);">Throughput:</span> <strong style="color:var(--good);font-family:var(--font-mono);">${(lt.throughputRps || 0).toFixed(1)} req/s</strong></div>
-                                <div><span style="color:var(--text-muted);">Error Rate:</span> <strong style="color:${(lt.errorRate || 0) === 0 ? 'var(--good)' : 'var(--bad)'};font-family:var(--font-mono);">${errRate}%</strong></div>
-                            </div>
-
-                            <!-- Mini Latency Tiles -->
-                            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));gap:10px;margin-bottom:16px;">
-                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;">
-                                    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">P50 (Median)</div>
-                                    <div style="font-size:16px;font-weight:800;font-family:var(--font-mono);color:var(--primary);margin-top:2px;">${Math.round(lt.p50LatencyMs || 0)} <span style="font-size:11px;">ms</span></div>
-                                </div>
-                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;">
-                                    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">P90</div>
-                                    <div style="font-size:16px;font-weight:800;font-family:var(--font-mono);color:var(--text);margin-top:2px;">${Math.round(lt.p90LatencyMs || 0)} <span style="font-size:11px;">ms</span></div>
-                                </div>
-                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;">
-                                    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">P95</div>
-                                    <div style="font-size:16px;font-weight:800;font-family:var(--font-mono);color:var(--flaky);margin-top:2px;">${Math.round(lt.p95LatencyMs || 0)} <span style="font-size:11px;">ms</span></div>
-                                </div>
-                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;">
-                                    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">P99</div>
-                                    <div style="font-size:16px;font-weight:800;font-family:var(--font-mono);color:var(--bad);margin-top:2px;">${Math.round(lt.p99LatencyMs || 0)} <span style="font-size:11px;">ms</span></div>
-                                </div>
-                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;">
-                                    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Mean</div>
-                                    <div style="font-size:16px;font-weight:800;font-family:var(--font-mono);color:var(--text-secondary);margin-top:2px;">${Math.round(lt.meanLatencyMs || 0)} <span style="font-size:11px;">ms</span></div>
-                                </div>
-                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;">
-                                    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Min / Max</div>
-                                    <div style="font-size:14px;font-weight:800;font-family:var(--font-mono);color:var(--text-muted);margin-top:3px;">${Math.round(lt.minLatencyMs || 0)} / ${Math.round(lt.maxLatencyMs || 0)} <span style="font-size:10px;">ms</span></div>
-                                </div>
-                            </div>
-
-                            <!-- Charts Grid: Latency Histogram & Status Codes Distribution -->
-                            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:16px;">
-                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:10px;padding:14px;">
-                                    <div style="font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;color:var(--text-secondary);">
-                                        <span>⏱️</span> Latency Distribution (ms)
-                                    </div>
-                                    <div style="height:200px;position:relative;">
-                                        <canvas id="lt-chart-latency-${idx}"></canvas>
-                                    </div>
-                                </div>
-                                <div style="background:var(--surface-subtle);border:1px solid var(--border);border-radius:10px;padding:14px;">
-                                    <div style="font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;color:var(--text-secondary);">
-                                        <span>📊</span> HTTP Status Codes
-                                    </div>
-                                    <div style="height:200px;position:relative;">
-                                        <canvas id="lt-chart-status-${idx}"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Steps Breakdown Table -->
-                            ${stepsHtml}
-                        </div>
-                    `;
-                }).join('');
+                    container.appendChild(card);
+                });
             }
 
             renderLoadTestCharts();
@@ -2617,7 +4031,7 @@
             loadTestChartInstances = [];
 
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            const textColor = isDark ? '#9ca3af' : '#475569';
+            const textColor = isDark ? '#a1a1a6' : '#6e6e73';
             const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
 
             loadTests.forEach((lt, idx) => {
@@ -2640,22 +4054,22 @@
                                 label: 'Latency (ms)',
                                 data: [min, mean, p50, p90, p95, p99, max],
                                 backgroundColor: [
-                                    'rgba(82, 196, 26, 0.45)',
-                                    'rgba(24, 144, 255, 0.45)',
-                                    'rgba(24, 144, 255, 0.55)',
-                                    'rgba(250, 140, 22, 0.55)',
-                                    'rgba(250, 140, 22, 0.70)',
-                                    'rgba(245, 34, 45, 0.65)',
-                                    'rgba(245, 34, 45, 0.85)'
+                                    'rgba(151, 204, 100, 0.45)',
+                                    'rgba(0, 113, 227, 0.45)',
+                                    'rgba(0, 113, 227, 0.55)',
+                                    'rgba(255, 178, 56, 0.55)',
+                                    'rgba(255, 178, 56, 0.70)',
+                                    'rgba(253, 90, 62, 0.65)',
+                                    'rgba(253, 90, 62, 0.85)'
                                 ],
                                 borderColor: [
-                                    '#52c41a',
-                                    '#1890ff',
-                                    '#1890ff',
-                                    '#fa8c16',
-                                    '#fa8c16',
-                                    '#f5222d',
-                                    '#f5222d'
+                                    '#97cc64',
+                                    '#0071e3',
+                                    '#0071e3',
+                                    '#ffb238',
+                                    '#ffb238',
+                                    '#fd5a3e',
+                                    '#fd5a3e'
                                 ],
                                 borderWidth: 1.5,
                                 borderRadius: 4
@@ -2707,8 +4121,8 @@
                     const bgColors = labels.map(lbl => {
                         const code = String(lbl).trim().split(' ')[0];
                         if (code.startsWith('2')) return '#97cc64'; // Green
-                        if (code.startsWith('3')) return '#1890ff'; // Blue
-                        if (code.startsWith('4')) return '#ffb238'; // Warning/Amber
+                        if (code.startsWith('3')) return '#0071e3'; // Blue
+                        if (code.startsWith('4')) return '#ffb238'; // Warning
                         if (code.startsWith('5')) return '#fd5a3e'; // Red
                         return '#8c8c8c';                           // Gray
                     });
@@ -2735,7 +4149,7 @@
                             datasets: [{
                                 data: data,
                                 backgroundColor: bgColors,
-                                borderColor: isDark ? '#1f2937' : '#ffffff',
+                                borderColor: isDark ? '#1c1c1e' : '#ffffff',
                                 borderWidth: 2,
                                 hoverOffset: 4
                             }]
@@ -2743,7 +4157,7 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            cutout: '68%',
+                            cutout: '70%',
                             plugins: {
                                 legend: {
                                     position: 'bottom',

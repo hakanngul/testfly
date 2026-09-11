@@ -88,9 +88,11 @@ const sidebars = {
         'ai/overview',
         'ai/agentic-testing',
         'ai/testfly-mcp',
-        'ai/ide-plugins',
+        'ai/recorder',
         'ai/interactive-studio',
         'ai/prompt-recipes',
+        'ai/ide-plugins',
+        'ai/adr-001-mcp-recorder-architecture',
       ],
     },
     {
