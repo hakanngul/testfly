@@ -2083,6 +2083,51 @@
         let activeFilter = 'ALL';
         let allExpanded = false;
 
+        // ── Security & Sanitization Helpers ──
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function isSafeReportPath(p) {
+            if (!p || typeof p !== 'string') return false;
+            const clean = p.trim();
+            if (clean.includes(':') || clean.includes('\\') || clean.startsWith('//') || clean.includes('..')) {
+                return false;
+            }
+            return /^(?:reports\/)?[a-zA-Z0-9_\-]+\.html$/i.test(clean);
+        }
+
+        function sanitizeMediaSrc(src) {
+            if (!src || typeof src !== 'string') return '';
+            const trimmed = src.trim();
+            if (/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-zA-Z0-9+/=]+$/i.test(trimmed)) {
+                return trimmed;
+            }
+            if (/^data:video\/(?:mp4|webm);base64,[a-zA-Z0-9+/=]+$/i.test(trimmed)) {
+                return trimmed;
+            }
+            if (/^(?:[a-zA-Z0-9_\-\.\/]+\/)*(?:[a-zA-Z0-9_\-]+\.(?:png|jpe?g|webp|gif|mp4|webm))$/i.test(trimmed) &&
+                !trimmed.includes(':') && !trimmed.startsWith('//') && !trimmed.includes('..')) {
+                return trimmed;
+            }
+            return '';
+        }
+
+        function isSafeUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            const trimmed = url.trim();
+            if (trimmed.startsWith('//') || trimmed.includes('\\') || /^\s*javascript:/i.test(trimmed) || /^\s*data:/i.test(trimmed)) {
+                return false;
+            }
+            return /^(?:https?:\/\/[^\s"'<>]+|(?:\.\.\/|\.\/|\/)?[a-zA-Z0-9_\-\.\/]+)$/i.test(trimmed);
+        }
+
         // ── Tab Switching ──
         function showTab(tabId, el) {
             document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
@@ -2133,7 +2178,7 @@
         function updateThemeIcon() {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             const icon = document.getElementById('themeIcon');
-            if (icon) icon.innerHTML = isDark ? '&#9788;' : '&#9790;';
+            if (icon) icon.textContent = isDark ? '\u2600' : '\u263E';
         }
 
         // ── Run Switcher / Dropdown Population ──
@@ -2145,10 +2190,11 @@
             const isInReportsDir = currentPath.includes('/reports/');
 
             history.forEach(run => {
+                if (!run || !isSafeReportPath(run.reportPath)) return;
                 const opt = document.createElement('option');
                 opt.value = run.reportPath;
-                opt.text = `${run.timestamp} (${run.passRate}% pass, ${run.totalTests} tests)`;
-                if (isInReportsDir && currentPath.includes(run.rawTimestamp)) {
+                opt.text = `${run.timestamp || ''} (${run.passRate || 0}% pass, ${run.totalTests || 0} tests)`;
+                if (isInReportsDir && run.rawTimestamp && currentPath.includes(run.rawTimestamp)) {
                     opt.selected = true;
                 }
                 select.appendChild(opt);
@@ -2164,7 +2210,7 @@
             if (val === 'latest') {
                 const isInReportsDir = window.location.pathname.includes('/reports/');
                 if (isInReportsDir) {
-                    window.location.href = '../testfly-report.html';
+                    window.location.assign('../testfly-report.html');
                 } else {
                     currentViewMode = 'current';
                     renderView();
@@ -2172,11 +2218,12 @@
                 return;
             }
             // Historical report path navigation
-            const isInReportsDir = window.location.pathname.includes('/reports/');
-            if (isInReportsDir) {
-                window.location.href = val.replace('reports/', '');
-            } else {
-                window.location.href = val;
+            if (isSafeReportPath(val)) {
+                const isInReportsDir = window.location.pathname.includes('/reports/');
+                const target = isInReportsDir ? val.replace(/^reports\//, '') : val;
+                if (/^[a-zA-Z0-9_\-]+\.html$/i.test(target) || /^reports\/[a-zA-Z0-9_\-]+\.html$/i.test(target)) {
+                    window.location.assign('./' + encodeURI(target));
+                }
             }
         }
 
@@ -2441,31 +2488,262 @@
         function renderSlowestTests(tests) {
             const wrap = document.getElementById('slowestTestsList');
             if (!wrap) return;
-            const sorted = [...tests].sort((a, b) => (b.totalMs || 0) - (a.totalMs || 0)).slice(0, 5);
+            wrap.textContent = '';
+            const sorted = [...tests].sort((a, b) => (Number(b.totalMs) || 0) - (Number(a.totalMs) || 0)).slice(0, 5);
             if (sorted.length === 0) {
-                wrap.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">No tests recorded.</div>';
+                const empty = document.createElement('div');
+                empty.style.color = 'var(--text-muted)';
+                empty.style.fontSize = '12px';
+                empty.textContent = 'No tests recorded.';
+                wrap.appendChild(empty);
                 return;
             }
-            wrap.innerHTML = sorted.map(t => {
+            sorted.forEach(t => {
+                const item = document.createElement('div');
+                item.className = 'slow-item';
+
+                const left = document.createElement('div');
+                left.className = 'slow-item-left';
+
+                const badge = document.createElement('span');
+                const rawStatus = (t.status || 'UNKNOWN').toUpperCase();
                 const statusClass = (t.status || '').toLowerCase();
-                return `
-            <div class="slow-item">
-                <div class="slow-item-left">
-                    <span class="status-badge status-${statusClass}">${t.status || 'UNKNOWN'}</span>
-                    <strong style="color:var(--text);font-size:12px;">${escapeHtml(t.testId || '')}</strong>
-                </div>
-                <span class="slow-duration">${t.totalMs || 0} ms</span>
-            </div>
-        `;
-            }).join('');
+                badge.className = 'status-badge status-' + statusClass;
+                badge.textContent = rawStatus;
+
+                const strong = document.createElement('strong');
+                strong.style.color = 'var(--text)';
+                strong.style.fontSize = '12px';
+                strong.textContent = t.testId || '';
+
+                left.appendChild(badge);
+                left.appendChild(strong);
+
+                const dur = document.createElement('span');
+                dur.className = 'slow-duration';
+                dur.textContent = (Number(t.totalMs) || 0) + ' ms';
+
+                item.appendChild(left);
+                item.appendChild(dur);
+                wrap.appendChild(item);
+            });
+        }
+
+        // ── Drawer Content Builder Helper ──
+        function createDrawerContent(test, prefix, idx) {
+            const drawer = document.createElement('div');
+            drawer.className = 'drawer-content';
+
+            // 1. Video Replay
+            if (test.recordingBase64) {
+                const safeVideoSrc = sanitizeMediaSrc(test.recordingBase64);
+                if (safeVideoSrc) {
+                    const card = document.createElement('div');
+                    card.className = 'video-card';
+
+                    const cardHdr = document.createElement('div');
+                    cardHdr.className = 'video-card-header';
+                    const cardTitle = document.createElement('span');
+                    cardTitle.textContent = 'Execution Video Recording';
+                    const fsBtn = document.createElement('button');
+                    fsBtn.type = 'button';
+                    fsBtn.className = 'btn-copy';
+                    fsBtn.textContent = 'Fullscreen';
+                    fsBtn.onclick = () => openLightbox(safeVideoSrc);
+                    cardHdr.appendChild(cardTitle);
+                    cardHdr.appendChild(fsBtn);
+                    card.appendChild(cardHdr);
+
+                    const playerWrap = document.createElement('div');
+                    playerWrap.className = 'video-player-wrap';
+                    const isMp4 = test.recordingType === 'mp4' || safeVideoSrc.startsWith('data:video');
+                    if (isMp4) {
+                        const videoEl = document.createElement('video');
+                        videoEl.controls = true;
+                        videoEl.autoplay = true;
+                        videoEl.loop = true;
+                        videoEl.playsInline = true;
+                        videoEl.style.maxWidth = '100%';
+                        videoEl.style.maxHeight = '380px';
+                        videoEl.style.outline = 'none';
+                        videoEl.style.borderRadius = '6px';
+
+                        const srcEl = document.createElement('source');
+                        srcEl.src = safeVideoSrc;
+                        srcEl.type = 'video/mp4';
+                        videoEl.appendChild(srcEl);
+                        videoEl.appendChild(document.createTextNode('Your browser does not support the video tag.'));
+                        playerWrap.appendChild(videoEl);
+                    } else {
+                        const imgEl = document.createElement('img');
+                        imgEl.src = safeVideoSrc;
+                        imgEl.style.maxWidth = '100%';
+                        imgEl.style.maxHeight = '380px';
+                        imgEl.style.objectFit = 'contain';
+                        imgEl.style.cursor = 'pointer';
+                        imgEl.title = 'Click to view full size video recording';
+                        imgEl.onclick = () => openLightbox(safeVideoSrc);
+                        playerWrap.appendChild(imgEl);
+                    }
+                    card.appendChild(playerWrap);
+                    drawer.appendChild(card);
+                }
+            }
+
+            // 2. AI Failure Analysis
+            if (test.aiAnalysis) {
+                const aiCard = document.createElement('div');
+                if (prefix === '') aiCard.id = 'ai-analysis-card';
+                aiCard.className = 'ai-card';
+                const aiTitle = document.createElement('div');
+                aiTitle.className = 'ai-card-title';
+                aiTitle.textContent = 'AI Failure Analysis';
+                const aiBody = document.createElement('div');
+                aiBody.className = 'ai-card-body';
+                aiBody.textContent = test.aiAnalysis;
+                aiCard.appendChild(aiTitle);
+                aiCard.appendChild(aiBody);
+                drawer.appendChild(aiCard);
+            }
+
+            // 3. Stack Trace
+            if (test.stackTrace) {
+                const traceBox = document.createElement('div');
+                traceBox.className = 'stack-trace-box';
+                const traceHdr = document.createElement('div');
+                traceHdr.className = 'stack-trace-header';
+                const traceTitle = document.createElement('span');
+                traceTitle.className = 'stack-trace-title';
+                traceTitle.textContent = 'Stack Trace';
+                const copyBtn = document.createElement('button');
+                copyBtn.type = 'button';
+                copyBtn.className = 'btn-copy';
+                copyBtn.textContent = 'Copy Stack Trace';
+                copyBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    copyStackTrace(copyBtn, test.stackTrace || '');
+                };
+                traceHdr.appendChild(traceTitle);
+                traceHdr.appendChild(copyBtn);
+                traceBox.appendChild(traceHdr);
+
+                const pre = document.createElement('pre');
+                pre.className = 'stack-trace';
+                pre.textContent = test.stackTrace;
+                traceBox.appendChild(pre);
+                drawer.appendChild(traceBox);
+            }
+
+            // 4. Step Execution Timeline
+            const steps = test.steps || [];
+            const timelineDiv = document.createElement('div');
+            const timelineTitle = document.createElement('strong');
+            timelineTitle.style.fontSize = '11px';
+            timelineTitle.style.textTransform = 'uppercase';
+            timelineTitle.style.letterSpacing = '0.04em';
+            timelineTitle.style.color = 'var(--text-muted)';
+            timelineTitle.textContent = 'Step Execution Timeline';
+            timelineDiv.appendChild(timelineTitle);
+
+            const timelineWrap = document.createElement('div');
+            timelineWrap.className = 'timeline-wrap';
+
+            if (steps.length === 0) {
+                const noSteps = document.createElement('div');
+                noSteps.style.fontSize = '12px';
+                noSteps.style.color = 'var(--text-muted)';
+                noSteps.textContent = 'No individual steps logged.';
+                timelineWrap.appendChild(noSteps);
+            } else {
+                steps.forEach(s => {
+                    const rawName = s.name || '';
+                    const isApiStep = rawName.startsWith('[API]');
+                    const hasMultiline = rawName.includes('\n');
+                    const pillStatus = (s.status || 'info').toLowerCase();
+
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = 'timeline-step';
+
+                    if (isApiStep && hasMultiline) {
+                        stepDiv.style.flexDirection = 'column';
+                        stepDiv.style.alignItems = 'flex-start';
+                        stepDiv.style.gap = '6px';
+
+                        const topRow = document.createElement('div');
+                        topRow.style.display = 'flex';
+                        topRow.style.alignItems = 'center';
+                        topRow.style.gap = '10px';
+                        topRow.style.width = '100%';
+
+                        const offsetSpan = document.createElement('span');
+                        offsetSpan.className = 'step-offset';
+                        offsetSpan.textContent = '+' + (s.offsetMs || 0) + 'ms';
+
+                        const pillSpan = document.createElement('span');
+                        pillSpan.className = 'step-pill ' + pillStatus;
+                        pillSpan.textContent = s.status || 'INFO';
+
+                        const lines = rawName.split('\n');
+                        const headerLine = lines[0];
+                        const detailLines = lines.slice(1).join('\n');
+
+                        const nameSpan = document.createElement('span');
+                        nameSpan.className = 'step-text';
+                        nameSpan.style.fontWeight = '600';
+                        nameSpan.textContent = headerLine;
+
+                        topRow.appendChild(offsetSpan);
+                        topRow.appendChild(pillSpan);
+                        topRow.appendChild(nameSpan);
+                        stepDiv.appendChild(topRow);
+
+                        const preDetails = document.createElement('pre');
+                        preDetails.className = 'api-step-details';
+                        preDetails.textContent = detailLines;
+                        stepDiv.appendChild(preDetails);
+                    } else {
+                        const offsetSpan = document.createElement('span');
+                        offsetSpan.className = 'step-offset';
+                        offsetSpan.textContent = '+' + (s.offsetMs || 0) + 'ms';
+
+                        const pillSpan = document.createElement('span');
+                        pillSpan.className = 'step-pill ' + pillStatus;
+                        pillSpan.textContent = s.status || 'INFO';
+
+                        const nameSpan = document.createElement('span');
+                        nameSpan.className = 'step-text';
+                        nameSpan.textContent = rawName;
+
+                        stepDiv.appendChild(offsetSpan);
+                        stepDiv.appendChild(pillSpan);
+                        stepDiv.appendChild(nameSpan);
+                    }
+                    timelineWrap.appendChild(stepDiv);
+                });
+            }
+            timelineDiv.appendChild(timelineWrap);
+            drawer.appendChild(timelineDiv);
+
+            return drawer;
         }
 
         // ── Render Test Cases Table ──
         function renderTestTable(tests) {
             const tbody = document.getElementById('testTableBody');
             if (!tbody) return;
+            tbody.textContent = '';
+
             if (tests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:36px;color:var(--text-muted);font-weight:500;">No tests matching criteria.</td></tr>';
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 6;
+                td.style.textAlign = 'center';
+                td.style.padding = '36px';
+                td.style.color = 'var(--text-muted)';
+                td.style.fontWeight = '500';
+                td.textContent = 'No tests matching criteria.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
                 return;
             }
 
@@ -2477,150 +2755,202 @@
                 groups[cls].push({ ...t, globalIdx: idx });
             });
 
-            let html = '';
             Object.keys(groups).forEach(cls => {
                 const members = groups[cls];
                 const passCount = members.filter(m => m.status === 'PASSED').length;
                 const failCount = members.filter(m => m.status === 'FAILED').length;
                 const skipCount = members.filter(m => m.status === 'SKIPPED').length;
 
-                html += `
-            <tr class="group-header" data-group="${escapeHtml(cls)}" onclick="toggleGroup('${escapeHtml(cls)}')">
-                <td colspan="6">
-                    <div class="group-header-flex">
-                        <div class="group-header-left">
-                            <span id="gicon-${escapeHtml(cls)}" class="chevron">&#x25BC;</span>
-                            <span class="group-title">${escapeHtml(cls)}</span>
-                        </div>
-                        <div class="group-header-badges">
-                            <span class="group-badge">${members.length} tests</span>
-                            <span class="group-badge group-badge-pass">${passCount} passed</span>
-                            ${failCount > 0 ? `<span class="group-badge group-badge-fail">${failCount} failed</span>` : ''}
-                            ${skipCount > 0 ? `<span class="group-badge group-badge-skip">${skipCount} skipped</span>` : ''}
-                        </div>
-                    </div>
-                </td>
-            </tr>
-        `;
+                // Group header row
+                const htr = document.createElement('tr');
+                htr.className = 'group-header';
+                htr.setAttribute('data-group', cls);
+                htr.onclick = () => toggleGroup(cls);
 
+                const htd = document.createElement('td');
+                htd.colSpan = 6;
+
+                const flex = document.createElement('div');
+                flex.className = 'group-header-flex';
+
+                const left = document.createElement('div');
+                left.className = 'group-header-left';
+                const gicon = document.createElement('span');
+                gicon.id = 'gicon-' + cls;
+                gicon.className = 'chevron';
+                gicon.textContent = '▼';
+                const gtitle = document.createElement('span');
+                gtitle.className = 'group-title';
+                gtitle.textContent = cls;
+                left.appendChild(gicon);
+                left.appendChild(gtitle);
+                flex.appendChild(left);
+
+                const badges = document.createElement('div');
+                badges.className = 'group-header-badges';
+
+                const bTot = document.createElement('span');
+                bTot.className = 'group-badge';
+                bTot.textContent = members.length + ' tests';
+                badges.appendChild(bTot);
+
+                const bPass = document.createElement('span');
+                bPass.className = 'group-badge group-badge-pass';
+                bPass.textContent = passCount + ' passed';
+                badges.appendChild(bPass);
+
+                if (failCount > 0) {
+                    const bFail = document.createElement('span');
+                    bFail.className = 'group-badge group-badge-fail';
+                    bFail.textContent = failCount + ' failed';
+                    badges.appendChild(bFail);
+                }
+                if (skipCount > 0) {
+                    const bSkip = document.createElement('span');
+                    bSkip.className = 'group-badge group-badge-skip';
+                    bSkip.textContent = skipCount + ' skipped';
+                    badges.appendChild(bSkip);
+                }
+                flex.appendChild(badges);
+                htd.appendChild(flex);
+                htr.appendChild(htd);
+                tbody.appendChild(htr);
+
+                // Members
                 members.forEach(m => {
-                    const isHealed = (m.healedCount > 0);
-                    const isFlaky = (m.retryCount > 0);
+                    const isHealed = Boolean(m.healedCount > 0);
+                    const isFlaky = Boolean(m.retryCount > 0);
+                    const rawStatus = (m.status || 'UNKNOWN').toUpperCase();
                     const statusClass = (m.status || '').toLowerCase();
-                    const screenshotHtml = m.screenshotBase64
-                        ? `<img src="${m.screenshotBase64}" class="screenshot-thumb" onclick="openLightbox(this.src)" title="View screenshot">`
-                        : `<span style="color:var(--text-muted);">&mdash;</span>`;
                     const idParts = splitTestIdentifier(m.testId || '');
                     const showMeta = idParts.secondary && (cls === 'General' || idParts.secondary !== cls);
                     const logicMsStr = (m.testLogicMs != null ? m.testLogicMs : 0) + ' ms';
                     const totalMsStr = (m.totalMs != null ? m.totalMs : 0) + ' ms';
 
-                    html += `
-                <tr class="group-member" data-group="${escapeHtml(cls)}" data-status="${escapeHtml(m.status || '')}" data-test="${escapeHtml(m.testId || '')}" data-healed="${isHealed}" onclick="toggleDetail(${m.globalIdx})">
-                    <td style="text-align:center;"><span id="icon-${m.globalIdx}" class="chevron" style="margin:0;">&#x25B6;</span></td>
-                    <td>
-                        <div class="test-identity-cell">
-                            <span class="test-name">${escapeHtml(idParts.primary)}</span>
-                            ${showMeta ? `<span class="test-identity-meta">${escapeHtml(idParts.secondary)}</span>` : ''}
-                            ${(isFlaky || isHealed) ? `
-                                <div class="test-badge-row">
-                                    ${isFlaky ? `<span class="status-badge status-flaky">Flaky (${m.retryCount} retries)</span>` : ''}
-                                    ${isHealed ? `<span class="status-badge status-healed">Healed</span>` : ''}
-                                </div>
-                            ` : ''}
-                        </div>
-                    </td>
-                    <td style="text-align:center;"><span class="status-badge status-${statusClass}">${m.status || 'UNKNOWN'}</span></td>
-                    <td style="text-align:right;font-family:var(--font-mono);font-size:12.5px;color:var(--text-secondary);font-variant-numeric:tabular-nums;">${logicMsStr}</td>
-                    <td style="text-align:right;font-family:var(--font-mono);font-size:12.5px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;">${totalMsStr}</td>
-                    <td style="text-align:center;" onclick="event.stopPropagation()">${screenshotHtml}</td>
-                </tr>
-                <tr id="detail-${m.globalIdx}" class="detail-row" style="display:none;">
-                    <td colspan="6">
-                        <div class="drawer-content">
-                            <!-- Video Replay -->
-                            ${m.recordingBase64 ? `
-                                <div class="video-card">
-                                    <div class="video-card-header">
-                                        <span>Execution Video Recording</span>
-                                        <button type="button" class="btn-copy" onclick="openLightbox('${m.recordingBase64}')">Fullscreen</button>
-                                    </div>
-                                    <div class="video-player-wrap">
-                                        ${(m.recordingType === 'mp4' || (m.recordingBase64 && m.recordingBase64.startsWith('data:video'))) ? `
-                                            <video controls autoplay loop playsinline style="max-width:100%;max-height:380px;outline:none;border-radius:6px;">
-                                                <source src="${m.recordingBase64}" type="video/mp4">
-                                                Your browser does not support the video tag.
-                                            </video>
-                                        ` : `
-                                            <img src="${m.recordingBase64}" style="max-width:100%;max-height:380px;object-fit:contain;cursor:pointer;" onclick="openLightbox(this.src)" title="Click to view full size video recording">
-                                        `}
-                                    </div>
-                                </div>
-                            ` : ''}
+                    const mtr = document.createElement('tr');
+                    mtr.className = 'group-member';
+                    mtr.setAttribute('data-group', cls);
+                    mtr.setAttribute('data-status', m.status || '');
+                    mtr.setAttribute('data-test', m.testId || '');
+                    mtr.setAttribute('data-healed', String(isHealed));
+                    mtr.onclick = () => toggleDetail(m.globalIdx);
 
-                            <!-- AI Failure Analysis -->
-                            ${m.aiAnalysis ? `
-                                <div id="ai-analysis-card" class="ai-card">
-                                    <div class="ai-card-title">AI Failure Analysis</div>
-                                    <div class="ai-card-body">${escapeHtml(m.aiAnalysis)}</div>
-                                </div>
-                            ` : ''}
+                    // TD 0: Chevron
+                    const td0 = document.createElement('td');
+                    td0.style.textAlign = 'center';
+                    const chevron = document.createElement('span');
+                    chevron.id = 'icon-' + m.globalIdx;
+                    chevron.className = 'chevron';
+                    chevron.style.margin = '0';
+                    chevron.textContent = '▶';
+                    td0.appendChild(chevron);
+                    mtr.appendChild(td0);
 
-                            <!-- Stack Trace -->
-                            ${m.stackTrace ? `
-                                <div class="stack-trace-box">
-                                    <div class="stack-trace-header">
-                                        <span class="stack-trace-title">Stack Trace</span>
-                                        <button type="button" class="btn-copy" onclick="copyStackTrace(event, this)">Copy Stack Trace</button>
-                                    </div>
-                                    <pre class="stack-trace">${escapeHtml(m.stackTrace)}</pre>
-                                </div>
-                            ` : ''}
-
-                            <!-- Step Timeline -->
-                            <div>
-                                <strong style="font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);">Step Execution Timeline</strong>
-                                <div class="timeline-wrap">
-                                    ${(m.steps && m.steps.length > 0) ? m.steps.map(s => {
-                        const rawName = s.name || '';
-                        const isApiStep = rawName.startsWith('[API]');
-                        const hasMultiline = rawName.includes('\n');
-                        const pillStatus = (s.status || 'info').toLowerCase();
-
-                        if (isApiStep && hasMultiline) {
-                            const lines = rawName.split('\n');
-                            const headerLine = lines[0];
-                            const detailLines = lines.slice(1).join('\n');
-                            return `
-                                                <div class="timeline-step" style="flex-direction:column;align-items:flex-start;gap:6px;">
-                                                    <div style="display:flex;align-items:center;gap:10px;width:100%;">
-                                                        <span class="step-offset">+${s.offsetMs || 0}ms</span>
-                                                        <span class="step-pill ${pillStatus}">${s.status || 'INFO'}</span>
-                                                        <span class="step-text" style="font-weight:600;">${escapeHtml(headerLine)}</span>
-                                                    </div>
-                                                    <pre class="api-step-details">${escapeHtml(detailLines)}</pre>
-                                                </div>
-                                            `;
+                    // TD 1: Identity
+                    const td1 = document.createElement('td');
+                    const idCell = document.createElement('div');
+                    idCell.className = 'test-identity-cell';
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'test-name';
+                    nameSpan.textContent = idParts.primary;
+                    idCell.appendChild(nameSpan);
+                    if (showMeta) {
+                        const metaSpan = document.createElement('span');
+                        metaSpan.className = 'test-identity-meta';
+                        metaSpan.textContent = idParts.secondary;
+                        idCell.appendChild(metaSpan);
+                    }
+                    if (isFlaky || isHealed) {
+                        const bRow = document.createElement('div');
+                        bRow.className = 'test-badge-row';
+                        if (isFlaky) {
+                            const flkBadge = document.createElement('span');
+                            flkBadge.className = 'status-badge status-flaky';
+                            flkBadge.textContent = 'Flaky (' + m.retryCount + ' retries)';
+                            bRow.appendChild(flkBadge);
                         }
+                        if (isHealed) {
+                            const hldBadge = document.createElement('span');
+                            hldBadge.className = 'status-badge status-healed';
+                            hldBadge.textContent = 'Healed';
+                            bRow.appendChild(hldBadge);
+                        }
+                        idCell.appendChild(bRow);
+                    }
+                    td1.appendChild(idCell);
+                    mtr.appendChild(td1);
 
-                        return `
-                                            <div class="timeline-step">
-                                                <span class="step-offset">+${s.offsetMs || 0}ms</span>
-                                                <span class="step-pill ${pillStatus}">${s.status || 'INFO'}</span>
-                                                <span class="step-text">${escapeHtml(rawName)}</span>
-                                            </div>
-                                        `;
-                    }).join('') : '<div style="font-size:12px;color:var(--text-muted);">No individual steps logged.</div>'}
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            `;
+                    // TD 2: Status badge
+                    const td2 = document.createElement('td');
+                    td2.style.textAlign = 'center';
+                    const statBadge = document.createElement('span');
+                    statBadge.className = 'status-badge status-' + statusClass;
+                    statBadge.textContent = rawStatus;
+                    td2.appendChild(statBadge);
+                    mtr.appendChild(td2);
+
+                    // TD 3: Logic ms
+                    const td3 = document.createElement('td');
+                    td3.style.textAlign = 'right';
+                    td3.style.fontFamily = 'var(--font-mono)';
+                    td3.style.fontSize = '12.5px';
+                    td3.style.color = 'var(--text-secondary)';
+                    td3.style.fontVariantNumeric = 'tabular-nums';
+                    td3.textContent = logicMsStr;
+                    mtr.appendChild(td3);
+
+                    // TD 4: Total ms
+                    const td4 = document.createElement('td');
+                    td4.style.textAlign = 'right';
+                    td4.style.fontFamily = 'var(--font-mono)';
+                    td4.style.fontSize = '12.5px';
+                    td4.style.fontWeight = '700';
+                    td4.style.color = 'var(--text)';
+                    td4.style.fontVariantNumeric = 'tabular-nums';
+                    td4.textContent = totalMsStr;
+                    mtr.appendChild(td4);
+
+                    // TD 5: Screenshot
+                    const td5 = document.createElement('td');
+                    td5.style.textAlign = 'center';
+                    td5.onclick = (e) => e.stopPropagation();
+                    if (m.screenshotBase64) {
+                        const safeScr = sanitizeMediaSrc(m.screenshotBase64);
+                        if (safeScr) {
+                            const img = document.createElement('img');
+                            img.src = safeScr;
+                            img.className = 'screenshot-thumb';
+                            img.title = 'View screenshot';
+                            img.onclick = () => openLightbox(safeScr);
+                            td5.appendChild(img);
+                        } else {
+                            const dash = document.createElement('span');
+                            dash.style.color = 'var(--text-muted)';
+                            dash.textContent = '—';
+                            td5.appendChild(dash);
+                        }
+                    } else {
+                        const dash = document.createElement('span');
+                        dash.style.color = 'var(--text-muted)';
+                        dash.textContent = '—';
+                        td5.appendChild(dash);
+                    }
+                    mtr.appendChild(td5);
+                    tbody.appendChild(mtr);
+
+                    // Detail row
+                    const trDetail = document.createElement('tr');
+                    trDetail.id = 'detail-' + m.globalIdx;
+                    trDetail.className = 'detail-row';
+                    trDetail.style.display = 'none';
+                    const tdDetail = document.createElement('td');
+                    tdDetail.colSpan = 6;
+                    tdDetail.appendChild(createDrawerContent(m, '', m.globalIdx));
+                    trDetail.appendChild(tdDetail);
+                    tbody.appendChild(trDetail);
                 });
             });
 
-            tbody.innerHTML = html;
             applySearch();
         }
 
@@ -2628,171 +2958,306 @@
         function renderFailureTable(tests) {
             const tbody = document.getElementById('failureTableBody');
             if (!tbody) return;
+            tbody.textContent = '';
+
             const failures = tests.filter(t => t.status === 'FAILED');
             if (failures.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" style="text-align:center;padding:48px 24px;">
-                            <div style="display:inline-flex;flex-direction:column;align-items:center;gap:10px;">
-                                <span class="status-badge status-passed" style="font-size:12px;padding:5px 14px;letter-spacing:0.02em;">ZERO FAILURES</span>
-                                <span style="font-size:13px;color:var(--text-secondary);font-weight:500;">Zero Failures! All tests passed cleanly.</span>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 6;
+                td.style.textAlign = 'center';
+                td.style.padding = '48px 24px';
+
+                const wrap = document.createElement('div');
+                wrap.style.display = 'inline-flex';
+                wrap.style.flexDirection = 'column';
+                wrap.style.alignItems = 'center';
+                wrap.style.gap = '10px';
+
+                const badge = document.createElement('span');
+                badge.className = 'status-badge status-passed';
+                badge.style.fontSize = '12px';
+                badge.style.padding = '5px 14px';
+                badge.style.letterSpacing = '0.02em';
+                badge.textContent = 'ZERO FAILURES';
+
+                const msg = document.createElement('span');
+                msg.style.fontSize = '13px';
+                msg.style.color = 'var(--text-secondary)';
+                msg.style.fontWeight = '500';
+                msg.textContent = 'Zero Failures! All tests passed cleanly.';
+
+                wrap.appendChild(badge);
+                wrap.appendChild(msg);
+                td.appendChild(wrap);
+                tr.appendChild(td);
+                tbody.appendChild(tr);
                 return;
             }
-            tbody.innerHTML = failures.map((f, idx) => {
-                const screenshotHtml = f.screenshotBase64
-                    ? `<img src="${f.screenshotBase64}" class="screenshot-thumb" onclick="openLightbox(this.src)" title="View screenshot">`
-                    : `<span style="color:var(--text-muted);">&mdash;</span>`;
+
+            failures.forEach((f, idx) => {
                 const idParts = splitTestIdentifier(f.testId || '');
-                const durStr = f.totalMs >= 1000 ? (f.totalMs / 1000).toFixed(1) + 's' : (f.totalMs || 0) + ' ms';
+                const totalMs = Number(f.totalMs) || 0;
+                const durStr = totalMs >= 1000 ? (totalMs / 1000).toFixed(1) + 's' : totalMs + ' ms';
 
-                return `
-            <tr class="group-member" onclick="toggleFailureDetail(${idx})">
-                <td style="text-align:center;"><span id="ficon-${idx}" class="chevron" style="margin:0;">&#x25B6;</span></td>
-                <td>
-                    <div class="test-identity-cell">
-                        <span class="test-name">${escapeHtml(idParts.primary)}</span>
-                        ${idParts.secondary ? `<span class="test-identity-meta">${escapeHtml(idParts.secondary)}</span>` : ''}
-                    </div>
-                </td>
-                <td style="text-align:center;"><span class="status-badge status-failed">FAIL</span></td>
-                <td>
-                    <div class="error-snippet-badge" title="${escapeHtml(f.errorMessage || 'Failure')}">
-                        ${escapeHtml(f.errorMessage || 'Failure')}
-                    </div>
-                </td>
-                <td style="text-align:right;font-family:var(--font-mono);font-size:12.5px;color:var(--text-secondary);font-variant-numeric:tabular-nums;">${durStr}</td>
-                <td style="text-align:center;" onclick="event.stopPropagation()">${screenshotHtml}</td>
-            </tr>
-            <tr id="fdetail-${idx}" class="detail-row" style="display:none;">
-                <td colspan="6">
-                    <div class="drawer-content">
-                        <!-- Video Recording -->
-                        ${f.recordingBase64 ? `
-                            <div class="video-card">
-                                <div class="video-card-header">
-                                    <span>Execution Video Recording</span>
-                                    <button type="button" class="btn-copy" onclick="openLightbox('${f.recordingBase64}')">Fullscreen</button>
-                                </div>
-                                <div class="video-player-wrap">
-                                    ${(f.recordingType === 'mp4' || (f.recordingBase64 && f.recordingBase64.startsWith('data:video'))) ? `
-                                        <video controls autoplay loop playsinline style="max-width:100%;max-height:380px;outline:none;border-radius:6px;">
-                                            <source src="${f.recordingBase64}" type="video/mp4">
-                                            Your browser does not support the video tag.
-                                        </video>
-                                    ` : `
-                                        <img src="${f.recordingBase64}" style="max-width:100%;max-height:380px;object-fit:contain;cursor:pointer;" onclick="openLightbox(this.src)" title="Click to view full size video recording">
-                                    `}
-                                </div>
-                            </div>
-                        ` : ''}
-                        ${f.aiAnalysis ? `
-                            <div class="ai-card">
-                                <div class="ai-card-title">AI Failure Analysis</div>
-                                <div class="ai-card-body">${escapeHtml(f.aiAnalysis)}</div>
-                            </div>
-                        ` : ''}
-                        ${f.stackTrace ? `
-                            <div class="stack-trace-box">
-                                <div class="stack-trace-header">
-                                    <span class="stack-trace-title">Stack Trace</span>
-                                    <button type="button" class="btn-copy" onclick="copyStackTrace(event, this)">Copy Stack Trace</button>
-                                </div>
-                                <pre class="stack-trace">${escapeHtml(f.stackTrace)}</pre>
-                            </div>
-                        ` : ''}
-                        ${(f.steps && f.steps.length > 0) ? `
-                            <div>
-                                <strong style="font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);">Step Execution Timeline</strong>
-                                <div class="timeline-wrap">
-                                    ${f.steps.map(s => {
-                                        const rawName = s.name || '';
-                                        const isApiStep = rawName.startsWith('[API]');
-                                        const hasMultiline = rawName.includes('\n');
-                                        const pillStatus = (s.status || 'info').toLowerCase();
+                // Main row
+                const tr = document.createElement('tr');
+                tr.className = 'group-member';
+                tr.onclick = () => toggleFailureDetail(idx);
 
-                                        if (isApiStep && hasMultiline) {
-                                            const lines = rawName.split('\n');
-                                            const headerLine = lines[0];
-                                            const detailLines = lines.slice(1).join('\n');
-                                            return `
-                                                <div class="timeline-step" style="flex-direction:column;align-items:flex-start;gap:6px;">
-                                                    <div style="display:flex;align-items:center;gap:10px;width:100%;">
-                                                        <span class="step-offset">+${s.offsetMs || 0}ms</span>
-                                                        <span class="step-pill ${pillStatus}">${s.status || 'INFO'}</span>
-                                                        <span class="step-text" style="font-weight:600;">${escapeHtml(headerLine)}</span>
-                                                    </div>
-                                                    <pre class="api-step-details">${escapeHtml(detailLines)}</pre>
-                                                </div>
-                                            `;
-                                        }
+                // TD 0: Chevron
+                const tdChevron = document.createElement('td');
+                tdChevron.style.textAlign = 'center';
+                const chevron = document.createElement('span');
+                chevron.id = 'ficon-' + idx;
+                chevron.className = 'chevron';
+                chevron.style.margin = '0';
+                chevron.textContent = '▶';
+                tdChevron.appendChild(chevron);
+                tr.appendChild(tdChevron);
 
-                                        return `
-                                            <div class="timeline-step">
-                                                <span class="step-offset">+${s.offsetMs || 0}ms</span>
-                                                <span class="step-pill ${pillStatus}">${s.status || 'INFO'}</span>
-                                                <span class="step-text">${escapeHtml(rawName)}</span>
-                                            </div>
-                                        `;
-                                    }).join('')}
-                                </div>
-                            </div>
-                        ` : ''}
-                    </div>
-                </td>
-            </tr>
-        `;
-            }).join('');
+                // TD 1: Identity
+                const tdId = document.createElement('td');
+                const idCell = document.createElement('div');
+                idCell.className = 'test-identity-cell';
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'test-name';
+                nameSpan.textContent = idParts.primary;
+                idCell.appendChild(nameSpan);
+                if (idParts.secondary) {
+                    const metaSpan = document.createElement('span');
+                    metaSpan.className = 'test-identity-meta';
+                    metaSpan.textContent = idParts.secondary;
+                    idCell.appendChild(metaSpan);
+                }
+                tdId.appendChild(idCell);
+                tr.appendChild(tdId);
+
+                // TD 2: FAIL badge
+                const tdStatus = document.createElement('td');
+                tdStatus.style.textAlign = 'center';
+                const failBadge = document.createElement('span');
+                failBadge.className = 'status-badge status-failed';
+                failBadge.textContent = 'FAIL';
+                tdStatus.appendChild(failBadge);
+                tr.appendChild(tdStatus);
+
+                // TD 3: Error message snippet
+                const tdErr = document.createElement('td');
+                const errBadge = document.createElement('div');
+                errBadge.className = 'error-snippet-badge';
+                const errMsg = f.errorMessage || 'Failure';
+                errBadge.title = errMsg;
+                errBadge.textContent = errMsg;
+                tdErr.appendChild(errBadge);
+                tr.appendChild(tdErr);
+
+                // TD 4: Duration
+                const tdDur = document.createElement('td');
+                tdDur.style.textAlign = 'right';
+                tdDur.style.fontFamily = 'var(--font-mono)';
+                tdDur.style.fontSize = '12.5px';
+                tdDur.style.color = 'var(--text-secondary)';
+                tdDur.style.fontVariantNumeric = 'tabular-nums';
+                tdDur.textContent = durStr;
+                tr.appendChild(tdDur);
+
+                // TD 5: Screenshot
+                const tdScreen = document.createElement('td');
+                tdScreen.style.textAlign = 'center';
+                tdScreen.onclick = (e) => e.stopPropagation();
+                if (f.screenshotBase64) {
+                    const safeScr = sanitizeMediaSrc(f.screenshotBase64);
+                    if (safeScr) {
+                        const img = document.createElement('img');
+                        img.src = safeScr;
+                        img.className = 'screenshot-thumb';
+                        img.title = 'View screenshot';
+                        img.onclick = () => openLightbox(safeScr);
+                        tdScreen.appendChild(img);
+                    } else {
+                        const dash = document.createElement('span');
+                        dash.style.color = 'var(--text-muted)';
+                        dash.textContent = '—';
+                        tdScreen.appendChild(dash);
+                    }
+                } else {
+                    const dash = document.createElement('span');
+                    dash.style.color = 'var(--text-muted)';
+                    dash.textContent = '—';
+                    tdScreen.appendChild(dash);
+                }
+                tr.appendChild(tdScreen);
+
+                tbody.appendChild(tr);
+
+                // Detail row (Drawer)
+                const trDetail = document.createElement('tr');
+                trDetail.id = 'fdetail-' + idx;
+                trDetail.className = 'detail-row';
+                trDetail.style.display = 'none';
+
+                const tdDetail = document.createElement('td');
+                tdDetail.colSpan = 6;
+                tdDetail.appendChild(createDrawerContent(f, 'f', idx));
+                trDetail.appendChild(tdDetail);
+
+                tbody.appendChild(trDetail);
+            });
         }
 
         // ── Render Run History Table ──
         function renderHistoryTable() {
             const tbody = document.getElementById('historyTableBody');
             if (!tbody) return;
+            tbody.textContent = '';
             const list = reportData.history || [];
             if (list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">No archived run history available yet.</td></tr>';
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 8;
+                td.style.textAlign = 'center';
+                td.style.padding = '32px';
+                td.style.color = 'var(--text-muted)';
+                td.textContent = 'No archived run history available yet.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
                 return;
             }
             const isInReports = window.location.pathname.includes('/reports/');
-            tbody.innerHTML = list.map((h, idx) => {
-                const link = isInReports ? (h.reportPath || '').replace('reports/', '') : (h.reportPath || '#');
-                const isGood = h.passRate >= 80;
-                const isWarn = h.passRate >= 60 && h.passRate < 80;
-                const badgeClass = isGood ? 'status-passed' : (isWarn ? 'status-flaky' : 'status-failed');
-                const durStr = h.totalTimeMs >= 1000 ? (h.totalTimeMs / 1000).toFixed(1) + 's' : (h.totalTimeMs || 0) + ' ms';
-
-                // First history item represents the active/current execution run
+            list.forEach((h, idx) => {
                 const isCurrentRun = (idx === 0);
+                const passRate = Number(h.passRate) || 0;
+                const isGood = passRate >= 80;
+                const isWarn = passRate >= 60 && passRate < 80;
+                const badgeClass = isGood ? 'status-passed' : (isWarn ? 'status-flaky' : 'status-failed');
+                const totalTimeMs = Number(h.totalTimeMs) || 0;
+                const durStr = totalTimeMs >= 1000 ? (totalTimeMs / 1000).toFixed(1) + 's' : totalTimeMs + ' ms';
 
-                return `
-        <tr>
-            <td style="font-family:var(--font-mono);font-size:12.5px;color:var(--text);font-variant-numeric:tabular-nums;">
-                <div style="display:inline-flex;align-items:center;gap:8px;">
-                    <strong>${escapeHtml(h.timestamp || '')}</strong>
-                    ${isCurrentRun ? '<span class="policy-chip chip-monitored" style="font-size:10px;padding:1px 6px;color:var(--primary);border-color:var(--primary-border);background:var(--primary-bg);">CURRENT</span>' : ''}
-                </div>
-            </td>
-            <td style="text-align:center;">
-                <span class="status-badge ${badgeClass}" style="min-width:56px;justify-content:center;">${h.passRate}%</span>
-            </td>
-            <td style="text-align:right;font-family:var(--font-mono);font-size:12.5px;color:var(--text);font-variant-numeric:tabular-nums;">${h.totalTests}</td>
-            <td style="text-align:right;font-family:var(--font-mono);font-size:12.5px;color:var(--good);font-weight:700;font-variant-numeric:tabular-nums;">${h.passedTests}</td>
-            <td style="text-align:right;font-family:var(--font-mono);font-size:12.5px;color:${h.failedTests > 0 ? 'var(--bad)' : 'var(--text-muted)'};font-weight:${h.failedTests > 0 ? '700' : '400'};font-variant-numeric:tabular-nums;">${h.failedTests}</td>
-            <td style="text-align:right;font-family:var(--font-mono);font-size:12.5px;color:var(--text-muted);font-variant-numeric:tabular-nums;">${h.skippedTests}</td>
-            <td style="text-align:right;font-family:var(--font-mono);font-size:12.5px;color:var(--text-secondary);font-variant-numeric:tabular-nums;">${durStr}</td>
-            <td style="text-align:center;">
-                ${isCurrentRun 
-                    ? `<span class="btn-inspect-pill" style="opacity:0.65;cursor:default;" title="Currently viewing this execution report">Current</span>`
-                    : `<a href="${escapeHtml(link)}" target="_blank" class="btn-inspect-pill" style="text-decoration:none;" title="Open archived execution report">View &rarr;</a>`
+                const tr = document.createElement('tr');
+
+                // TD 1: Timestamp + Current chip
+                const tdTime = document.createElement('td');
+                tdTime.style.fontFamily = 'var(--font-mono)';
+                tdTime.style.fontSize = '12.5px';
+                tdTime.style.color = 'var(--text)';
+                tdTime.style.fontVariantNumeric = 'tabular-nums';
+                const flexDiv = document.createElement('div');
+                flexDiv.style.display = 'inline-flex';
+                flexDiv.style.alignItems = 'center';
+                flexDiv.style.gap = '8px';
+                const timeStrong = document.createElement('strong');
+                timeStrong.textContent = h.timestamp || '';
+                flexDiv.appendChild(timeStrong);
+                if (isCurrentRun) {
+                    const chip = document.createElement('span');
+                    chip.className = 'policy-chip chip-monitored';
+                    chip.style.fontSize = '10px';
+                    chip.style.padding = '1px 6px';
+                    chip.style.color = 'var(--primary)';
+                    chip.style.borderColor = 'var(--primary-border)';
+                    chip.style.background = 'var(--primary-bg)';
+                    chip.textContent = 'CURRENT';
+                    flexDiv.appendChild(chip);
                 }
-            </td>
-        </tr>
-    `;
-            }).join('');
+                tdTime.appendChild(flexDiv);
+                tr.appendChild(tdTime);
+
+                // TD 2: Pass rate badge
+                const tdRate = document.createElement('td');
+                tdRate.style.textAlign = 'center';
+                const rateBadge = document.createElement('span');
+                rateBadge.className = 'status-badge ' + badgeClass;
+                rateBadge.style.minWidth = '56px';
+                rateBadge.style.justifyContent = 'center';
+                rateBadge.textContent = passRate + '%';
+                tdRate.appendChild(rateBadge);
+                tr.appendChild(tdRate);
+
+                // TD 3: Total tests
+                const tdTot = document.createElement('td');
+                tdTot.style.textAlign = 'right';
+                tdTot.style.fontFamily = 'var(--font-mono)';
+                tdTot.style.fontSize = '12.5px';
+                tdTot.style.color = 'var(--text)';
+                tdTot.style.fontVariantNumeric = 'tabular-nums';
+                tdTot.textContent = String(h.totalTests || 0);
+                tr.appendChild(tdTot);
+
+                // TD 4: Passed
+                const tdPass = document.createElement('td');
+                tdPass.style.textAlign = 'right';
+                tdPass.style.fontFamily = 'var(--font-mono)';
+                tdPass.style.fontSize = '12.5px';
+                tdPass.style.color = 'var(--good)';
+                tdPass.style.fontWeight = '700';
+                tdPass.style.fontVariantNumeric = 'tabular-nums';
+                tdPass.textContent = String(h.passedTests || 0);
+                tr.appendChild(tdPass);
+
+                // TD 5: Failed
+                const tdFail = document.createElement('td');
+                tdFail.style.textAlign = 'right';
+                tdFail.style.fontFamily = 'var(--font-mono)';
+                tdFail.style.fontSize = '12.5px';
+                tdFail.style.fontVariantNumeric = 'tabular-nums';
+                const failedCount = Number(h.failedTests) || 0;
+                tdFail.style.color = failedCount > 0 ? 'var(--bad)' : 'var(--text-muted)';
+                tdFail.style.fontWeight = failedCount > 0 ? '700' : '400';
+                tdFail.textContent = String(failedCount);
+                tr.appendChild(tdFail);
+
+                // TD 6: Skipped
+                const tdSkip = document.createElement('td');
+                tdSkip.style.textAlign = 'right';
+                tdSkip.style.fontFamily = 'var(--font-mono)';
+                tdSkip.style.fontSize = '12.5px';
+                tdSkip.style.color = 'var(--text-muted)';
+                tdSkip.style.fontVariantNumeric = 'tabular-nums';
+                tdSkip.textContent = String(h.skippedTests || 0);
+                tr.appendChild(tdSkip);
+
+                // TD 7: Duration
+                const tdDur = document.createElement('td');
+                tdDur.style.textAlign = 'right';
+                tdDur.style.fontFamily = 'var(--font-mono)';
+                tdDur.style.fontSize = '12.5px';
+                tdDur.style.color = 'var(--text-secondary)';
+                tdDur.style.fontVariantNumeric = 'tabular-nums';
+                tdDur.textContent = durStr;
+                tr.appendChild(tdDur);
+
+                // TD 8: Action
+                const tdAction = document.createElement('td');
+                tdAction.style.textAlign = 'center';
+                if (isCurrentRun) {
+                    const span = document.createElement('span');
+                    span.className = 'btn-inspect-pill';
+                    span.style.opacity = '0.65';
+                    span.style.cursor = 'default';
+                    span.title = 'Currently viewing this execution report';
+                    span.textContent = 'Current';
+                    tdAction.appendChild(span);
+                } else {
+                    const rawPath = String(h.reportPath || '');
+                    const cleanPath = isInReports ? rawPath.replace(/^reports\//, '') : rawPath;
+                    const a = document.createElement('a');
+                    a.className = 'btn-inspect-pill';
+                    a.style.textDecoration = 'none';
+                    a.target = '_blank';
+                    a.title = 'Open archived execution report';
+                    if (isSafeReportPath(cleanPath)) {
+                        a.href = './' + encodeURI(cleanPath);
+                    } else {
+                        a.href = '#';
+                    }
+                    a.textContent = 'View →';
+                    tdAction.appendChild(a);
+                }
+                tr.appendChild(tdAction);
+
+                tbody.appendChild(tr);
+            });
         }
 
         let currentFlakinessFilter = 'ALL';
@@ -2888,9 +3353,18 @@
 
             const tbody = document.getElementById('flakinessTableBody');
             if (!tbody) return;
+            tbody.textContent = '';
 
             if (allScores.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);">No flakiness history data collected yet. Run test suites with flakiness enabled to build history.</td></tr>';
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 5;
+                td.style.textAlign = 'center';
+                td.style.padding = '32px';
+                td.style.color = 'var(--text-muted)';
+                td.textContent = 'No flakiness history data collected yet. Run test suites with flakiness enabled to build history.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
                 return;
             }
 
@@ -2899,41 +3373,119 @@
                 : allScores.filter(s => (s.risk || 'STABLE').toUpperCase() === currentFlakinessFilter);
 
             if (filteredScores.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">No tests matching filter: <strong>${escapeHtml(currentFlakinessFilter)}</strong>. <a href="javascript:void(0)" onclick="filterFlakiness('ALL')" style="color:var(--primary);font-weight:600;">Show all</a></td></tr>`;
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 5;
+                td.style.textAlign = 'center';
+                td.style.padding = '24px';
+                td.style.color = 'var(--text-muted)';
+                td.appendChild(document.createTextNode('No tests matching filter: '));
+                const strong = document.createElement('strong');
+                strong.textContent = currentFlakinessFilter;
+                td.appendChild(strong);
+                td.appendChild(document.createTextNode('. '));
+                const showAllLink = document.createElement('a');
+                showAllLink.href = 'javascript:void(0)';
+                showAllLink.style.color = 'var(--primary)';
+                showAllLink.style.fontWeight = '600';
+                showAllLink.textContent = 'Show all';
+                showAllLink.onclick = () => filterFlakiness('ALL');
+                td.appendChild(showAllLink);
+                tr.appendChild(td);
+                tbody.appendChild(tr);
                 return;
             }
 
-            tbody.innerHTML = filteredScores.map(s => {
+            filteredScores.forEach(s => {
                 const risk = (s.risk || 'STABLE').toUpperCase();
                 const badgeClass = risk === 'HIGH' ? 'risk-high' : risk === 'WATCH' ? 'risk-watch' : 'risk-stable';
                 const rateColor = risk === 'HIGH' ? 'var(--bad)' : risk === 'WATCH' ? 'var(--flaky)' : 'var(--good)';
-                const safeTestId = escapeHtml(s.testId || '');
-                const idParts = splitTestIdentifier(s.testId || '');
+                const rawTestId = s.testId || '';
+                const idParts = splitTestIdentifier(rawTestId);
 
-                return `
-            <tr>
-                <td>
-                    <div class="test-identity-cell">
-                        <a href="javascript:void(0)" onclick="inspectTestCase('${safeTestId}')" class="test-identity-link" title="Click to inspect this test case: ${safeTestId}">
-                            ${escapeHtml(idParts.primary)}
-                        </a>
-                        ${idParts.secondary ? `<span class="test-identity-meta">${escapeHtml(idParts.secondary)}</span>` : ''}
-                    </div>
-                </td>
-                <td style="text-align:center;"><span class="status-badge ${badgeClass}">${risk}</span></td>
-                <td style="text-align:right;font-family:var(--font-mono);font-weight:700;color:${rateColor};font-variant-numeric:tabular-nums;">${s.failureRate}%</td>
-                <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--text-secondary);">${s.failCount || 0} / ${s.runsAnalysed || 0}</td>
-                <td style="text-align:right;">
-                    <div class="action-cell-wrap">
-                        ${risk === 'HIGH' 
-                            ? '<span class="policy-chip chip-quarantine" title="Recommended action: Quarantine test to prevent CI pipeline blockage">Quarantine</span>' 
-                            : '<span class="policy-chip chip-monitored" title="Test is currently monitored for stability">Monitored</span>'}
-                        <button type="button" class="btn-inspect-pill" onclick="inspectTestCase('${safeTestId}')" title="Inspect test details &amp; logs">Inspect &rarr;</button>
-                    </div>
-                </td>
-            </tr>
-        `;
-            }).join('');
+                const tr = document.createElement('tr');
+
+                // Col 1: Identity
+                const tdId = document.createElement('td');
+                const cell = document.createElement('div');
+                cell.className = 'test-identity-cell';
+
+                const link = document.createElement('a');
+                link.href = 'javascript:void(0)';
+                link.className = 'test-identity-link';
+                link.title = `Click to inspect this test case: ${rawTestId}`;
+                link.textContent = idParts.primary;
+                link.onclick = () => inspectTestCase(rawTestId);
+                cell.appendChild(link);
+
+                if (idParts.secondary) {
+                    const metaSpan = document.createElement('span');
+                    metaSpan.className = 'test-identity-meta';
+                    metaSpan.textContent = idParts.secondary;
+                    cell.appendChild(metaSpan);
+                }
+                tdId.appendChild(cell);
+                tr.appendChild(tdId);
+
+                // Col 2: Risk Badge
+                const tdRisk = document.createElement('td');
+                tdRisk.style.textAlign = 'center';
+                const badge = document.createElement('span');
+                badge.className = `status-badge ${badgeClass}`;
+                badge.textContent = risk;
+                tdRisk.appendChild(badge);
+                tr.appendChild(tdRisk);
+
+                // Col 3: Failure Rate
+                const tdRate = document.createElement('td');
+                tdRate.style.textAlign = 'right';
+                tdRate.style.fontFamily = 'var(--font-mono)';
+                tdRate.style.fontWeight = '700';
+                tdRate.style.color = rateColor;
+                tdRate.style.fontVariantNumeric = 'tabular-nums';
+                tdRate.textContent = `${s.failureRate}%`;
+                tr.appendChild(tdRate);
+
+                // Col 4: Failure Count / Runs
+                const tdRuns = document.createElement('td');
+                tdRuns.style.textAlign = 'right';
+                tdRuns.style.fontFamily = 'var(--font-mono)';
+                tdRuns.style.fontVariantNumeric = 'tabular-nums';
+                tdRuns.style.color = 'var(--text-secondary)';
+                tdRuns.textContent = `${s.failCount || 0} / ${s.runsAnalysed || 0}`;
+                tr.appendChild(tdRuns);
+
+                // Col 5: Action (policy chip + inspect button)
+                const tdAction = document.createElement('td');
+                tdAction.style.textAlign = 'right';
+                const actWrap = document.createElement('div');
+                actWrap.className = 'action-cell-wrap';
+
+                const chip = document.createElement('span');
+                if (risk === 'HIGH') {
+                    chip.className = 'policy-chip chip-quarantine';
+                    chip.title = 'Recommended action: Quarantine test to prevent CI pipeline blockage';
+                    chip.textContent = 'Quarantine';
+                } else {
+                    chip.className = 'policy-chip chip-monitored';
+                    chip.title = 'Test is currently monitored for stability';
+                    chip.textContent = 'Monitored';
+                }
+                actWrap.appendChild(chip);
+
+                const inspectBtn = document.createElement('button');
+                inspectBtn.type = 'button';
+                inspectBtn.className = 'btn-inspect-pill';
+                inspectBtn.title = 'Inspect test details & logs';
+                inspectBtn.textContent = 'Inspect \u2192';
+                inspectBtn.onclick = () => inspectTestCase(rawTestId);
+                actWrap.appendChild(inspectBtn);
+
+                tdAction.appendChild(actWrap);
+                tr.appendChild(tdAction);
+
+                tbody.appendChild(tr);
+            });
         }
 
         // ── Accordions & Drawer Toggles ──
@@ -2978,7 +3530,7 @@
             const text = document.getElementById('expandAllText');
             const icon = document.getElementById('expandAllIcon');
             if (text) text.innerText = allExpanded ? 'Collapse All' : 'Expand All';
-            if (icon) icon.innerHTML = allExpanded ? '&#x25B2;' : '&#x25BC;';
+            if (icon) icon.textContent = allExpanded ? '\u25B2' : '\u25BC';
         }
 
         // ── Search & Filter ──
@@ -3019,23 +3571,17 @@
             });
 
             document.querySelectorAll('#testTable tbody tr.group-header').forEach(hdr => {
-                const g = hdr.getAttribute('data-group') || '';
-                hdr.style.display = visibleGroups.has(g) ? '' : 'none';
+                const grp = hdr.getAttribute('data-group');
+                hdr.style.display = visibleGroups.has(grp) ? '' : 'none';
             });
         }
 
         // ── Copy Stack Trace ──
-        function copyStackTrace(event, btn) {
-            event.stopPropagation();
-            const box = btn.closest('.stack-trace-box');
-            if (!box) return;
-            const pre = box.querySelector('pre.stack-trace');
-            if (!pre) return;
-
-            navigator.clipboard.writeText(pre.innerText).then(() => {
+        function copyStackTrace(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
                 const orig = btn.innerText;
-                btn.innerText = '✓ Copied';
-                btn.style.color = '#97cc64';
+                btn.innerText = 'Copied!';
+                btn.style.color = 'var(--good)';
                 setTimeout(() => {
                     btn.innerText = orig;
                     btn.style.color = '';
@@ -3047,18 +3593,20 @@
 
         // ── Lightbox Modal ──
         function openLightbox(src) {
+            const safeSrc = sanitizeMediaSrc(src);
+            if (!safeSrc) return;
             const modal = document.getElementById('lightbox');
             const img = document.getElementById('lightbox-img');
             const video = document.getElementById('lightbox-video');
             const videoSource = document.getElementById('lightbox-video-source');
             if (!modal) return;
 
-            const isVideo = src && (src.startsWith('data:video') || src.endsWith('.mp4'));
+            const isVideo = safeSrc.startsWith('data:video') || safeSrc.endsWith('.mp4');
             if (isVideo) {
                 if (img) img.style.display = 'none';
                 if (video && videoSource) {
                     video.style.display = 'block';
-                    videoSource.src = src;
+                    videoSource.src = safeSrc;
                     video.load();
                     video.play().catch(() => { });
                 }
@@ -3069,7 +3617,7 @@
                 }
                 if (img) {
                     img.style.display = 'block';
-                    img.src = src;
+                    img.src = safeSrc;
                 }
             }
             modal.classList.add('open');
@@ -3113,12 +3661,31 @@
             if (!loadTests || loadTests.length === 0) {
                 if (navLoadTest) navLoadTest.style.display = 'none';
                 if (container) {
-                    container.innerHTML = `
-                        <div class="card" style="padding:32px;text-align:center;color:var(--text-muted);">
-                            <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;">No Load Tests Recorded</div>
-                            <div style="font-size:13px;">Execute a TestFly load scenario using <code>load(url).users(N).run()</code> to populate performance metrics.</div>
-                        </div>
-                    `;
+                    container.textContent = '';
+                    const emptyCard = document.createElement('div');
+                    emptyCard.className = 'card';
+                    emptyCard.style.padding = '32px';
+                    emptyCard.style.textAlign = 'center';
+                    emptyCard.style.color = 'var(--text-muted)';
+
+                    const title = document.createElement('div');
+                    title.style.fontSize = '15px';
+                    title.style.fontWeight = '600';
+                    title.style.color = 'var(--text)';
+                    title.style.marginBottom = '4px';
+                    title.textContent = 'No Load Tests Recorded';
+
+                    const subtitle = document.createElement('div');
+                    subtitle.style.fontSize = '13px';
+                    subtitle.appendChild(document.createTextNode('Execute a TestFly load scenario using '));
+                    const code = document.createElement('code');
+                    code.textContent = 'load(url).users(N).run()';
+                    subtitle.appendChild(code);
+                    subtitle.appendChild(document.createTextNode(' to populate performance metrics.'));
+
+                    emptyCard.appendChild(title);
+                    emptyCard.appendChild(subtitle);
+                    container.appendChild(emptyCard);
                 }
                 return;
             }
@@ -3172,127 +3739,281 @@
 
             // Render scenario cards
             if (container) {
-                container.innerHTML = loadTests.map((lt, idx) => {
+                container.textContent = '';
+                loadTests.forEach((lt, idx) => {
                     const isSuccess = (lt.failedRequests || 0) === 0;
-                    const errRate = ((lt.errorRate || 0) * 100).toFixed(2);
-                    let gatlingUrl = lt.gatlingReportPath || '';
-                    if (gatlingUrl && !gatlingUrl.startsWith('/') && !gatlingUrl.startsWith('http') && window.location.pathname.includes('/reports/')) {
-                        gatlingUrl = '../' + gatlingUrl;
-                    }
-                    const gatlingBtn = gatlingUrl
-                        ? `<a href="${escapeHtml(gatlingUrl)}" target="_blank" class="btn-action" style="text-decoration:none;background:var(--primary);color:#ffffff;border-color:var(--primary);">
-                            Open Gatling Report &rarr;
-                           </a>`
-                        : '';
+                    const card = document.createElement('div');
+                    card.className = 'loadtest-scenario-card';
 
-                    // Steps table
-                    let stepsHtml = '';
+                    // 1. Header Row
+                    const headerRow = document.createElement('div');
+                    headerRow.className = 'loadtest-header-row';
+
+                    const badgeGroup = document.createElement('div');
+                    badgeGroup.className = 'loadtest-badge-group';
+
+                    const titleSpan = document.createElement('span');
+                    titleSpan.style.fontSize = '15px';
+                    titleSpan.style.fontWeight = '700';
+                    titleSpan.style.color = 'var(--text)';
+                    titleSpan.style.letterSpacing = '-0.01em';
+                    titleSpan.textContent = lt.scenarioName || 'Load Scenario';
+                    badgeGroup.appendChild(titleSpan);
+
+                    const engineBadge = document.createElement('span');
+                    engineBadge.className = 'status-badge';
+                    engineBadge.style.background = 'var(--primary-bg)';
+                    engineBadge.style.color = 'var(--primary)';
+                    engineBadge.textContent = (lt.engine || 'Gatling').toUpperCase();
+                    badgeGroup.appendChild(engineBadge);
+
+                    const usersBadge = document.createElement('span');
+                    usersBadge.className = 'status-badge';
+                    usersBadge.style.background = 'var(--surface-hover)';
+                    usersBadge.style.color = 'var(--text)';
+                    usersBadge.textContent = `${lt.users || 0} users`;
+                    badgeGroup.appendChild(usersBadge);
+
+                    const durBadge = document.createElement('span');
+                    durBadge.className = 'status-badge';
+                    durBadge.style.background = 'var(--surface-hover)';
+                    durBadge.style.color = 'var(--text)';
+                    durBadge.textContent = `${((lt.durationMs || 0) / 1000).toFixed(1)}s`;
+                    badgeGroup.appendChild(durBadge);
+
+                    const statusBadge = document.createElement('span');
+                    statusBadge.className = `status-badge ${isSuccess ? 'status-passed' : 'status-failed'}`;
+                    statusBadge.textContent = isSuccess ? 'PASSED' : `FAILED (${lt.failedRequests} err)`;
+                    badgeGroup.appendChild(statusBadge);
+
+                    headerRow.appendChild(badgeGroup);
+
+                    // Gatling Button
+                    const gatlingWrap = document.createElement('div');
+                    let rawGatling = lt.gatlingReportPath || '';
+                    if (rawGatling && !rawGatling.startsWith('/') && !rawGatling.startsWith('http') && window.location.pathname.includes('/reports/')) {
+                        rawGatling = '../' + rawGatling;
+                    }
+                    if (rawGatling && (isSafeUrl(rawGatling) || isSafeReportPath(rawGatling))) {
+                        const gatlingLink = document.createElement('a');
+                        gatlingLink.href = rawGatling;
+                        gatlingLink.target = '_blank';
+                        gatlingLink.rel = 'noopener noreferrer';
+                        gatlingLink.className = 'btn-action';
+                        gatlingLink.style.textDecoration = 'none';
+                        gatlingLink.style.background = 'var(--primary)';
+                        gatlingLink.style.color = '#ffffff';
+                        gatlingLink.style.borderColor = 'var(--primary)';
+                        gatlingLink.textContent = 'Open Gatling Report \u2192';
+                        gatlingWrap.appendChild(gatlingLink);
+                    }
+                    headerRow.appendChild(gatlingWrap);
+                    card.appendChild(headerRow);
+
+                    // 2. Mini Latency Tiles
+                    const miniGrid = document.createElement('div');
+                    miniGrid.className = 'loadtest-mini-grid';
+
+                    const tiles = [
+                        { label: 'P50 Median', value: Math.round(lt.p50LatencyMs || 0), unit: 'ms', color: 'var(--primary)' },
+                        { label: 'P90', value: Math.round(lt.p90LatencyMs || 0), unit: 'ms' },
+                        { label: 'P95', value: Math.round(lt.p95LatencyMs || 0), unit: 'ms', color: 'var(--flaky)' },
+                        { label: 'P99', value: Math.round(lt.p99LatencyMs || 0), unit: 'ms', color: 'var(--bad)' },
+                        { label: 'Mean', value: Math.round(lt.meanLatencyMs || 0), unit: 'ms' },
+                        { label: 'Throughput', value: (lt.throughputRps || 0).toFixed(1), unit: 'rps', color: 'var(--good)' }
+                    ];
+
+                    tiles.forEach(t => {
+                        const tile = document.createElement('div');
+                        tile.className = 'loadtest-mini-tile';
+
+                        const lbl = document.createElement('div');
+                        lbl.className = 'loadtest-mini-tile-label';
+                        lbl.textContent = t.label;
+                        tile.appendChild(lbl);
+
+                        const val = document.createElement('div');
+                        val.className = 'loadtest-mini-tile-value';
+                        if (t.color) val.style.color = t.color;
+                        val.appendChild(document.createTextNode(`${t.value} `));
+
+                        const unitSpan = document.createElement('span');
+                        unitSpan.style.fontSize = '10px';
+                        unitSpan.textContent = t.unit;
+                        val.appendChild(unitSpan);
+
+                        tile.appendChild(val);
+                        miniGrid.appendChild(tile);
+                    });
+                    card.appendChild(miniGrid);
+
+                    // 3. Charts Grid: Latency Histogram & Status Codes
+                    const chartsGrid = document.createElement('div');
+                    chartsGrid.style.display = 'grid';
+                    chartsGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+                    chartsGrid.style.gap = '14px';
+
+                    // Latency Box
+                    const latBox = document.createElement('div');
+                    latBox.style.background = 'var(--surface-subtle)';
+                    latBox.style.border = '1px solid var(--border-subtle)';
+                    latBox.style.borderRadius = '10px';
+                    latBox.style.padding = '12px';
+
+                    const latHeader = document.createElement('div');
+                    latHeader.style.fontSize = '11px';
+                    latHeader.style.fontWeight = '700';
+                    latHeader.style.marginBottom = '8px';
+                    latHeader.style.color = 'var(--text-muted)';
+                    latHeader.style.textTransform = 'uppercase';
+                    latHeader.style.letterSpacing = '0.04em';
+                    latHeader.textContent = 'Latency Distribution (ms)';
+                    latBox.appendChild(latHeader);
+
+                    const latWrap = document.createElement('div');
+                    latWrap.style.height = '190px';
+                    latWrap.style.position = 'relative';
+                    const latCanvas = document.createElement('canvas');
+                    latCanvas.id = `lt-chart-latency-${idx}`;
+                    latWrap.appendChild(latCanvas);
+                    latBox.appendChild(latWrap);
+                    chartsGrid.appendChild(latBox);
+
+                    // Status Codes Box
+                    const statBox = document.createElement('div');
+                    statBox.style.background = 'var(--surface-subtle)';
+                    statBox.style.border = '1px solid var(--border-subtle)';
+                    statBox.style.borderRadius = '10px';
+                    statBox.style.padding = '12px';
+
+                    const statHeader = document.createElement('div');
+                    statHeader.style.fontSize = '11px';
+                    statHeader.style.fontWeight = '700';
+                    statHeader.style.marginBottom = '8px';
+                    statHeader.style.color = 'var(--text-muted)';
+                    statHeader.style.textTransform = 'uppercase';
+                    statHeader.style.letterSpacing = '0.04em';
+                    statHeader.textContent = 'HTTP Status Codes';
+                    statBox.appendChild(statHeader);
+
+                    const statWrap = document.createElement('div');
+                    statWrap.style.height = '190px';
+                    statWrap.style.position = 'relative';
+                    const statCanvas = document.createElement('canvas');
+                    statCanvas.id = `lt-chart-status-${idx}`;
+                    statWrap.appendChild(statCanvas);
+                    statBox.appendChild(statWrap);
+                    chartsGrid.appendChild(statBox);
+
+                    card.appendChild(chartsGrid);
+
+                    // 4. Steps Breakdown Table
                     if (lt.steps && Object.keys(lt.steps).length > 0) {
-                        const stepRows = Object.values(lt.steps).map(st => {
-                            const stErr = ((st.errorRate || 0) * 100).toFixed(1);
-                            return `
-                                <tr>
-                                    <td style="font-weight:600;color:var(--text);font-family:var(--font-mono);">${escapeHtml(st.name || 'Step')}</td>
-                                    <td style="text-align:right;font-family:var(--font-mono);">${(st.totalRequests || 0).toLocaleString()}</td>
-                                    <td style="text-align:right;font-family:var(--font-mono);color:var(--good);">${(st.successfulRequests || 0).toLocaleString()}</td>
-                                    <td style="text-align:right;font-family:var(--font-mono);color:${(st.failedRequests || 0) > 0 ? 'var(--bad)' : 'var(--text-muted)'};">${(st.failedRequests || 0).toLocaleString()}</td>
-                                    <td style="text-align:right;font-family:var(--font-mono);font-weight:600;">${Math.round(st.p95LatencyMs || 0)} ms</td>
-                                    <td style="text-align:right;font-family:var(--font-mono);"><span class="status-badge ${(st.errorRate || 0) === 0 ? 'status-passed' : 'status-failed'}">${stErr}%</span></td>
-                                </tr>
-                            `;
-                        }).join('');
+                        const stepWrap = document.createElement('div');
+                        stepWrap.style.marginTop = '14px';
+                        stepWrap.style.border = '1px solid var(--border)';
+                        stepWrap.style.borderRadius = '10px';
+                        stepWrap.style.overflow = 'hidden';
+                        stepWrap.style.background = 'var(--surface)';
 
-                        stepsHtml = `
-                            <div style="margin-top:14px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);">
-                                <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);background:var(--surface-subtle);letter-spacing:0.04em;">
-                                    Scenario Step Breakdown
-                                </div>
-                                <div class="table-wrap">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Step Name</th>
-                                                <th style="text-align:right;">Total Requests</th>
-                                                <th style="text-align:right;">Successful</th>
-                                                <th style="text-align:right;">Failed</th>
-                                                <th style="text-align:right;">P95 Latency</th>
-                                                <th style="text-align:right;">Error Rate</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>${stepRows}</tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        `;
+                        const stepHeader = document.createElement('div');
+                        stepHeader.style.padding = '8px 14px';
+                        stepHeader.style.borderBottom = '1px solid var(--border)';
+                        stepHeader.style.fontSize = '11px';
+                        stepHeader.style.fontWeight = '700';
+                        stepHeader.style.textTransform = 'uppercase';
+                        stepHeader.style.color = 'var(--text-muted)';
+                        stepHeader.style.background = 'var(--surface-subtle)';
+                        stepHeader.style.letterSpacing = '0.04em';
+                        stepHeader.textContent = 'Scenario Step Breakdown';
+                        stepWrap.appendChild(stepHeader);
+
+                        const tableWrap = document.createElement('div');
+                        tableWrap.className = 'table-wrap';
+                        const table = document.createElement('table');
+
+                        const thead = document.createElement('thead');
+                        const htr = document.createElement('tr');
+                        [
+                            { text: 'Step Name', align: 'left' },
+                            { text: 'Total Requests', align: 'right' },
+                            { text: 'Successful', align: 'right' },
+                            { text: 'Failed', align: 'right' },
+                            { text: 'P95 Latency', align: 'right' },
+                            { text: 'Error Rate', align: 'right' }
+                        ].forEach(col => {
+                            const th = document.createElement('th');
+                            th.textContent = col.text;
+                            if (col.align !== 'left') th.style.textAlign = col.align;
+                            htr.appendChild(th);
+                        });
+                        thead.appendChild(htr);
+                        table.appendChild(thead);
+
+                        const tbody = document.createElement('tbody');
+                        Object.values(lt.steps).forEach(st => {
+                            const stErr = ((st.errorRate || 0) * 100).toFixed(1);
+                            const str = document.createElement('tr');
+
+                            // Name
+                            const tdName = document.createElement('td');
+                            tdName.style.fontWeight = '600';
+                            tdName.style.color = 'var(--text)';
+                            tdName.style.fontFamily = 'var(--font-mono)';
+                            tdName.textContent = st.name || 'Step';
+                            str.appendChild(tdName);
+
+                            // Total
+                            const tdTotal = document.createElement('td');
+                            tdTotal.style.textAlign = 'right';
+                            tdTotal.style.fontFamily = 'var(--font-mono)';
+                            tdTotal.textContent = (st.totalRequests || 0).toLocaleString();
+                            str.appendChild(tdTotal);
+
+                            // Successful
+                            const tdSucc = document.createElement('td');
+                            tdSucc.style.textAlign = 'right';
+                            tdSucc.style.fontFamily = 'var(--font-mono)';
+                            tdSucc.style.color = 'var(--good)';
+                            tdSucc.textContent = (st.successfulRequests || 0).toLocaleString();
+                            str.appendChild(tdSucc);
+
+                            // Failed
+                            const tdFail = document.createElement('td');
+                            tdFail.style.textAlign = 'right';
+                            tdFail.style.fontFamily = 'var(--font-mono)';
+                            tdFail.style.color = (st.failedRequests || 0) > 0 ? 'var(--bad)' : 'var(--text-muted)';
+                            tdFail.textContent = (st.failedRequests || 0).toLocaleString();
+                            str.appendChild(tdFail);
+
+                            // P95 Latency
+                            const tdP95 = document.createElement('td');
+                            tdP95.style.textAlign = 'right';
+                            tdP95.style.fontFamily = 'var(--font-mono)';
+                            tdP95.style.fontWeight = '600';
+                            tdP95.textContent = `${Math.round(st.p95LatencyMs || 0)} ms`;
+                            str.appendChild(tdP95);
+
+                            // Error Rate
+                            const tdErr = document.createElement('td');
+                            tdErr.style.textAlign = 'right';
+                            tdErr.style.fontFamily = 'var(--font-mono)';
+                            const errBadge = document.createElement('span');
+                            errBadge.className = `status-badge ${(st.errorRate || 0) === 0 ? 'status-passed' : 'status-failed'}`;
+                            errBadge.textContent = `${stErr}%`;
+                            tdErr.appendChild(errBadge);
+                            str.appendChild(tdErr);
+
+                            tbody.appendChild(str);
+                        });
+                        table.appendChild(tbody);
+                        tableWrap.appendChild(table);
+                        stepWrap.appendChild(tableWrap);
+                        card.appendChild(stepWrap);
                     }
 
-                    return `
-                        <div class="loadtest-scenario-card">
-                            <!-- Header Row -->
-                            <div class="loadtest-header-row">
-                                <div class="loadtest-badge-group">
-                                    <span style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.01em;">${escapeHtml(lt.scenarioName || 'Load Scenario')}</span>
-                                    <span class="status-badge" style="background:var(--primary-bg);color:var(--primary);">${(lt.engine || 'Gatling').toUpperCase()}</span>
-                                    <span class="status-badge" style="background:var(--surface-hover);color:var(--text);">${lt.users || 0} users</span>
-                                    <span class="status-badge" style="background:var(--surface-hover);color:var(--text);">${((lt.durationMs || 0) / 1000).toFixed(1)}s</span>
-                                    <span class="status-badge ${isSuccess ? 'status-passed' : 'status-failed'}">${isSuccess ? 'PASSED' : 'FAILED (' + lt.failedRequests + ' err)'}</span>
-                                </div>
-                                <div>${gatlingBtn}</div>
-                            </div>
-
-                            <!-- Mini Latency Tiles -->
-                            <div class="loadtest-mini-grid">
-                                <div class="loadtest-mini-tile">
-                                    <div class="loadtest-mini-tile-label">P50 Median</div>
-                                    <div class="loadtest-mini-tile-value" style="color:var(--primary);">${Math.round(lt.p50LatencyMs || 0)} <span style="font-size:10px;">ms</span></div>
-                                </div>
-                                <div class="loadtest-mini-tile">
-                                    <div class="loadtest-mini-tile-label">P90</div>
-                                    <div class="loadtest-mini-tile-value">${Math.round(lt.p90LatencyMs || 0)} <span style="font-size:10px;">ms</span></div>
-                                </div>
-                                <div class="loadtest-mini-tile">
-                                    <div class="loadtest-mini-tile-label">P95</div>
-                                    <div class="loadtest-mini-tile-value" style="color:var(--flaky);">${Math.round(lt.p95LatencyMs || 0)} <span style="font-size:10px;">ms</span></div>
-                                </div>
-                                <div class="loadtest-mini-tile">
-                                    <div class="loadtest-mini-tile-label">P99</div>
-                                    <div class="loadtest-mini-tile-value" style="color:var(--bad);">${Math.round(lt.p99LatencyMs || 0)} <span style="font-size:10px;">ms</span></div>
-                                </div>
-                                <div class="loadtest-mini-tile">
-                                    <div class="loadtest-mini-tile-label">Mean</div>
-                                    <div class="loadtest-mini-tile-value">${Math.round(lt.meanLatencyMs || 0)} <span style="font-size:10px;">ms</span></div>
-                                </div>
-                                <div class="loadtest-mini-tile">
-                                    <div class="loadtest-mini-tile-label">Throughput</div>
-                                    <div class="loadtest-mini-tile-value" style="color:var(--good);">${(lt.throughputRps || 0).toFixed(1)} <span style="font-size:10px;">rps</span></div>
-                                </div>
-                            </div>
-
-                            <!-- Charts Grid: Latency Histogram & Status Codes -->
-                            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:14px;">
-                                <div style="background:var(--surface-subtle);border:1px solid var(--border-subtle);border-radius:10px;padding:12px;">
-                                    <div style="font-size:11px;font-weight:700;margin-bottom:8px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">
-                                        Latency Distribution (ms)
-                                    </div>
-                                    <div style="height:190px;position:relative;">
-                                        <canvas id="lt-chart-latency-${idx}"></canvas>
-                                    </div>
-                                </div>
-                                <div style="background:var(--surface-subtle);border:1px solid var(--border-subtle);border-radius:10px;padding:12px;">
-                                    <div style="font-size:11px;font-weight:700;margin-bottom:8px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">
-                                        HTTP Status Codes
-                                    </div>
-                                    <div style="height:190px;position:relative;">
-                                        <canvas id="lt-chart-status-${idx}"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Steps Breakdown Table -->
-                            ${stepsHtml}
-                        </div>
-                    `;
-                }).join('');
+                    container.appendChild(card);
+                });
             }
 
             renderLoadTestCharts();
