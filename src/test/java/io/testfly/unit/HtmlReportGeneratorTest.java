@@ -283,6 +283,10 @@ public class HtmlReportGeneratorTest {
                 assertTrue(html.contains("api-step-details"), "HTML must contain api-step-details style for tracing");
                 assertTrue(html.contains("#97cc64"), "HTML must use Allure green (#97cc64)");
                 assertTrue(html.contains("#fd5a3e"), "HTML must use Allure red (#fd5a3e)");
+                assertTrue(html.contains("telemetry-capsule"), "HTML must contain telemetry-capsule container");
+                assertTrue(html.contains("capsule-ring-fill"), "HTML must contain capsule-ring-fill SVG progress");
+                assertTrue(html.contains("capsule-pass-rate"), "HTML must contain capsule-pass-rate element");
+                assertTrue(html.contains("capsule-meta-line"), "HTML must contain telemetry meta line");
                 assertFalse(html.contains("#6366f1"), "HTML must not contain purple (#6366f1)");
                 assertFalse(html.contains("#4f46e5"), "HTML must not contain purple (#4f46e5)");
             }
