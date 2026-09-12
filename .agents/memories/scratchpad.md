@@ -16,18 +16,19 @@ char_limit: 2200
 ---
 
 ### 1. Aktif Odak ve Son Durum (Current Focus)
-- **Konu:** ScanRepo False-Positive İyileştirmeleri ve Tag Tabanlı Git Sürüm Kuralı.
-- **Durum:** `.gitattributes` eklendi, `index.js` modülerleştirildi (yüksek entropi 51->1'e düştü). `[[rules/git-release-workflow]]` oluşturulup anayasaya bağlandı.
+- **Konu:** Changelog Modernizasyonu & Release 1.0.5 Docusaurus Senkronizasyonu.
+- **Durum:** Kök `CHANGELOG.md`, `docs-site/docs/changelog.md` ve `docs-site/i18n/tr/.../changelog.md` [1.0.5] ve [1.0.4] maddeleriyle güncellendi. `npm run build` ile çift dil doğrulandı ve `development` dalına pushlandı.
 
 ### 2. Anlık Bağlam ve Kararlar (Immediate Context)
-- **Güvenlik Taraması Çözümü:** `axe.min.js`, `package-lock.json`, `.agents/**` dosyaları `.gitattributes` ile linguist-vendored/generated olarak işaretlendi. `docs-site` derlemesi (en & tr) başarıyla doğrulandı.
-- **Git Commit & Tag Kuralı:** Ajanın körlemesine commit/push yapması yasaklandı. "commit at" dendiğinde değişiklikler özetlenip sürüm tipi (SemVer), tag ve checklist soruları sorularak açık onay alınacak.
+- **1.0.5 Güncellemeleri:** Interactive Recorder & Web Studio (`:8765`), TestFly MCP Server (88 araç), SmartTestSharder (LPT), Gatling/VT Yük Testi, Cupertino HTML Rapor tasarımı ve ScanRepo güvenlik optimizasyonları changelog'lara işlendi.
+- **Docusaurus Uyumluluğu:** MDX v3 JSX hatası önlendi (`<50ms` -> `` `<50ms` ``), EN & TR derlemeleri 0 hata ile tamamlandı.
 
 ### 3. Sıradaki Görevler (Next Up)
-- [x] ScanRepo false-positive giderme (Adım 3 & 4: homeData.js ve .gitattributes).
-- [x] `[[rules/git-release-workflow]]` kuralının anayasaya ve haritaya eklenmesi.
-- [ ] Kullanıcı onay verirse `development` dalındaki değişiklikleri teyit edip sürüm sürecini başlatmak.
+- [x] ScanRepo false-positive giderme (homeData.js ve .gitattributes).
+- [x] Changelog modernizasyonu (Kök + Docusaurus EN/TR).
+- [x] Sürüm 1.0.5 hazırlığı ve commit/push (`development`).
 
 ### 4. Hızlı Notlar (Scratch Notes)
 - TestFly mimari kararları ve dokümantasyon grafiği `[[wiki/index]]` altında günceldir.
-- Karakter sınırı <= 2.200 kuralına tam uyuldu (~1.680 karakter).
+- Karakter sınırı <= 2.200 kuralına tam uyuldu (~1.650 karakter).
+
