@@ -15,6 +15,31 @@ _Nothing yet._
 
 ## [1.0.5] — 2026-09-12
 
+### Added — Interactive Web Recorder & Web Studio (`testfly record`)
+
+- **Chrome Companion & Injected Extension-less Recording**:
+  - Launch isolated Google Chrome with automated Chrome DevTools Protocol (CDP) script injection (`testfly record <url>`).
+  - Real-time Server-Sent Events (SSE) streaming of clicks, coalesced keystrokes, and assertions directly to local web studio (`:8765`).
+  - Interactive toolbar for one-click visual assertions (`isVisible`, `isEnabled`, `hasText` with exact and contains matching).
+- **4-in-1 Multi-Framework Java Codegen**:
+  - Live code compilation for Page Object Model (`BasePage`), standalone TestNG (`BaseTest`), JUnit 5 (`BaseJUnit5Test`), and Cucumber BDD (`.feature`).
+  - Compiler safeguards preventing syntax errors from Java reserved keywords (e.g. `continueElement`).
+  - 1-click "Save to Project" writes production-ready classes directly into `src/test/java/`.
+- **Architectural Decision Record (ADR-001)**:
+  - Documented design decisions, protocol boundaries, and security model for the companion studio and MCP integration.
+
+### Added — Model Context Protocol Server (`testfly mcp`)
+
+- **Protocol-Native AI Browser Automation**:
+  - Built-in MCP server exposing 88 live browser automation tools to AI coding assistants (Claude Code, Cursor, GitHub Copilot, JetBrains AI).
+  - Enables LLMs to inspect live DOM trees, query the accessibility tree, verify layouts, and author robust TestFly tests without hallucinated selectors.
+
+### Added — Smart Test Sharder (`SmartTestSharder`)
+
+- **LPT Bin-Packing Test Distribution**:
+  - Implements the Longest Processing Time (LPT) bin-packing algorithm to balance test suite execution across distributed CI worker nodes.
+  - Minimizes pipeline idle time and achieves optimal parallelization based on historical test duration metrics.
+
 ### Added — Load & Performance Testing Module
 
 - **Dual-Engine Load Testing Architecture**:
@@ -41,16 +66,23 @@ _Nothing yet._
 - **`ai.enabled` AI kill-switch** (default `true`) — until now there was no way to turn AI off globally: `AiAssertEngine` and `ActionCompiler` only checked that the `ai` block existed and `apiKey` was set, so a configured key meant `aiAssert()` and `act()` always ran regardless of `failureAnalysis`/`generatePatch`. Now gates all five surfaces: `AiFailureAnalyzer`, `RemediationPatchGenerator`, `AiHealingEngine`, `AiAssertEngine` and `ActionCompiler`. Also settable via `features.ai`.
 - **Bootstrap diagnostics** — `FrameworkBootstrap` prints the active overrides at suite start (`[TestFly] features: ai=OFF, recording=ON`), and an unrecognised feature name is reported once on stderr rather than silently ignored.
 
-### Changed
+### Changed — HTML Report & Security Hardening
 
-- **Tolerant `testfly.yml` parsing** — SnakeYAML's `Constructor` rejected any key without a matching bean property, so a single typo aborted the whole suite with a cryptic `ConstructorException`. Unknown keys are now skipped and reported (`[TestFly] Unknown config key 'headles' on Browser — ignored`); the rest of the configuration stays usable. Detection compares against the bean's real property set rather than SnakeYAML's `MissingProperty` sentinel, so it does not depend on that class staying reachable in future releases.
-- **Explicit calls never fail silently when their feature is off** — a silently skipped check is a false green. `act()` throws `IllegalStateException`, `aiAssert()` fails with an explanatory reason, and `VisualAssert.assertScreenshot()` raises a TestNG `SkipException` so the test is reported as *skipped* rather than passed. Background behaviour (recording, tracing, performance capture, flakiness analysis, notifications, TestRail/Xray push) simply does not run.
-- **`Recording.isRecordAll()` now requires the recorder to be enabled** — `recording.enabled: false` combined with `mode: on` previously reported `true`, so `TestExecutionListener` would record passing tests for a disabled recorder.
+- **HTML Report Cupertino Lab Redesign** — Modernized report layout with Cupertino Lab aesthetic, improved table density, responsive failure triage cards, and dark mode optimization.
+- **Flakiness Radar** — Visual stability scoring across consecutive test runs.
+- **Security Sanitization** — Added safe DOM rendering and XSS prevention helpers (`escapeHtml`, `sanitizeUrl`, `safeText`) in HTML report generation.
+- **Repository Security Attributes** — Added `.gitattributes` to mark vendored libraries and generated files, preventing false positive scanner alerts.
+- **Tolerant `testfly.yml` parsing** — SnakeYAML's `Constructor` rejected any key without a matching bean property; unknown keys are now skipped and reported as warnings while keeping the rest usable.
+- **Explicit calls never fail silently when their feature is off** — `act()` throws `IllegalStateException`, `aiAssert()` fails with an explanatory reason, and `VisualAssert.assertScreenshot()` raises TestNG `SkipException`.
+- **`Recording.isRecordAll()` requires recorder enabled** — Fixed bug where `recording.enabled: false` with `mode: on` recorded passing tests.
 
 ### Documentation
 
-- `docs-site/docs/configuration.md` and its Turkish translation gained a **Feature Switchboard** section (resolution rules, supported keys, off-behaviour per call site, diagnostics) plus the `ai.enabled` row.
+- `docs-site/docs/ai/recorder.md` and `docs-site/docs/ai/testfly-mcp.md` comprehensive guides in English and Turkish.
+- `docs-site/docs/ai/adr-001-mcp-recorder-architecture.md` architectural record.
+- `docs-site/docs/configuration.md` and its Turkish translation gained a **Feature Switchboard** section plus the `ai.enabled` row.
 - `docs-site/docs/loadtest/` and `docs-site/i18n/tr/.../loadtest/` comprehensive Load Testing guides in English and Turkish.
+- Homepage (`docs-site/src/pages/index.js`) modularized with clean data separation in `docs-site/src/data/homeData.js`.
 
 ---
 
