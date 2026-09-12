@@ -6,7 +6,7 @@
 
     <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.1.0</version>
+    <version>1.0.5</version>
     <packaging>jar</packaging>
 
     <name>TestFly</name>
@@ -217,6 +217,24 @@
             is set to "gatling" or "auto" (and Gatling is preferred over JDK fallback).
             Consumers who want Gatling-powered load tests add this to their own pom.xml.
         -->
+        <dependency>
+            <groupId>io.gatling</groupId>
+            <artifactId>gatling-core-java</artifactId>
+            <version>3.13.5</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.gatling</groupId>
+            <artifactId>gatling-http-java</artifactId>
+            <version>3.13.5</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.gatling</groupId>
+            <artifactId>gatling-app</artifactId>
+            <version>3.13.5</version>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>io.gatling.highcharts</groupId>
             <artifactId>gatling-charts-highcharts</artifactId>

@@ -284,6 +284,16 @@ public class FeatureGateTest {
     }
 
     @Test
+    public void featuresLoadtestFalse_disablesLoadtest() {
+        TestFlyConfig config = configWith(FeatureGate.LOADTEST, Boolean.FALSE);
+        TestFlyConfig.LoadTest loadTest = new TestFlyConfig.LoadTest();
+        loadTest.setEnabled(true);
+        config.setLoadTest(loadTest);
+
+        assertFalse(loadTest.isEnabled());
+    }
+
+    @Test
     public void featuresPerformanceFalse_disablesCapture() {
         TestFlyConfig config = configWith(FeatureGate.PERFORMANCE, Boolean.FALSE);
         TestFlyConfig.Performance performance = new TestFlyConfig.Performance();
@@ -483,13 +493,13 @@ public class FeatureGateTest {
 
     @Test
     public void knownFeatures_coversEveryWiredModule() {
-        assertEquals(FeatureGate.knownFeatures().size(), 12);
+        assertEquals(FeatureGate.knownFeatures().size(), 13);
         assertTrue(FeatureGate.knownFeatures().containsAll(java.util.List.of(
                 FeatureGate.AI, FeatureGate.RECORDING, FeatureGate.TRACING,
                 FeatureGate.NETWORK, FeatureGate.HEALING, FeatureGate.VISUAL,
                 FeatureGate.PERFORMANCE, FeatureGate.FLAKINESS, FeatureGate.QUARANTINE,
                 FeatureGate.TEST_MANAGEMENT, FeatureGate.NOTIFICATIONS,
-                FeatureGate.CONSOLE_ERRORS)));
+                FeatureGate.CONSOLE_ERRORS, FeatureGate.LOADTEST)));
     }
 
     @Test

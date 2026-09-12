@@ -13,7 +13,7 @@ _Nothing yet._
 
 ---
 
-## [1.1.0] — 2026-09-10
+## [1.0.5] — 2026-09-12
 
 ### Added — Load & Performance Testing Module
 

@@ -28,7 +28,7 @@ Three files. Copy them as-is and `mvn test` goes green against a real Chrome.
     <dependency>
         <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
-        <version>1.1.0</version>
+        <version>1.0.5</version>
     </dependency>
 </dependencies>
 
@@ -181,7 +181,7 @@ Add to your `pom.xml`:
 <dependency>
     <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.1.0</version>
+    <version>1.0.5</version>
 </dependency>
 ```
 

@@ -16,23 +16,17 @@ char_limit: 2200
 ---
 
 ### 1. Aktif Odak ve Son Durum (Current Focus)
-- **Konu:** Gelecek Özelliklerin Yol Haritasına Eklenmesi (Phase 6 - Autonomous Testing).
-- **Durum:** `ROADMAP.md`, `[[wiki/roadmap]]` ve `[[MAP]]` güncellendi.
+- **Konu:** ScanRepo False-Positive İyileştirmeleri ve Tag Tabanlı Git Sürüm Kuralı.
+- **Durum:** `.gitattributes` eklendi, `index.js` modülerleştirildi (yüksek entropi 51->1'e düştü). `[[rules/git-release-workflow]]` oluşturulup anayasaya bağlandı.
 
 ### 2. Anlık Bağlam ve Kararlar (Immediate Context)
-- **Eklenen Faz:** Phase 6 — Autonomous Testing & AI-Driven Ecosystem (v1.2+)
-  1. TestFly Autonomous Explorer (`testfly explore`) — Otonom tarama ve sıfırdan test üretimi.
-  2. AI Root-Cause & Auto-Fix Analyzer — CDP/DOM loglarıyla hata kök neden tespiti & PR önerisi.
-  3. Visual Layout Shift & Smart UI AI — Responsive kırılma ve yerleşim kayması tespiti.
-  4. Synthetic Test Data Factory (`@TestDataFactory`) — Yerelleştirilmiş dinamik sahte veri üretimi.
-- `ROADMAP.md`, `[[wiki/roadmap]]` ve `[[MAP]]` çift yönlü linklerle bağlandı.
+- **Güvenlik Taraması Çözümü:** `axe.min.js`, `package-lock.json`, `.agents/**` dosyaları `.gitattributes` ile linguist-vendored/generated olarak işaretlendi. `docs-site` derlemesi (en & tr) başarıyla doğrulandı.
+- **Git Commit & Tag Kuralı:** Ajanın körlemesine commit/push yapması yasaklandı. "commit at" dendiğinde değişiklikler özetlenip sürüm tipi (SemVer), tag ve checklist soruları sorularak açık onay alınacak.
 
 ### 3. Sıradaki Görevler (Next Up)
-- [x] Adım 1: `testfly-cli` ve `testfly init` entegrasyonu + Dokümantasyon.
-- [x] Adım 2: Smart Test Sharder (CI/CD LPT Bin-Packing ile dağıtık dengeli test koşumu).
-- [x] Docusaurus workflow kuralının anayasaya ve haritaya eklenmesi.
-- [x] Phase 6 özelliklerinin `ROADMAP.md` ve wikiye eklenmesi.
-- [ ] İleride incelenecek: Autonomous Explorer veya diğer Phase 6 yetenekleri.
+- [x] ScanRepo false-positive giderme (Adım 3 & 4: homeData.js ve .gitattributes).
+- [x] `[[rules/git-release-workflow]]` kuralının anayasaya ve haritaya eklenmesi.
+- [ ] Kullanıcı onay verirse `development` dalındaki değişiklikleri teyit edip sürüm sürecini başlatmak.
 
 ### 4. Hızlı Notlar (Scratch Notes)
 - TestFly mimari kararları ve dokümantasyon grafiği `[[wiki/index]]` altında günceldir.

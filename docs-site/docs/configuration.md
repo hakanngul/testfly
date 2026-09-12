@@ -100,7 +100,7 @@ The following commented template demonstrates every supported configuration bloc
 features:
   ai: true                          # every AI/agentic surface: act(), aiAssert(), failure analysis, AI healing
   recording: false                  # MP4/GIF video capture of browser execution
-  tracing: false                    # DOM snapshots + execution timeline
+  tracing: false                    # step screenshots + execution timeline (target/traces/)
   network: false                    # CDP interception, route mocking, URL blocklists
   healing: false                    # locator self-healing, including the AI fallback
   visual: true                      # visual regression comparison
@@ -110,6 +110,7 @@ features:
   testManagement: false             # TestRail / Xray result push
   notifications: true               # Slack / Teams run notifications
   consoleErrors: false              # browser console (JS) error collection
+  loadtest: false                   # Gatling / virtual-thread load test execution
 
 # ── Browser ──────────────────────────────────────────────────────────────────
 browser:
@@ -120,6 +121,7 @@ browser:
   captureConsoleErrors: false       # collect browser console (JS) error logs
   failOnConsoleErrors: false        # fail test if severe console errors are detected
   device:                           # optional mobile emulation profile (e.g. "iPhone 14")
+  matrix: []                        # multi-browser matrix execution (e.g. [chrome, firefox])
   arguments:                        # extra command-line flags passed to browser executable
     - --start-maximized
     - --disable-notifications
@@ -136,6 +138,14 @@ execution:
   parallel: none                    # none | methods | classes | tests | instances
   threadCount: 1                    # worker thread count when parallel is active
   maxActiveSessions: 5              # concurrency semaphore limiting active browsers
+
+  # ── CI Sharding
+  sharding:
+    enabled: false                  # distribute test methods across CI workers
+    total: 1                        # total worker count
+    index: 0                        # zero-based index of this worker
+    strategy: lpt                   # lpt (longest processing time first) | round-robin
+    metricsFile: target/testfly-metrics.json
 
   # ── BrowserStack (mode: browserstack)
   browserstack:
@@ -234,7 +244,7 @@ recording:
 
 # ── Execution Tracing ────────────────────────────────────────────────────────
 tracing:
-  enabled: false                    # capture DOM snapshots and execution timeline
+  enabled: false                    # generate standalone HTML trace bundle with step timeline and screenshots
   captureOnPass: false              # include passing tests in trace bundle
 
 # ── Visual Regression ────────────────────────────────────────────────────────
@@ -275,6 +285,9 @@ clock:
 # ── Network Interception ─────────────────────────────────────────────────────
 network:
   interceptEnabled: false           # enable CDP network interception and route mocking
+  blockUrls:                        # URL patterns to abort globally (trackers, ads, etc.)
+    - "*google-analytics.com*"
+    - "*doubleclick.net*"
 
 # ── Email Verification ───────────────────────────────────────────────────────
 email:
@@ -365,6 +378,20 @@ testmanagement:
     clientSecret: ${XRAY_SECRET}
     projectKey: PROJ
     testPlanKey: PROJ-100
+
+# ── Load Testing ─────────────────────────────────────────────────────────────
+loadtest:
+  enabled: false                    # enable load testing (can also be toggled via features.loadtest)
+  baseUrl: https://api.example.com  # target base URL for load tests
+  engine: auto                      # auto (prefers Gatling if present, else JDK) | gatling | jdk
+  users: 10                         # default concurrent virtual users
+  rampUp: 10s                       # linear ramp-up duration (e.g. 10s, 1m)
+  hold: 30s                         # peak load sustain duration (e.g. 30s, 5m)
+  cooldown: 5s                      # cooldown period after test run (e.g. 5s)
+  maxUsers: 1000                    # safety ceiling on concurrent users
+  resultsDir: target/loadtest       # target directory for metrics and reports
+  reportEnabled: true               # generate standalone HTML load test report
+  requestTimeoutSeconds: 30         # HTTP connection and request read timeout in seconds
 ```
 
 ---
@@ -398,7 +425,7 @@ Each key is **tri-state**:
 |---|---|---|
 | `ai` | `ai.enabled` — gates `act()`, `aiAssert()`, failure analysis, patch generation and AI locator healing | `true` |
 | `recording` | `recording.enabled` | `false` |
-| `tracing` | `tracing.enabled` | `false` |
+| `tracing` | `tracing.enabled` — generates standalone HTML trace bundle (`target/traces/`) with step timeline and screenshots | `false` |
 | `network` | `network.interceptEnabled` | `false` |
 | `healing` | `locators.selfHealing` and `locators.aiHealing` | `false` |
 | `visual` | *no module flag* — visual regression is available unless switched off | `true` |
@@ -408,6 +435,7 @@ Each key is **tri-state**:
 | `testManagement` | `testManagement.testrail.enabled` and `testManagement.xray.enabled` | `false` |
 | `notifications` | *no module flag* — Slack/Teams adapters register unless switched off | `true` |
 | `consoleErrors` | `browser.captureConsoleErrors` | `false` |
+| `loadtest` | `loadtest.enabled` — gates Gatling and virtual-thread load test runs | `false` |
 
 ### What "off" means when a test asks for the feature
 
@@ -462,6 +490,7 @@ Controls WebDriver browser provisioning, execution mode, capabilities, and proce
 | `captureConsoleErrors` | `boolean` | `false` | When `true`, intercepts browser `console.error` entries during execution. |
 | `failOnConsoleErrors` | `boolean` | `false` | When `true`, automatically fails the test if any `SEVERE` browser console errors occurred. |
 | `device` | `string` | `null` | Emulate a specific mobile device viewport and user agent (e.g. `"iPhone 14"`, `"Pixel 7"`). |
+| `matrix` | `list<string>` | `[]` | Multi-browser matrix execution list (e.g. `[chrome, firefox]`). |
 | `arguments` | `list<string>` | `[]` | Extra CLI flags passed directly to the browser binary (e.g. `--incognito`, `--no-sandbox`). |
 | `capabilities` | `map` | `{}` | Raw capability key-values merged into WebDriver options (e.g. `acceptInsecureCerts`, `pageLoadStrategy`). |
 
@@ -479,6 +508,11 @@ Governs test execution topology, base URLs, concurrency, and cloud grid provider
 | `parallel` | `string` | `none` | Parallel test distribution mode: `none`, `methods`, `classes`, `tests`, `instances`. Validated against TestNG `ParallelMode`. |
 | `threadCount` | `int` | `1` | Concurrency worker count when `parallel` is enabled. |
 | `maxActiveSessions` | `int` | `5` | Semaphore limiting concurrent WebDriver sessions. Extra threads queue and wait up to 30 seconds for a slot. |
+| `sharding.enabled` | `boolean` | `false` | Distribute tests across parallel CI worker machines (shards). |
+| `sharding.total` | `int` | `1` | Total number of parallel CI workers. |
+| `sharding.index` | `int` | `0` | Zero-based index of this worker (`0` to `total-1`). |
+| `sharding.strategy` | `string` | `lpt` | Partitioning strategy: `lpt` (longest processing time first) or `round-robin`. |
+| `sharding.metricsFile` | `string` | `target/testfly-metrics.json` | Path to execution duration metrics used by LPT partitioning. |
 
 #### Cloud Sub-Blocks: `browserstack` & `saucelabs`
 
@@ -738,7 +772,7 @@ Session capture for debugging, failure analysis, and audit compliance. See the f
 | `recording.fps` | `int` | `2` | Captured frames per second (recommended 2–5). |
 | `recording.maxDurationSeconds` | `int` | `60` | Maximum recording duration in seconds before capping. |
 | `recording.cdp` | `boolean` | `true` | When true, uses CDP screencast on Chrome/Edge without blocking execution. |
-| `tracing.enabled` | `boolean` | `false` | Capture complete DOM states and network events for timeline replay. |
+| `tracing.enabled` | `boolean` | `false` | Generates a self-contained HTML trace file containing step timeline, per-step screenshots, and failure snapshot (`target/traces/{ClassName}/{testMethod}-trace.html`). |
 | `tracing.captureOnPass` | `boolean` | `false` | Also capture traces for passing tests. |
 
 ---
@@ -797,6 +831,27 @@ testmanagement:
 * **`clock.injectHeader`**: Injects mock date HTTP header into browser requests (default `false`).
 * **`clock.headerName`**: Custom header name (default `"X-Mock-Date"`).
 * **`network.interceptEnabled`**: Activates Chrome DevTools Protocol network interception and stubbing (default `false`).
+* **`network.blockUrls`**: Glob URL patterns to abort network requests globally (e.g. trackers, ads) (default: `[]`).
+
+---
+
+## Load Testing {#loadtest}
+
+Configuration for concurrent load testing powered by Gatling or Java Virtual Threads. See the [Load Testing Getting Started Guide](loadtest/getting-started) and [Load Testing Configuration](loadtest/configuration) for in-depth examples.
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `boolean` | `false` | Enables load testing execution (can be overridden via [`features.loadtest`](#features)). |
+| `baseUrl` | `string` | `null` | Base URL used for load test HTTP calls (falls back to test-defined endpoint or `execution.baseUrl`). |
+| `engine` | `string` | `auto` | Execution engine: `auto` (Gatling if present, else JDK), `gatling` (strictly Gatling), or `jdk` (native virtual threads). |
+| `users` | `int` | `10` | Default number of concurrent virtual users if not specified in test code. |
+| `rampUp` | `string` | `10s` | Linear ramp-up duration to reach peak virtual users (e.g. `10s`, `1m`). |
+| `hold` | `string` | `30s` | Duration to sustain peak virtual users (e.g. `30s`, `5m`). |
+| `cooldown` | `string` | `5s` | Cooldown period after peak load completes (e.g. `5s`). |
+| `maxUsers` | `int` | `1000` | Safety ceiling for maximum allowed concurrent users. |
+| `resultsDir` | `string` | `target/loadtest` | Output directory where load test metrics and reports are saved. |
+| `reportEnabled` | `boolean` | `true` | Generates standalone HTML load test report and correlates native Gatling interactive reports. |
+| `requestTimeoutSeconds` | `int` | `30` | HTTP connection and request read timeout in seconds. |
 
 ---
 

@@ -11,7 +11,7 @@ It summarizes the project's architecture, build/test workflows, code conventions
 > Bu projede çalışan tüm AI ajanları **"2 Yol & 3 Parça"** ve **"LLM Wiki / Obsidian Graph"** kurallarına uymakla yükümlüdür. Detaylı anayasa için bkz: [[.agents/rules/memory-protocol.md]].
 
 ### Sistemin 3 Temel Parçası
-1. **KURAL (Constitution):** `AGENTS.md`, [[.agents/rules/memory-protocol.md]] ve [[.agents/rules/docusaurus-workflow.md]]. Ajanın haritayı nasıl okuyacağını, docs-site güncellemelerinde her zaman `/docusaurus-config` skill'ini kullanacağını, ne zaman yazacağını ve token koruma disiplinini dikte eder.
+1. **KURAL (Constitution):** `AGENTS.md`, [[.agents/rules/memory-protocol.md]], [[.agents/rules/docusaurus-workflow.md]] ve [[.agents/rules/git-release-workflow.md]]. Ajanın haritayı nasıl okuyacağını, docs-site güncellemelerinde her zaman `/docusaurus-config` skill'ini kullanacağını, commit/push ve tag süreçlerinde kullanıcıdan onay alacağını, ne zaman yazacağını ve token koruma disiplinini dikte eder.
 2. **HARİTA (Navigational GPS):** [[.agents/MAP.md]]. Tüm modül, kural ve wiki sayfalarının indeksidir. Bilgiye körlemesine dosya tarayarak değil, harita üzerinden `[[sayfa-adi]]` çift yönlü linkleriyle gidilir.
 3. **DEPO (Synthesized Storage):** [[.agents/memories/scratchpad.md]] (kısa hafıza) ve [[.agents/wiki/index.md]] (kalıcı LLM Wiki). Bilgiler ham log olarak değil, sentezlenmiş bilgi grafiği olarak saklanır.
 
@@ -20,6 +20,7 @@ It summarizes the project's architecture, build/test workflows, code conventions
 - **Okuma Yolu (Read Path - Token Koruma):** ASLA proje dosyalarını veya tüm wiki'yi körlemesine tarama. Önce [[.agents/memories/scratchpad.md]] dosyasını oku. Geçmiş karar veya derin domain bilgisi gerekiyorsa [[.agents/MAP.md]] haritasına bak ve sadece ilgili `[[wiki/<dosya>]]` sayfasına nokta atışı git.
 - **Yazma Yolu (Write Path - Sentez & Budama):** Oturum sonunda güncel durumu [[.agents/memories/scratchpad.md]] içine işle. **Maksimum 2.200 karakter sınırına** kesinlikle uy. Karakter dolduğunda kalıcı mimari kararları [[.agents/wiki/<kavram>.md]] olarak oluştur, [[.agents/MAP.md]] haritasına `[[<kavram>]]` olarak bağla ve tamamlanan işleri buda ([[ .agents/skills/memory-sync/SKILL.md ]]).
 - **Docusaurus Kuralı:** `docs-site` üzerinde güncelleme yapılırken her zaman `[[.agents/skills/docusaurus-config/SKILL.md]]` kullanılır, çift dil (TR/EN) korunur ve `npm run build` ile doğrulanır ([[ .agents/rules/docusaurus-workflow.md ]]).
+- **Git & Release Kuralı:** Kullanıcı "commit at" dediğinde körlemesine commit/push yapılamaz; sürüm (SemVer), tag ve checklist soruları sorularak açık onay alınır ([[ .agents/rules/git-release-workflow.md ]]).
 - **Obsidian Graph Standardı:** Tüm referanslar çift yönlü `[[...]]` link formatında tutulur ve YAML frontmatter (`tags`, `date`, `status`, `type`) kullanılır.
 
 ---
