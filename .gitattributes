@@ -1,0 +1,6 @@
+# Linguist language detection and vendor attributes
+# Mark third-party libraries, lockfiles, and AI agent artifacts as vendored/generated to prevent false positives in scanners
+src/main/resources/io/testfly/accessibility/axe.min.js linguist-vendored
+docs-site/package-lock.json linguist-generated
+.agents/** linguist-vendored
+docs-site/static/diagrams/** linguist-generated

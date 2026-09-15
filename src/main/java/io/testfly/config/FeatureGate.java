@@ -101,6 +101,8 @@ public final class FeatureGate {
     public static final String NOTIFICATIONS = "notifications";
     /** Browser console error collection. */
     public static final String CONSOLE_ERRORS = "consoleErrors";
+    /** Load testing execution engine (Gatling / virtual threads). */
+    public static final String LOADTEST = "loadtest";
 
     private static final Set<String> KNOWN;
     static {
@@ -117,6 +119,7 @@ public final class FeatureGate {
         names.add(TEST_MANAGEMENT);
         names.add(NOTIFICATIONS);
         names.add(CONSOLE_ERRORS);
+        names.add(LOADTEST);
         KNOWN = Collections.unmodifiableSet(names);
     }
 

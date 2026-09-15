@@ -2302,8 +2302,9 @@ public final class TestFlyConfig {
         private boolean reportEnabled = true;
         private int requestTimeoutSeconds = 30;
 
+        /** Overridable from the umbrella via {@code features.loadtest}. */
         public boolean isEnabled() {
-            return enabled;
+            return FeatureGate.enabled(FeatureGate.LOADTEST, enabled);
         }
 
         public void setEnabled(boolean enabled) {

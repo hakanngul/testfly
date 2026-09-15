@@ -17,17 +17,17 @@ TestFly, `testfly.yml` içerisinde merkezi bir `loadtest:` bloğu sunar. Bu saye
 
 ```yaml
 loadtest:
-  enabled: true
-  engine: auto            # auto | gatling | jdk
-  defaultUsers: 10
-  defaultRampUpSeconds: 5
-  defaultDurationSeconds: 15
-  targetRps: 100
-  timeoutSeconds: 30
-  reportEnabled: true
-  feeder:
-    path: "src/test/resources/data/users.csv"
-    format: csv           # csv | json
+  enabled: false          # yük testini etkinleştir (features.loadtest ile de yönetilebilir)
+  baseUrl: https://api.example.com
+  engine: auto            # auto (varsa Gatling, yoksa JDK) | gatling | jdk
+  users: 10               # varsayılan eşzamanlı sanal kullanıcı sayısı
+  rampUp: 10s             # kademeli kullanıcı artış süresi (örn: 10s, 1m)
+  hold: 30s               # zirve yükün korunacağı süre (örn: 30s, 5m)
+  cooldown: 5s            # kademeli soğuma süresi (örn: 5s)
+  maxUsers: 1000          # izin verilen maksimum kullanıcı sayısı
+  resultsDir: target/loadtest # çıktıların ve raporların kaydedileceği dizin
+  reportEnabled: true     # HTML yük testi raporu oluştur
+  requestTimeoutSeconds: 30 # HTTP istek zaman aşımı (saniye)
 ```
 
 ---
@@ -36,16 +36,17 @@ loadtest:
 
 | Parametre | Tip | Varsayılan | Açıklama |
 | :--- | :--- | :--- | :--- |
-| `enabled` | `boolean` | `true` | Yük testi modülünü etkinleştirir veya devre dışı bırakır. |
-| `engine` | `string` | `auto` | Çalıştırma motoru: `auto` (varsa Gatling, yoksa JDK), `gatling` (kesinlikle Gatling), `jdk` (yerel sanal iş parçacıkları). |
-| `defaultUsers` | `int` | `1` | Kodda belirtilmediğinde kullanılacak varsayılan eşzamanlı kullanıcı sayısı. |
-| `defaultRampUpSeconds` | `int` | `0` | Zirve kullanıcı sayısına ulaşırken geçecek doğrusal artış süresi (saniye). |
-| `defaultDurationSeconds`| `int` | `10`| Zirve kullanıcı sayısının korunacağı süre (saniye). |
-| `targetRps` | `int` | `0` | İsteğe bağlı global istek hız sınırlayıcı (0 = sınırsız). |
-| `timeoutSeconds` | `int` | `30`| HTTP bağlantı ve istek zaman aşımı süresi (saniye). |
-| `reportEnabled` | `boolean` | `true` | Müstakil `loadtest-report.html` dosyasının ve Gatling bağlantılarının üretilmesini sağlar. |
-| `feeder.path` | `string` | `null` | Varsayılan veri besleme dosyasının yolu (CSV veya JSON). |
-| `feeder.format` | `string` | `csv` | Besleyici dosya formatı (`csv` veya `json`). |
+| `enabled` | `boolean` | `false` | Yük testi modülünü etkinleştirir veya devre dışı bırakır (`features.loadtest` ile geçersiz kılınabilir). |
+| `baseUrl` | `string` | `null` | Yük testinde kullanılacak temel HTTP adresi (tanımsızsa test içindeki adres veya `execution.baseUrl` kullanılır). |
+| `engine` | `string` | `auto` | Çalıştırma motoru: `auto` (varsa Gatling, yoksa JDK), `gatling` (kesinlikle Gatling gerektirir), `jdk` (yerel sanal iş parçacıkları / virtual threads). |
+| `users` | `int` | `10` | Kodda belirtilmediğinde kullanılacak varsayılan eşzamanlı kullanıcı sayısı. |
+| `rampUp` | `string` | `10s` | Zirve kullanıcı sayısına ulaşırken geçecek kademeli artış süresi (örn: `10s`, `1m`). |
+| `hold` | `string` | `30s` | Zirve kullanıcı yükünün korunacağı süre (örn: `30s`, `5m`). |
+| `cooldown` | `string` | `5s` | Test bitimindeki kademeli soğuma süresi (örn: `5s`). |
+| `maxUsers` | `int` | `1000` | İzin verilen tavan kullanıcı sayısı (güvenlik sınırı). |
+| `resultsDir` | `string` | `target/loadtest` | Yük testi metrik ve rapor dosyalarının yazılacağı dizin. |
+| `reportEnabled` | `boolean` | `true` | Müstakil HTML yük testi raporunun ve Gatling bağlantılarının üretilmesini sağlar. |
+| `requestTimeoutSeconds` | `int` | `30` | HTTP bağlantı ve istek zaman aşımı süresi (saniye). |
 
 ---
 
@@ -57,17 +58,19 @@ TestFly profillerini kullanarak yerel ortamda hızlı duman testleri, CI üzerin
 ```yaml
 loadtest:
   engine: auto
-  defaultUsers: 5
-  defaultDurationSeconds: 5
+  users: 5
+  rampUp: 2s
+  hold: 5s
 ```
 
 ### `testfly-performance.yml` (CI / Performans Ortamı)
 ```yaml
 loadtest:
   engine: gatling
-  defaultUsers: 250
-  defaultRampUpSeconds: 30
-  defaultDurationSeconds: 120
+  users: 250
+  rampUp: 30s
+  hold: 120s
+  cooldown: 10s
   reportEnabled: true
 ```
 
@@ -80,7 +83,7 @@ mvn test -Dtestfly.profile=performance
 
 ## 4. Master Anahtar (Feature Switchboard) Entegrasyonu
 
-TestFly'ın anahtar panosu üzerinden yük testleri tüm pakette tek satırla kapatılabilir:
+TestFly'ın anahtar panosu üzerinden yük testleri tüm pakette tek satırla kapatılabilir veya zorla açılabilir:
 
 ```yaml
 features:

@@ -17,7 +17,32 @@ _Nothing yet._
 
 ---
 
-## [1.1.0] — 2026-09-10
+## [1.0.5] — 2026-09-12
+
+### Added — Interactive Web Recorder & Web Studio (`testfly record`)
+
+- **Chrome Companion & Injected Extension-less Recording**:
+  - Launch isolated Google Chrome with automated Chrome DevTools Protocol (CDP) script injection (`testfly record <url>`).
+  - Real-time Server-Sent Events (SSE) streaming of clicks, coalesced keystrokes, and assertions directly to local web studio (`:8765`).
+  - Interactive toolbar for one-click visual assertions (`isVisible`, `isEnabled`, `hasText` with exact and contains matching).
+- **4-in-1 Multi-Framework Java Codegen**:
+  - Live code compilation for Page Object Model (`BasePage`), standalone TestNG (`BaseTest`), JUnit 5 (`BaseJUnit5Test`), and Cucumber BDD (`.feature`).
+  - Compiler safeguards preventing syntax errors from Java reserved keywords (e.g. `continueElement`).
+  - 1-click "Save to Project" writes production-ready classes directly into `src/test/java/`.
+- **Architectural Decision Record (ADR-001)**:
+  - Documented design decisions, protocol boundaries, and security model for the companion studio and MCP integration.
+
+### Added — Model Context Protocol Server (`testfly mcp`)
+
+- **Protocol-Native AI Browser Automation**:
+  - Built-in MCP server exposing 88 live browser automation tools to AI coding assistants (Claude Code, Cursor, GitHub Copilot, JetBrains AI).
+  - Enables LLMs to inspect live DOM trees, query the accessibility tree, verify layouts, and author robust TestFly tests without hallucinated selectors.
+
+### Added — Smart Test Sharder (`SmartTestSharder`)
+
+- **LPT Bin-Packing Test Distribution**:
+  - Implements the Longest Processing Time (LPT) bin-packing algorithm to balance test suite execution across distributed CI worker nodes.
+  - Minimizes pipeline idle time and achieves optimal parallelization based on historical test duration metrics.
 
 ### Added — Load & Performance Testing Module
 
@@ -44,10 +69,15 @@ _Nothing yet._
 - **`FeatureGate`** (`io.testfly.config.FeatureGate`) — unified programmatic gate for feature status.
 - **`ai.enabled` master AI switch** (default `true`) — single switch to gate all AI capabilities.
 
-### Changed
+### Changed — HTML Report & Security Hardening
 
-- **Tolerant `testfly.yml` parsing** — unrecognized configuration keys are logged as warnings rather than crashing startup.
-- **Fail-fast on disabled features** — direct programmatic invocations of disabled features fail clearly rather than silently skipping.
+- **HTML Report Cupertino Lab Redesign** — Modernized report layout with Cupertino Lab aesthetic, improved table density, responsive failure triage cards, and dark mode optimization.
+- **Flakiness Radar** — Visual stability scoring across consecutive test runs.
+- **Security Sanitization** — Added safe DOM rendering and XSS prevention helpers (`escapeHtml`, `sanitizeUrl`, `safeText`) in HTML report generation.
+- **Repository Security Attributes** — Added `.gitattributes` to mark vendored libraries and generated files, preventing false positive scanner alerts.
+- **Tolerant `testfly.yml` parsing** — Unrecognized configuration keys are logged as warnings rather than crashing startup.
+- **Fail-fast on disabled features** — Direct programmatic invocations of disabled features fail clearly rather than silently skipping.
+- **Homepage Modularization** — Separated static data and snippets into `homeData.js` to ensure low code entropy and clean React architecture.
 
 ---
 

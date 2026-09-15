@@ -17,7 +17,32 @@ _Henüz bir değişiklik yok._
 
 ---
 
-## [1.1.0] — 2026-09-10
+## [1.0.5] — 2026-09-12
+
+### Eklenenler — İnteraktif Web Kaydedici & Web Stüdyosu (`testfly record`)
+
+- **Eklentisiz Canlı Chrome Eşlikçisi**:
+  - `testfly record <url>` komutuyla izole Chrome açılır ve Chrome DevTools Protocol (CDP) üzerinden `injected_recorder.js` otomatik enjekte edilir.
+  - Tıklamalar, tuş vuruşları (debounced typing) ve görsel doğrulamalar SSE (Server-Sent Events) ile gerçek zamanlı olarak yerel stüdyoya (`:8765`) aktarılır.
+  - Tek tıkla görsel doğrulamalar (`isVisible`, `isEnabled`, tam ve içeren eşleşmeli `hasText`).
+- **4'ü 1 Arada Çoklu Mimari Kod Sentezi**:
+  - Page Object Model (`BasePage`), bağımsız TestNG (`BaseTest`), JUnit 5 (`BaseJUnit5Test`) ve Cucumber BDD (`.feature`) formatlarında anlık kod derleme.
+  - Java anahtar kelime çakışmalarına karşı derleyici korumaları (örn. `continueElement`).
+  - Tek tıkla "Save to Project" butonuyla sınıfları doğrudan `src/test/java/` dizinine yazma.
+- **Mimari Karar Kaydı (ADR-001)**:
+  - Stüdyo, CDP eşlikçisi ve MCP protokol sınırları için resmi mimari karar belgesi (`docs/ai/adr-001-mcp-recorder-architecture.md`).
+
+### Eklenenler — Model Context Protocol Sunucusu (`testfly mcp`)
+
+- **Protokol Seviyesinde AI Tarayıcı Otomasyonu**:
+  - Claude Code, Cursor, GitHub Copilot ve JetBrains AI asistanlarına canlı tarayıcı kontrolü sağlayan 88 yerleşik MCP aracı.
+  - AI modellerinin canlı DOM ve erişilebilirlik (a11y) ağacını doğrudan inceleyerek hayali seçiciler yerine üretime hazır TestFly Java testleri yazabilmesi.
+
+### Eklenenler — Akıllı Test Dağıtıcı (`SmartTestSharder`)
+
+- **LPT Bin-Packing ile Dengeli Test Dağıtımı**:
+  - Dağıtık CI worker nodeları arasında test paketlerini en dengeli şekilde bölüştüren Longest Processing Time (LPT) bin-packing algoritması.
+  - Geçmiş test sürelerini analiz ederek CI bekleme sürelerini minimize eden optimal paralelleştirme.
 
 ### Eklenenler — Yük ve Performans Testi Modülü
 
@@ -44,10 +69,47 @@ _Henüz bir değişiklik yok._
 - **`FeatureGate`** (`io.testfly.config.FeatureGate`) — Özellik durumları için merkezi sorgulama API'si.
 - **`ai.enabled` ana AI anahtarı** — Tüm AI özelliklerini tek bayrakla devre dışı bırakabilme.
 
-### Değiştirilenler
+### Değiştirilenler — HTML Raporu & Güvenlik Sıkılaştırma
 
+- **HTML Raporu Cupertino Lab Tasarımı** — Cupertino Lab estetiği, optimize edilmiş tablo yoğunluğu, hata önceliklendirme kartları ve karanlık mod iyileştirmeleri.
+- **Flakiness Radar** — Test stabilitesini ardışık koşularda görsel olarak puanlama.
+- **Güvenlik Sanitizasyonu** — HTML raporda XSS açıklarını önleyen güvenli DOM render ve escape yardımcıları (`escapeHtml`, `sanitizeUrl`, `safeText`).
+- **Depo Güvenlik Nitelikleri** — Harici kütüphanelerin ve kilit dosyalarının yanlış pozitif vermesini önleyen `.gitattributes` yapılandırması.
 - **Esnek `testfly.yml` ayrıştırma** — Tanınmayan konfigürasyon anahtarları çökmeye sebep olmadan uyarı olarak loglanır.
 - **Kapalı özelliklerde hızlı hata verme** — Devre dışı bırakılmış modüllere yapılan açık çağrılar sessizce geçiştirilmek yerine açıklayıcı hata verir.
+- **Ana Sayfa Modülerleştirmesi** — `homeData.js` ile düşük kod entropisi ve temiz React mimarisi.
+
+---
+
+## [1.0.4] — 2026-09-07
+
+### Eklenenler — Ajanik Test (Agentic Testing) & Otonom AI
+
+- **Yapay Zeka Destekli İleri Seviye Kendi Kendini Onarma (Self-Healing)** — `DomPruner` karmaşık web DOM ağaçlarını anlamsız düğümleri budayarak 8K token altına sıkıştırır. `AiHealingEngine`, statik yedekler tükendiğinde LLM muhakemesiyle yeni seçici sentezler ve sonraki koşularda 0 ms gecikmeyle `.testfly/healed-locators.json` dosyasından okur.
+- **Yapay Zeka Destekli Otomatik PR Yamaları (Auto-PR Patches)** — `SourceCodeLocator` çalışma anındaki hataları doğrudan tüketici test ve sayfa nesnesi sınıflarına eşler. `RemediationPatchGenerator`, tek komutla `git apply` yapılabilen temiz Unified Git Diff `.patch` dosyalarını `target/remediations/` dizinine üretir.
+- **Semantik Doğal Dil Doğrulamaları** — `PageAssert` ve `LocatorAssert` üzerinde `satisfiesAi(şart)` ve `violatesAi(şart)` doğrulamaları. Anti-throttle korumalı tek seferlik akıllı kontrol ve soft assertion desteği.
+- **Hedef Odaklı Adımlar (`act`) & Compile & Freeze Önbelleği** — `act(String goal)` ve `byIntent(String intent)` ile doğal dil hedeflerini somut Selenium adımlarına derler ve `.testfly/action-cache.json` dosyasına dondurarak `<50ms` deterministik hızla işletir.
+- **Açılır Menü & Sayfa Navigasyon Primitifleri** — `ActionType.SELECT` ve `ActionType.NAVIGATE` eylemleriyle hedef element olmadan da sayfa geçişleri ve seçimler.
+
+### Eklenenler — API Testi İyileştirmeleri
+
+- **HTTP Seviyesinde Yeniden Deneme (`api.retry.*`)** — Geçici 502/503/504 hataları için üstel geri çekilmeli (exponential backoff) otomatik retry.
+- **İstek Başına Zaman Aşımı & Parametre Oluşturucu** — `.timeout(120)` ve `.queryParam("key", "value")`.
+- **İstek/Yanıt Yakalayıcıları (Interceptors) & Cookie Jar** — Global ve iş parçacığı güvenli interceptor'lar ve otomatik çerez kavanozu (`.withCookies()`).
+- **Akıcı API Doğrulamaları** — Yanıt süresi (`assertDurationLessThan`), başlık (`assertHeader`), gövde regex (`assertBodyMatches`) ve JSON yapı doğrulamaları (`assertJsonExists`, `assertJsonNull`, `assertJsonArraySize`).
+
+### Eklenenler — Report Portal Entegrasyonu
+
+- **Otomatik Çalışma Tipi Tespiti** — Test sınıflarına göre otomatik Web veya API tespiti (`reporting.reportportal.type: auto`).
+- **Zenginleştirilmiş Lansman Adı ve Açıklaması** — Ortam, bağlam duyarlı baseUrl ve CI platform bilgileriyle detaylandırılmış pano görünümü.
+- **JUnit 5 → Report Portal Köprüsü** — JUnit 5 testlerinin sonuçlarını otomatik olarak Report Portal'a aktarma.
+
+### Düzeltilenler
+
+- **OAuth2 Token Önbellek Yarış Durumu** — Süresi dolan tokenlarda çift kontrollü kilitlemeyle (double-checked locking) yarış durumunun engellenmesi.
+- **Karanlık Mod Metin Görünürlüğü** — Prism kod bloklarında ve arama açılır menüsünde okunabilirlik düzeltmeleri.
+- **Oturum Önbellek İzolasyonu** — `BrowserSessionCache` ve `PreconditionSessionCache` geri yükleme öncesi localStorage temizliği ve güvenli script argümanı aktarımı.
+- **Çok Satırlı DataProvider ile @PreCondition Çakışması** — Önbelleğin yalnızca gerçek retry anında geçersiz kılınması.
 
 ---
 

@@ -16,24 +16,19 @@ char_limit: 2200
 ---
 
 ### 1. Aktif Odak ve Son Durum (Current Focus)
-- **Konu:** Gelecek Özelliklerin Yol Haritasına Eklenmesi (Phase 6 - Autonomous Testing).
-- **Durum:** `ROADMAP.md`, `[[wiki/roadmap]]` ve `[[MAP]]` güncellendi.
+- **Konu:** Changelog Modernizasyonu & Release 1.0.5 Docusaurus Senkronizasyonu.
+- **Durum:** Kök `CHANGELOG.md`, `docs-site/docs/changelog.md` ve `docs-site/i18n/tr/.../changelog.md` [1.0.5] ve [1.0.4] maddeleriyle güncellendi. `npm run build` ile çift dil doğrulandı ve `development` dalına pushlandı.
 
 ### 2. Anlık Bağlam ve Kararlar (Immediate Context)
-- **Eklenen Faz:** Phase 6 — Autonomous Testing & AI-Driven Ecosystem (v1.2+)
-  1. TestFly Autonomous Explorer (`testfly explore`) — Otonom tarama ve sıfırdan test üretimi.
-  2. AI Root-Cause & Auto-Fix Analyzer — CDP/DOM loglarıyla hata kök neden tespiti & PR önerisi.
-  3. Visual Layout Shift & Smart UI AI — Responsive kırılma ve yerleşim kayması tespiti.
-  4. Synthetic Test Data Factory (`@TestDataFactory`) — Yerelleştirilmiş dinamik sahte veri üretimi.
-- `ROADMAP.md`, `[[wiki/roadmap]]` ve `[[MAP]]` çift yönlü linklerle bağlandı.
+- **1.0.5 Güncellemeleri:** Interactive Recorder & Web Studio (`:8765`), TestFly MCP Server (88 araç), SmartTestSharder (LPT), Gatling/VT Yük Testi, Cupertino HTML Rapor tasarımı ve ScanRepo güvenlik optimizasyonları changelog'lara işlendi.
+- **Docusaurus Uyumluluğu:** MDX v3 JSX hatası önlendi (`<50ms` -> `` `<50ms` ``), EN & TR derlemeleri 0 hata ile tamamlandı.
 
 ### 3. Sıradaki Görevler (Next Up)
-- [x] Adım 1: `testfly-cli` ve `testfly init` entegrasyonu + Dokümantasyon.
-- [x] Adım 2: Smart Test Sharder (CI/CD LPT Bin-Packing ile dağıtık dengeli test koşumu).
-- [x] Docusaurus workflow kuralının anayasaya ve haritaya eklenmesi.
-- [x] Phase 6 özelliklerinin `ROADMAP.md` ve wikiye eklenmesi.
-- [ ] İleride incelenecek: Autonomous Explorer veya diğer Phase 6 yetenekleri.
+- [x] ScanRepo false-positive giderme (homeData.js ve .gitattributes).
+- [x] Changelog modernizasyonu (Kök + Docusaurus EN/TR).
+- [x] Sürüm 1.0.5 hazırlığı ve commit/push (`development`).
 
 ### 4. Hızlı Notlar (Scratch Notes)
 - TestFly mimari kararları ve dokümantasyon grafiği `[[wiki/index]]` altında günceldir.
-- Karakter sınırı <= 2.200 kuralına tam uyuldu (~1.680 karakter).
+- Karakter sınırı <= 2.200 kuralına tam uyuldu (~1.650 karakter).
+

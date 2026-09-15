@@ -83,7 +83,7 @@ Aşağıdaki açıklamalı şablon, framework'ün desteklediği tüm yapılandı
 features:
   ai: true                          # tüm AI/agentic yüzeyler: act(), aiAssert(), hata analizi, AI healing
   recording: false                  # tarayıcı çalışmasının MP4/GIF video kaydı
-  tracing: false                    # DOM anlık görüntüleri + çalıştırma zaman çizelgesi
+  tracing: false                    # adım adım ekran görüntüleri + çalıştırma zaman çizelgesi (target/traces/)
   network: false                    # CDP ağ yakalama, route mocking, URL engelleme listeleri
   healing: false                    # locator self-healing (AI yedeği dahil)
   visual: true                      # görsel regresyon karşılaştırması
@@ -93,6 +93,7 @@ features:
   testManagement: false             # TestRail / Xray sonuç gönderimi
   notifications: true               # Slack / Teams çalıştırma bildirimleri
   consoleErrors: false              # tarayıcı konsol (JS) hatalarının toplanması
+  loadtest: false                   # Gatling / sanal iş parçacığı yük testi çalıştırması
 
 # ── Browser (Tarayıcı) ────────────────────────────────────────────────────────
 browser:
@@ -103,6 +104,7 @@ browser:
   captureConsoleErrors: false       # tarayıcı console.error loglarını topla
   failOnConsoleErrors: false        # SEVERE konsol hatası varsa testi başarısız say
   device:                           # isteğe bağlı mobil emülasyon profili (örn: "iPhone 14")
+  matrix: []                        # çoklu tarayıcı matrisi (örn: [chrome, firefox])
   arguments:                        # tarayıcı çalıştırılabilirine iletilecek ek bayraklar
     - --start-maximized
     - --disable-notifications
@@ -119,6 +121,14 @@ execution:
   parallel: none                    # none | methods | classes | tests | instances
   threadCount: 1                    # parallel etkin olduğunda eşzamanlı çalışan iş parçacığı sayısı
   maxActiveSessions: 5              # eşzamanlı aktif tarayıcı sayısını sınırlayan semafor
+
+  # ── CI Sharding (Parçalama)
+  sharding:
+    enabled: false                  # testleri CI worker'ları arasında bölüştür
+    total: 1                        # toplam worker (shard) sayısı
+    index: 0                        # bu worker'ın indeksi (0-tabanlı)
+    strategy: lpt                   # lpt (en uzun önce) | round-robin
+    metricsFile: target/testfly-metrics.json
 
   # ── BrowserStack (mode: browserstack)
   browserstack:
@@ -157,12 +167,16 @@ retry:
 # ── Locators (Seçiciler ve İyileştirme) ───────────────────────────────────────
 locators:
   selfHealing: false                # zaman aşımına uğrayan seçicileri alternatif stratejilerle otomatik onar
+  aiHealing: false                  # statik sezgiseller yetersiz kaldığında LLM ile seçici onarımı
+  maxDomTokens: 8000                # AI seçici onarımı için DOM budama belirteç (token) limiti
   testIdAttribute: data-testid      # getByTestId() tarafından sorgulanacak HTML özniteliği
 
 # ── AI Failure Analysis (AI Hata Analizi) ────────────────────────────────────
 ai:
   enabled: true                     # TÜM AI yüzeyleri için ana anahtar (features.ai ile de ayarlanabilir)
   failureAnalysis: false            # test başarısız olduğunda AI ile kök neden analizi üret
+  generatePatch: false              # test başarısız olduğunda target/remediations/ altında git diff .patch üret
+  actionCache: true                 # act() eylemlerini .testfly/action-cache.json içinde önbelleğe al
   provider: gemini                  # gemini | claude | openai-compatible
   apiKey: ${AI_API_KEY}             # sağlayıcı API anahtarı
   model:                            # isteğe bağlı — varsayılan: gemini-2.5-flash veya claude-haiku-4-5-20251001
@@ -213,7 +227,7 @@ recording:
 
 # ── Yürütme İzleme (Execution Tracing) ───────────────────────────────────────
 tracing:
-  enabled: false                    # DOM enstantanelerini ve olay zaman çizelgesini yakala
+  enabled: false                    # adım adım ekran görüntüleri ve zaman tüneli içeren HTML izleme dosyası üret
   captureOnPass: false              # başarılı testler için de izleme kaydet
 
 # ── Görsel Karşılaştırma (Visual Regression) ─────────────────────────────────
@@ -254,6 +268,9 @@ clock:
 # ── Ağ Araya Girme (Network Interception) ────────────────────────────────────
 network:
   interceptEnabled: false           # CDP üzerinden ağ trafiğine müdahale ve yanıt mock'lamayı etkinleştir
+  blockUrls:                        # global engellenecek URL kalıpları (izleyiciler, reklamlar vb.)
+    - "*google-analytics.com*"
+    - "*doubleclick.net*"
 
 # ── E-posta Doğrulama (Email Verification) ───────────────────────────────────
 email:
@@ -344,6 +361,20 @@ testmanagement:
     clientSecret: ${XRAY_SECRET}
     projectKey: PROJ
     testPlanKey: PROJ-100
+
+# ── Yük Testi (Load Testing) ──────────────────────────────────────────────────
+loadtest:
+  enabled: false                    # yük testini etkinleştir (features.loadtest ile de yönetilebilir)
+  baseUrl: https://api.example.com  # yük testi hedef temel adresi
+  engine: auto                      # auto (varsa Gatling, yoksa JDK) | gatling | jdk
+  users: 10                         # eşzamanlı sanal kullanıcı sayısı
+  rampUp: 10s                       # kullanıcı sayısına kademeli artış süresi (örn: 10s, 1m)
+  hold: 30s                         # zirve kullanıcı yükünün korunacağı süre (örn: 30s, 5m)
+  cooldown: 5s                      # kademeli soğuma süresi (örn: 5s)
+  maxUsers: 1000                    # izin verilen tavan kullanıcı sayısı
+  resultsDir: target/loadtest       # yük testi çıktı ve rapor dizini
+  reportEnabled: true               # bağımsız HTML yük testi raporu oluştur
+  requestTimeoutSeconds: 30         # HTTP istek zaman aşımı (saniye)
 ```
 
 ---
@@ -377,7 +408,7 @@ Her anahtar **üç durumlu**dur:
 |---|---|---|
 | `ai` | `ai.enabled` — `act()`, `aiAssert()`, hata analizi, patch üretimi ve AI locator healing'i kapsar | `true` |
 | `recording` | `recording.enabled` | `false` |
-| `tracing` | `tracing.enabled` | `false` |
+| `tracing` | `tracing.enabled` — adım adım ekran görüntüleri ve zaman tüneli içeren HTML izleme dosyası (`target/traces/`) üretir | `false` |
 | `network` | `network.interceptEnabled` | `false` |
 | `healing` | `locators.selfHealing` ve `locators.aiHealing` | `false` |
 | `visual` | *modül bayrağı yok* — kapatılmadığı sürece görsel regresyon kullanılabilir | `true` |
@@ -387,6 +418,7 @@ Her anahtar **üç durumlu**dur:
 | `testManagement` | `testManagement.testrail.enabled` ve `testManagement.xray.enabled` | `false` |
 | `notifications` | *modül bayrağı yok* — kapatılmadığı sürece Slack/Teams adapter'ları kaydolur | `true` |
 | `consoleErrors` | `browser.captureConsoleErrors` | `false` |
+| `loadtest` | `loadtest.enabled` — Gatling ve sanal iş parçacığı yük testi koşturmalarını yönetir | `false` |
 
 ### Bir test özelliği açıkça istediğinde "kapalı" ne demek?
 
@@ -441,6 +473,7 @@ Tarayıcı sağlama, çalıştırma modu, yetenekler ve süreç argümanlarını
 | `captureConsoleErrors` | `boolean` | `false` | `true` ise yürütme sırasında tarayıcı `console.error` loglarını yakalar. |
 | `failOnConsoleErrors` | `boolean` | `false` | `true` ise test sırasında `SEVERE` düzeyinde konsol hatası oluştuğunda testi başarısız sayar. |
 | `device` | `string` | `null` | Mobil emülasyon profili adı (örn: `"iPhone 14"`, `"Pixel 7"`). |
+| `matrix` | `list<string>` | `[]` | Çoklu tarayıcı test koşumu için tarayıcı listesi (örn: `[chrome, firefox]`). |
 | `arguments` | `list<string>` | `[]` | Tarayıcı ikili dosyasına aktarılan komut satırı bayrakları (örn: `--incognito`, `--no-sandbox`). |
 | `capabilities` | `map` | `{}` | WebDriver seçeneklerine eklenen ham yetenekler (örn: `acceptInsecureCerts`, `pageLoadStrategy`). |
 
@@ -458,6 +491,11 @@ Test dağıtımı, temel adresler, eşzamanlılık ve bulut ızgara (grid) sağl
 | `parallel` | `string` | `none` | TestNG paralel dağıtım modu: `none`, `methods`, `classes`, `tests`, `instances`. |
 | `threadCount` | `int` | `1` | Paralel mod aktifken çalışacak iş parçacığı (worker thread) sayısı. |
 | `maxActiveSessions` | `int` | `5` | Eşzamanlı aktif tarayıcı oturumlarını sınırlayan semafor. Ekstra testler yuva boşalana kadar 30 saniyeye kadar bekler. |
+| `sharding.enabled` | `boolean` | `false` | CI ortamlarında testleri paralel worker'lar arasında bölüştürür. |
+| `sharding.total` | `int` | `1` | Toplam paralel CI worker (shard) sayısı. |
+| `sharding.index` | `int` | `0` | Bu worker'ın sıfır-tabanlı indeksi (`0` ile `total-1` arası). |
+| `sharding.strategy` | `string` | `lpt` | Bölüştürme stratejisi: `lpt` (en uzun test önce) veya `round-robin`. |
+| `sharding.metricsFile` | `string` | `target/testfly-metrics.json` | LPT stratejisi için geçmiş süre metriklerinin okunduğu dosya. |
 
 #### Bulut Blokları: `browserstack` & `saucelabs`
 
@@ -511,6 +549,8 @@ Akıllı seçici sentezi ve dayanıklılık ayarları.
 | Özellik | Tip | Varsayılan | Açıklama |
 |---|---|---|---|
 | `selfHealing` | `boolean` | `false` | Açıldığında, `waitForVisible` sırasında zaman aşımına uğrayan seçiciler alternatif stratejilerle (id, test-id, text, placeholder) otomatik onarılır ve `target/healed-locators.json` dosyasına yazılır. |
+| `aiHealing` | `boolean` | `false` | Standart sezgiseller yetersiz kaldığında LLM ile seçici sentezlemeyi açar. |
+| `maxDomTokens` | `int` | `8000` | AI seçici onarımında modele gönderilecek budanmış DOM token bütçesi. |
 | `testIdAttribute` | `string` | `data-testid` | `getByTestId("submit-btn")` çağrısının hedeflediği HTML niteliği (`data-qa`, `data-test` vb. olarak değiştirilebilir). |
 
 ---
@@ -523,6 +563,8 @@ Yapay zeka destekli hata sınıflandırma ve öneri motoru.
 |---|---|---|---|
 | `enabled` | `boolean` | `true` | **Tüm** AI yüzeyleri için ana anahtar: `act()`, `aiAssert()`, hata analizi, patch üretimi ve AI locator healing. Aşağıdaki ayrıntılı anahtarlar *hangilerinin* çalışacağını seçer; bu `false` iken hiçbiri çalışamaz. [`features.ai`](#features) üzerinden de ayarlanabilir. |
 | `failureAnalysis` | `boolean` | `false` | `true` ise test çöktüğünde hata yığını, adım günlüğü ve DOM durumunu LLM modeline gönderir. |
+| `generatePatch` | `boolean` | `false` | `true` ise test başarısız olduğunda `target/remediations/` dizininde otomatik Git diff `.patch` dosyası üretir. |
+| `actionCache` | `boolean` | `true` | `true` ise `act()` derlenmiş eylem planlarını `.testfly/action-cache.json` dosyasında önbelleğe alarak 0 ms deterministik tekrar koşturur. |
 | `provider` | `string` | `claude` | AI arka ucu: `gemini`, `claude` veya `openai-compatible`. |
 | `apiKey` | `string` | `null` | Seçilen sağlayıcı için yetkilendirme anahtarı. |
 | `model` | `string` | `null` | Hedef model adı. Boş bırakıldığında Gemini için `gemini-2.5-flash`, Claude için `claude-haiku-4-5-20251001` varsayılandır. |
@@ -713,7 +755,7 @@ Hata ayıklama, kök neden analizi ve denetim uyumluluğu için tarayıcı oturu
 | `recording.fps` | `int` | `2` | Saniyede yakalanan kare hızı (önerilen 2–5). |
 | `recording.maxDurationSeconds` | `int` | `60` | Test başına izin verilen maksimum video uzunluğu (saniye). |
 | `recording.cdp` | `boolean` | `true` | True olduğunda Chrome/Edge üzerinde CDP screencast kullanarak test hızını düşürmeden kayıt alır. |
-| `tracing.enabled` | `boolean` | `false` | Zaman tüneli için adım adım DOM ve ağ olaylarını yakalar. |
+| `tracing.enabled` | `boolean` | `false` | Zaman tüneli, tıklanabilir adım ekran görüntüleri ve hata anı görseli içeren bağımsız HTML izleme dosyası üretir (`target/traces/{Class}/{method}-trace.html`). |
 | `tracing.captureOnPass` | `boolean` | `false` | Başarılı testlerde de izleme kaydeder. |
 
 ---
@@ -772,6 +814,27 @@ testmanagement:
 * **`clock.injectHeader`**: Tarayıcı isteklerine sahte tarih HTTP başlığı ekler (varsayılan `false`).
 * **`clock.headerName`**: Özel başlık adı (varsayılan `"X-Mock-Date"`).
 * **`network.interceptEnabled`**: Chrome DevTools Protokolü üzerinden ağ trafiğine müdahale ve stubbing'i açar (varsayılan `false`).
+* **`network.blockUrls`**: Eşleşen URL isteklerini ağ düzeyinde global olarak engeller (örn: reklamlar, izleyiciler) (varsayılan: `[]`).
+
+---
+
+## Yük Testi (Load Testing) {#loadtest}
+
+Gatling ve Java Sanal İş Parçacığı (Virtual Threads) tabanlı eşzamanlı yük testi koşturma motoru ayarları. Detaylı bilgi için [Yük Testi Başlangıç Rehberi](loadtest/getting-started) ve [Yük Testi Konfigürasyonu](loadtest/configuration) sayfalarına bakın.
+
+| Özellik | Tip | Varsayılan | Açıklama |
+|---|---|---|---|
+| `enabled` | `boolean` | `false` | Yük testi modülünü etkinleştirir ([`features.loadtest`](#features) ile de geçersiz kılınabilir). |
+| `baseUrl` | `string` | `null` | Yük testinde kullanılacak temel HTTP adresi (tanımsızsa test içindeki adres veya `execution.baseUrl` kullanılır). |
+| `engine` | `string` | `auto` | Çalıştırma motoru: `auto` (varsa Gatling, yoksa JDK), `gatling` (kesinlikle Gatling gerektirir), `jdk` (yerel sanal iş parçacıkları / virtual threads). |
+| `users` | `int` | `10` | Kodda belirtilmediğinde kullanılacak varsayılan eşzamanlı kullanıcı sayısı. |
+| `rampUp` | `string` | `10s` | Zirve kullanıcı sayısına ulaşırken geçecek kademeli artış süresi (örn: `10s`, `1m`). |
+| `hold` | `string` | `30s` | Zirve kullanıcı yükünün korunacağı süre (örn: `30s`, `5m`). |
+| `cooldown` | `string` | `5s` | Test bitimindeki kademeli soğuma süresi (örn: `5s`). |
+| `maxUsers` | `int` | `1000` | İzin verilen tavan kullanıcı sayısı (güvenlik sınırı). |
+| `resultsDir` | `string` | `target/loadtest` | Yük testi metrik ve rapor dosyalarının yazılacağı dizin. |
+| `reportEnabled` | `boolean` | `true` | Müstakil HTML yük testi raporunun ve Gatling bağlantılarının üretilmesini sağlar. |
+| `requestTimeoutSeconds` | `int` | `30` | HTTP bağlantı ve istek zaman aşımı süresi (saniye). |
 
 ---
 
