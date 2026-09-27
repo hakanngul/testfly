@@ -196,6 +196,15 @@ public final class ActionExecutor {
         if (trimmed.startsWith("//") || trimmed.startsWith("(") || trimmed.startsWith("./")) {
             return By.xpath(trimmed);
         }
+
+        if (trimmed.contains(":contains(")) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("([a-zA-Z0-9_-]*):contains\\((['\"]?)(.*?)\\2\\)").matcher(trimmed);
+            if (m.find()) {
+                String tag = (m.group(1) == null || m.group(1).isEmpty()) ? "*" : m.group(1);
+                String text = m.group(3);
+                return By.xpath("//" + tag + "[contains(normalize-space(.), '" + text + "')]");
+            }
+        }
         return By.cssSelector(trimmed);
     }
 

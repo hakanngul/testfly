@@ -11,21 +11,19 @@ char_limit: 2200
 # Aktif Çalışma Not Defteri (Scratchpad)
 
 ### 1. Aktif Odak ve Son Durum
-- **Konu:** Customer Web Agentic Mode (Doğal Dil & Compile & Freeze)
-- **Durum:** TAMAMLANDI & DOĞRULANDI. `Agentic.feature` sıfır CSS selector ile saf doğal dille koşuldu, DeepSeek-V3 ile aksiyonlar derlendi ve başarıyla PASSED aldı. İkinci koşuda ActionCache HIT (Compile & Freeze) ile anında replay edildi.
+- **Konu:** Customer Web Agentic Mode & WaitEngine Geliştirmesi
+- **Durum:** TAMAMLANDI. `WaitEngine.waitForPageLoad(WebDriver driver)` eklendi ve birim testleri yazıldı. `Agentic.feature` için süper sade (minimalist) senaryo eklendi ve 13 saniyede BUILD SUCCESS ile doğrulandı.
 
 ### 2. Kök Neden & Çözülen Darboğazlar
-1. **DomPruner Gizli Element Filtreleme (testfly Core):**
-   - Sayfada `display: none` olan header hızlı giriş barı (`#txtUserNameLGB`) DOM'da ilk sırada yer aldığı için LLM tarafından seçiliyordu. `DomPruner.java` içine JS seviyesinde `offsetParent === null` ve `display: none` elementleri budama özelliği eklendi.
-2. **PageAssert Settle & Retry (testfly Core):**
-   - Form submit sonrası yönlendirme / AJAX geçişi sürerken `assertWithAi` hemen DOM çektiği için henüz giriş yapılmamış görünüyordu. `PageAssert.java` içine 3 saniyelik settle & retry penceresi eklendi.
-3. **Model Uyumluluğu:**
-   - `testfly.yml` içindeki model `deepseek-chat` olarak ayarlandı.
-4. **Doğrulama:**
-   - 1. Koşu: ActionCache MISS -> AI ile derlendi -> Login oldu -> AI assertion'lar doğrulandı -> PASSED.
-   - 2. Koşu: ActionCache HIT -> Dondurulmuş plan doğrudan çalıştırıldı -> PASSED.
+1. **WaitEngine.waitForPageLoad Overload:**
+   - `WaitEngine.java` içine `public static void waitForPageLoad(WebDriver driver)` eklendi, `ActionCompiler.java` içinde geçiş öncesi sayfanın oturmasını bekleyecek şekilde bağlandı.
+2. **Minimalist Agentic Senaryo:**
+   - Menü koordinatı ve hover/mouse detayı vermeksizin doğrudan yüksek seviyeli hedef: `"Open Bilgilerim from profile menu"` hedefini AI otomatik olarak hover ve dropdown click adımlarına derledi ve ActionCache'e dondurdu.
+3. **Doğrulama:**
+   - `WaitEngineTest`: 11 test PASS.
+   - Minimalist Senaryo: 13 saniye, 1 test PASS (BUILD SUCCESS).
 
 ### 3. Kaynaklar & Bağlantılar
-- Dosyalar: `DomPruner.java`, `PageAssert.java`, `Agentic.feature`, `AgenticSteps.java`
+- Dosyalar: `WaitEngine.java`, `ActionCompiler.java`, `Agentic.feature`
 
 

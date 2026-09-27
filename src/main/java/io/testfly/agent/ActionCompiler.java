@@ -10,6 +10,8 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.steps.StepLogger;
+import io.testfly.wait.WaitEngine;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
@@ -83,8 +85,10 @@ public final class ActionCompiler {
 
         String currentUrl = "";
         try {
-            if (driver != null)
+            if (driver != null) {
+                WaitEngine.waitForPageLoad(driver);
                 currentUrl = driver.getCurrentUrl();
+            }
         } catch (Exception ignored) {
         }
 
@@ -194,7 +198,10 @@ public final class ActionCompiler {
         sb.append("## Selector Selection Guidelines\n");
         sb.append("- Always target VISIBLE interactive elements belonging to the active form or main content area.\n");
         sb.append("- Prefer unique IDs, names, or data-testid over inactive/collapsed headers or hidden containers.\n");
-        sb.append("- If a target element is located inside a dropdown or hover menu (such as a user profile menu or navigation dropdown), first HOVER over the menu/profile trigger element, then CLICK the target item.\n\n");
+        sb.append(
+                "- If a target element is located inside a dropdown or hover menu (such as a user profile menu or navigation dropdown), first HOVER over the menu/profile trigger element, then CLICK the target item.\n");
+        sb.append("- Never use non-standard CSS like ':contains()'. Use valid CSS attributes (e.g. a[href*='bilgilerim']) or standard XPath (e.g. //a[contains(text(), 'Bilgilerim')]).\n");
+        sb.append("- Provide a single, clean locator string (do NOT join multiple speculative selectors with commas).\n\n");
 
         sb.append("## Schema\n");
         sb.append("Respond ONLY with a JSON object in this exact schema (no additional prose or markdown fences):\n");
