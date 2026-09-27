@@ -36,20 +36,40 @@ public final class LearnedPageModel {
         this(urlPattern, pageName, new LinkedHashMap<>(), System.currentTimeMillis());
     }
 
+    @JsonProperty("urlPattern")
     public String urlPattern() {
         return urlPattern;
     }
 
+    @JsonProperty("pageName")
     public String pageName() {
         return pageName;
     }
 
+    @JsonProperty("elements")
     public Map<String, LearnedElement> elements() {
         return Collections.unmodifiableMap(elements);
     }
 
+    @JsonProperty("updatedAt")
     public long updatedAt() {
         return updatedAt;
+    }
+
+    public String getUrlPattern() {
+        return urlPattern();
+    }
+
+    public String getPageName() {
+        return pageName();
+    }
+
+    public Map<String, LearnedElement> getElements() {
+        return elements();
+    }
+
+    public long getUpdatedAt() {
+        return updatedAt();
     }
 
     /**

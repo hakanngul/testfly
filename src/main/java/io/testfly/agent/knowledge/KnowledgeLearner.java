@@ -72,4 +72,17 @@ public final class KnowledgeLearner {
 
         PageKnowledgeStore.save();
     }
+
+    /**
+     * Seeds or enriches the PageKnowledgeStore from all existing cached action plans.
+     */
+    public static void learnFromActionCache() {
+        java.util.Map<String, ActionPlan> cache = io.testfly.agent.ActionCache.getAll();
+        if (cache == null || cache.isEmpty()) return;
+        for (ActionPlan plan : cache.values()) {
+            if (plan != null && plan.urlPattern() != null && !plan.urlPattern().isBlank()) {
+                learnFromPlan(plan.urlPattern(), plan);
+            }
+        }
+    }
 }

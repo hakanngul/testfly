@@ -101,6 +101,10 @@ public final class ActionCompiler {
             if (cached != null) {
                 LOG.info("[ActionCompiler] ActionCache HIT for goal: \"" + goal + "\"");
                 StepLogger.step("Replaying frozen AI action plan for goal: \"" + goal + "\"");
+                try {
+                    KnowledgeLearner.learnFromPlan(currentUrl, cached);
+                } catch (Throwable ignored) {
+                }
                 return cached;
             }
         }

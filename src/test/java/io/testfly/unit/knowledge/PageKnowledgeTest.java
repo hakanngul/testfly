@@ -124,4 +124,23 @@ public class PageKnowledgeTest {
         assertEquals(bilgilerim.get().locator(), "a[href='/tr/hesabim/bilgilerim']");
         assertEquals(bilgilerim.get().parentTrigger(), "profile_menu");
     }
+
+    @Test
+    public void learnedPageModel_serializesAndDeserializesWithJackson() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+
+        LearnedPageModel model = new LearnedPageModel("/test-route", "TestPage");
+        model.putElement(new LearnedElement("submit_btn", "#submit", ActionType.CLICK, null, List.of("gönder", "submit")));
+
+        String json = mapper.writeValueAsString(model);
+        assertTrue(json.contains("\"elements\""), "JSON should contain 'elements' property");
+        assertTrue(json.contains("\"submit_btn\""), "JSON should contain 'submit_btn' element key");
+        assertTrue(json.contains("#submit"), "JSON should contain '#submit' locator");
+
+        LearnedPageModel deserialized = mapper.readValue(json, LearnedPageModel.class);
+        assertEquals(deserialized.urlPattern(), "/test-route");
+        assertEquals(deserialized.pageName(), "TestPage");
+        assertNotNull(deserialized.elements().get("submit_btn"));
+        assertEquals(deserialized.elements().get("submit_btn").locator(), "#submit");
+    }
 }

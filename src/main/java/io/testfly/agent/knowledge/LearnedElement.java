@@ -43,28 +43,58 @@ public final class LearnedElement {
         this(name, locator, actionType, parentTrigger, synonyms, System.currentTimeMillis());
     }
 
+    @JsonProperty("name")
     public String name() {
         return name;
     }
 
+    @JsonProperty("locator")
     public String locator() {
         return locator;
     }
 
+    @JsonProperty("actionType")
     public ActionType actionType() {
         return actionType;
     }
 
+    @JsonProperty("parentTrigger")
     public String parentTrigger() {
         return parentTrigger;
     }
 
+    @JsonProperty("synonyms")
     public List<String> synonyms() {
         return Collections.unmodifiableList(synonyms);
     }
 
+    @JsonProperty("lastSeenAt")
     public long lastSeenAt() {
         return lastSeenAt;
+    }
+
+    public String getName() {
+        return name();
+    }
+
+    public String getLocator() {
+        return locator();
+    }
+
+    public ActionType getActionType() {
+        return actionType();
+    }
+
+    public String getParentTrigger() {
+        return parentTrigger();
+    }
+
+    public List<String> getSynonyms() {
+        return synonyms();
+    }
+
+    public long getLastSeenAt() {
+        return lastSeenAt();
     }
 
     /**

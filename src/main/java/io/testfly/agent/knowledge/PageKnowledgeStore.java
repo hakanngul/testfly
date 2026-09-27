@@ -94,13 +94,29 @@ public final class PageKnowledgeStore {
                     Map<String, LearnedPageModel> entries = MAPPER.readValue(file,
                             new TypeReference<Map<String, LearnedPageModel>>() {});
                     if (entries != null) {
-                        MODELS.putAll(entries);
+                        for (Map.Entry<String, LearnedPageModel> entry : entries.entrySet()) {
+                            LearnedPageModel m = entry.getValue();
+                            if (m != null) {
+                                String url = (m.urlPattern() != null && !m.urlPattern().isBlank()) ? m.urlPattern() : entry.getKey();
+                                String page = (m.pageName() != null && !m.pageName().isBlank()) ? m.pageName() : entry.getKey();
+                                MODELS.put(entry.getKey(), new LearnedPageModel(url, page, m.elements(), m.updatedAt()));
+                            }
+                        }
                     }
                 } catch (IOException e) {
                     LOG.warning("[PageKnowledgeStore] Failed to load page knowledge: " + e.getMessage());
                 }
             }
             loaded = true;
+
+            // If store is empty or models have no elements, bootstrap from action cache
+            boolean hasElements = MODELS.values().stream().anyMatch(m -> !m.elements().isEmpty());
+            if (!hasElements) {
+                try {
+                    KnowledgeLearner.learnFromActionCache();
+                } catch (Throwable ignored) {
+                }
+            }
         }
     }
 

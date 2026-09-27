@@ -404,23 +404,21 @@ public final class DriverManager {
             forceQuitDriver();
             return;
         }
-        int released = 0;
-        for (WebDriver driver : SUITE_DRIVERS) {
+        int total = SUITE_DRIVERS.size();
+        SUITE_DRIVERS.parallelStream().forEach(driver -> {
             try {
                 driver.quit();
-                released++;
             } catch (Exception e) {
                 System.err.println("[TestFly] Error quitting suite driver: " + e.getMessage());
-                released++; // release permit regardless — session is gone
             }
-        }
-        if (SESSION_SEMAPHORE != null && released > 0) {
-            SESSION_SEMAPHORE.release(released);
+        });
+        if (SESSION_SEMAPHORE != null && total > 0) {
+            SESSION_SEMAPHORE.release(total);
         }
         SUITE_DRIVERS.clear();
         DRIVER.remove();
         CLOUD_SESSION_URL.remove();
-        System.out.println("[TestFly] All suite drivers quit. Released " + released + " session slot(s).");
+        System.out.println("[TestFly] All suite drivers quit in parallel. Released " + total + " session slot(s).");
     }
 
     /**
