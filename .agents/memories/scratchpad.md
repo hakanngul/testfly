@@ -3,7 +3,7 @@ tags:
   - memory
   - scratchpad
   - ephemeral
-date: 2026-09-10
+date: 2026-09-27
 status: active
 char_limit: 2200
 ---
@@ -16,19 +16,19 @@ char_limit: 2200
 ---
 
 ### 1. Aktif Odak ve Son Durum (Current Focus)
-- **Konu:** Changelog Modernizasyonu & Release 1.0.5 Docusaurus Senkronizasyonu.
-- **Durum:** Kök `CHANGELOG.md`, `docs-site/docs/changelog.md` ve `docs-site/i18n/tr/.../changelog.md` [1.0.5] ve [1.0.4] maddeleriyle güncellendi. `npm run build` ile çift dil doğrulandı ve `development` dalına pushlandı.
+- **Konu:** Cucumber Raporlama (UNKNOWN Durumu) & Video Kayıt Hata Çözümü.
+- **Durum:** `UNKNOWN` durum ve 0 ms süre sorunu çözüldü. Video kayıtları (MP4) başarıyla üretilip HTML rapor ve Allure içerisine bağlandı (1 PASSED, 1 FAILED doğrulandı).
 
-### 2. Anlık Bağlam ve Kararlar (Immediate Context)
-- **1.0.5 Güncellemeleri:** Interactive Recorder & Web Studio (`:8765`), TestFly MCP Server (88 araç), SmartTestSharder (LPT), Gatling/VT Yük Testi, Cupertino HTML Rapor tasarımı ve ScanRepo güvenlik optimizasyonları changelog'lara işlendi.
-- **Docusaurus Uyumluluğu:** MDX v3 JSX hatası önlendi (`<50ms` -> `` `<50ms` ``), EN & TR derlemeleri 0 hata ile tamamlandı.
+### 2. Kök Neden & Çözülen Problemler (Root Cause & Fixes)
+1. **JCodec NoClassDefFoundError:** `testfly/pom.xml` içinde `jcodec` bağımlılığı `<optional>true</optional>` işaretlendiği için tüketici projeye (Customer_web_testfly) taşınmıyordu. MP4 encode çağrısında `NoClassDefFoundError` fırlatılıyordu.
+2. **Hata Yakalama Eksikliği:** `RecordingManager.java` ve `CucumberHooks.java` yalnızca `Exception` yakalıyordu; `Error` (NoClassDefFoundError) yakalanamadığı için `afterScenario` yarıda kesiliyor, `ExecutionMetrics.recordStatus()` ve `markEnd()` çağrılamıyordu. Bu da testlerin `UNKNOWN` ve `0 ms` kalmasına yol açıyordu.
+3. **Düzeltmeler:**
+   - `testfly/pom.xml`'de `jcodec` ve `jcodec-javase` bağımlılıkları compile scope yapıldı (`optional` kaldırıldı).
+   - `RecordingManager.save()` ve `CucumberHooks.java` tüm alt işlemleri `Throwable` ile sararak çökmelere karşı korumalı hale getirildi; MP4 başarısız olursa GIF fallback eklendi.
+   - `CucumberHooks.java` `finally` bloğuna metrik garanti mekanizması eklendi.
+   - `Customer_web_testfly` üzerinde `mvn clean test` koşturuldu: **1 Passed, 1 Failed, 2 MP4 Video** doğrulandı.
 
 ### 3. Sıradaki Görevler (Next Up)
-- [x] ScanRepo false-positive giderme (homeData.js ve .gitattributes).
-- [x] Changelog modernizasyonu (Kök + Docusaurus EN/TR).
-- [x] Sürüm 1.0.5 hazırlığı ve commit/push (`development`).
-
-### 4. Hızlı Notlar (Scratch Notes)
-- TestFly mimari kararları ve dokümantasyon grafiği `[[wiki/index]]` altında günceldir.
-- Karakter sınırı <= 2.200 kuralına tam uyuldu (~1.650 karakter).
-
+- [x] JCodec bağımlılığı ve Throwable error handling düzeltildi.
+- [x] TestFly 1.0.5 güncellenip kuruldu.
+- [x] Customer_web_testfly testleri koşuldu; 1 PASS, 1 FAIL, MP4 videolar ve HTML/Allure raporu doğrulandı.

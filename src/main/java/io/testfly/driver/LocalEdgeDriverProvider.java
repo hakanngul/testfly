@@ -39,9 +39,13 @@ public class LocalEdgeDriverProvider implements DriverProvider {
 
         boolean hasWindowSize = arguments != null && arguments.stream().anyMatch(a -> a != null && a.startsWith("--window-size"));
         boolean hasStartMaximized = arguments != null && arguments.stream().anyMatch(a -> a != null && a.equals("--start-maximized"));
+        boolean hasStartFullscreen = arguments != null && arguments.stream().anyMatch(a -> a != null && a.equals("--start-fullscreen"));
 
         if (config.getBrowser().isHeadless()) {
             options.addArguments("--headless=new");
+            if ((hasStartMaximized || CiEnvironmentDetector.isContainer()) && !hasWindowSize) {
+                options.addArguments("--window-size=1920,1080");
+            }
         }
 
         // Docker/container: Edge requires these flags to run without a real display
@@ -51,6 +55,9 @@ public class LocalEdgeDriverProvider implements DriverProvider {
                     "--disable-dev-shm-usage",
                     "--disable-gpu"
             );
+            if (!hasWindowSize && !config.getBrowser().isHeadless()) {
+                options.addArguments("--window-size=1920,1080");
+            }
         }
 
         if (arguments != null) {
@@ -74,15 +81,17 @@ public class LocalEdgeDriverProvider implements DriverProvider {
         driver.manage().timeouts().implicitlyWait(Duration.ZERO);
         driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(config.getTimeouts().getPageLoad()));
 
-        if ((hasStartMaximized || CiEnvironmentDetector.isContainer()) && !hasWindowSize) {
-            try {
-                driver.manage().window().fullscreen();
-            } catch (Exception ignored) {
-            }
-        } else if (!config.getBrowser().isHeadless() && hasStartMaximized) {
-            try {
-                driver.manage().window().maximize();
-            } catch (Exception ignored) {
+        if (!config.getBrowser().isHeadless() && !hasWindowSize) {
+            if (hasStartFullscreen) {
+                try {
+                    driver.manage().window().fullscreen();
+                } catch (Exception ignored) {
+                }
+            } else if (hasStartMaximized) {
+                try {
+                    driver.manage().window().maximize();
+                } catch (Exception ignored) {
+                }
             }
         }
 

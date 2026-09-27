@@ -123,72 +123,77 @@ public final class RecordingManager {
      *         frames were captured
      */
     public static String save(String testId) {
-        RecordingSession session = SESSION.get();
-        if (session == null)
-            return null;
-        session.cancel();
-        SESSION.remove();
-
-        List<BufferedImage> frames = session.getFrames();
-        if (frames.isEmpty() && session.getDriver() instanceof TakesScreenshot) {
-            try {
-                byte[] png = ((TakesScreenshot) session.getDriver()).getScreenshotAs(OutputType.BYTES);
-                BufferedImage img = ImageIO.read(new ByteArrayInputStream(png));
-                if (img != null) {
-                    frames.add(img);
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        if (frames.isEmpty())
-            return null;
-
-        // Duplicate single frame so animated GIF loops gracefully
-        if (frames.size() == 1) {
-            frames.add(frames.get(0));
-        }
-
-        String safeId = testId.replaceAll("[^a-zA-Z0-9._-]", "_");
-        File dir = new File("target/recordings");
-        dir.mkdirs();
-
-        String format = "mp4";
         try {
-            if (io.testfly.internal.TestFlyContext.isInitialized()) {
-                io.testfly.config.TestFlyConfig cfg = io.testfly.internal.TestFlyContext.getConfig();
-                if (cfg != null && cfg.getRecording() != null && cfg.getRecording().getFormat() != null) {
-                    format = cfg.getRecording().getFormat().toLowerCase();
+            RecordingSession session = SESSION.get();
+            if (session == null)
+                return null;
+            session.cancel();
+            SESSION.remove();
+
+            List<BufferedImage> frames = session.getFrames();
+            if (frames.isEmpty() && session.getDriver() instanceof TakesScreenshot) {
+                try {
+                    byte[] png = ((TakesScreenshot) session.getDriver()).getScreenshotAs(OutputType.BYTES);
+                    BufferedImage img = ImageIO.read(new ByteArrayInputStream(png));
+                    if (img != null) {
+                        frames.add(img);
+                    }
+                } catch (Throwable ignored) {
                 }
             }
-        } catch (Exception ignored) {
-        }
-
-        if ("gif".equalsIgnoreCase(format)) {
-            File output = new File(dir, safeId + ".gif");
-            int delayMs = 1000 / Math.max(1, session.getFps());
-            try {
-                GifEncoder.write(frames, output, delayMs);
-                return output.getPath();
-            } catch (IOException e) {
-                System.err.println("[TestFly] Failed to save GIF recording for '" + testId + "': " + e.getMessage());
+            if (frames.isEmpty())
                 return null;
+
+            // Duplicate single frame so animated GIF loops gracefully
+            if (frames.size() == 1) {
+                frames.add(frames.get(0));
             }
-        } else {
-            File output = new File(dir, safeId + ".mp4");
+
+            String safeId = testId.replaceAll("[^a-zA-Z0-9._-]", "_");
+            File dir = new File("target/recordings");
+            dir.mkdirs();
+
+            String format = "mp4";
             try {
-                Mp4Encoder.encode(frames, output, session.getFps());
-                return output.getPath();
-            } catch (Exception e) {
-                System.err.println("[TestFly] MP4 encoding failed, falling back to GIF: " + e.getMessage());
-                File gifOutput = new File(dir, safeId + ".gif");
+                if (io.testfly.internal.TestFlyContext.isInitialized()) {
+                    io.testfly.config.TestFlyConfig cfg = io.testfly.internal.TestFlyContext.getConfig();
+                    if (cfg != null && cfg.getRecording() != null && cfg.getRecording().getFormat() != null) {
+                        format = cfg.getRecording().getFormat().toLowerCase();
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+
+            if ("gif".equalsIgnoreCase(format)) {
+                File output = new File(dir, safeId + ".gif");
                 int delayMs = 1000 / Math.max(1, session.getFps());
                 try {
-                    GifEncoder.write(frames, gifOutput, delayMs);
-                    return gifOutput.getPath();
-                } catch (IOException ioException) {
+                    GifEncoder.write(frames, output, delayMs);
+                    return output.getPath();
+                } catch (Throwable e) {
+                    System.err.println("[TestFly] Failed to save GIF recording for '" + testId + "': " + e.getMessage());
                     return null;
                 }
+            } else {
+                File output = new File(dir, safeId + ".mp4");
+                try {
+                    Mp4Encoder.encode(frames, output, session.getFps());
+                    return output.getPath();
+                } catch (Throwable e) {
+                    System.err.println("[TestFly] MP4 encoding failed, falling back to GIF: " + e.getMessage());
+                    File gifOutput = new File(dir, safeId + ".gif");
+                    int delayMs = 1000 / Math.max(1, session.getFps());
+                    try {
+                        GifEncoder.write(frames, gifOutput, delayMs);
+                        return gifOutput.getPath();
+                    } catch (Throwable ioException) {
+                        return null;
+                    }
+                }
             }
+        } catch (Throwable t) {
+            System.err.println("[TestFly] Failed to save recording for '" + testId + "': " + t.getMessage());
+            return null;
         }
     }
 

@@ -27,16 +27,19 @@ public class LocalChromeDriverProvider implements DriverProvider {
         List<String> args = config.getBrowser().getArguments();
         boolean hasWindowSize = args != null && args.stream().anyMatch(a -> a != null && a.startsWith("--window-size"));
         boolean hasStartMaximized = args != null && args.contains("--start-maximized");
+        boolean hasStartFullscreen = args != null && args.contains("--start-fullscreen");
 
-        if ((hasStartMaximized || CiEnvironmentDetector.isContainer()) && !hasWindowSize) {
-            try {
-                driver.manage().window().fullscreen();
-            } catch (Exception ignored) {
-            }
-        } else if (!config.getBrowser().isHeadless() && hasStartMaximized) {
-            try {
-                driver.manage().window().maximize();
-            } catch (Exception ignored) {
+        if (!config.getBrowser().isHeadless() && !hasWindowSize) {
+            if (hasStartFullscreen) {
+                try {
+                    driver.manage().window().fullscreen();
+                } catch (Exception ignored) {
+                }
+            } else if (hasStartMaximized) {
+                try {
+                    driver.manage().window().maximize();
+                } catch (Exception ignored) {
+                }
             }
         }
 
@@ -68,7 +71,10 @@ public class LocalChromeDriverProvider implements DriverProvider {
         if (config.getBrowser().isHeadless()) {
             options.addArguments("--headless=new");
             // In headless mode Chrome has no desktop window manager, so --start-maximized is ignored.
-            // Driver will be set to fullscreen after creation if --start-maximized is configured or no explicit window-size is given.
+            // Automatically set 1920x1080 viewport if --start-maximized is configured or if container mode is active and no explicit window-size was given.
+            if ((hasStartMaximized || CiEnvironmentDetector.isContainer()) && !hasWindowSize) {
+                options.addArguments("--window-size=1920,1080");
+            }
         }
 
         // Docker/container: Chrome requires these flags to run without a real display
@@ -78,6 +84,9 @@ public class LocalChromeDriverProvider implements DriverProvider {
                     "--disable-dev-shm-usage",
                     "--disable-gpu"
             );
+            if (!hasWindowSize && !config.getBrowser().isHeadless()) {
+                options.addArguments("--window-size=1920,1080");
+            }
         }
 
         if (arguments != null) {
