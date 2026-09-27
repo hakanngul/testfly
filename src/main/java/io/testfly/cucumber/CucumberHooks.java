@@ -164,11 +164,7 @@ public class CucumberHooks {
                     }
                 }
 
-                // 3. Send artifacts to ReportPortal if configured
-                try {
-                    io.testfly.reporting.reportportal.ReportPortalAttachmentSender.sendImmediate(
-                            testId, screenshotPath, null, recordingPath);
-                } catch (Throwable ignored) {}
+
 
                 try {
                     HookRegistry.onTestFailure(testId, new RuntimeException("Scenario failed: " + scenario.getName()));

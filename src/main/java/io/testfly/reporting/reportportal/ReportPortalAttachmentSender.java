@@ -58,6 +58,13 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
             return; // RP client not on classpath
         }
 
+        // When Cucumber 7 ReportPortal agent is active, attachments are already handled natively
+        // via Cucumber's scenario.attach(). Avoid posting duplicate attachments.
+        String cucumberPlugins = System.getProperty("cucumber.plugin", "");
+        if (cucumberPlugins.contains("com.epam.reportportal.cucumber.ScenarioReporter")) {
+            return;
+        }
+
         io.testfly.config.TestFlyConfig cfg;
         try {
             if (!io.testfly.internal.TestFlyContext.isInitialized()) {

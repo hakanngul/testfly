@@ -10,25 +10,22 @@ char_limit: 2200
 
 # Aktif Çalışma Not Defteri (Scratchpad)
 
-> [!WARNING]
-> **2.200 Karakter Kuralı:** Bu dosya oturumlar arası anlık bağlamı tutar. Karakter sayısı 2.200'ü aştığında `[[skills/memory-sync/SKILL]]` çalıştırılarak tamamlanan işler budanmalı, kalıcı kararlar `[[wiki/index]]` altına aktarılmalıdır.
+### 1. Aktif Odak ve Son Durum
+- **Konu:** Allure & ReportPortal Mükerrer Attachment Temizliği
+- **Durum:** Mükerrer ekran görüntüsü ve video yükleme sorunu çözüldü. Testler başarıyla koşuldu ve hem Allure hem de ReportPortal'da tekil ve temiz attachment hiyerarşisi doğrulandı.
 
----
+### 2. Çözülen Darboğazlar & Düzenlemeler
+1. **ReportPortal Çift Yükleme Giderildi:**
+   - Cucumber 7 ReportPortal ajanı (`agent-java-cucumber7`), `scenario.attach()` metodunu dinleyerek ekran görüntüsü ve MP4 videosunu otomatik olarak ReportPortal'a yüklüyordu.
+   - `CucumberHooks.java` içindeki fazladan `ReportPortalAttachmentSender.sendImmediate(...)` çağrısı kaldırılarak RP tarafındaki 2x duplicate önlendi.
+   - `ReportPortalAttachmentSender.sendImmediate` içerisine `isCucumber7AgentActive` kontrolü eklenerek olası mükerrer çağrılara karşı koruma sağlandı.
+2. **Allure Raporu Step/Test Hiyerarşisi Düzeltildi:**
+   - Hata alan step zaten `CucumberStepLogger` ile failure ekran görüntüsünü step seviyesinde (`Step -> Screenshot`) tutuyordu.
+   - `AllureReportAdapter.java` içinde `hasStepScreenshot` kontrolü eklendi; step seviyesinde screenshot varsa test-level `attachments` dizinine mükerrer `Screenshot on Failure` eklenmesi engellendi. Artık test-level'da yalnızca `Execution Video` yer alıyor.
+3. **Doğrulama (Customer_web_testfly):**
+   - Allure JSON: Failing step içinde tek `Screenshot`, test seviyesinde yalnızca `Execution Video`.
+   - ReportPortal Launch `19913`: After hooks altında tam olarak 2 attachment (`Failure Screenshot` + `Execution Video`).
 
-### 1. Aktif Odak ve Son Durum (Current Focus)
-- **Konu:** Cucumber Lifecycle & `afterScenario` Performans Optimizasyonu.
-- **Durum:** `afterScenario` ve `beforeScenario` üzerindeki darboğazlar giderildi, gereksiz WebDriver I/O çağrıları ve MP4 bellek tahsisleri optimize edildi. Testler 1 PASS 1 FAIL ile tam doğrulandı.
-
-### 2. Kök Neden & Çözülen Darboğazlar (Performance Fixes)
-1. **Çift Screenshot Çağrısı Kaldırıldı:** Hata anında `ScreenshotManager.capture()` ve hemen peşinden `ScreenshotManager.captureAsBase64()` çağrılarak WebDriver üzerinden iki ayrı uzaktan ekran görüntüsü alınıyordu (~1-2 sn). İkinci çağrı kaldırıldı; ilk yakalanan PNG dosyasının byte'ı doğrudan senaryoya iliştirildi.
-2. **AI Analizi Sınırlandırıldı:** AI devre dışı iken her fail'da yapılan `driver.getCurrentUrl()` ve `driver.getTitle()` HTTP çağrıları guard kontrolü (`isAiAnalysisEnabled`) ile engellendi.
-3. **CDP Screencast FPS Throttling:** Chrome'un saniyede gönderdiği onlarca kare listener seviyesinde `fps` aralığına göre filtrelendi (ack anında gönderilip decode pas geçildi). MP4 encode işlemine giren kare sayısı ve işlem süresi 4-5 kat hızlandırıldı.
-4. **Mp4Encoder Buffer Optimizasyonu:** Her kare için `new BufferedImage` ve `Graphics2D` tahsisi yerine tek bir çalışma havuzu (`workBuffer`) yeniden kullanılarak GC yükü sıfırlandı.
-5. **Per-Suite Cookie Temizliği:** `lifecycle: per-suite` modunda tarayıcıyı kapatmadan `driver.manage().deleteAllCookies()` ile sonraki senaryoya hazır hale getirme desteği sağlandı.
-
-### 3. Sıradaki Görevler (Next Up)
-- [x] `CucumberHooks.java` çift screenshot ve AI çağrıları kaldırıldı.
-- [x] `RecordingManager.java` CDP FPS throttling eklendi.
-- [x] `Mp4Encoder.java` buffer reuse eklendi.
-- [x] `CucumberHooksTest.java` eklendi ve tüm birim testler (1.142 test) geçti.
-- [x] `Customer_web_testfly` üzerinde çalıştırılarak doğrulandı.
+### 3. Kaynaklar & Bağlantılar
+- ReportPortal Paneli: `https://reportportal.starlettech.tech/ui/#demo-web/launches/all`
+- Launch ID: 19913
