@@ -193,7 +193,8 @@ public final class ActionCompiler {
         sb.append("- NAVIGATE: go to another URL or path (value = absolute URL or path; leave locator empty)\n\n");
         sb.append("## Selector Selection Guidelines\n");
         sb.append("- Always target VISIBLE interactive elements belonging to the active form or main content area.\n");
-        sb.append("- Prefer unique IDs, names, or data-testid over inactive/collapsed headers or hidden containers.\n\n");
+        sb.append("- Prefer unique IDs, names, or data-testid over inactive/collapsed headers or hidden containers.\n");
+        sb.append("- If a target element is located inside a dropdown or hover menu (such as a user profile menu or navigation dropdown), first HOVER over the menu/profile trigger element, then CLICK the target item.\n\n");
 
         sb.append("## Schema\n");
         sb.append("Respond ONLY with a JSON object in this exact schema (no additional prose or markdown fences):\n");
