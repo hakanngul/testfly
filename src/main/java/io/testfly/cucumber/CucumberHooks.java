@@ -17,6 +17,7 @@ import io.testfly.steps.StepLogger;
 import io.testfly.steps.StepStatus;
 import io.testfly.testdata.TestDataStore;
 import io.cucumber.java.After;
+import io.cucumber.java.AfterAll;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import io.testfly.config.TestFlyConfig;
@@ -390,5 +391,20 @@ public class CucumberHooks {
             String lower = t.toLowerCase();
             return lower.equals("@nobrowser") || lower.equals("@api") || lower.contains("loadtest");
         });
+    }
+
+    /**
+     * Suite-level teardown for Cucumber runs.
+     * Quits all persistent per-suite drivers when running via Cucumber CLI, JUnit, or IDE,
+     * ensuring browsers never remain open after the test run finishes.
+     */
+    @AfterAll(order = 0)
+    public static void afterAllScenarios() {
+        try {
+            DriverManager.quitAllSuiteDrivers();
+            DriverManager.forceQuitDriver();
+        } catch (Throwable t) {
+            System.err.println("[CucumberHooks] afterAll driver cleanup failed: " + t.getMessage());
+        }
     }
 }
