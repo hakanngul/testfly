@@ -11,19 +11,21 @@ char_limit: 2200
 # Aktif Çalışma Not Defteri (Scratchpad)
 
 ### 1. Aktif Odak ve Son Durum
-- **Konu:** Cucumber Driver Teardown (@AfterAll & Shutdown Hook)
-- **Durum:** IntelliJ veya CLI üzerinden tek senaryo koşulduğunda browser'ın açık kalma sorunu çözüldü. TestFly 1.0.5 derlendi ve yerel depoya yüklendi.
+- **Konu:** Customer Web Agentic Mode (Doğal Dil & Compile & Freeze)
+- **Durum:** TAMAMLANDI & DOĞRULANDI. `Agentic.feature` sıfır CSS selector ile saf doğal dille koşuldu, DeepSeek-V3 ile aksiyonlar derlendi ve başarıyla PASSED aldı. İkinci koşuda ActionCache HIT (Compile & Freeze) ile anında replay edildi.
 
 ### 2. Kök Neden & Çözülen Darboğazlar
-1. **Per-Suite Yaşam Döngüsü ve IDE Koşuları:**
-   - `testfly.yml` içinde `browser.lifecycle: per-suite` tanımlı olduğunda `DriverManager.shouldQuitAfterTest()` `false` dönüyordu.
-   - Testler Maven/TestNG üzerinden değil de IntelliJ'den tek senaryo (`io.cucumber.core.cli.Main`) ile çalıştırıldığında TestNG'nin `SuiteExecutionListener` dinleyicisi tetiklenmiyordu.
-   - Cucumber tarafında bir `@AfterAll` kancası bulunmadığı için tek senaryo bittiğinde JVM kapanırken browser oturumu kapatılmadan açık kalıyordu.
-2. **Uygulanan Çözüm:**
-   - `CucumberHooks.java`: `@AfterAll(order = 0)` metodu `afterAllScenarios()` eklenerek koşu bittiğinde `DriverManager.quitAllSuiteDrivers()` ve `forceQuitDriver()` çağrıldı.
-   - `DriverManager.java`: JVM kapanış kancası (`Runtime.getRuntime().addShutdownHook`) ve `forceQuitDriver()` metodu eklenerek JVM'in sonlandığı her senaryoda driver'ların kapatılması garantiye alındı.
-3. **Doğrulama:**
-   - Tekil senaryo çalıştırıldı: `[TestFly] All suite drivers quit. Released 1 session slot(s).` doğrulanarak browser oturumu başarıyla serbest bırakıldı.
+1. **DomPruner Gizli Element Filtreleme (testfly Core):**
+   - Sayfada `display: none` olan header hızlı giriş barı (`#txtUserNameLGB`) DOM'da ilk sırada yer aldığı için LLM tarafından seçiliyordu. `DomPruner.java` içine JS seviyesinde `offsetParent === null` ve `display: none` elementleri budama özelliği eklendi.
+2. **PageAssert Settle & Retry (testfly Core):**
+   - Form submit sonrası yönlendirme / AJAX geçişi sürerken `assertWithAi` hemen DOM çektiği için henüz giriş yapılmamış görünüyordu. `PageAssert.java` içine 3 saniyelik settle & retry penceresi eklendi.
+3. **Model Uyumluluğu:**
+   - `testfly.yml` içindeki model `deepseek-chat` olarak ayarlandı.
+4. **Doğrulama:**
+   - 1. Koşu: ActionCache MISS -> AI ile derlendi -> Login oldu -> AI assertion'lar doğrulandı -> PASSED.
+   - 2. Koşu: ActionCache HIT -> Dondurulmuş plan doğrudan çalıştırıldı -> PASSED.
 
 ### 3. Kaynaklar & Bağlantılar
-- Dosyalar: `CucumberHooks.java`, `DriverManager.java`
+- Dosyalar: `DomPruner.java`, `PageAssert.java`, `Agentic.feature`, `AgenticSteps.java`
+
+

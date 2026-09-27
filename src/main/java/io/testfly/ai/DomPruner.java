@@ -69,8 +69,28 @@ public final class DomPruner {
             try {
                 Object result = js.executeScript(
                         "try {" +
-                        "  var clone = document.body ? document.body.cloneNode(true) : document.documentElement.cloneNode(true);" +
-                        "  var removeSelectors = 'script, style, svg, noscript, iframe, link, meta';" +
+                        "  var all = (document.body || document.documentElement).querySelectorAll('*');" +
+                        "  var hidden = [];" +
+                        "  for (var i = 0; i < all.length; i++) {" +
+                        "    var el = all[i];" +
+                        "    if (el.tagName === 'BODY' || el.tagName === 'HTML') continue;" +
+                        "    if (el.offsetParent === null) {" +
+                        "      var s = window.getComputedStyle(el);" +
+                        "      if (s.position !== 'fixed' || s.display === 'none' || s.visibility === 'hidden') {" +
+                        "        el.setAttribute('data-tf-hide', '1');" +
+                        "        hidden.push(el);" +
+                        "      }" +
+                        "    } else {" +
+                        "      var s = window.getComputedStyle(el);" +
+                        "      if (s.visibility === 'hidden') {" +
+                        "        el.setAttribute('data-tf-hide', '1');" +
+                        "        hidden.push(el);" +
+                        "      }" +
+                        "    }" +
+                        "  }" +
+                        "  var clone = (document.body || document.documentElement).cloneNode(true);" +
+                        "  for (var i = 0; i < hidden.length; i++) { hidden[i].removeAttribute('data-tf-hide'); }" +
+                        "  var removeSelectors = 'script, style, svg, noscript, iframe, link, meta, [data-tf-hide=\"1\"]';" +
                         "  var elements = clone.querySelectorAll(removeSelectors);" +
                         "  for (var i = 0; i < elements.length; i++) { elements[i].remove(); }" +
                         "  return clone.innerHTML;" +
