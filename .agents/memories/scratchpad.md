@@ -11,19 +11,22 @@ char_limit: 2200
 # Aktif Çalışma Not Defteri (Scratchpad)
 
 ### 1. Aktif Odak ve Son Durum
-- **Konu:** Customer Web Agentic Mode & WaitEngine Geliştirmesi
-- **Durum:** TAMAMLANDI. `WaitEngine.waitForPageLoad(WebDriver driver)` eklendi ve birim testleri yazıldı. `Agentic.feature` için süper sade (minimalist) senaryo eklendi ve 13 saniyede BUILD SUCCESS ile doğrulandı.
+- **Konu:** Auto-POM (Learned Page Model) & Sürekli Öğrenen AI Ajanı
+- **Durum:** TAMAMLANDI & DOĞRULANDI. `io.testfly.agent.knowledge` paketi oluşturuldu (`LearnedElement`, `LearnedPageModel`, `PageKnowledgeStore`, `LocalIntentResolver`, `KnowledgeLearner`).
+- **Sonuç:** Yeni senaryo `"Click Bilgilerim from user profile menu"` hedefi AI'a HİÇ GİTMEDEN doğrudan yerel hafızadan (Auto-POM Knowledge HIT) çözüldü ve 22 saniyede BUILD SUCCESS ile çalıştı!
 
-### 2. Kök Neden & Çözülen Darboğazlar
-1. **WaitEngine.waitForPageLoad Overload:**
-   - `WaitEngine.java` içine `public static void waitForPageLoad(WebDriver driver)` eklendi, `ActionCompiler.java` içinde geçiş öncesi sayfanın oturmasını bekleyecek şekilde bağlandı.
-2. **Minimalist Agentic Senaryo:**
-   - Menü koordinatı ve hover/mouse detayı vermeksizin doğrudan yüksek seviyeli hedef: `"Open Bilgilerim from profile menu"` hedefini AI otomatik olarak hover ve dropdown click adımlarına derledi ve ActionCache'e dondurdu.
-3. **Doğrulama:**
-   - `WaitEngineTest`: 11 test PASS.
-   - Minimalist Senaryo: 13 saniye, 1 test PASS (BUILD SUCCESS).
+### 2. Kök Neden & Mimari Kazanımlar
+1. **Learned Page Model (Auto-POM):**
+   - Sayfa elementleri ve açılır menü ilişkileri (`profile_menu` hover -> `bilgilerim` click) `.testfly/page-knowledge.json` dosyasına kaydedildi.
+2. **LocalIntentResolver:**
+   - Yeni testlerde farklı cümlelerle gelse bile element ve niyet eşleşirse LLM çağrılmadan 0 token ve 0 ms gecikmeyle yerel plan üretildi.
+3. **KnowledgeLearner (Sürekli Öğrenme):**
+   - AI'ın derlediği her başarılı aksiyon otomatik olarak sayfa modeline kaydedilerek hafıza büyütülüyor.
+4. **Doğrulama:**
+   - `PageKnowledgeTest`: 5 test PASS.
+   - `Customer_web_testfly` `@AutoPom`: 1 test PASS (Auto-POM HIT).
 
 ### 3. Kaynaklar & Bağlantılar
-- Dosyalar: `WaitEngine.java`, `ActionCompiler.java`, `Agentic.feature`
+- Dosyalar: `PageKnowledgeStore.java`, `LocalIntentResolver.java`, `KnowledgeLearner.java`, `ActionCompiler.java`, `Agentic.feature`
 
 

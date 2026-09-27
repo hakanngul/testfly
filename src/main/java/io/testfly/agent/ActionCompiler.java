@@ -11,6 +11,8 @@ import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.steps.StepLogger;
 import io.testfly.wait.WaitEngine;
+import io.testfly.agent.knowledge.KnowledgeLearner;
+import io.testfly.agent.knowledge.LocalIntentResolver;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -72,12 +74,13 @@ public final class ActionCompiler {
             ActionExecutor.execute(driver, freshPlan, timeout);
             if (freshPlan != null && !freshPlan.steps().isEmpty()) {
                 ActionCache.put(currentUrl, goal, freshPlan);
+                KnowledgeLearner.learnFromPlan(currentUrl, freshPlan);
             }
         }
     }
 
     /**
-     * Compiles a goal into an ActionPlan, consulting ActionCache first.
+     * Compiles a goal into an ActionPlan, consulting ActionCache and Learned Page Model first.
      */
     public static ActionPlan compile(WebDriver driver, String goal) {
         TestFlyConfig config = TestFlyContext.getConfig();
@@ -92,6 +95,7 @@ public final class ActionCompiler {
         } catch (Exception ignored) {
         }
 
+        // 1. ActionCache exact match (Compile & Freeze)
         if (useCache) {
             ActionPlan cached = ActionCache.get(currentUrl, goal);
             if (cached != null) {
@@ -101,11 +105,32 @@ public final class ActionCompiler {
             }
         }
 
+        // 2. Consult Learned Page Model (Auto-POM) before calling LLM
+        ActionPlan localPlan = LocalIntentResolver.resolve(currentUrl, goal);
+        if (localPlan != null && !localPlan.steps().isEmpty()) {
+            LOG.info("[ActionCompiler] Auto-POM Knowledge HIT for goal: \"" + goal
+                    + "\" (resolved locally from Learned Page Model)");
+            StepLogger.step("Executing Auto-POM action plan from learned page knowledge: \"" + goal + "\"");
+            if (useCache) {
+                ActionCache.put(currentUrl, goal, localPlan);
+            }
+            return localPlan;
+        }
+
+        // 3. Fallback to AI Provider (LLM)
         LOG.info("[ActionCompiler] ActionCache MISS for goal: \"" + goal + "\". Compiling via AI...");
         ActionPlan compiled = compileFromAi(driver, goal, config);
 
-        if (useCache && compiled != null && !compiled.steps().isEmpty()) {
-            ActionCache.put(currentUrl, goal, compiled);
+        if (compiled != null && !compiled.steps().isEmpty()) {
+            if (useCache) {
+                ActionCache.put(currentUrl, goal, compiled);
+            }
+            // Continuous Learning: Enrich Page Knowledge Base with new discovered elements
+            try {
+                KnowledgeLearner.learnFromPlan(currentUrl, compiled);
+            } catch (Exception e) {
+                LOG.fine("[ActionCompiler] Could not learn from plan: " + e.getMessage());
+            }
         }
 
         return compiled;

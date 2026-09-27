@@ -79,3 +79,4 @@ src/test/resources/baselines/*.png
 .qwen
 ai-docs
 .testfly/action-cache.json
+.testfly/page-knowledge.json
