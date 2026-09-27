@@ -228,10 +228,29 @@ public final class RecordingManager {
                     } catch (Exception ignored) {
                     }
 
+                    final long minIntervalMs = 1000L / Math.max(1, fps);
+                    final java.util.concurrent.atomic.AtomicLong lastFrameTime = new java.util.concurrent.atomic.AtomicLong(0);
+
                     dt.addListener(Page.screencastFrame(), frame -> {
-                        if (frames.size() >= maxFrames) {
+                        long now = System.currentTimeMillis();
+                        long prev = lastFrameTime.get();
+                        if (prev != 0 && (now - prev) < minIntervalMs) {
+                            try {
+                                dt.send(Page.screencastFrameAck(frame.getSessionId()));
+                            } catch (Exception ignored) {
+                            }
                             return;
                         }
+
+                        if (frames.size() >= maxFrames) {
+                            try {
+                                dt.send(Page.screencastFrameAck(frame.getSessionId()));
+                            } catch (Exception ignored) {
+                            }
+                            return;
+                        }
+
+                        lastFrameTime.set(now);
                         try {
                             byte[] bytes = Base64.getDecoder().decode(frame.getData());
                             BufferedImage img = ImageIO.read(new ByteArrayInputStream(bytes));

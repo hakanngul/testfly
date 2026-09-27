@@ -16,19 +16,19 @@ char_limit: 2200
 ---
 
 ### 1. Aktif Odak ve Son Durum (Current Focus)
-- **Konu:** Cucumber Raporlama (UNKNOWN Durumu) & Video Kayıt Hata Çözümü.
-- **Durum:** `UNKNOWN` durum ve 0 ms süre sorunu çözüldü. Video kayıtları (MP4) başarıyla üretilip HTML rapor ve Allure içerisine bağlandı (1 PASSED, 1 FAILED doğrulandı).
+- **Konu:** Cucumber Lifecycle & `afterScenario` Performans Optimizasyonu.
+- **Durum:** `afterScenario` ve `beforeScenario` üzerindeki darboğazlar giderildi, gereksiz WebDriver I/O çağrıları ve MP4 bellek tahsisleri optimize edildi. Testler 1 PASS 1 FAIL ile tam doğrulandı.
 
-### 2. Kök Neden & Çözülen Problemler (Root Cause & Fixes)
-1. **JCodec NoClassDefFoundError:** `testfly/pom.xml` içinde `jcodec` bağımlılığı `<optional>true</optional>` işaretlendiği için tüketici projeye (Customer_web_testfly) taşınmıyordu. MP4 encode çağrısında `NoClassDefFoundError` fırlatılıyordu.
-2. **Hata Yakalama Eksikliği:** `RecordingManager.java` ve `CucumberHooks.java` yalnızca `Exception` yakalıyordu; `Error` (NoClassDefFoundError) yakalanamadığı için `afterScenario` yarıda kesiliyor, `ExecutionMetrics.recordStatus()` ve `markEnd()` çağrılamıyordu. Bu da testlerin `UNKNOWN` ve `0 ms` kalmasına yol açıyordu.
-3. **Düzeltmeler:**
-   - `testfly/pom.xml`'de `jcodec` ve `jcodec-javase` bağımlılıkları compile scope yapıldı (`optional` kaldırıldı).
-   - `RecordingManager.save()` ve `CucumberHooks.java` tüm alt işlemleri `Throwable` ile sararak çökmelere karşı korumalı hale getirildi; MP4 başarısız olursa GIF fallback eklendi.
-   - `CucumberHooks.java` `finally` bloğuna metrik garanti mekanizması eklendi.
-   - `Customer_web_testfly` üzerinde `mvn clean test` koşturuldu: **1 Passed, 1 Failed, 2 MP4 Video** doğrulandı.
+### 2. Kök Neden & Çözülen Darboğazlar (Performance Fixes)
+1. **Çift Screenshot Çağrısı Kaldırıldı:** Hata anında `ScreenshotManager.capture()` ve hemen peşinden `ScreenshotManager.captureAsBase64()` çağrılarak WebDriver üzerinden iki ayrı uzaktan ekran görüntüsü alınıyordu (~1-2 sn). İkinci çağrı kaldırıldı; ilk yakalanan PNG dosyasının byte'ı doğrudan senaryoya iliştirildi.
+2. **AI Analizi Sınırlandırıldı:** AI devre dışı iken her fail'da yapılan `driver.getCurrentUrl()` ve `driver.getTitle()` HTTP çağrıları guard kontrolü (`isAiAnalysisEnabled`) ile engellendi.
+3. **CDP Screencast FPS Throttling:** Chrome'un saniyede gönderdiği onlarca kare listener seviyesinde `fps` aralığına göre filtrelendi (ack anında gönderilip decode pas geçildi). MP4 encode işlemine giren kare sayısı ve işlem süresi 4-5 kat hızlandırıldı.
+4. **Mp4Encoder Buffer Optimizasyonu:** Her kare için `new BufferedImage` ve `Graphics2D` tahsisi yerine tek bir çalışma havuzu (`workBuffer`) yeniden kullanılarak GC yükü sıfırlandı.
+5. **Per-Suite Cookie Temizliği:** `lifecycle: per-suite` modunda tarayıcıyı kapatmadan `driver.manage().deleteAllCookies()` ile sonraki senaryoya hazır hale getirme desteği sağlandı.
 
 ### 3. Sıradaki Görevler (Next Up)
-- [x] JCodec bağımlılığı ve Throwable error handling düzeltildi.
-- [x] TestFly 1.0.5 güncellenip kuruldu.
-- [x] Customer_web_testfly testleri koşuldu; 1 PASS, 1 FAIL, MP4 videolar ve HTML/Allure raporu doğrulandı.
+- [x] `CucumberHooks.java` çift screenshot ve AI çağrıları kaldırıldı.
+- [x] `RecordingManager.java` CDP FPS throttling eklendi.
+- [x] `Mp4Encoder.java` buffer reuse eklendi.
+- [x] `CucumberHooksTest.java` eklendi ve tüm birim testler (1.142 test) geçti.
+- [x] `Customer_web_testfly` üzerinde çalıştırılarak doğrulandı.

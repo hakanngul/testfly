@@ -39,12 +39,21 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
     /**
      * Sends the screenshot and/or AI analysis for {@code testId} directly to the
      * current ReportPortal test item. Must be called while the RP item is open.
-     *
-     * @param testId          fully-qualified TestNG test id, e.g. {@code com.example.MyTest#method}
-     * @param screenshotPath  optional path to a PNG screenshot file
-     * @param aiAnalysis      optional AI failure-analysis text
      */
     public static void sendImmediate(String testId, String screenshotPath, String aiAnalysis) {
+        sendImmediate(testId, screenshotPath, aiAnalysis, null);
+    }
+
+    /**
+     * Sends the screenshot, AI analysis, and/or video recording for {@code testId} directly to the
+     * current ReportPortal test item. Must be called while the RP item is open.
+     *
+     * @param testId          fully-qualified test id, e.g. {@code com.example.MyTest#method}
+     * @param screenshotPath  optional path to a PNG screenshot file
+     * @param aiAnalysis      optional AI failure-analysis text
+     * @param recordingPath   optional path to a video file (.mp4 or .gif)
+     */
+    public static void sendImmediate(String testId, String screenshotPath, String aiAnalysis, String recordingPath) {
         if (!ReportPortalLogger.isAvailable()) {
             return; // RP client not on classpath
         }
@@ -69,7 +78,8 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
         }
 
         if ((screenshotPath == null || screenshotPath.isBlank())
-                && (aiAnalysis == null || aiAnalysis.isBlank())) {
+                && (aiAnalysis == null || aiAnalysis.isBlank())
+                && (recordingPath == null || recordingPath.isBlank())) {
             return;
         }
 
@@ -78,7 +88,7 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
             File screenshot = new File(screenshotPath);
             if (screenshot.exists()) {
                 boolean ok = ReportPortalLogger.logWithAttachment(
-                        "\ud83d\udcf8 Screenshot on failure", "INFO", screenshot);
+                        "📸 Screenshot on failure", "INFO", screenshot);
                 if (ok) {
                     sent++;
                 } else {
@@ -88,9 +98,23 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
             }
         }
 
+        if (recordingPath != null && !recordingPath.isBlank()) {
+            File recFile = new File(recordingPath);
+            if (recFile.exists()) {
+                boolean ok = ReportPortalLogger.logWithAttachment(
+                        "🎥 Execution Video", "INFO", recFile);
+                if (ok) {
+                    sent++;
+                } else {
+                    System.err.println("[TestFly] ReportPortal video not sent for " + testId
+                            + " (no active RP test item?)");
+                }
+            }
+        }
+
         if (aiAnalysis != null && !aiAnalysis.isBlank()) {
             boolean ok = ReportPortalLogger.log(
-                    "\ud83e\udd16 AI Failure Analysis:\n" + aiAnalysis, "INFO");
+                    "🤖 AI Failure Analysis:\n" + aiAnalysis, "INFO");
             if (ok) {
                 sent++;
             } else {
