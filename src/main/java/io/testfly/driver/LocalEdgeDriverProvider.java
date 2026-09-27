@@ -42,9 +42,6 @@ public class LocalEdgeDriverProvider implements DriverProvider {
 
         if (config.getBrowser().isHeadless()) {
             options.addArguments("--headless=new");
-            if ((hasStartMaximized || CiEnvironmentDetector.isContainer()) && !hasWindowSize) {
-                options.addArguments("--window-size=1920,1080");
-            }
         }
 
         // Docker/container: Edge requires these flags to run without a real display
@@ -54,9 +51,6 @@ public class LocalEdgeDriverProvider implements DriverProvider {
                     "--disable-dev-shm-usage",
                     "--disable-gpu"
             );
-            if (!hasWindowSize && !config.getBrowser().isHeadless()) {
-                options.addArguments("--window-size=1920,1080");
-            }
         }
 
         if (arguments != null) {
@@ -80,13 +74,15 @@ public class LocalEdgeDriverProvider implements DriverProvider {
         driver.manage().timeouts().implicitlyWait(Duration.ZERO);
         driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(config.getTimeouts().getPageLoad()));
 
-        if (!config.getBrowser().isHeadless()) {
-            List<String> args = config.getBrowser().getArguments();
-            if (args != null && args.contains("--start-maximized")) {
-                try {
-                    driver.manage().window().maximize();
-                } catch (Exception ignored) {
-                }
+        if ((hasStartMaximized || CiEnvironmentDetector.isContainer()) && !hasWindowSize) {
+            try {
+                driver.manage().window().fullscreen();
+            } catch (Exception ignored) {
+            }
+        } else if (!config.getBrowser().isHeadless() && hasStartMaximized) {
+            try {
+                driver.manage().window().maximize();
+            } catch (Exception ignored) {
             }
         }
 

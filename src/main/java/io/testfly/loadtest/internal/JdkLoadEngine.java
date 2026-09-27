@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * <h3>Metrics collection</h3>
  * <p>
  * Per-request latency is recorded in a lock-free
- * {@link ConcurrentLinkedQueue}-style
+ * {@link java.util.concurrent.ConcurrentLinkedQueue}-style
  * structure. After execution, percentiles (p50, p90, p95, p99) are computed via
  * sorted-array nearest-rank method.
  *
