@@ -99,6 +99,7 @@ public final class RecordingManager {
         RecordingSession session = SESSION.get();
         if (session != null) {
             session.cancel();
+            session.discard();
             SESSION.remove();
         }
     }
@@ -131,6 +132,7 @@ public final class RecordingManager {
             SESSION.remove();
 
             List<BufferedImage> frames = session.getFrames();
+            session.discard();
             if (frames.isEmpty() && session.getDriver() instanceof TakesScreenshot) {
                 try {
                     byte[] png = ((TakesScreenshot) session.getDriver()).getScreenshotAs(OutputType.BYTES);
@@ -205,7 +207,7 @@ public final class RecordingManager {
         private final int maxFrames;
         private final int fps;
         private final boolean preferCdp;
-        private final ConcurrentLinkedQueue<BufferedImage> frames = new ConcurrentLinkedQueue<>();
+        private final ConcurrentLinkedQueue<byte[]> rawFrames = new ConcurrentLinkedQueue<>();
         private ScheduledExecutorService executor;
         private ScheduledFuture<?> future;
         private DevTools devTools;
@@ -242,7 +244,7 @@ public final class RecordingManager {
                             return;
                         }
 
-                        if (frames.size() >= maxFrames) {
+                        if (rawFrames.size() >= maxFrames) {
                             try {
                                 dt.send(Page.screencastFrameAck(frame.getSessionId()));
                             } catch (Exception ignored) {
@@ -253,9 +255,8 @@ public final class RecordingManager {
                         lastFrameTime.set(now);
                         try {
                             byte[] bytes = Base64.getDecoder().decode(frame.getData());
-                            BufferedImage img = ImageIO.read(new ByteArrayInputStream(bytes));
-                            if (img != null) {
-                                frames.add(img);
+                            if (bytes != null && bytes.length > 0) {
+                                rawFrames.add(bytes);
                             }
                         } catch (Exception ignored) {
                         } finally {
@@ -301,15 +302,14 @@ public final class RecordingManager {
         private static final int MAX_FALLBACK_HEIGHT = 720;
 
         private void captureFallback() {
-            if (frames.size() >= maxFrames) {
+            if (rawFrames.size() >= maxFrames) {
                 cancel();
                 return;
             }
             try {
                 byte[] png = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
-                BufferedImage img = ImageIO.read(new ByteArrayInputStream(png));
-                if (img != null) {
-                    frames.add(scaleDown(img, MAX_FALLBACK_WIDTH, MAX_FALLBACK_HEIGHT));
+                if (png != null && png.length > 0) {
+                    rawFrames.add(png);
                 }
             } catch (Exception ignored) {
                 // Driver may be in the middle of navigation or closing; silently skip
@@ -351,8 +351,22 @@ public final class RecordingManager {
                 executor.shutdownNow();
         }
 
+        void discard() {
+            rawFrames.clear();
+        }
+
         List<BufferedImage> getFrames() {
-            return new ArrayList<>(frames);
+            List<BufferedImage> decoded = new ArrayList<>(rawFrames.size());
+            for (byte[] bytes : rawFrames) {
+                try {
+                    BufferedImage img = ImageIO.read(new ByteArrayInputStream(bytes));
+                    if (img != null) {
+                        decoded.add(scaleDown(img, MAX_FALLBACK_WIDTH, MAX_FALLBACK_HEIGHT));
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+            return decoded;
         }
 
         int getFps() {
