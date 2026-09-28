@@ -29,3 +29,10 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
 ## [2026-09-27] update | OutOfMemoryError Çözümü Scratchpad'e Kaydedildi
 - **Eylem:** RecordingManager bellek optimizasyonu (%99 düşüş) tamamlandı, TestFly 1.0.5 olarak yerel deploy edildi.
 - **Bağlantılar:** [[memories/scratchpad]], [[wiki/roadmap]]
+
+## [2026-09-28] feature | Cucumber CLI Rapor Tetikleme & Timeline INFO/DEBUG Filtre Butonu
+- **Eylem:** 
+  1. `CucumberHooks.afterAllScenarios()` metoduna TestNG `SuiteExecutionListener` ile eşdeğer rapor üretim zinciri (`ReportAdapterRegistry.generateAll()`, `JUnitXmlReporter.export()`, metrikler) eklendi. Cucumber CLI doğrudan çalıştırıldığında da HTML rapor üretimi sağlandı.
+  2. `report-template.html` içerisindeki Step Execution Timeline bölümüne INFO/DEBUG adımlarını gizleyip açan modern hap (pill) toggle butonu (`Hide INFO / DEBUG` / `Show INFO / DEBUG`), sayaç rozeti, `localStorage` kalıcılığı ve üst çubuk genel kontrol butonu eklendi.
+- **Bağlantılar:** [[io.testfly.cucumber.CucumberHooks]], [[io.testfly.reporting.HtmlReportGenerator]], [[memories/scratchpad]]
+

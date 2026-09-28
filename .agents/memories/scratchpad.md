@@ -11,17 +11,16 @@ char_limit: 2200
 # Aktif Çalışma Not Defteri (Scratchpad)
 
 ### 1. Aktif Odak ve Son Durum
-- **Konu:** OutOfMemoryError Çözümü & Video Recording Bellek Optimizasyonu (99% Düşüş)
-- **Durum:** TAMAMLANDI & LOCAL DEPLOY EDİLDİ (TestFly 1.0.5).
+- **Konu:** Cucumber CLI Rapor Tetikleme & Timeline INFO/DEBUG Filtreleme
+- **Durum:** TAMAMLANDI & LOCAL DEPLOY EDİLDİ (TestFly 1.1.0).
 - **Kazanımlar:**
-  1. `RecordingManager`: Her frame için anında 3.7 MB `BufferedImage` üretmek yerine sıkıştırılmış `byte[]` tutulup sadece kaydetme anında lazy decode edilecek şekilde refactor edildi. 5 paralel thread'deki bellek kullanımı 16.5 GB'tan 150 MB'a (%99) düşürüldü.
-  2. `Customer_web_testfly/pom.xml`: Surefire plugin'e `-Xmx2048m` eklendi.
-  3. `Customer_web_testfly/testfly.yml`: `fps: 5` yapıldı ve `locators.selfHealing: true`, `aiHealing: true` aktif edildi.
-  4. TestFly 1.0.5 derlenip yerel maven deposuna kuruldu.
+  1. `CucumberHooks`: `@AfterAll` hook'una TestNG'deki gibi metrics/report üretim zinciri (`ReportAdapterRegistry.generateAll()`, `JUnitXmlReporter.export()`) eklendi. Artık doğrudan Cucumber CLI veya IDE üzerinden koşturulduğunda da HTML rapor üretiliyor.
+  2. `report-template.html`: Step Execution Timeline başlığına her test için bağımsız çalışan, `localStorage` ile durumunu hatırlayan `Hide INFO / DEBUG` / `Show INFO / DEBUG` toggle butonu eklendi. Üst çubuğa da tüm testler için genel toggle butonu yerleştirildi.
+  3. `mvn test` ve yerel `mvn install` başarıyla tamamlandı.
 
 ### 2. Kaynaklar & Bağlantılar
-- [[io.testfly.recording.RecordingManager]]
-- [[io.testfly.agent.knowledge.PageKnowledgeStore]]
-- [[io.testfly.driver.DriverManager]]
+- [[io.testfly.cucumber.CucumberHooks]]
+- [[io.testfly.reporting.HtmlReportGenerator]]
+- [[report-template.html]]
 
 

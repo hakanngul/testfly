@@ -12,6 +12,8 @@ import io.testfly.internal.TestFlyContext;
 import io.testfly.lifecycle.FrameworkBootstrap;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.network.NetworkMock;
+import io.testfly.reporting.JUnitXmlReporter;
+import io.testfly.reporting.ReportAdapterRegistry;
 import io.testfly.reporting.ScreenshotManager;
 import io.testfly.steps.StepLogger;
 import io.testfly.steps.StepStatus;
@@ -32,23 +34,31 @@ import java.util.List;
 /**
  * TestFly lifecycle hooks for Cucumber scenarios.
  *
- * <p>Auto-discovered by Cucumber when {@code "io.testfly.cucumber"} is
+ * <p>
+ * Auto-discovered by Cucumber when {@code "io.testfly.cucumber"} is
  * included in {@code @CucumberOptions(glue = {...})}.
  *
- * <p>Lifecycle per scenario:
+ * <p>
+ * Lifecycle per scenario:
  * <ol>
- *   <li>{@code @Before(order=1000)} — bootstrap framework, create WebDriver, start timing.</li>
- *   <li>Cucumber steps run; step names logged via {@link CucumberStepLogger}.</li>
- *   <li>{@code @After(order=20000)} — screenshot on failure, record metrics, quit driver.</li>
+ * <li>{@code @Before(order=1000)} — bootstrap framework, create WebDriver,
+ * start timing.</li>
+ * <li>Cucumber steps run; step names logged via
+ * {@link CucumberStepLogger}.</li>
+ * <li>{@code @After(order=20000)} — screenshot on failure, record metrics, quit
+ * driver.</li>
  * </ol>
  *
- * <p>Order rationale:
+ * <p>
+ * Order rationale:
  * <ul>
- *   <li>{@code @Before(order=1000)}: runs before user's {@code @Before(order=10000)},
- *       so the driver is ready when user hooks execute.</li>
- *   <li>{@code @After(order=20000)}: Cucumber runs higher-order {@code @After} first,
- *       so this runs before user's {@code @After(order=10000)},
- *       ensuring screenshot is captured while the page is still loaded.</li>
+ * <li>{@code @Before(order=1000)}: runs before user's
+ * {@code @Before(order=10000)},
+ * so the driver is ready when user hooks execute.</li>
+ * <li>{@code @After(order=20000)}: Cucumber runs higher-order {@code @After}
+ * first,
+ * so this runs before user's {@code @After(order=10000)},
+ * ensuring screenshot is captured while the page is still loaded.</li>
  * </ul>
  */
 public class CucumberHooks {
@@ -142,9 +152,11 @@ public class CucumberHooks {
                             scenario.attach(Files.readAllBytes(scFile.toPath()), "image/png", "Failure Screenshot");
                         }
                     }
-                } catch (Throwable ignored) {}
+                } catch (Throwable ignored) {
+                }
 
-                // 2. Save video recording on failure (only if recording is enabled and browser is used)
+                // 2. Save video recording on failure (only if recording is enabled and browser
+                // is used)
                 String recordingPath = null;
                 boolean shouldRecord = rec != null && rec.shouldRecord() && !noBrowser;
                 if (shouldRecord) {
@@ -165,13 +177,13 @@ public class CucumberHooks {
                     }
                 }
 
-
-
                 try {
                     HookRegistry.onTestFailure(testId, new RuntimeException("Scenario failed: " + scenario.getName()));
-                } catch (Throwable ignored) {}
+                } catch (Throwable ignored) {
+                }
 
-                // 3. AI failure analysis — only query driver if AI is actually enabled and configured
+                // 3. AI failure analysis — only query driver if AI is actually enabled and
+                // configured
                 if (isAiAnalysisEnabled(cfg)) {
                     try {
                         String pageUrl = null;
@@ -182,9 +194,11 @@ public class CucumberHooks {
                                 pageUrl = driver.getCurrentUrl();
                                 pageTitle = driver.getTitle();
                             }
-                        } catch (Throwable ignored) {}
+                        } catch (Throwable ignored) {
+                        }
                         io.testfly.ai.AiFailureAnalyzer.analyze(testId, pageUrl, pageTitle);
-                    } catch (Throwable ignored) {}
+                    } catch (Throwable ignored) {
+                    }
                 }
             } else {
                 if (rec != null && rec.isRecordAll() && !noBrowser) {
@@ -213,14 +227,16 @@ public class CucumberHooks {
                 try {
                     List<String> errors = ConsoleErrorCollector.collect();
                     errors.forEach(e -> StepLogger.step("[JS Error] " + e, StepStatus.WARN));
-                } catch (Throwable ignored) {}
+                } catch (Throwable ignored) {
+                }
             }
 
             ExecutionMetrics.recordStatus(testId, status);
             ExecutionMetrics.markEnd(testId);
             try {
                 HookRegistry.onTestEnd(testId, status);
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
 
         } finally {
             try {
@@ -230,7 +246,8 @@ public class CucumberHooks {
                     ExecutionMetrics.recordStatus(testId, status);
                 }
                 ExecutionMetrics.markEnd(testId);
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
 
             RecordingManager.stop();
             if (!noBrowser) {
@@ -248,7 +265,8 @@ public class CucumberHooks {
     }
 
     private static boolean isAiAnalysisEnabled(TestFlyConfig cfg) {
-        if (cfg == null) return false;
+        if (cfg == null)
+            return false;
         TestFlyConfig.Ai ai = cfg.getAi();
         return ai != null && ai.isEnabled() && (ai.isFailureAnalysis() || ai.isGeneratePatch());
     }
@@ -261,18 +279,20 @@ public class CucumberHooks {
      * Format: {@code <feature-filename>#<scenario-name>[L<line>]}
      *
      * Examples:
-     *   {@code login.feature#User logs in with valid credentials[L12]}
-     *   {@code checkout.feature#Purchase as {string}[L34]}  ← outline example at line 34
+     * {@code login.feature#User logs in with valid credentials[L12]}
+     * {@code checkout.feature#Purchase as {string}[L34]} ← outline example at line
+     * 34
      */
     static String buildTestId(Scenario scenario) {
         String feature = extractFileName(scenario.getUri());
-        String name    = scenario.getName() != null ? scenario.getName() : "unnamed";
-        int    line    = scenario.getLine() != null ? scenario.getLine() : 0;
+        String name = scenario.getName() != null ? scenario.getName() : "unnamed";
+        int line = scenario.getLine() != null ? scenario.getLine() : 0;
         return feature + "#" + name + "[L" + line + "]";
     }
 
     private static String extractFileName(URI uri) {
-        if (uri == null) return "unknown.feature";
+        if (uri == null)
+            return "unknown.feature";
         String path = uri.toString();
         int slash = path.lastIndexOf('/');
         return slash >= 0 ? path.substring(slash + 1) : path;
@@ -284,11 +304,13 @@ public class CucumberHooks {
     }
 
     private static String resolveStatus(Scenario scenario) {
-        if (scenario.isFailed()) return "FAILED";
+        if (scenario.isFailed())
+            return "FAILED";
         io.cucumber.java.Status s = scenario.getStatus();
         if (s == io.cucumber.java.Status.SKIPPED
                 || s == io.cucumber.java.Status.PENDING
-                || s == io.cucumber.java.Status.UNDEFINED) return "SKIPPED";
+                || s == io.cucumber.java.Status.UNDEFINED)
+            return "SKIPPED";
         return "PASSED";
     }
 
@@ -299,15 +321,19 @@ public class CucumberHooks {
     /**
      * Reads the {@code @retryable} or {@code @retryable=N} tag from the scenario
      * and stores the max-retry count in {@link CucumberRetryContext} so that
-     * {@link io.testfly.listeners.RetryListener} can apply it after the scenario finishes.
+     * {@link io.testfly.listeners.RetryListener} can apply it after the scenario
+     * finishes.
      *
-     * <p>Tag formats:
+     * <p>
+     * Tag formats:
      * <ul>
-     *   <li>{@code @retryable}    — use the global {@code retry.maxAttempts} from config</li>
-     *   <li>{@code @retryable=2}  — exactly 2 retries regardless of config</li>
+     * <li>{@code @retryable} — use the global {@code retry.maxAttempts} from
+     * config</li>
+     * <li>{@code @retryable=2} — exactly 2 retries regardless of config</li>
      * </ul>
      *
-     * <p>If no {@code @retryable} tag is present, any prior override is cleared so the
+     * <p>
+     * If no {@code @retryable} tag is present, any prior override is cleared so the
      * global config applies unchanged.
      */
     private static void applyRetryTag(Scenario scenario) {
@@ -334,36 +360,36 @@ public class CucumberHooks {
 
     private static void checkCucumberQuarantine(Scenario scenario) {
         try {
-            io.testfly.config.TestFlyConfig.Quarantine cfg =
-                    TestFlyContext.getConfig().getQuarantine();
-            if (cfg != null && !cfg.isEnabled()) return;
+            io.testfly.config.TestFlyConfig.Quarantine cfg = TestFlyContext.getConfig().getQuarantine();
+            if (cfg != null && !cfg.isEnabled())
+                return;
 
             // ── 1. In-file tag check (user adds @quarantine to the scenario) ──
             String configuredTag = (cfg != null && cfg.getCucumberTag() != null)
-                    ? cfg.getCucumberTag() : "quarantine";
+                    ? cfg.getCucumberTag()
+                    : "quarantine";
             for (String t : scenario.getSourceTagNames()) {
                 String normalized = t.startsWith("@") ? t.substring(1) : t;
                 if (normalized.equalsIgnoreCase(configuredTag)) {
                     throw new org.testng.SkipException(
-                        "[Quarantined] " + scenario.getName() + " — @" + configuredTag + " tag present"
-                    );
+                            "[Quarantined] " + scenario.getName() + " — @" + configuredTag + " tag present");
                 }
             }
 
             // ── 2. YAML-based check (tag, feature file, or feature#scenario entries) ──
-            String featureUri    = scenario.getUri() != null ? scenario.getUri().toString() : "";
-            String scenarioName  = scenario.getName() != null ? scenario.getName() : "";
+            String featureUri = scenario.getUri() != null ? scenario.getUri().toString() : "";
+            String scenarioName = scenario.getName() != null ? scenario.getName() : "";
             java.util.Collection<String> tags = scenario.getSourceTagNames();
 
             if (QuarantineLoader.isQuarantinedScenario(tags, featureUri, scenarioName)) {
                 throw new org.testng.SkipException(
-                    "[Quarantined] " + scenarioName + " — "
-                    + QuarantineLoader.getScenarioReason(tags, featureUri, scenarioName)
-                );
+                        "[Quarantined] " + scenarioName + " — "
+                                + QuarantineLoader.getScenarioReason(tags, featureUri, scenarioName));
             }
         } catch (org.testng.SkipException e) {
             throw e;
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     private void safeQuitDriver() {
@@ -375,7 +401,8 @@ public class CucumberHooks {
                 if (driver != null) {
                     try {
                         driver.manage().deleteAllCookies();
-                    } catch (Throwable ignored) {}
+                    } catch (Throwable ignored) {
+                    }
                 }
             }
         } catch (Exception e) {
@@ -395,11 +422,28 @@ public class CucumberHooks {
 
     /**
      * Suite-level teardown for Cucumber runs.
-     * Quits all persistent per-suite drivers when running via Cucumber CLI, JUnit, or IDE,
-     * ensuring browsers never remain open after the test run finishes.
+     *
+     * <p>
+     * Exports metrics, generates HTML/JUnit XML reports, and quits all
+     * persistent per-suite drivers when running via Cucumber CLI, JUnit, or IDE,
+     * ensuring browsers never remain open and reports are always produced —
+     * even when TestNG's {@code SuiteExecutionListener} is not in the picture.
      */
     @AfterAll(order = 0)
     public static void afterAllScenarios() {
+        try {
+            // ── Report generation (mirrors SuiteExecutionListener.onFinish) ──
+            ExecutionMetrics.printSummary();
+            ExecutionMetrics.exportToJson();
+            io.testfly.healing.HealLog.export();
+            io.testfly.flakiness.FlakinessAnalyzer.analyze();
+            JUnitXmlReporter.export(ExecutionMetrics.getTimings(), System.currentTimeMillis());
+            ReportAdapterRegistry.generateAll();
+            HookRegistry.onSuiteEnd();
+        } catch (Throwable t) {
+            System.err.println("[CucumberHooks] Report generation failed: " + t.getMessage());
+        }
+
         try {
             DriverManager.quitAllSuiteDrivers();
             DriverManager.forceQuitDriver();
