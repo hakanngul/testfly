@@ -99,3 +99,4 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
   5. 1300+ TestNG testinden geçerek başarılı bir şekilde `.m2` ortamına deploy edildi. Plan eksiksiz tamamlandı.
 - **Bağlantılar:** [[io.testfly.loadtest.internal.JdkLoadEngine]], [[io.testfly.locator.Locator]], [[memories/scratchpad]]
 - 2026-09-29: Added SmartTriageEngine for zero-token local flakiness triage during test failure (TestExecutionListener integration).
+- 2026-09-29: Clean API Refactor, Null-safe Locator actions, SmartTriageEngine ve FuzzyHealingEngine tamamlanarak v1.0.6 tag'i ile release çıkıldı. Docs-site sürümleri 1.0.6'ya yükseltildi ve build alındı.
