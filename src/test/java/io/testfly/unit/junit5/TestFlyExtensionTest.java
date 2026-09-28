@@ -262,10 +262,10 @@ public class TestFlyExtensionTest {
     }
 
     @Test
-    public void afterEach_clearsCurrentTestId() {
+    public void afterEach_clearsCurrentTest() {
         extension.afterEach(mockContext);
 
-        contextMock.verify(TestFlyContext::clearCurrentTestId, times(1));
+        contextMock.verify(TestFlyContext::clearCurrentTest, times(1));
     }
 
     @Test
@@ -350,7 +350,7 @@ public class TestFlyExtensionTest {
 
         // Cleanup should still happen in the finally block
         multiSessionMock.verify(MultiSessionManager::clearAll, times(1));
-        contextMock.verify(TestFlyContext::clearCurrentTestId, times(1));
+        contextMock.verify(TestFlyContext::clearCurrentTest, times(1));
     }
 
     // ----------------------------------------------------------

@@ -231,6 +231,16 @@ public class CucumberHooks {
                 }
             }
 
+            // Flush soft assertions — log failures and fail scenario if not already failed
+            io.testfly.assertion.SoftAssertionCollector softCollector = io.testfly.assertion.SoftAssertions.get();
+            if (softCollector.hasFailed()) {
+                List<String> softFailures = softCollector.getFailures();
+                softFailures.forEach(msg -> StepLogger.step("[Soft Assertion Failed] " + msg, StepStatus.FAIL));
+                if (!failed) {
+                    throw new AssertionError(softFailures.size() + " soft assertion(s) failed:\n" + String.join("\n", softFailures));
+                }
+            }
+
             ExecutionMetrics.recordStatus(testId, status);
             ExecutionMetrics.markEnd(testId);
             try {
@@ -253,6 +263,8 @@ public class CucumberHooks {
             if (!noBrowser) {
                 safeQuitDriver();
             }
+            io.testfly.session.MultiSessionManager.clearAll();
+            io.testfly.assertion.SoftAssertions.clear();
             ScenarioContext.clear();
             TestDataStore.clear();
             ApiClient.clearGlobalAuth();
@@ -445,6 +457,7 @@ public class CucumberHooks {
         }
 
         try {
+            io.testfly.precondition.PreConditionRunner.clearAll();
             DriverManager.quitAllSuiteDrivers();
             DriverManager.forceQuitDriver();
         } catch (Throwable t) {

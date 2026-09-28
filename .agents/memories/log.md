@@ -36,3 +36,25 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
   2. `report-template.html` içerisindeki Step Execution Timeline bölümüne INFO/DEBUG adımlarını gizleyip açan modern hap (pill) toggle butonu (`Hide INFO / DEBUG` / `Show INFO / DEBUG`), sayaç rozeti, `localStorage` kalıcılığı ve üst çubuk genel kontrol butonu eklendi.
 - **Bağlantılar:** [[io.testfly.cucumber.CucumberHooks]], [[io.testfly.reporting.HtmlReportGenerator]], [[memories/scratchpad]]
 
+## [2026-09-28] refactor | Cucumber Full Support Parity & Lifecycle Hardening
+- **Eylem:**
+  1. `BaseCucumberSteps`: `BaseTest` ile tam eşitlik sağlamak üzere `VisualSupport`, `DbSupport`, `EmailSupport`, `AccessibilitySupport`, `PerformanceSupport`, `ClockSupport`, `BrowserSupport`, `SessionSupport`, `SoftAssertSupport`, `ContextSupport`, `TestDataSupport` eklendi.
+  2. `CucumberHooks`: Soft assertion flush ve `SoftAssertions.clear()`, `MultiSessionManager.clearAll()`, `PreConditionRunner.clearAll()` yaşam döngüsü temizlikleri eklendi.
+- **Bağlantılar:** [[io.testfly.cucumber.BaseCucumberSteps]], [[io.testfly.cucumber.CucumberHooks]], [[io.testfly.test.BaseTest]]
+
+## [2026-09-28] feature | JUnit 5 Full Support Parity, BaseJUnit5ApiTest & Lifecycle Parity
+- **Eylem:**
+  1. `BaseJUnit5Test`: TestNG `BaseTest` ile tam eşitlik sağlandı. Eksik olan 7 interface (`BrowserSupport`, `VisualSupport`, `PerformanceSupport`, `ClockSupport`, `ContextSupport`, `SoftAssertSupport`, `TestDataSupport`) eklenerek toplam 17 desteğin tamamı sağlandı.
+  2. `BaseJUnit5ApiTest`: JUnit 5 için `@NoBrowser` pure API test base sınıfı oluşturuldu.
+  3. `BaseApiTest`: TestNG tarafında `StepSupport`, `DbSupport`, `EmailSupport` eklenerek her iki framework API testlerinde tam eşitlendi.
+  4. `TestFlyExtension`:
+     - `beforeEach`: `TestFlyContext.setCurrentTest()`, `@UseAuth` ve `@TestData` otomatik injection eklendi.
+     - `afterEach`: Soft assertion flush mekanizması eklendi; başarısız soft assertion'lar testi FAILED yapıp hata fırlatıyor.
+     - `TestWatcher` & `TestAbortedException`: Quarantined ve `@Disabled` testler FAILED yerine doğru şekilde SKIPPED olarak işaretleniyor.
+     - `finally`: `SoftAssertions.clear()` ve `TestFlyContext.clearCurrentTest()` eklendi.
+  5. `TestFlyLauncherListener`: `HealLog.export()`, `DriverManager.quitAllSuiteDrivers()`, `DriverManager.quitDriver()`, `PluginRegistry.unloadAll()` eklendi.
+  6. `BaseJUnit5ParityTest` ile tüm bu eşitlikler TestNG + Mockito altında doğrulandı (1300 test %100 passed).
+- **Bağlantılar:** [[io.testfly.junit5.BaseJUnit5Test]], [[io.testfly.junit5.BaseJUnit5ApiTest]], [[io.testfly.junit5.TestFlyExtension]], [[io.testfly.junit5.TestFlyLauncherListener]], [[io.testfly.test.BaseTest]], [[io.testfly.test.BaseApiTest]]
+
+
+

@@ -31,6 +31,10 @@ import io.testfly.precondition.PreConditionRunner;
 import io.testfly.test.NoBrowser;
 import io.testfly.testmanagement.TestManagementReporter;
 import io.testfly.tracing.TraceRecorder;
+import io.testfly.assertion.SoftAssertionCollector;
+import io.testfly.assertion.SoftAssertions;
+import io.testfly.client.ApiAuth;
+import io.testfly.client.UseAuth;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -40,6 +44,7 @@ import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
+import org.junit.jupiter.api.extension.TestWatcher;
 import org.openqa.selenium.WebDriver;
 
 import java.lang.reflect.Method;
@@ -84,7 +89,7 @@ import java.util.Optional;
 public class TestFlyExtension
         implements BeforeAllCallback, AfterAllCallback,
         BeforeEachCallback, AfterEachCallback,
-        ParameterResolver, InvocationInterceptor {
+        ParameterResolver, InvocationInterceptor, TestWatcher {
 
     private ReportPortalJUnit5Bridge rpBridge;
 
@@ -109,6 +114,7 @@ public class TestFlyExtension
     public void beforeEach(ExtensionContext context) {
         String testId = testId(context);
         TestFlyContext.setCurrentTestId(testId);
+        TestFlyContext.setCurrentTest(context.getRequiredTestClass(), context.getRequiredTestMethod());
         ExecutionMetrics.clearSteps(testId);
         ExecutionMetrics.markStart(testId);
         ExecutionMetrics.recordTestClass(testId, context.getRequiredTestClass().getSimpleName());
@@ -138,11 +144,29 @@ public class TestFlyExtension
         }
 
         autoClearEmailIfEnabled();
+        applyUseAuth(context);
+        loadTestData(context);
         HookRegistry.onTestStart(testId);
 
         // ReportPortal: start test item
         if (isRpAvailable()) {
             rpBridge.beforeEach(context);
+        }
+    }
+
+    @Override
+    public void testDisabled(ExtensionContext context, Optional<String> reason) {
+        String testId = testId(context);
+        ExecutionMetrics.markStart(testId);
+        ExecutionMetrics.recordTestClass(testId, context.getRequiredTestClass().getSimpleName());
+        ExecutionMetrics.recordDescription(testId, context.getDisplayName());
+        ExecutionMetrics.recordStatus(testId, "SKIPPED");
+        ExecutionMetrics.markEnd(testId);
+        HookRegistry.onTestEnd(testId, "SKIPPED");
+        TestManagementReporter.getInstance().onTestResult(
+                context.getRequiredTestMethod(), "SKIPPED", reason.orElse(null));
+        if (isRpAvailable()) {
+            rpBridge.testDisabled(context, reason);
         }
     }
 
@@ -156,6 +180,26 @@ public class TestFlyExtension
         try {
             if (failure.isPresent()) {
                 Throwable cause = failure.get();
+
+                if (cause instanceof org.opentest4j.TestAbortedException) {
+                    ExecutionMetrics.recordStatus(testId, "SKIPPED");
+                    ExecutionMetrics.markEnd(testId);
+                    if (!noBrowser) {
+                        RecordingManager.stop();
+                    }
+                    HookRegistry.onTestEnd(testId, "SKIPPED");
+                    TestManagementReporter.getInstance().onTestResult(
+                            context.getRequiredTestMethod(), "SKIPPED", cause.getMessage());
+                    if (isRpAvailable()) {
+                        rpBridge.testDisabled(context, Optional.ofNullable(cause.getMessage()));
+                    }
+                    return;
+                }
+
+                SoftAssertionCollector softCollector = SoftAssertions.get();
+                if (softCollector.hasFailed()) {
+                    softCollector.getFailures().forEach(e -> StepLogger.step("[Soft Assertion Failed] " + e, StepStatus.FAIL));
+                }
 
                 if (!noBrowser && ConsoleErrorCollector.isEnabled()) {
                     List<String> errors = ConsoleErrorCollector.collect();
@@ -215,6 +259,35 @@ public class TestFlyExtension
                     }
                 }
 
+                // Flush soft assertions — if any failed, redirect to failure path
+                SoftAssertionCollector softCollector = SoftAssertions.get();
+                if (softCollector.hasFailed()) {
+                    List<String> softFailures = softCollector.getFailures();
+                    softFailures.forEach(msg -> StepLogger.step("[Soft Assertion Failed] " + msg, StepStatus.FAIL));
+                    String screenshotPath = noBrowser ? null : ScreenshotManager.capture(testName);
+                    ExecutionMetrics.recordScreenshot(testId, screenshotPath);
+                    String combined = softFailures.size() + " soft assertion(s) failed:\n" +
+                            String.join("\n", softFailures);
+                    AssertionError softError = new AssertionError(combined);
+                    ExecutionMetrics.recordError(testId, softError);
+                    ExecutionMetrics.recordStatus(testId, "FAILED");
+                    ExecutionMetrics.markEnd(testId);
+                    if (!noBrowser) {
+                        saveTraceIfEnabled(testId, testName, false);
+                        String recPath = RecordingManager.saveOnFailure(testId);
+                        ExecutionMetrics.recordRecording(testId, recPath);
+                    }
+                    runAiAnalysisIfEnabled(testId);
+                    HookRegistry.onTestFailure(testId, softError);
+                    TestManagementReporter.getInstance().onTestResult(
+                            context.getRequiredTestMethod(), "FAILED",
+                            softError.getMessage());
+                    if (isRpAvailable()) {
+                        rpBridge.testFailed(context, softError);
+                    }
+                    throw softError;
+                }
+
                 capturePerformanceIfEnabled(testId, context);
                 ExecutionMetrics.recordStatus(testId, "PASSED");
                 ExecutionMetrics.markEnd(testId);
@@ -244,6 +317,7 @@ public class TestFlyExtension
                 rpBridge.afterTestExecution(context);
             }
         } finally {
+            SoftAssertions.clear();
             MultiSessionManager.clearAll();
             DbConnectionFactory.closeAll();
             ScenarioContext.clear();
@@ -254,7 +328,7 @@ public class TestFlyExtension
             TestClock.autoReset();
             if (!noBrowser && DriverManager.shouldQuitAfterTest())
                 DriverManager.quitDriver();
-            TestFlyContext.clearCurrentTestId();
+            TestFlyContext.clearCurrentTest();
         }
     }
 
@@ -422,6 +496,10 @@ public class TestFlyExtension
     private boolean skipBrowser(ExtensionContext context) {
         Class<?> clazz = context.getRequiredTestClass();
         Method m = context.getRequiredTestMethod();
+        if (io.testfly.test.BaseApiTest.class.isAssignableFrom(clazz) ||
+                BaseJUnit5ApiTest.class.isAssignableFrom(clazz)) {
+            return true;
+        }
         if (io.testfly.loadtest.BaseLoadTest.class.isAssignableFrom(clazz) ||
                 io.testfly.test.support.LoadTestSupport.class.isAssignableFrom(clazz) ||
                 clazz.isAnnotationPresent(io.testfly.loadtest.LoadTest.class) ||
@@ -431,6 +509,88 @@ public class TestFlyExtension
         }
         return m.isAnnotationPresent(NoBrowser.class) ||
                 clazz.isAnnotationPresent(NoBrowser.class);
+    }
+
+    private void applyUseAuth(ExtensionContext context) {
+        UseAuth annotation = context.getRequiredTestMethod().getAnnotation(UseAuth.class);
+        if (annotation == null) {
+            annotation = context.getRequiredTestClass().getAnnotation(UseAuth.class);
+        }
+        if (annotation == null)
+            return;
+
+        String strategyName = annotation.value();
+        try {
+            TestFlyConfig.Api api = TestFlyContext.getConfig().getApi();
+            if (api == null || api.getAuth() == null)
+                return;
+            TestFlyConfig.Api.AuthStrategy strategy = api.getAuth().get(strategyName);
+            if (strategy == null) {
+                throw new IllegalStateException(
+                        "[UseAuth] No auth strategy named '" + strategyName + "' found in api.auth config");
+            }
+            ApiAuth auth = resolveAuthStrategy(strategy);
+            if (auth != null)
+                ApiClient.setGlobalAuth(auth);
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("[UseAuth] Failed to apply auth strategy '" + strategyName + "'", e);
+        }
+    }
+
+    private ApiAuth resolveAuthStrategy(TestFlyConfig.Api.AuthStrategy s) {
+        String type = s.getType();
+        if (type == null)
+            return null;
+        return switch (type.toLowerCase()) {
+            case "bearer" -> ApiAuth.bearerToken(resolveEnvVar(s.getToken()));
+            case "basic" -> ApiAuth.basicAuth(resolveEnvVar(s.getUsername()), resolveEnvVar(s.getPassword()));
+            case "oauth2" -> ApiAuth.oauth2(resolveEnvVar(s.getTokenUrl()),
+                    resolveEnvVar(s.getClientId()),
+                    resolveEnvVar(s.getClientSecret()));
+            case "apikey", "api_key", "apikey-header" -> ApiAuth.apiKey(
+                    s.getHeaderName() != null ? s.getHeaderName() : "X-Api-Key",
+                    resolveEnvVar(s.getApiKey() != null ? s.getApiKey() : s.getToken()));
+            case "apikey-query", "api_key_query" -> ApiAuth.apiKeyQuery(
+                    s.getHeaderName() != null ? s.getHeaderName() : "api_key",
+                    resolveEnvVar(s.getApiKey() != null ? s.getApiKey() : s.getToken()));
+            case "digest" -> ApiAuth.digest(resolveEnvVar(s.getUsername()), resolveEnvVar(s.getPassword()));
+            case "hmac" -> ApiAuth.hmac(resolveEnvVar(s.getApiKey()), resolveEnvVar(s.getSecret()), s.getAlgorithm());
+            case "oauth2_password", "oauth2-password", "password" -> ApiAuth.oauth2Password(
+                    resolveEnvVar(s.getTokenUrl()), resolveEnvVar(s.getClientId()),
+                    resolveEnvVar(s.getClientSecret()), resolveEnvVar(s.getUsername()), resolveEnvVar(s.getPassword()));
+            default -> throw new IllegalArgumentException(
+                    "[UseAuth] Unknown auth type: '" + type
+                            + "'. Use bearer, basic, oauth2, apiKey, digest, hmac, oauth2_password");
+        };
+    }
+
+    private String resolveEnvVar(String value) {
+        if (value == null)
+            return null;
+        if (value.startsWith("${") && value.endsWith("}")) {
+            String varName = value.substring(2, value.length() - 1);
+            String resolved = System.getenv(varName);
+            if (resolved == null)
+                resolved = System.getProperty(varName);
+            return resolved != null ? resolved : value;
+        }
+        return value;
+    }
+
+    private void loadTestData(ExtensionContext context) {
+        io.testfly.testdata.TestData annotation = context.getRequiredTestMethod()
+                .getAnnotation(io.testfly.testdata.TestData.class);
+        if (annotation == null) {
+            annotation = context.getRequiredTestClass()
+                    .getAnnotation(io.testfly.testdata.TestData.class);
+        }
+        if (annotation != null) {
+            io.testfly.testdata.TestDataStore.set(
+                    io.testfly.testdata.TestDataLoader.load(
+                            annotation.value(), annotation.sheet(), annotation.row()));
+        }
     }
 
     private void capturePerformanceIfEnabled(String testId, ExtensionContext context) {

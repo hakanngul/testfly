@@ -39,6 +39,9 @@ public class TestFlyLauncherListenerTest {
     private MockedStatic<TestManagementReporter> tmReporterMock;
     private MockedStatic<TestFlyContext> contextMock;
     private MockedStatic<BuildThresholdEnforcer> enforcerMock;
+    private MockedStatic<io.testfly.healing.HealLog> healLogMock;
+    private MockedStatic<io.testfly.driver.DriverManager> driverManagerMock;
+    private MockedStatic<io.testfly.extension.PluginRegistry> pluginRegistryMock;
 
     private TestManagementReporter mockTmReporter;
 
@@ -54,6 +57,9 @@ public class TestFlyLauncherListenerTest {
         preCondRunnerMock = mockStatic(PreConditionRunner.class);
         hookMock = mockStatic(HookRegistry.class);
         enforcerMock = mockStatic(BuildThresholdEnforcer.class);
+        healLogMock = mockStatic(io.testfly.healing.HealLog.class);
+        driverManagerMock = mockStatic(io.testfly.driver.DriverManager.class);
+        pluginRegistryMock = mockStatic(io.testfly.extension.PluginRegistry.class);
 
         mockTmReporter = mock(TestManagementReporter.class);
         tmReporterMock = mockStatic(TestManagementReporter.class);
@@ -84,6 +90,12 @@ public class TestFlyLauncherListenerTest {
             contextMock.close();
         if (enforcerMock != null)
             enforcerMock.close();
+        if (healLogMock != null)
+            healLogMock.close();
+        if (driverManagerMock != null)
+            driverManagerMock.close();
+        if (pluginRegistryMock != null)
+            pluginRegistryMock.close();
     }
 
     // ----------------------------------------------------------
@@ -144,6 +156,28 @@ public class TestFlyLauncherListenerTest {
         listener.testPlanExecutionFinished(mockTestPlan);
 
         verify(mockTmReporter).onSuiteEnd();
+    }
+
+    @Test
+    public void testPlanExecutionFinished_exportsHealLog() {
+        listener.testPlanExecutionFinished(mockTestPlan);
+
+        healLogMock.verify(io.testfly.healing.HealLog::export, times(1));
+    }
+
+    @Test
+    public void testPlanExecutionFinished_quitsAllSuiteDrivers() {
+        listener.testPlanExecutionFinished(mockTestPlan);
+
+        driverManagerMock.verify(io.testfly.driver.DriverManager::quitAllSuiteDrivers, times(1));
+        driverManagerMock.verify(io.testfly.driver.DriverManager::quitDriver, times(1));
+    }
+
+    @Test
+    public void testPlanExecutionFinished_unloadsAllPlugins() {
+        listener.testPlanExecutionFinished(mockTestPlan);
+
+        pluginRegistryMock.verify(io.testfly.extension.PluginRegistry::unloadAll, times(1));
     }
 
     // ----------------------------------------------------------

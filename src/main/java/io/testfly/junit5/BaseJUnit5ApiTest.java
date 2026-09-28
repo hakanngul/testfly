@@ -1,8 +1,7 @@
-package io.testfly.test;
+package io.testfly.junit5;
 
 import io.testfly.api.TestFlyApi;
-import io.testfly.listeners.SuiteExecutionListener;
-import io.testfly.listeners.TestExecutionListener;
+import io.testfly.test.NoBrowser;
 import io.testfly.test.support.ApiSupport;
 import io.testfly.test.support.ContextSupport;
 import io.testfly.test.support.DbSupport;
@@ -10,19 +9,21 @@ import io.testfly.test.support.EmailSupport;
 import io.testfly.test.support.SoftAssertSupport;
 import io.testfly.test.support.StepSupport;
 import io.testfly.test.support.TestDataSupport;
-import org.testng.annotations.Listeners;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * BaseApiTest is the mandatory superclass for pure API tests.
+ * Base class for pure REST API tests with JUnit 5 — the JUnit 5 equivalent of {@code BaseApiTest}.
  *
- * Same framework lifecycle as {@link BaseTest} — reporting, {@code @TestData},
- * retry, CI gates — but no browser is started.
+ * <p>Annotated with {@code @NoBrowser} so that no WebDriver session is ever created.
+ * Provides {@code apiClient()}, {@code apiGet/Post/Put/Patch/Delete}, {@code softAssert()},
+ * {@code getTestData()}, {@code ctx()}/{@code suiteCtx()}, {@code db()}, {@code mailbox()}/{@code to()},
+ * and {@code step()}.
  *
  * <pre>
- * public class UserApiTest extends BaseApiTest {
+ * class UserApiTest extends BaseJUnit5ApiTest {
  *
  *     {@literal @}Test
- *     public void createUser() {
+ *     void createUser() {
  *         ApiResponse res = apiClient().post("/api/users")
  *                 .body(Map.of("name", "John", "email", "john@example.com"))
  *                 .send();
@@ -33,11 +34,9 @@ import org.testng.annotations.Listeners;
  * </pre>
  */
 @TestFlyApi(since = "1.1.0")
-@Listeners({
-        SuiteExecutionListener.class,
-        TestExecutionListener.class
-})
-public abstract class BaseApiTest
+@ExtendWith(TestFlyExtension.class)
+@NoBrowser
+public abstract class BaseJUnit5ApiTest
         implements SoftAssertSupport, TestDataSupport, ApiSupport, ContextSupport, StepSupport, DbSupport, EmailSupport {
 
     // softAssert(), getTestData(), apiClient(), ctx()/suiteCtx(), step(), db(), mailbox()/to() — via io.testfly.test.support.*
