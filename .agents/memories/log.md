@@ -82,3 +82,10 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
 - **Bağlantılar:** [[io.testfly.context.ScenarioContext]], [[io.testfly.context.SuiteContext]], [[io.testfly.test.support.ContextSupport]], [[io.testfly.test.BasePage]]
 
 
+## [2026-09-28] fix | Framework Initialization Thread-Safety & Stability for Parallel Tests
+- **Eylem:** 
+  1. `FrameworkBootstrap.initialize()` metodu `ConfigurationLoader.class` ve `TestFlyContext.class` lock'ları ile senkronize edilerek double-checked locking uygulandı.
+  2. `TestFlyContext` üzerindeki mutation metodları (`initialize`, `setConfig`, `reset`) senkronize edildi.
+  3. `CucumberHooks.afterScenario` içine `isInitialized()` guard clause eklendi.
+  4. Yapılan thread-safety iyileştirmelerinin `mvn test` (1311 test) ile paralel çalıştırmada hatasız olduğu ve projenin tamamen stabil çalıştığı doğrulandı.
+- **Bağlantılar:** [[io.testfly.lifecycle.FrameworkBootstrap]], [[io.testfly.internal.TestFlyContext]], [[io.testfly.cucumber.CucumberHooks]], [[memories/scratchpad]]

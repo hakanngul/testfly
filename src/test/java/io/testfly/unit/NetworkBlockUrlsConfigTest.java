@@ -29,10 +29,16 @@ public class NetworkBlockUrlsConfigTest {
     }
 
     private TestFlyConfig loadYaml(String yaml) throws Exception {
-        tmp = File.createTempFile("testfly-network-", ".yml");
-        Files.writeString(tmp.toPath(), yaml);
-        System.setProperty("testfly.config", tmp.getAbsolutePath());
-        return ConfigurationLoader.load();
+        synchronized (ConfigurationLoader.class) {
+            tmp = File.createTempFile("testfly-network-", ".yml");
+            Files.writeString(tmp.toPath(), yaml);
+            System.setProperty("testfly.config", tmp.getAbsolutePath());
+            try {
+                return ConfigurationLoader.load();
+            } finally {
+                System.clearProperty("testfly.config");
+            }
+        }
     }
 
     @Test

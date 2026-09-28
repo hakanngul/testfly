@@ -1,6 +1,7 @@
 package io.testfly.unit.loadtest;
 
 import io.testfly.ci.CiEnvironmentDetector;
+import io.testfly.config.ConfigurationLoader;
 import io.testfly.config.DotEnvLoader;
 import io.testfly.healing.HealingCache;
 import io.testfly.internal.TestFlyContext;

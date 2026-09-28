@@ -11,18 +11,17 @@ char_limit: 2200
 # Aktif Çalışma Not Defteri (Scratchpad)
 
 ### 1. Aktif Odak ve Son Durum
-- **Konu:** Cucumber Entegrasyonu, Page Object Constructor & ScenarioContext.
-- **Durum:** TAMAMLANDI & DEPLOY EDİLDİ.
+- **Konu:** Core Thread-Safety, Initialization Fixes & JDK 21 Geçiş Öncesi Stabilite.
+- **Durum:** TAMAMLANDI (Tüm testler geçiyor).
 - **Yapılanlar:**
-  1. `Locator` ve `LocatorSupport` sınıflarına `WebElement` desteği (`find(element)`) ve cross-platform `robustClear` eklendi.
-  2. `BasePage` mimarisi temiz tutuldu; `ContextSupport` (`ctx()`, `suiteCtx()`) entegrasyonu doğrulandı.
-  3. `ScenarioContext` ve `SuiteContext` sınıflarına `put(key, value)` alias metodu eklendi (`set` ile eşdeğer).
-  4. Örnek `LoginPage` ve `ProductsPage` sınıflarına parametresiz (`public LoginPage() { super(); }`) constructor eklendi.
-  5. `mvn clean install -DskipTests -Dgpg.skip=true` ile `io.github.hakanngul:testfly:1.0.5` yerel maven deposuna başarıyla deploy edildi.
-- **Bekleyen İşler:** `customer-web` projesinde Cucumber adımlarının ve Page Object yapısının uygulanması.
+  1. `FrameworkBootstrap.initialize()` ve `TestFlyContext` içerisine lock mekanizması (`ConfigurationLoader.class` ve `TestFlyContext.class`) eklendi.
+  2. Paralel test çalıştırmalarında karşılaşılan `IllegalStateException` ve Context senkronizasyon problemleri önlendi.
+  3. `CucumberHooks.afterScenario` metoduna `isInitialized()` guard check eklendi.
+  4. `mvn test` komutuyla 1311 testin başarıyla ve race condition olmadan çalıştığı teyit edildi.
+- **Bekleyen İşler:** Projenin (pom.xml) ve CI pipeline'ının Java 17'den Java 21'e (JDK 21) yükseltilmesi ve güncel dil özelliklerinden (Virtual Threads, Pattern Matching vs.) faydalanılması için planlamanın uygulanması.
 
 ### 2. Kaynaklar & Bağlantılar
-- [[io.testfly.locator.Locator]]
-- [[io.testfly.test.support.LocatorSupport]]
-- [[io.testfly.test.BasePage]]
-- [[io.testfly.cucumber.BaseCucumberSteps]]
+- [[io.testfly.lifecycle.FrameworkBootstrap]]
+- [[io.testfly.internal.TestFlyContext]]
+- [[io.testfly.config.ConfigurationLoader]]
+- [[io.testfly.cucumber.CucumberHooks]]

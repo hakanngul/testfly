@@ -70,10 +70,16 @@ public class FeatureGateTest {
     }
 
     private TestFlyConfig loadYaml(String yaml) throws Exception {
-        tmp = File.createTempFile("testfly-features-", ".yml");
-        Files.writeString(tmp.toPath(), yaml);
-        System.setProperty("testfly.config", tmp.getAbsolutePath());
-        return ConfigurationLoader.load();
+        synchronized (ConfigurationLoader.class) {
+            tmp = File.createTempFile("testfly-features-", ".yml");
+            Files.writeString(tmp.toPath(), yaml);
+            System.setProperty("testfly.config", tmp.getAbsolutePath());
+            try {
+                return ConfigurationLoader.load();
+            } finally {
+                System.clearProperty("testfly.config");
+            }
+        }
     }
 
     private static final String MINIMAL_YAML = String.join("\n",

@@ -1,6 +1,7 @@
 package io.testfly.unit.lifecycle;
 
 import io.testfly.ci.CiEnvironmentDetector;
+import io.testfly.config.ConfigurationLoader;
 import io.testfly.config.DotEnvLoader;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.healing.HealingCache;

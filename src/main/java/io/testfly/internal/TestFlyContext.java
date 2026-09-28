@@ -19,7 +19,7 @@ public final class TestFlyContext {
         // utility class
     }
 
-    public static void initialize(TestFlyConfig testFlyConfig) {
+    public static synchronized void initialize(TestFlyConfig testFlyConfig) {
         if (testFlyConfig == null) {
             throw new IllegalArgumentException("TestFlyConfig must not be null");
         }
@@ -28,7 +28,7 @@ public final class TestFlyContext {
     }
 
     /** Forces or overrides the configuration (used for testing and profile reloads). */
-    public static void setConfig(TestFlyConfig testFlyConfig) {
+    public static synchronized void setConfig(TestFlyConfig testFlyConfig) {
         if (testFlyConfig == null) {
             throw new IllegalArgumentException("TestFlyConfig must not be null");
         }
@@ -36,7 +36,7 @@ public final class TestFlyContext {
     }
 
     /** Resets the context state (used between test suites). */
-    public static void reset() {
+    public static synchronized void reset() {
         CONFIG.set(null);
         CURRENT_TEST.remove();
     }

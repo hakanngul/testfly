@@ -137,7 +137,7 @@ public class CucumberHooks {
         try {
             boolean failed = scenario.isFailed();
             String status = resolveStatus(scenario);
-            TestFlyConfig cfg = TestFlyContext.getConfig();
+            TestFlyConfig cfg = TestFlyContext.isInitialized() ? TestFlyContext.getConfig() : null;
             TestFlyConfig.Recording rec = cfg != null ? cfg.getRecording() : null;
 
             if (failed) {
