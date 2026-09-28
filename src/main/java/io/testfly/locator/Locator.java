@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -36,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * </pre>
  */
 @TestFlyApi(since = "1.4.0")
-public final class Locator {
+public final class Locator extends By {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Locator.class);
 
@@ -478,6 +479,15 @@ public final class Locator {
         return resolveAll().stream()
                 .filter(WebElement::isDisplayed)
                 .toList();
+    }
+
+    // ------------------------------------------------------------------
+    // Selenium 'By' Compatibility
+    // ------------------------------------------------------------------
+
+    @Override
+    public List<WebElement> findElements(SearchContext context) {
+        return resolveAll();
     }
 
     // ------------------------------------------------------------------
