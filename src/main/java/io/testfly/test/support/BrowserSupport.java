@@ -90,14 +90,4 @@ public interface BrowserSupport {
     default void clearConsoleErrors() {
         io.testfly.browser.ConsoleErrorCollector.clear();
     }
-
-    /** Emulates a mobile/tablet device (e.g., "iPhone 14") for the current session. */
-    default void emulateDevice(String deviceName) {
-        io.testfly.browser.DeviceEmulator.emulate(deviceName);
-    }
-
-    /** Resets device emulation back to default desktop viewport. */
-    default void resetDevice() {
-        io.testfly.browser.DeviceEmulator.reset();
-    }
 }

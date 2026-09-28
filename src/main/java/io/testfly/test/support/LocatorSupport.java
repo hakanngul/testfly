@@ -14,7 +14,7 @@ import org.openqa.selenium.WebElement;
  * Adding a new {@code getBy*} strategy only requires changing this interface.
  *
  * <p>All methods delegate to the static factories in {@link Locator}:
- * {@link Locator#ofCss(String)}, {@link Locator#of(By)}, {@link Locator#byRole(Role)}, etc.
+ * {@link Locator#byCss(String)}, {@link Locator#of(By)}, {@link Locator#byRole(Role)}, etc.
  */
 @TestFlyApi(since = "1.10.0")
 public interface LocatorSupport {
