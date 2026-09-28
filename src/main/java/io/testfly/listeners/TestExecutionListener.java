@@ -227,6 +227,19 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         org.slf4j.LoggerFactory.getLogger(TestExecutionListener.class)
                 .info("❌ Test failed: {}", testId);
 
+        if (result.getThrowable() != null) {
+            io.testfly.flakiness.SmartTriageEngine.TriageResult triage = 
+                io.testfly.flakiness.SmartTriageEngine.triageFailure(result.getThrowable(), false);
+            
+            String triageMsg = "[Triage] " + triage;
+            if (triage == io.testfly.flakiness.SmartTriageEngine.TriageResult.SYSTEM_FLAKY) {
+                System.out.println("⚠️ " + triageMsg + " -> This is likely an infrastructure/flaky issue.");
+            } else if (triage == io.testfly.flakiness.SmartTriageEngine.TriageResult.APPLICATION_BUG) {
+                System.out.println("🐞 " + triageMsg + " -> This is likely an application bug (Assertion).");
+            }
+            io.testfly.steps.StepLogger.step(triageMsg, io.testfly.steps.StepStatus.WARN);
+        }
+
         if (!skipBrowser(result) && ConsoleErrorCollector.isEnabled() && !jsErrorsLogged.get()) {
             List<String> errors = ConsoleErrorCollector.collect();
             errors.forEach(e -> StepLogger.step("[JS Error] " + e, StepStatus.WARN));

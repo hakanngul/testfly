@@ -98,3 +98,4 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
   4. Locator tipi çözümleme switch'i `buildRoot()` içinde Java 21 Exhaustive Switch Expression (oklu yapı) formatına taşındı.
   5. 1300+ TestNG testinden geçerek başarılı bir şekilde `.m2` ortamına deploy edildi. Plan eksiksiz tamamlandı.
 - **Bağlantılar:** [[io.testfly.loadtest.internal.JdkLoadEngine]], [[io.testfly.locator.Locator]], [[memories/scratchpad]]
+- 2026-09-29: Added SmartTriageEngine for zero-token local flakiness triage during test failure (TestExecutionListener integration).

@@ -2,8 +2,6 @@ package io.testfly.locator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-
 import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.JavascriptExecutor;
@@ -404,7 +402,8 @@ public final class Locator extends By {
     }
 
     /**
-     * Returns the input element's current text value (shorthand for {@code getAttribute("value")}).
+     * Returns the input element's current text value (shorthand for
+     * {@code getAttribute("value")}).
      */
     public String getValue() {
         return getAttribute("value");
@@ -513,7 +512,9 @@ public final class Locator extends By {
         return candidates.getFirst();
     }
 
-    /** True when any chain filter (filter/withText/within/nth/name/last) is applied. */
+    /**
+     * True when any chain filter (filter/withText/within/nth/name/last) is applied.
+     */
     private boolean hasChainFilters() {
         return filterCss != null || withText != null || withinContainer != null
                 || nthIndex >= 0 || accessibleName != null || selectLast;
