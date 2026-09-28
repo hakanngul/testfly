@@ -17,6 +17,19 @@ _Henüz bir değişiklik yok._
 
 ---
 
+## [1.0.6] — 2026-09-29
+
+### Değişenler
+- **Clean API Refactor**: `Locator` sınıfı gereksiz öneklerden (`ofCss`, `inputValue`, `getValue`) arındırılarak daha sade ve tek tip (zero-boilerplate) bir API'ye kavuşturuldu.
+- **Support Interface Kapsamı**: `Support` arayüzleri (`ApiSupport`, `BrowserSupport`, `LocatorSupport`) alt motorların tüm yeteneklerini %100 kapsayacak şekilde genişletildi.
+- **Null-safe Aksiyonlar**: `Locator.type()` ve `Locator.append()` metotları artık tamamen null-safe; `null` veya `""` geçildiğinde hata fırlatmak yerine elementi güvenle temizliyor.
+
+### Eklenenler
+- **Akıllı Hata Triyajı (`SmartTriageEngine`)**: Flaky elementleri dış API veya LLM'e gitmeden lokal heuristiklerle yakalayan otomatik analiz motoru eklendi.
+- **Fuzzy Self-Healing (`FuzzyHealingEngine`)**: Levenshtein distance ve DOM heuristikleri kullanarak API'siz hızlı self-healing özelliği eklendi.
+
+---
+
 ## [1.0.5] — 2026-09-12
 
 ### Eklenenler — İnteraktif Web Kaydedici & Web Stüdyosu (`testfly record`)

@@ -13,6 +13,19 @@ _Nothing yet._
 
 ---
 
+## [1.0.6] — 2026-09-29
+
+### Changed
+- **Clean API Refactor**: Refactored `Locator` to remove redundant prefix methods (`ofCss`, `inputValue`, `getValue`) to embrace a unified, zero-boilerplate API.
+- **Support Interface Completeness**: Ensured 100% method delegation parity for all `Support` interfaces (`ApiSupport`, `BrowserSupport`, `LocatorSupport`), fully wrapping the internal engines.
+- **Null-safe Actions**: `Locator.type()` and `Locator.append()` are now completely null-safe; passing `null` or `""` will gracefully clear the element without throwing exceptions.
+
+### Added
+- **Smart Flakiness Triage (`SmartTriageEngine`)**: Local heuristic engine that catches flaky elements automatically without external LLM calls.
+- **Fuzzy Self-Healing (`FuzzyHealingEngine`)**: Non-API based fast-fallback healing system using Levenshtein distance and localized DOM heuristics.
+
+---
+
 ## [1.0.5] — 2026-09-12
 
 ### Added — Interactive Web Recorder & Web Studio (`testfly record`)

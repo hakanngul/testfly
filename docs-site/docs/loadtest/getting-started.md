@@ -30,7 +30,7 @@ Ensure you have TestFly `1.1.0` or higher in your project:
 <dependency>
     <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.1.0</version>
+    <version>1.0.6</version>
     <scope>test</scope>
 </dependency>
 ```
