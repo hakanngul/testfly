@@ -15,7 +15,7 @@
 
 Three files. Copy them as-is and `mvn test` goes green against a real Chrome.
 
-**Prerequisites:** Java 17+, Maven 3.8+, Chrome installed. No WebDriver binaries — Selenium Manager fetches them.
+**Prerequisites:** Java 21+, Maven 3.8+, Chrome installed. No WebDriver binaries — Selenium Manager fetches them.
 
 **1. `pom.xml`**
 
@@ -165,7 +165,7 @@ Outcomes first — the API that delivers each one is named so you can find it in
 
 ### Prerequisites
 
-- Java 17+
+- Java 21+
 - Maven 3.8+
 - Chrome or Firefox installed
 

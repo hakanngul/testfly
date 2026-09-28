@@ -42,7 +42,7 @@ It is published to Maven Central as a single JAR that users add as a dependency.
 
 - **Group / Artifact:** `io.testfly:testfly`
 - **Current version:** `1.1.0`
-- **Java baseline:** 17 (compiled with `--release 17`)
+- **Java baseline:** 21 (compiled with `--release 21`)
 - **Build tool:** Maven 3.8+
 - **Primary test framework:** TestNG 7.9.0
 - **License:** Apache License 2.0
