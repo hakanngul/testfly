@@ -11,16 +11,15 @@ char_limit: 2200
 # Aktif Çalışma Not Defteri (Scratchpad)
 
 ### 1. Aktif Odak ve Son Durum
-- **Konu:** Locator WebElement Desteği & BasePage Mimari Temizliği.
+- **Konu:** Cucumber Entegrasyonu, Page Object Constructor & ScenarioContext.
 - **Durum:** TAMAMLANDI & DEPLOY EDİLDİ.
 - **Yapılanlar:**
-  1. `Locator` sınıfına `Kind.ELEMENT` ve `Locator.of(WebElement element)` eklendi; doğrudan WebElement üzerinden `click()`, `type()`, `clear()`, `getText()`, `isVisible()` gibi tüm akıcı metodlar erişilebilir hale getirildi.
-  2. `LocatorSupport` içine `default Locator find(WebElement element)` eklendi. Böylece `BasePage`, `BaseTest`, `BaseCucumberSteps` doğrudan `find(element)` ile akıcı API'ye bağlandı.
-  3. `BasePage` içine geçici olarak eklenen redundant `WebElement` metodları tamamen temizlendi, bloat önlendi (YAGNI & Single Responsibility).
-  4. `Locator.clear()` ve `Locator.robustClear(WebElement el)` mekanizmasıyla cross-platform input temizleme sağlandı.
-  5. `BasePageTest` ve `LocatorTest` güncellendi, 29/29 test başarıyla geçti.
-  6. `mvn clean install -DskipTests -Dgpg.skip=true` ile `io.github.hakanngul:testfly:1.0.5` yerel maven deposuna başarıyla deploy edildi.
-- **Bekleyen İşler:** Customer Web için sıfırdan oluşturulacak proje yapısının ayağa kaldırılması.
+  1. `Locator` ve `LocatorSupport` sınıflarına `WebElement` desteği (`find(element)`) ve cross-platform `robustClear` eklendi.
+  2. `BasePage` mimarisi temiz tutuldu; `ContextSupport` (`ctx()`, `suiteCtx()`) entegrasyonu doğrulandı.
+  3. `ScenarioContext` ve `SuiteContext` sınıflarına `put(key, value)` alias metodu eklendi (`set` ile eşdeğer).
+  4. Örnek `LoginPage` ve `ProductsPage` sınıflarına parametresiz (`public LoginPage() { super(); }`) constructor eklendi.
+  5. `mvn clean install -DskipTests -Dgpg.skip=true` ile `io.github.hakanngul:testfly:1.0.5` yerel maven deposuna başarıyla deploy edildi.
+- **Bekleyen İşler:** `customer-web` projesinde Cucumber adımlarının ve Page Object yapısının uygulanması.
 
 ### 2. Kaynaklar & Bağlantılar
 - [[io.testfly.locator.Locator]]

@@ -74,4 +74,11 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
   5. `mvn clean install -DskipTests -Dgpg.skip=true` ile `io.github.hakanngul:testfly:1.0.5` yerel maven deposuna başarıyla deploy edildi.
 - **Bağlantılar:** [[io.testfly.locator.Locator]], [[io.testfly.test.support.LocatorSupport]], [[io.testfly.test.BasePage]]
 
+## [2026-09-28] enhancement | ScenarioContext Put Alias & Page Constructors Local Deploy
+- **Eylem:**
+  1. `ScenarioContext` & `SuiteContext`: `put(String key, Object value)` alias metodu eklendi (`set` ile birebir eşdeğer).
+  2. `LoginPage` & `ProductsPage`: Parametresiz (`public LoginPage() { super(); }`) constructor eklendi.
+  3. `mvn clean install -DskipTests -Dgpg.skip=true` çalıştırılarak `io.github.hakanngul:testfly:1.0.5` JAR, kaynak kod ve javadoc'ları yerel `~/.m2` deposuna yüklendi.
+- **Bağlantılar:** [[io.testfly.context.ScenarioContext]], [[io.testfly.context.SuiteContext]], [[io.testfly.test.support.ContextSupport]], [[io.testfly.test.BasePage]]
+
 

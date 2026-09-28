@@ -346,6 +346,20 @@ public final class Locator {
         return waitForVisible(resolve()).getAttribute(name);
     }
 
+    /**
+     * Returns the input element's current text value (shorthand for {@code getAttribute("value")}).
+     */
+    public String getValue() {
+        return getAttribute("value");
+    }
+
+    /**
+     * Returns the input element's current text value (Playwright-compatible alias).
+     */
+    public String inputValue() {
+        return getValue();
+    }
+
     /** Returns true if the element is present and displayed — does NOT wait. */
     public boolean isVisible() {
         try {

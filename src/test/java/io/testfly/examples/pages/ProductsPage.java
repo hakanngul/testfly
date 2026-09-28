@@ -13,6 +13,10 @@ public class ProductsPage extends BasePage {
     private static final By FIRST_ADD_TO_CART_BUTTON = By.cssSelector(".inventory_item:first-child .btn_inventory");
     private static final By CART_BADGE = By.className("shopping_cart_badge");
 
+    public ProductsPage() {
+        super();
+    }
+
     public ProductsPage(WebDriver driver) {
         super(driver);
     }
