@@ -477,7 +477,7 @@ public final class Locator {
     public List<WebElement> elements() {
         return resolveAll().stream()
                 .filter(WebElement::isDisplayed)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // ------------------------------------------------------------------
@@ -533,7 +533,7 @@ public final class Locator {
         if (accessibleName != null) {
             candidates = candidates.stream()
                     .filter(el -> nameMatches(d, el, accessibleName))
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         // apply filter
@@ -548,7 +548,7 @@ public final class Locator {
                             return false;
                         }
                     })
-                    .collect(Collectors.toList());
+                    .toList();
 
             // simpler: keep elements that themselves match the extra css selector
             // re-query from parent if possible, else filter by attribute
@@ -571,7 +571,7 @@ public final class Locator {
                             return false;
                         }
                     })
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         // apply nth
@@ -603,7 +603,7 @@ public final class Locator {
             } catch (Exception ignored) {
                 return false;
             }
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     private boolean matchesCss(WebElement el, String css) {

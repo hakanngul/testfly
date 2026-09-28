@@ -143,8 +143,8 @@ public final class BrowserSessionCache {
                 "  var k = localStorage.key(i); items[k] = localStorage.getItem(k); " +
                 "} return items;"
             );
-            if (raw instanceof Map) {
-                ((Map<?, ?>) raw).forEach((k, v) -> result.put(String.valueOf(k), String.valueOf(v)));
+            if (raw instanceof Map<?,?> map) {
+                map.forEach((k, v) -> result.put(String.valueOf(k), String.valueOf(v)));
             }
         } catch (Exception ignored) {}
         return result;

@@ -173,7 +173,7 @@ public final class FlakinessAnalyzer {
                 m.put("failureRate", Math.round(s.failureRate() * 10.0) / 10.0);
                 m.put("risk", s.risk().name());
                 return m;
-            }).collect(Collectors.toList());
+            }).toList();
 
             Map<String, Object> root = new LinkedHashMap<>();
             root.put("analysedTests", scores.size());
