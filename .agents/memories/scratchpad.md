@@ -18,7 +18,10 @@ char_limit: 2200
   2. Tüm framework genelinde (Repo-wide) Java 16+ `.toList()` kullanımı yapıldı (`Collectors.toList()` kaldırıldı).
   3. Tüm framework genelinde `instanceof` castingleri Java 21 Pattern Matching (örn. `instanceof JavascriptExecutor js`) ile yenilendi.
   4. Tüm testlerin başarıyla geçtiği onaylanıp Git'e commit edildi.
-- **Bekleyen İşler:** Record sınıfları ve Switch Expressions dönüşümleri (istenirse).
+- **Bekleyen İşler / Gelecek Planları (TypeSafe AI):** 
+  1. `Smart Flakiness Triage`: Hata olan testlerin analizini AiProvider ile yapıp flaky/bug ayrımı sağlamak.
+  2. `Zero-Code Page Object Generator`: `testfly-mcp` adında bir Model Context Protocol sunucusu yazıp IDE içinden tek komutla Locator sınıfı ürettirmek.
+  3. ~~`AiHealingEngine` sınıfını klasik LLM promptundan TypeSafe `Choice` modeline geçirmek.~~ -> **TAMAMLANDI:** Harici API çağrısı yapmadan 0 maliyetli Lokal Java Algoritması `FuzzyHealingEngine` (Levenshtein & Puanlama) yazılarak `SelfHealingLocator` içerisine entegre edildi. Testler eklendi ve başarıyla geçti.
 
 ### 2. Kaynaklar & Bağlantılar
 - [[io.testfly.locator.Locator]]

@@ -108,6 +108,16 @@ public final class SelfHealingLocator {
             }
         }
 
+        // Fuzzy Logic path: zero-token local attribute & text scoring
+        WebElement fuzzyHealed = FuzzyHealingEngine.tryFuzzyHeal(driver, original);
+        if (fuzzyHealed != null) {
+            // Log fuzzy match. We don't have a single clean 'By' string, so we save its generic tag/classes
+            String healedDesc = String.format("<%s class='%s'>", fuzzyHealed.getTagName(), fuzzyHealed.getAttribute("class"));
+            HealEvent event = new HealEvent(testId, desc, healedDesc, "fuzzy-logic");
+            HealLog.record(event);
+            return fuzzyHealed;
+        }
+
         // AI path: if static fallbacks fail and AI healing is enabled, consult LLM
         if (isAiHealingEnabled()) {
             WebElement aiHealed = AiHealingEngine.heal(driver, original, testId);
