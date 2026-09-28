@@ -119,7 +119,7 @@ public final class JdkLoadEngine implements LoadTestEngine {
 
         // ── Execution ──
         long startTimeMs = System.currentTimeMillis();
-        ExecutorService executor = Executors.newFixedThreadPool(users);
+        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
         CountDownLatch allDone = new CountDownLatch(users);
         AtomicLong activeUsers = new AtomicLong(0);
 
