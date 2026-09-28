@@ -14,6 +14,9 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.driver.DriverManager;
 import io.testfly.steps.StepLogger;
 import io.testfly.wait.WaitEngine;
+import org.openqa.selenium.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Chainable, auto-waiting element locator.
@@ -35,9 +38,11 @@ import io.testfly.wait.WaitEngine;
 @TestFlyApi(since = "1.4.0")
 public final class Locator {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Locator.class);
+
     /** How the base set of candidate elements is derived. */
     private enum Kind {
-        CSS_OR_BY, ROLE, TEXT, LABEL, PLACEHOLDER, TESTID, ALT_TEXT, TITLE
+        CSS_OR_BY, ROLE, TEXT, LABEL, PLACEHOLDER, TESTID, ALT_TEXT, TITLE, ELEMENT
     }
 
     /** Default attribute used by {@link #byTestId(String)} — overridable. */
@@ -51,6 +56,7 @@ public final class Locator {
 
     private final Kind kind;
     private final By root; // set only for Kind.CSS_OR_BY
+    private final WebElement directElement; // set only for Kind.ELEMENT
     private Role semanticRole; // set only for Kind.ROLE
     private String semanticValue; // raw text/attr value for the semantic kinds
     private Integer headingLevel; // optional heading level filter
@@ -68,6 +74,20 @@ public final class Locator {
 
     public static Locator of(By by) {
         return new Locator(by);
+    }
+
+    /**
+     * Creates a chainable {@link Locator} wrapping an existing {@link WebElement}.
+     *
+     * @param element the WebElement to wrap
+     * @return a Locator wrapping the given element
+     */
+    @TestFlyApi(since = "1.0.5")
+    public static Locator of(WebElement element) {
+        if (element == null) {
+            throw new IllegalArgumentException("WebElement cannot be null");
+        }
+        return new Locator(element);
     }
 
     public static Locator ofCss(String css) {
@@ -131,11 +151,19 @@ public final class Locator {
     private Locator(By root) {
         this.kind = Kind.CSS_OR_BY;
         this.root = root;
+        this.directElement = null;
     }
 
     private Locator(Kind kind) {
         this.kind = kind;
         this.root = null;
+        this.directElement = null;
+    }
+
+    private Locator(WebElement element) {
+        this.kind = Kind.ELEMENT;
+        this.root = null;
+        this.directElement = element;
     }
 
     // ------------------------------------------------------------------
@@ -240,6 +268,10 @@ public final class Locator {
      * use the terminal actions for the fully-resolved element.
      */
     public By toBy() {
+        if (kind == Kind.ELEMENT) {
+            throw new UnsupportedOperationException(
+                    "Locator wrapping a direct WebElement cannot be converted to By. Use element() instead.");
+        }
         return buildRoot();
     }
 
@@ -254,12 +286,45 @@ public final class Locator {
     }
 
     /**
-     * Waits for the element to be visible, clears it, then types the given text.
+     * Waits for the element to be visible, then robustly clears its text content.
+     * Uses Command+A (macOS) and Control+A (Windows/Linux) followed by native clear
+     * to ensure controlled inputs (React, Vue, Angular) and cross-platform browsers
+     * clear completely.
+     */
+    public void clear() {
+        StepLogger.step("Clear " + this);
+        WebElement el = waitForVisible(resolve());
+        robustClear(el);
+    }
+
+    /**
+     * Robustly clears the given {@link WebElement} across all platforms (macOS
+     * Command+A,
+     * Windows/Linux Control+A) followed by native clear.
+     *
+     * @param el target WebElement to clear
+     */
+    public static void robustClear(WebElement el) {
+        if (el == null) {
+            return;
+        }
+        try {
+            el.sendKeys(Keys.chord(Keys.COMMAND, "a"), Keys.BACK_SPACE);
+            el.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.BACK_SPACE);
+            el.clear();
+        } catch (Exception e) {
+            LOGGER.warn("Robust clear işlemi sırasında hata oluştu: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Waits for the element to be visible, clears it robustly, then types the given
+     * text.
      */
     public void type(String text) {
         StepLogger.step("Type into " + this);
         WebElement el = waitForVisible(resolve());
-        el.clear();
+        robustClear(el);
         el.sendKeys(text);
     }
 
@@ -372,6 +437,10 @@ public final class Locator {
     }
 
     private List<WebElement> resolveAll() {
+        if (kind == Kind.ELEMENT) {
+            return directElement != null ? new ArrayList<>(List.of(directElement)) : new ArrayList<>();
+        }
+
         WebDriver d = driver();
         By effectiveRoot = buildRoot();
         List<WebElement> candidates;
@@ -504,6 +573,8 @@ public final class Locator {
                 return By.cssSelector(attrCss("title", semanticValue, exact));
             case TESTID:
                 return By.cssSelector("[" + testIdAttribute + "='" + cssEscape(semanticValue) + "']");
+            case ELEMENT:
+                throw new UnsupportedOperationException("Kind.ELEMENT does not have a By representation.");
             default:
                 throw new LocatorException("Unsupported locator kind: " + kind);
         }
@@ -620,6 +691,12 @@ public final class Locator {
     // ------------------------------------------------------------------
 
     private WebDriver driver() {
+        if (kind == Kind.ELEMENT && directElement instanceof org.openqa.selenium.WrapsDriver wrapsDriver) {
+            WebDriver d = wrapsDriver.getWrappedDriver();
+            if (d != null) {
+                return d;
+            }
+        }
         return DriverManager.getDriver();
     }
 
@@ -662,9 +739,11 @@ public final class Locator {
                 return "getByAltText(\"" + semanticValue + "\")";
             case TITLE:
                 return "getByTitle(\"" + semanticValue + "\")";
+            case ELEMENT:
+                return "WebElement[" + directElement + "]";
             case CSS_OR_BY:
             default:
-                return root.toString();
+                return root != null ? root.toString() : "empty";
         }
     }
 

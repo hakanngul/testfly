@@ -37,12 +37,22 @@ public class CucumberHooksTest {
     private MockedStatic<DriverManager> driverManagerMock;
     private MockedStatic<RecordingManager> recordingManagerMock;
     private MockedStatic<ScreenshotManager> screenshotManagerMock;
+    private MockedStatic<io.testfly.lifecycle.FrameworkBootstrap> frameworkBootstrapMock;
 
     @BeforeMethod
     public void setup() {
         driverManagerMock = mockStatic(DriverManager.class);
         recordingManagerMock = mockStatic(RecordingManager.class);
         screenshotManagerMock = mockStatic(ScreenshotManager.class);
+        frameworkBootstrapMock = mockStatic(io.testfly.lifecycle.FrameworkBootstrap.class);
+
+        if (!TestFlyContext.isInitialized()) {
+            TestFlyConfig config = new TestFlyConfig();
+            TestFlyConfig.Execution execution = new TestFlyConfig.Execution();
+            execution.setMode("local");
+            config.setExecution(execution);
+            TestFlyContext.setConfig(config);
+        }
     }
 
     @AfterMethod
@@ -50,6 +60,7 @@ public class CucumberHooksTest {
         if (driverManagerMock != null) driverManagerMock.close();
         if (recordingManagerMock != null) recordingManagerMock.close();
         if (screenshotManagerMock != null) screenshotManagerMock.close();
+        if (frameworkBootstrapMock != null) frameworkBootstrapMock.close();
         CucumberContext.clear();
         TestFlyContext.clearCurrentTestId();
     }

@@ -56,5 +56,22 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
   6. `BaseJUnit5ParityTest` ile tüm bu eşitlikler TestNG + Mockito altında doğrulandı (1300 test %100 passed).
 - **Bağlantılar:** [[io.testfly.junit5.BaseJUnit5Test]], [[io.testfly.junit5.BaseJUnit5ApiTest]], [[io.testfly.junit5.TestFlyExtension]], [[io.testfly.junit5.TestFlyLauncherListener]], [[io.testfly.test.BaseTest]], [[io.testfly.test.BaseApiTest]]
 
+## [2026-09-28] feature | BasePage Navigation & Window Management Integration
+- **Eylem:**
+  1. `BasePage`: `NavigationSupport` ve `ContextSupport` implemente edildi. Sayfa nesneleri için lazy `DriverManager` kullanan no-arg `protected BasePage()` constructor'ı eklendi.
+  2. `NavigationSupport`: `open()`, `open(path)`, `navigateTo()`, `getCurrentUrl()`, `getTitle()`, `refresh()`, `back()`, `forward()`, `waitForPageLoad()`, `waitForUrlContains()`, `waitForTitle()` gibi temel navigasyon ve bekleme metodlarının yanı sıra sekme/pencere (`switchToNewTab()`, `switchToMainTab()`, `closeCurrentTabAndSwitchBack()`, `switchToTab()`) ve viewport (`zoom()`, `scrollBy()`) yetenekleriyle donatıldı.
+  3. Redundant `WindowSupport` interface'i kaldırıldı; tüm yetenekler tek çatı altında `NavigationSupport`'ta toplandı.
+  4. `BasePageTest` (10 test) eklendi.
+  5. `mvn clean install` ile `1.0.5` sürümü `~/.m2` yerel deposuna güncellendi.
+- **Bağlantılar:** [[io.testfly.test.BasePage]], [[io.testfly.test.support.NavigationSupport]], [[io.testfly.test.BaseTest]], [[io.testfly.cucumber.BaseCucumberSteps]]
+
+## [2026-09-28] feature | Locator WebElement Support & BasePage Clean Architecture
+- **Eylem:**
+  1. `Locator`: `Kind.ELEMENT` ve `Locator.of(WebElement element)` eklendi; raw `WebElement` referansları üzerinden tüm akıcı metodlar (`click()`, `type()`, `clear()`, `getText()`, `isVisible()`, `hover()`, `scrollIntoView()`, `jsClick()`) auto-wait ile çalışır hale getirildi.
+  2. `LocatorSupport`: `default Locator find(WebElement element)` ve `$(WebElement element)` eklendi.
+  3. `BasePage`: Geçici olarak eklenmiş redundant WebElement helper metodları geri alındı, mimari temizlik ve SRP korundu.
+  4. `BasePageTest` ve `LocatorTest` (29 test) ile doğrulandı.
+  5. `mvn clean install -DskipTests -Dgpg.skip=true` ile `io.github.hakanngul:testfly:1.0.5` yerel maven deposuna başarıyla deploy edildi.
+- **Bağlantılar:** [[io.testfly.locator.Locator]], [[io.testfly.test.support.LocatorSupport]], [[io.testfly.test.BasePage]]
 
 

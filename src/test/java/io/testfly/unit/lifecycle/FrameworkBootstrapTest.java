@@ -72,6 +72,7 @@ public class FrameworkBootstrapTest {
 
     private static void resetStateInternal() {
         try {
+            System.clearProperty("testfly.config");
             resetTestFlyContext();
             resetDotEnvLoader();
             resetHealingCache();

@@ -4,6 +4,7 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.locator.Locator;
 import io.testfly.locator.Role;
 import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
 
 /**
  * Shared locator factory — single source of truth for {@code find()} / {@code $()} / {@code getBy*()}.
@@ -32,6 +33,11 @@ public interface LocatorSupport {
         return Locator.of(by);
     }
 
+    /** Creates a chainable {@link Locator} wrapping an existing {@link WebElement}. */
+    default Locator find(WebElement element) {
+        return Locator.of(element);
+    }
+
     /**
      * Creates a chainable {@link Locator} from a CSS selector.
      *
@@ -50,6 +56,16 @@ public interface LocatorSupport {
     @Deprecated(since = "1.1.0", forRemoval = true)
     default Locator $(By by) {
         return find(by);
+    }
+
+    /**
+     * Creates a chainable {@link Locator} wrapping an existing {@link WebElement}.
+     *
+     * @deprecated Use {@link #find(WebElement)} instead. Scheduled for removal in 2.0.0.
+     */
+    @Deprecated(since = "1.1.0", forRemoval = true)
+    default Locator $(WebElement element) {
+        return find(element);
     }
 
     // ----------------------------------------------------------
