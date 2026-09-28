@@ -387,13 +387,17 @@ public final class Locator extends By {
         StepLogger.step("Type into " + this);
         WebElement el = waitForVisible(resolve());
         robustClear(el);
-        el.sendKeys(text);
+        if (text != null && !text.isEmpty()) {
+            el.sendKeys(text);
+        }
     }
 
     /** Appends text without clearing first. */
     public void append(String text) {
         StepLogger.step("Append into " + this);
-        waitForVisible(resolve()).sendKeys(text);
+        if (text != null && !text.isEmpty()) {
+            waitForVisible(resolve()).sendKeys(text);
+        }
     }
 
     /** Waits for the element to be visible and returns its trimmed visible text. */
