@@ -41,6 +41,7 @@ Tüm sayfalar birbirine ve `[[MAP]]` ana haritasına çift yönlü bağlantılar
 ### 4. Kalıcı Hafıza ve Ajan Altyapısı (Agent & Memory)
 - `[[wiki/memory-system]]` — "2 Yol & 3 Parça", TestFly hafıza döngüsü ve Obsidian Graph yapısı.
 - `[[rules/memory-protocol]]` — Ajanlar için bağlayıcı hafıza kuralları.
+- `[[memories/log]]` — Kronolojik append-only günlük (ingest, query, lint tarihçesi).
 
 ### 5. Yapılandırma ve Ortamlar (Configuration)
 - `[[wiki/configuration]]` — `testfly.yml`, profil yönetimi ve ortam değişkenleri.
@@ -53,3 +54,4 @@ Tüm sayfalar birbirine ve `[[MAP]]` ana haritasına çift yönlü bağlantılar
 - Ajan Ruhu: `[[soul]]`
 - Çalışma Masası: `[[memories/scratchpad]]`
 - Hafıza Senkronizasyonu: `[[skills/memory-sync/SKILL]]`
+- Wiki Sağlık Kontrolü: `[[skills/wiki-lint/SKILL]]`

@@ -1,1 +1,14 @@
-{}
+{
+  "interfaceFontSize": 14,
+  "useMarkdownLinks": false,
+  "newLinkFormat": "shortest",
+  "attachmentFolderPath": "assets",
+  "alwaysUpdateLinks": true,
+  "showUnsupportedFiles": false,
+  "promptDelete": false,
+  "strictLineBreaks": false,
+  "defaultViewMode": "source",
+  "showFrontmatter": true,
+  "foldHeading": true,
+  "foldIndent": true
+}
