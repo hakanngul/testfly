@@ -31,6 +31,13 @@ import static org.testng.Assert.*;
 public class LocatorTest {
 
     @Test
+    public void testFirstAndLastMethods() {
+        Locator locator = Locator.ofCss(".item");
+        assertNotNull(locator.first());
+        assertNotNull(locator.last());
+    }
+
+    @Test
     public void resolve_throwsLocatorException_whenNoElementsFound() {
         LocatorException ex = new LocatorException("No element found for: By.id: missing");
         assertTrue(ex.getMessage().contains("No element found"));

@@ -67,6 +67,7 @@ public final class Locator {
     private String withText;
     private By withinContainer;
     private int nthIndex = -1; // -1 = no nth filter
+    private boolean selectLast = false;
 
     // ------------------------------------------------------------------
     // Factory — called from BasePage / BaseTest via $() and getBy*()
@@ -216,6 +217,17 @@ public final class Locator {
      */
     public Locator nth(int index) {
         this.nthIndex = index;
+        return this;
+    }
+
+    /** Narrows to the first matching element. */
+    public Locator first() {
+        return nth(0);
+    }
+
+    /** Narrows to the last matching element. */
+    public Locator last() {
+        this.selectLast = true;
         return this;
     }
 
@@ -441,13 +453,16 @@ public final class Locator {
             }
             throw new LocatorException("No element found for: " + describe());
         }
-        return candidates.get(0);
+        if (selectLast) {
+            return candidates.getLast();
+        }
+        return candidates.getFirst();
     }
 
-    /** True when any chain filter (filter/withText/within/nth/name) is applied. */
+    /** True when any chain filter (filter/withText/within/nth/name/last) is applied. */
     private boolean hasChainFilters() {
         return filterCss != null || withText != null || withinContainer != null
-                || nthIndex >= 0 || accessibleName != null;
+                || nthIndex >= 0 || accessibleName != null || selectLast;
     }
 
     private List<WebElement> resolveAll() {
@@ -564,34 +579,24 @@ public final class Locator {
 
     /** Builds the effective base {@link By} for this locator's {@link Kind}. */
     private By buildRoot() {
-        switch (kind) {
-            case CSS_OR_BY:
-                return root;
-            case ROLE: {
+        return switch (kind) {
+            case CSS_OR_BY -> root;
+            case ROLE -> {
                 String css = semanticRole.cssSelector();
                 if (semanticRole == Role.HEADING && headingLevel != null) {
                     css = "h" + headingLevel
                             + ", [role='heading'][aria-level='" + headingLevel + "']";
                 }
-                return By.cssSelector(css);
+                yield By.cssSelector(css);
             }
-            case TEXT:
-                return By.xpath(textXPath(semanticValue, exact));
-            case LABEL:
-                return By.cssSelector(FORM_CONTROL_CSS);
-            case PLACEHOLDER:
-                return By.cssSelector(attrCss("placeholder", semanticValue, exact));
-            case ALT_TEXT:
-                return By.cssSelector(attrCss("alt", semanticValue, exact));
-            case TITLE:
-                return By.cssSelector(attrCss("title", semanticValue, exact));
-            case TESTID:
-                return By.cssSelector("[" + testIdAttribute + "='" + cssEscape(semanticValue) + "']");
-            case ELEMENT:
-                throw new UnsupportedOperationException("Kind.ELEMENT does not have a By representation.");
-            default:
-                throw new LocatorException("Unsupported locator kind: " + kind);
-        }
+            case TEXT -> By.xpath(textXPath(semanticValue, exact));
+            case LABEL -> By.cssSelector(FORM_CONTROL_CSS);
+            case PLACEHOLDER -> By.cssSelector(attrCss("placeholder", semanticValue, exact));
+            case ALT_TEXT -> By.cssSelector(attrCss("alt", semanticValue, exact));
+            case TITLE -> By.cssSelector(attrCss("title", semanticValue, exact));
+            case TESTID -> By.cssSelector("[" + testIdAttribute + "='" + cssEscape(semanticValue) + "']");
+            case ELEMENT -> throw new UnsupportedOperationException("Kind.ELEMENT does not have a By representation.");
+        };
     }
 
     /**
