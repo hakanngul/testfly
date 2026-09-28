@@ -91,6 +91,26 @@ public final class Locator {
         return new Locator(element);
     }
 
+    public static Locator id(String id) {
+        return new Locator(By.id(id));
+    }
+
+    public static Locator name(String name) {
+        return new Locator(By.name(name));
+    }
+
+    public static Locator className(String className) {
+        return new Locator(By.className(className));
+    }
+
+    public static Locator xpath(String xpath) {
+        return new Locator(By.xpath(xpath));
+    }
+
+    public static Locator css(String css) {
+        return new Locator(By.cssSelector(css));
+    }
+
     public static Locator ofCss(String css) {
         return new Locator(By.cssSelector(css));
     }
@@ -167,6 +187,22 @@ public final class Locator {
         this.directElement = element;
     }
 
+    private Locator(Locator other) {
+        this.kind = other.kind;
+        this.root = other.root;
+        this.directElement = other.directElement;
+        this.semanticRole = other.semanticRole;
+        this.semanticValue = other.semanticValue;
+        this.headingLevel = other.headingLevel;
+        this.accessibleName = other.accessibleName;
+        this.exact = other.exact;
+        this.filterCss = other.filterCss;
+        this.withText = other.withText;
+        this.withinContainer = other.withinContainer;
+        this.nthIndex = other.nthIndex;
+        this.selectLast = other.selectLast;
+    }
+
     // ------------------------------------------------------------------
     // Chain methods
     // ------------------------------------------------------------------
@@ -179,8 +215,9 @@ public final class Locator {
      * </pre>
      */
     public Locator filter(String css) {
-        this.filterCss = css;
-        return this;
+        Locator copy = new Locator(this);
+        copy.filterCss = css;
+        return copy;
     }
 
     /**
@@ -192,8 +229,9 @@ public final class Locator {
      * </pre>
      */
     public Locator withText(String text) {
-        this.withText = text;
-        return this;
+        Locator copy = new Locator(this);
+        copy.withText = text;
+        return copy;
     }
 
     /**
@@ -204,8 +242,9 @@ public final class Locator {
      * </pre>
      */
     public Locator within(By container) {
-        this.withinContainer = container;
-        return this;
+        Locator copy = new Locator(this);
+        copy.withinContainer = container;
+        return copy;
     }
 
     /**
@@ -216,8 +255,9 @@ public final class Locator {
      * </pre>
      */
     public Locator nth(int index) {
-        this.nthIndex = index;
-        return this;
+        Locator copy = new Locator(this);
+        copy.nthIndex = index;
+        return copy;
     }
 
     /** Narrows to the first matching element. */
@@ -227,8 +267,9 @@ public final class Locator {
 
     /** Narrows to the last matching element. */
     public Locator last() {
-        this.selectLast = true;
-        return this;
+        Locator copy = new Locator(this);
+        copy.selectLast = true;
+        return copy;
     }
 
     /**
@@ -241,8 +282,9 @@ public final class Locator {
      * </pre>
      */
     public Locator withName(String name) {
-        this.accessibleName = name;
-        return this;
+        Locator copy = new Locator(this);
+        copy.accessibleName = name;
+        return copy;
     }
 
     /**
@@ -253,8 +295,9 @@ public final class Locator {
      * </pre>
      */
     public Locator withLevel(int level) {
-        this.headingLevel = level;
-        return this;
+        Locator copy = new Locator(this);
+        copy.headingLevel = level;
+        return copy;
     }
 
     /**
@@ -266,8 +309,9 @@ public final class Locator {
      * </pre>
      */
     public Locator exact() {
-        this.exact = true;
-        return this;
+        Locator copy = new Locator(this);
+        copy.exact = true;
+        return copy;
     }
 
     /**
