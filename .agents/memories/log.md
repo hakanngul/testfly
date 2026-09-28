@@ -89,3 +89,12 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
   3. `CucumberHooks.afterScenario` içine `isInitialized()` guard clause eklendi.
   4. Yapılan thread-safety iyileştirmelerinin `mvn test` (1311 test) ile paralel çalıştırmada hatasız olduğu ve projenin tamamen stabil çalıştığı doğrulandı.
 - **Bağlantılar:** [[io.testfly.lifecycle.FrameworkBootstrap]], [[io.testfly.internal.TestFlyContext]], [[io.testfly.cucumber.CucumberHooks]], [[memories/scratchpad]]
+
+## [2026-09-28] refactor | Java 21 LTS (Project Loom, Pattern Matching) Migration
+- **Eylem:** 
+  1. Projenin Maven (`pom.xml`) baseline'ı ve derleyicisi `release 21` hedefine yükseltildi. Dökümantasyonlar güncellendi.
+  2. `JdkLoadEngine`'deki sabit thread havuzu, `Executors.newVirtualThreadPerTaskExecutor()` kullanacak şekilde (Project Loom Virtual Threads) modernize edildi.
+  3. `Locator` nesnesi Sequenced Collections API'si ile `first()` ve `last()` destekleyecek şekilde güncellendi.
+  4. Locator tipi çözümleme switch'i `buildRoot()` içinde Java 21 Exhaustive Switch Expression (oklu yapı) formatına taşındı.
+  5. 1300+ TestNG testinden geçerek başarılı bir şekilde `.m2` ortamına deploy edildi. Plan eksiksiz tamamlandı.
+- **Bağlantılar:** [[io.testfly.loadtest.internal.JdkLoadEngine]], [[io.testfly.locator.Locator]], [[memories/scratchpad]]
