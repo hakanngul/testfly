@@ -25,7 +25,7 @@ public interface LocatorSupport {
 
     /** Creates a chainable {@link Locator} from a CSS selector. */
     default Locator find(String css) {
-        return Locator.ofCss(css);
+        return Locator.css(css);
     }
 
     /** Creates a chainable {@link Locator} from a Selenium {@link By} locator. */
@@ -36,6 +36,26 @@ public interface LocatorSupport {
     /** Creates a chainable {@link Locator} wrapping an existing {@link WebElement}. */
     default Locator find(WebElement element) {
         return Locator.of(element);
+    }
+
+    /** Creates a chainable {@link Locator} from an ID attribute. */
+    default Locator findById(String id) {
+        return Locator.id(id);
+    }
+
+    /** Creates a chainable {@link Locator} from a name attribute. */
+    default Locator findByName(String name) {
+        return Locator.name(name);
+    }
+
+    /** Creates a chainable {@link Locator} from a class name. */
+    default Locator findByClassName(String className) {
+        return Locator.className(className);
+    }
+
+    /** Creates a chainable {@link Locator} from an XPath expression. */
+    default Locator findByXpath(String xpath) {
+        return Locator.xpath(xpath);
     }
 
     /**

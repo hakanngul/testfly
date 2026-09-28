@@ -49,7 +49,7 @@ public class SeleniumAssertTest {
 
     @Test
     public void assertThat_chainedLocator_returnsLocatorAssert() {
-        Locator loc = Locator.ofCss("button").withText("Submit").nth(0);
+        Locator loc = Locator.css("button").withText("Submit").nth(0);
         LocatorAssert la = SeleniumAssert.assertThat(loc);
         assertNotNull(la);
     }
@@ -70,7 +70,7 @@ public class SeleniumAssertTest {
 
     @Test
     public void softAssert_locator_returnsLocatorAssert() {
-        Locator loc = Locator.ofCss("button").withText("Submit");
+        Locator loc = Locator.css("button").withText("Submit");
         LocatorAssert la = SeleniumAssert.softAssert(loc);
         assertNotNull(la);
     }

@@ -110,15 +110,9 @@ public final class Locator extends By {
         return new Locator(By.cssSelector(css));
     }
 
-    public static Locator ofCss(String css) {
-        return new Locator(By.cssSelector(css));
-    }
-
     /** Locates elements by their ARIA role (implicit or explicit). */
     public static Locator byRole(Role role) {
-        Locator l = new Locator(Kind.ROLE);
-        l.semanticRole = role;
-        return l;
+        return new Locator(Kind.ROLE, null, role, null);
     }
 
     /** Locates elements by visible text — case-insensitive substring by default. */
@@ -128,9 +122,7 @@ public final class Locator extends By {
 
     /** Locates a form control by its associated label text. */
     public static Locator byLabel(String label) {
-        Locator l = semantic(Kind.LABEL, null);
-        l.accessibleName = label;
-        return l;
+        return new Locator(Kind.LABEL, null, null, label);
     }
 
     /** Locates an element by its {@code placeholder} attribute. */
@@ -163,27 +155,34 @@ public final class Locator extends By {
     }
 
     private static Locator semantic(Kind kind, String value) {
-        Locator l = new Locator(kind);
-        l.semanticValue = value;
-        return l;
+        return new Locator(kind, value, null, null);
     }
 
     private Locator(By root) {
         this.kind = Kind.CSS_OR_BY;
         this.root = root;
         this.directElement = null;
+        this.semanticValue = null;
+        this.semanticRole = null;
+        this.accessibleName = null;
     }
 
-    private Locator(Kind kind) {
+    private Locator(Kind kind, String semanticValue, Role semanticRole, String accessibleName) {
         this.kind = kind;
         this.root = null;
         this.directElement = null;
+        this.semanticValue = semanticValue;
+        this.semanticRole = semanticRole;
+        this.accessibleName = accessibleName;
     }
 
     private Locator(WebElement element) {
         this.kind = Kind.ELEMENT;
         this.root = null;
         this.directElement = element;
+        this.semanticValue = null;
+        this.semanticRole = null;
+        this.accessibleName = null;
     }
 
     private Locator(Locator other) {
@@ -324,8 +323,16 @@ public final class Locator extends By {
      */
     public By toBy() {
         if (kind == Kind.ELEMENT) {
-            throw new UnsupportedOperationException(
-                    "Locator wrapping a direct WebElement cannot be converted to By. Use element() instead.");
+            return new By() {
+                @Override
+                public List<WebElement> findElements(SearchContext context) {
+                    return List.of(directElement);
+                }
+                @Override
+                public String toString() {
+                    return "By.element(" + directElement + ")";
+                }
+            };
         }
         return buildRoot();
     }
@@ -405,15 +412,8 @@ public final class Locator extends By {
      * Returns the input element's current text value (shorthand for
      * {@code getAttribute("value")}).
      */
-    public String getValue() {
-        return getAttribute("value");
-    }
-
-    /**
-     * Returns the input element's current text value (Playwright-compatible alias).
-     */
     public String inputValue() {
-        return getValue();
+        return getAttribute("value");
     }
 
     /** Returns true if the element is present and displayed — does NOT wait. */
@@ -542,47 +542,17 @@ public final class Locator extends By {
 
         // apply accessible-name filter (role-based + label locators)
         if (accessibleName != null) {
-            candidates = candidates.stream()
-                    .filter(el -> nameMatches(d, el, accessibleName))
-                    .toList();
+            candidates = filterByName(d, candidates, accessibleName, exact);
         }
 
         // apply filter
         if (filterCss != null) {
-            String css = filterCss;
-            candidates = candidates.stream()
-                    .filter(el -> {
-                        try {
-                            return !el.findElements(By.cssSelector("*")).isEmpty()
-                                    || matchesCss(el, css);
-                        } catch (Exception ignored) {
-                            return false;
-                        }
-                    })
-                    .toList();
-
-            // simpler: keep elements that themselves match the extra css selector
-            // re-query from parent if possible, else filter by attribute
-            candidates = filterByCss(d, candidates, css);
+            candidates = filterByCss(d, candidates, filterCss);
         }
 
         // apply withText
         if (withText != null) {
-            String target = withText;
-            candidates = candidates.stream()
-                    .filter(el -> {
-                        try {
-                            String actual = el.getText().trim();
-                            if (exact) {
-                                return actual.equals(target);
-                            } else {
-                                return actual.toLowerCase().contains(target.toLowerCase());
-                            }
-                        } catch (Exception ignored) {
-                            return false;
-                        }
-                    })
-                    .toList();
+            candidates = filterByText(d, candidates, withText, exact);
         }
 
         // apply nth
@@ -605,26 +575,89 @@ public final class Locator extends By {
      * JS.
      */
     private List<WebElement> filterByCss(WebDriver d, List<WebElement> candidates, String css) {
-        JavascriptExecutor js = (JavascriptExecutor) d;
-        return candidates.stream().filter(el -> {
-            try {
-                Object result = js.executeScript(
-                        "return arguments[0].matches(arguments[1]);", el, css);
-                return Boolean.TRUE.equals(result);
-            } catch (Exception ignored) {
-                return false;
-            }
-        }).toList();
+        if (candidates.isEmpty()) return candidates;
+        try {
+            JavascriptExecutor js = (JavascriptExecutor) d;
+            @SuppressWarnings("unchecked")
+            List<WebElement> result = (List<WebElement>) js.executeScript(
+                    "var css = arguments[1];\n" +
+                    "return arguments[0].filter(function(el) { try { return el.matches(css); } catch(e) { return false; } });",
+                    candidates, css);
+            if (result == null) throw new IllegalStateException("JS returned null");
+            return result;
+        } catch (Exception e) {
+            LOGGER.debug("JS filterByCss failed, falling back to safe loop", e);
+            return candidates.stream().filter(el -> {
+                try {
+                    return Boolean.TRUE.equals(((JavascriptExecutor) d).executeScript("return arguments[0].matches(arguments[1]);", el, css));
+                } catch (Exception ignored) {
+                    return false;
+                }
+            }).toList();
+        }
     }
 
-    private boolean matchesCss(WebElement el, String css) {
+    private List<WebElement> filterByText(WebDriver d, List<WebElement> candidates, String text, boolean exactMatch) {
+        if (candidates.isEmpty()) return candidates;
         try {
-            JavascriptExecutor js = (JavascriptExecutor) driver();
-            Object result = js.executeScript(
-                    "return arguments[0].matches(arguments[1]);", el, css);
-            return Boolean.TRUE.equals(result);
+            JavascriptExecutor js = (JavascriptExecutor) d;
+            String script = "var exact = arguments[1];\n"
+                          + "var target = arguments[2];\n"
+                          + "if (!exact) target = target.toLowerCase();\n"
+                          + "return arguments[0].filter(function(el) {\n"
+                          + "    try {\n"
+                          + "        var actual = (el.innerText || el.textContent || '').trim();\n"
+                          + "        if (exact) return actual === target;\n"
+                          + "        return actual.toLowerCase().includes(target);\n"
+                          + "    } catch(e) { return false; }\n"
+                          + "});";
+            @SuppressWarnings("unchecked")
+            List<WebElement> result = (List<WebElement>) js.executeScript(script, candidates, exactMatch, text);
+            if (result == null) throw new IllegalStateException("JS returned null");
+            return result;
         } catch (Exception e) {
-            return false;
+            LOGGER.debug("JS filterByText failed, falling back to safe loop", e);
+            return candidates.stream().filter(el -> {
+                try {
+                    String actual = el.getText().trim();
+                    return exactMatch ? actual.equals(text) : actual.toLowerCase().contains(text.toLowerCase());
+                } catch (Exception ignored) {
+                    return false;
+                }
+            }).toList();
+        }
+    }
+
+    private List<WebElement> filterByName(WebDriver d, List<WebElement> candidates, String name, boolean exactMatch) {
+        if (candidates.isEmpty()) return candidates;
+        try {
+            JavascriptExecutor js = (JavascriptExecutor) d;
+            String script = "var exact = arguments[1];\n"
+                          + "var target = arguments[2];\n"
+                          + "if (!exact) target = target.toLowerCase();\n"
+                          + "function getName(arguments_0) { " + ACCESSIBLE_NAME_JS.replace("arguments[0]", "arguments_0").replace("return '';", "return null;") + " }\n"
+                          + "return arguments[0].filter(function(el) {\n"
+                          + "    try {\n"
+                          + "        var actual = getName(el);\n"
+                          + "        if (!actual) return false;\n"
+                          + "        actual = actual.trim();\n"
+                          + "        if (exact) return actual === target;\n"
+                          + "        return actual.toLowerCase().includes(target);\n"
+                          + "    } catch(e) { return false; }\n"
+                          + "});";
+            @SuppressWarnings("unchecked")
+            List<WebElement> result = (List<WebElement>) js.executeScript(script, candidates, exactMatch, name);
+            if (result == null) throw new IllegalStateException("JS returned null");
+            return result;
+        } catch (Exception e) {
+            LOGGER.debug("JS filterByName failed, falling back to safe loop", e);
+            return candidates.stream().filter(el -> {
+                try {
+                    return nameMatches(d, el, name);
+                } catch (Exception ignored) {
+                    return false;
+                }
+            }).toList();
         }
     }
 

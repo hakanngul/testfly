@@ -80,4 +80,24 @@ public interface BrowserSupport {
     default ClipboardHelper clipboard() {
         return ClipboardHelper.instance();
     }
+
+    /** Returns all errors collected so far via the JS console shim or WebDriver logs. */
+    default java.util.List<String> getConsoleErrors() {
+        return io.testfly.browser.ConsoleErrorCollector.getErrors();
+    }
+
+    /** Clears the JS console error buffer on the current page. */
+    default void clearConsoleErrors() {
+        io.testfly.browser.ConsoleErrorCollector.clear();
+    }
+
+    /** Emulates a mobile/tablet device (e.g., "iPhone 14") for the current session. */
+    default void emulateDevice(String deviceName) {
+        io.testfly.browser.DeviceEmulator.emulate(deviceName);
+    }
+
+    /** Resets device emulation back to default desktop viewport. */
+    default void resetDevice() {
+        io.testfly.browser.DeviceEmulator.reset();
+    }
 }
