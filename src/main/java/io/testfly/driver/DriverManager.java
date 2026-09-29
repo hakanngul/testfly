@@ -46,9 +46,22 @@ public final class DriverManager {
     /** Tracks all drivers created under per-suite lifecycle for bulk teardown. */
     private static final java.util.Set<WebDriver> SUITE_DRIVERS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
-    /** Lazy-initialized from config; null until first createDriver() call. */
     private static volatile Semaphore SESSION_SEMAPHORE;
     private static volatile int MAX_SESSIONS;
+
+    static {
+        registerShutdownHook();
+    }
+
+    private static void registerShutdownHook() {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                quitAllSuiteDrivers();
+                forceQuitDriver();
+            } catch (Throwable ignored) {
+            }
+        }, "testfly-driver-shutdown"));
+    }
 
     private static Semaphore getOrInitSemaphore() {
         if (SESSION_SEMAPHORE == null) {
@@ -362,30 +375,50 @@ public final class DriverManager {
     }
 
     /**
+     * Forcibly quits the current thread's WebDriver instance, regardless of lifecycle setting.
+     */
+    public static void forceQuitDriver() {
+        WebDriver driver = DRIVER.get();
+        if (driver != null) {
+            try {
+                SUITE_DRIVERS.remove(driver);
+                driver.quit();
+                releasePermit();
+            } catch (Exception e) {
+                System.err.println("[TestFly] Driver force quit failed: " + e.getMessage());
+            } finally {
+                DRIVER.remove();
+                CLOUD_SESSION_URL.remove();
+            }
+        }
+    }
+
+    /**
      * Quits all drivers tracked under {@code per-suite} lifecycle and releases
      * their semaphore permits. Called once by
      * {@code SuiteExecutionListener.onFinish}.
      * Safe to call in {@code per-test} mode — no-op when registry is empty.
      */
     public static void quitAllSuiteDrivers() {
-        if (SUITE_DRIVERS.isEmpty())
+        if (SUITE_DRIVERS.isEmpty()) {
+            forceQuitDriver();
             return;
-        int released = 0;
-        for (WebDriver driver : SUITE_DRIVERS) {
+        }
+        int total = SUITE_DRIVERS.size();
+        SUITE_DRIVERS.parallelStream().forEach(driver -> {
             try {
                 driver.quit();
-                released++;
             } catch (Exception e) {
                 System.err.println("[TestFly] Error quitting suite driver: " + e.getMessage());
-                released++; // release permit regardless — session is gone
             }
-        }
-        if (SESSION_SEMAPHORE != null) {
-            SESSION_SEMAPHORE.release(released);
+        });
+        if (SESSION_SEMAPHORE != null && total > 0) {
+            SESSION_SEMAPHORE.release(total);
         }
         SUITE_DRIVERS.clear();
         DRIVER.remove();
-        System.out.println("[TestFly] All suite drivers quit. Released " + released + " session slot(s).");
+        CLOUD_SESSION_URL.remove();
+        System.out.println("[TestFly] All suite drivers quit in parallel. Released " + total + " session slot(s).");
     }
 
     /**

@@ -83,6 +83,22 @@ locators:
 
 Veya programatik olarak: `Locator.setTestIdAttribute("data-qa");`
 
+## Standart CSS ve Zincirleme Filtreler
+
+Erişilebilirlik öncelikli semantik seçicilere ek olarak `Locator`, standart CSS ve geleneksel seçiciler için değişmez (immutable) bir zincirleme API'si sunar:
+
+```java
+// Doğrudan CSS seçici fabrikası
+Locator.cssSelector(".product-card")
+    .filter(".in-stock")
+    .withText("Kulaklık")
+    .first()
+    .click();
+
+// Null-safe yazma (null veya boş string geçildiğinde NPE fırlatmadan öğeyi temizler)
+getByPlaceholder("Arama").type(null);
+```
+
 ---
 
 ## Kaçış kapağı: `toBy()`

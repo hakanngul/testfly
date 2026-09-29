@@ -4,27 +4,33 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.locator.Locator;
 import io.testfly.locator.Role;
 import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
 
 /**
- * Shared locator factory — single source of truth for {@code find()} / {@code $()} / {@code getBy*()}.
+ * Shared locator factory — single source of truth for {@code find()} /
+ * {@code $()} / {@code getBy*()}.
  *
- * <p>Implemented by {@code BaseTest}, {@code BaseJUnit5Test}, {@code BasePage} and
- * {@code BaseCucumberSteps} so the delegation to {@link Locator} lives in one place.
+ * <p>
+ * Implemented by {@code BaseTest}, {@code BaseJUnit5Test}, {@code BasePage} and
+ * {@code BaseCucumberSteps} so the delegation to {@link Locator} lives in one
+ * place.
  * Adding a new {@code getBy*} strategy only requires changing this interface.
  *
- * <p>All methods delegate to the static factories in {@link Locator}:
- * {@link Locator#ofCss(String)}, {@link Locator#of(By)}, {@link Locator#byRole(Role)}, etc.
+ * <p>
+ * All methods delegate to the static factories in {@link Locator}:
+ * {@link Locator#cssSelector(String)}, {@link Locator#of(By)},
+ * {@link Locator#byRole(Role)}, vb.
  */
 @TestFlyApi(since = "1.10.0")
 public interface LocatorSupport {
 
     // ----------------------------------------------------------
-    // Fluent Locator API  (find / $)
+    // Fluent Locator API (find / $)
     // ----------------------------------------------------------
 
     /** Creates a chainable {@link Locator} from a CSS selector. */
     default Locator find(String css) {
-        return Locator.ofCss(css);
+        return Locator.cssSelector(css);
     }
 
     /** Creates a chainable {@link Locator} from a Selenium {@link By} locator. */
@@ -33,9 +39,37 @@ public interface LocatorSupport {
     }
 
     /**
+     * Creates a chainable {@link Locator} wrapping an existing {@link WebElement}.
+     */
+    default Locator find(WebElement element) {
+        return Locator.of(element);
+    }
+
+    /** Creates a chainable {@link Locator} from an ID attribute. */
+    default Locator findById(String id) {
+        return Locator.id(id);
+    }
+
+    /** Creates a chainable {@link Locator} from a name attribute. */
+    default Locator findByName(String name) {
+        return Locator.name(name);
+    }
+
+    /** Creates a chainable {@link Locator} from a class name. */
+    default Locator findByClassName(String className) {
+        return Locator.className(className);
+    }
+
+    /** Creates a chainable {@link Locator} from an XPath expression. */
+    default Locator findByXpath(String xpath) {
+        return Locator.xpath(xpath);
+    }
+
+    /**
      * Creates a chainable {@link Locator} from a CSS selector.
      *
-     * @deprecated Use {@link #find(String)} instead. Scheduled for removal in 2.0.0.
+     * @deprecated Use {@link #find(String)} instead. Scheduled for removal in
+     *             2.0.0.
      */
     @Deprecated(since = "1.1.0", forRemoval = true)
     default Locator $(String css) {
@@ -52,8 +86,19 @@ public interface LocatorSupport {
         return find(by);
     }
 
+    /**
+     * Creates a chainable {@link Locator} wrapping an existing {@link WebElement}.
+     *
+     * @deprecated Use {@link #find(WebElement)} instead. Scheduled for removal in
+     *             2.0.0.
+     */
+    @Deprecated(since = "1.1.0", forRemoval = true)
+    default Locator $(WebElement element) {
+        return find(element);
+    }
+
     // ----------------------------------------------------------
-    // Accessibility-first locators  (getBy*)
+    // Accessibility-first locators (getBy*)
     // ----------------------------------------------------------
 
     /**
@@ -74,7 +119,9 @@ public interface LocatorSupport {
         return Locator.byRole(role).withName(name);
     }
 
-    /** Locates an element by visible text — case-insensitive substring by default. */
+    /**
+     * Locates an element by visible text — case-insensitive substring by default.
+     */
     default Locator getByText(String text) {
         return Locator.byText(text);
     }
@@ -89,7 +136,9 @@ public interface LocatorSupport {
         return Locator.byPlaceholder(placeholder);
     }
 
-    /** Locates an element by its test-id attribute (default {@code data-testid}). */
+    /**
+     * Locates an element by its test-id attribute (default {@code data-testid}).
+     */
     default Locator getByTestId(String testId) {
         return Locator.byTestId(testId);
     }
@@ -105,7 +154,8 @@ public interface LocatorSupport {
     }
 
     /**
-     * Locates an element dynamically based on semantic natural language intent using AI.
+     * Locates an element dynamically based on semantic natural language intent
+     * using AI.
      *
      * <pre>
      * byIntent("cart checkout button").click();
@@ -115,7 +165,8 @@ public interface LocatorSupport {
      * @return chainable {@link Locator}
      */
     default Locator byIntent(String intent) {
-        By resolvedBy = io.testfly.agent.ActionCompiler.resolveIntent(io.testfly.driver.DriverManager.getDriver(), intent);
+        By resolvedBy = io.testfly.agent.ActionCompiler.resolveIntent(io.testfly.driver.DriverManager.getDriver(),
+                intent);
         return Locator.of(resolvedBy);
     }
 }

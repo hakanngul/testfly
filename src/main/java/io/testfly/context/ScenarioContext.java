@@ -22,6 +22,10 @@ public class ScenarioContext {
         STORE.get().put(key, value);
     }
 
+    public void put(String key, Object value) {
+        set(key, value);
+    }
+
     public String get(String key) {
         return get(key, String.class);
     }

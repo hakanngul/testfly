@@ -38,8 +38,17 @@ public final class WaitEngine {
     }
 
     private static FluentWait<WebDriver> createWait() {
-        WebDriver driver = DriverManager.getDriver();
-        int timeoutSeconds = TestFlyContext.getConfig().getTimeouts().getExplicit();
+        return createWait(DriverManager.getDriver());
+    }
+
+    private static FluentWait<WebDriver> createWait(WebDriver driver) {
+        int timeoutSeconds = 10;
+        try {
+            if (TestFlyContext.getConfig() != null && TestFlyContext.getConfig().getTimeouts() != null) {
+                timeoutSeconds = TestFlyContext.getConfig().getTimeouts().getExplicit();
+            }
+        } catch (Exception ignored) {
+        }
         return new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds))
                 .ignoring(StaleElementReferenceException.class);
     }
@@ -254,7 +263,21 @@ public final class WaitEngine {
     }
 
     public static void waitForPageLoad() {
-        createWait().until(driver -> "complete".equals(((JavascriptExecutor) driver)
+        waitForPageLoad(DriverManager.getDriver());
+    }
+
+    /**
+     * Waits until the browser page is fully loaded (document.readyState === 'complete')
+     * using the specified {@link WebDriver} instance.
+     *
+     * @param driver the WebDriver instance
+     */
+    @TestFlyApi(since = "1.0.5")
+    public static void waitForPageLoad(WebDriver driver) {
+        if (driver == null) {
+            return;
+        }
+        createWait(driver).until(d -> "complete".equals(((JavascriptExecutor) d)
                 .executeScript("return document.readyState")));
     }
 

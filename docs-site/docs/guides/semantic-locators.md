@@ -96,6 +96,24 @@ Or programmatically: `Locator.setTestIdAttribute("data-qa");`
 
 ---
 
+## Standard CSS & Chaining Filters
+
+Along with accessibility-first semantic locators, `Locator` provides standard CSS and traditional selector factories with an immutable chaining pipeline:
+
+```java
+// Direct CSS selector factory
+Locator.cssSelector(".product-card")
+    .filter(".in-stock")
+    .withText("Headphones")
+    .first()
+    .click();
+
+// Null-safe typing (passing null or empty string safely clears the element)
+getByPlaceholder("Search").type(null);
+```
+
+---
+
 ## Escape hatch: `toBy()`
 
 Every semantic locator can hand back its synthesized Selenium `By` for interop

@@ -181,6 +181,10 @@ Autonomous agents are often criticized for being slow and non-deterministic. Tes
 }
 ```
 
+:::tip Auto-POM: Learned Page Model
+Beyond exact goal caching, TestFly also features **[Auto-POM (Learned Page Model)](auto-pom.md)**. Auto-POM autonomously builds a persistent page object graph (`.testfly/page-knowledge.json`) during runs, resolving semantically related goals across different tests with **0 ms AI latency and 0 token cost**.
+:::
+
 ---
 
 ## 5. AI-Powered Self-Remediation (Auto-PR Patches)

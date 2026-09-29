@@ -33,79 +33,83 @@ public final class FrameworkBootstrap {
     }
 
     public static void initialize() {
-        if (TestFlyContext.isInitialized()) {
-            return;
-        }
-        // Load .env BEFORE config so ${VAR} placeholders can resolve
-        DotEnvLoader.load();
-        // Load persistent healing cache so known-good locators are tried first
-        HealingCache.load();
-        TestFlyConfig config = ConfigurationLoader.load();
-        TestFlyDefaults.applyMissing(config);
-        applyCiOverrides(config);
-        ExecutionValidator.validate(config.getExecution());
+        synchronized (TestFlyContext.class) {
+            synchronized (ConfigurationLoader.class) {
+                if (TestFlyContext.isInitialized()) {
+                    return;
+                }
+            // Load .env BEFORE config so ${VAR} placeholders can resolve
+            DotEnvLoader.load();
+            // Load persistent healing cache so known-good locators are tried first
+            HealingCache.load();
+            TestFlyConfig config = ConfigurationLoader.load();
+            TestFlyDefaults.applyMissing(config);
+            applyCiOverrides(config);
+            ExecutionValidator.validate(config.getExecution());
 
-        TestFlyContext.initialize(config);
+            TestFlyContext.initialize(config);
 
-        String featureSummary = FeatureGate.summary();
-        if (!featureSummary.isEmpty()) {
-            System.out.println("[TestFly] features: " + featureSummary);
-        }
-
-        // Honor a custom test-id attribute for the accessibility-first locators
-        if (config.getLocators() != null && config.getLocators().getTestIdAttribute() != null) {
-            io.testfly.locator.Locator.setTestIdAttribute(config.getLocators().getTestIdAttribute());
-        }
-
-        // Load all SPI-registered extension points
-        DriverProviderRegistry.loadAll();
-        HookRegistry.loadAll();
-        ReportAdapterRegistry.loadAll();
-        PluginRegistry.loadAll(config);
-
-        System.out.println(
-                "[TestFly] 🤖 AI test authoring: pip install testfly-mcp  →  https://pypi.org/project/testfly-mcp");
-
-        // Opt-in built-in adapters
-        TestFlyConfig.Reporting reporting = config.getReporting();
-        if (reporting != null && reporting.isAllureEnabled()) {
-            ReportAdapterRegistry.register(new AllureReportAdapter());
-            System.out.println("[TestFly] Allure adapter enabled → target/allure-results/");
-        }
-
-        if (reporting != null && reporting.getReportPortal() != null && reporting.getReportPortal().isEnabled()) {
-            try {
-                ReportPortalPropertiesWriter.applyAsSystemProperties(config);
-                ReportAdapterRegistry.register(new ReportPortalReportAdapter());
-                ReportAdapterRegistry.register(new ReportPortalAttachmentSender());
-                System.out.println("[TestFly] ReportPortal adapter enabled → "
-                        + reporting.getReportPortal().getEndpoint());
-            } catch (IllegalArgumentException e) {
-                System.err.println("[TestFly] ReportPortal adapter disabled: " + e.getMessage());
+            String featureSummary = FeatureGate.summary();
+            if (!featureSummary.isEmpty()) {
+                System.out.println("[TestFly] features: " + featureSummary);
             }
-        }
 
-        Notifications notifs = config.getNotifications();
-        if (notifs != null && FeatureGate.enabled(FeatureGate.NOTIFICATIONS, true)) {
-            boolean hasSlack = notifs.getSlack() != null
-                    && notifs.getSlack().getWebhookUrl() != null
-                    && !notifs.getSlack().getWebhookUrl().isBlank();
-            boolean hasTeams = notifs.getTeams() != null
-                    && notifs.getTeams().getWebhookUrl() != null
-                    && !notifs.getTeams().getWebhookUrl().isBlank();
-            if (hasSlack || hasTeams) {
-                ReportAdapterRegistry.register(new NotificationAdapter(notifs));
-                System.out.println("[TestFly] Notification adapter enabled"
-                        + (hasSlack ? " [Slack]" : "") + (hasTeams ? " [Teams]" : ""));
+            // Honor a custom test-id attribute for the accessibility-first locators
+            if (config.getLocators() != null && config.getLocators().getTestIdAttribute() != null) {
+                io.testfly.locator.Locator.setTestIdAttribute(config.getLocators().getTestIdAttribute());
             }
-        }
 
-        TestFlyConfig.LoadTest loadTestCfg = config.getLoadTest();
-        if (loadTestCfg != null && loadTestCfg.isReportEnabled()) {
-            ReportAdapterRegistry.register(new io.testfly.loadtest.LoadTestReportAdapter());
-            System.out.println("[TestFly] LoadTest report adapter enabled");
+            // Load all SPI-registered extension points
+            DriverProviderRegistry.loadAll();
+            HookRegistry.loadAll();
+            ReportAdapterRegistry.loadAll();
+            PluginRegistry.loadAll(config);
+
+            System.out.println(
+                    "[TestFly] 🤖 AI test authoring: pip install testfly-mcp  →  https://pypi.org/project/testfly-mcp");
+
+            // Opt-in built-in adapters
+            TestFlyConfig.Reporting reporting = config.getReporting();
+            if (reporting != null && reporting.isAllureEnabled()) {
+                ReportAdapterRegistry.register(new AllureReportAdapter());
+                System.out.println("[TestFly] Allure adapter enabled → target/allure-results/");
+            }
+
+            if (reporting != null && reporting.getReportPortal() != null && reporting.getReportPortal().isEnabled()) {
+                try {
+                    ReportPortalPropertiesWriter.applyAsSystemProperties(config);
+                    ReportAdapterRegistry.register(new ReportPortalReportAdapter());
+                    ReportAdapterRegistry.register(new ReportPortalAttachmentSender());
+                    System.out.println("[TestFly] ReportPortal adapter enabled → "
+                            + reporting.getReportPortal().getEndpoint());
+                } catch (IllegalArgumentException e) {
+                    System.err.println("[TestFly] ReportPortal adapter disabled: " + e.getMessage());
+                }
+            }
+
+            Notifications notifs = config.getNotifications();
+            if (notifs != null && FeatureGate.enabled(FeatureGate.NOTIFICATIONS, true)) {
+                boolean hasSlack = notifs.getSlack() != null
+                        && notifs.getSlack().getWebhookUrl() != null
+                        && !notifs.getSlack().getWebhookUrl().isBlank();
+                boolean hasTeams = notifs.getTeams() != null
+                        && notifs.getTeams().getWebhookUrl() != null
+                        && !notifs.getTeams().getWebhookUrl().isBlank();
+                if (hasSlack || hasTeams) {
+                    ReportAdapterRegistry.register(new NotificationAdapter(notifs));
+                    System.out.println("[TestFly] Notification adapter enabled"
+                            + (hasSlack ? " [Slack]" : "") + (hasTeams ? " [Teams]" : ""));
+                }
+            }
+
+            TestFlyConfig.LoadTest loadTestCfg = config.getLoadTest();
+            if (loadTestCfg != null && loadTestCfg.isReportEnabled()) {
+                ReportAdapterRegistry.register(new io.testfly.loadtest.LoadTestReportAdapter());
+                System.out.println("[TestFly] LoadTest report adapter enabled");
+            }
         }
     }
+}
 
     /**
      * When running in CI, auto-apply headless mode and tune thread count

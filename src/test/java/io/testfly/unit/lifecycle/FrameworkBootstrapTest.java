@@ -1,6 +1,7 @@
 package io.testfly.unit.lifecycle;
 
 import io.testfly.ci.CiEnvironmentDetector;
+import io.testfly.config.ConfigurationLoader;
 import io.testfly.config.DotEnvLoader;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.healing.HealingCache;
@@ -72,6 +73,7 @@ public class FrameworkBootstrapTest {
 
     private static void resetStateInternal() {
         try {
+            System.clearProperty("testfly.config");
             resetTestFlyContext();
             resetDotEnvLoader();
             resetHealingCache();

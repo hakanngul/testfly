@@ -14,6 +14,10 @@ public class LoginPage extends BasePage {
     private static final By LOGIN_BUTTON = By.id("login-button");
     private static final By ERROR_MESSAGE = By.cssSelector("[data-test='error']");
 
+    public LoginPage() {
+        super();
+    }
+
     public LoginPage(WebDriver driver) {
         super(driver);
     }

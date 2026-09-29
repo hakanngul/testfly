@@ -39,6 +39,7 @@ public class LocalEdgeDriverProvider implements DriverProvider {
 
         boolean hasWindowSize = arguments != null && arguments.stream().anyMatch(a -> a != null && a.startsWith("--window-size"));
         boolean hasStartMaximized = arguments != null && arguments.stream().anyMatch(a -> a != null && a.equals("--start-maximized"));
+        boolean hasStartFullscreen = arguments != null && arguments.stream().anyMatch(a -> a != null && a.equals("--start-fullscreen"));
 
         if (config.getBrowser().isHeadless()) {
             options.addArguments("--headless=new");
@@ -80,9 +81,13 @@ public class LocalEdgeDriverProvider implements DriverProvider {
         driver.manage().timeouts().implicitlyWait(Duration.ZERO);
         driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(config.getTimeouts().getPageLoad()));
 
-        if (!config.getBrowser().isHeadless()) {
-            List<String> args = config.getBrowser().getArguments();
-            if (args != null && args.contains("--start-maximized")) {
+        if (!config.getBrowser().isHeadless() && !hasWindowSize) {
+            if (hasStartFullscreen) {
+                try {
+                    driver.manage().window().fullscreen();
+                } catch (Exception ignored) {
+                }
+            } else if (hasStartMaximized) {
                 try {
                     driver.manage().window().maximize();
                 } catch (Exception ignored) {

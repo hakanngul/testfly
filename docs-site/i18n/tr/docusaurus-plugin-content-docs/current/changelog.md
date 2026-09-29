@@ -11,9 +11,47 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 
 ---
 
-## Yayımlanmamış
+## [1.0.7] — 2026-09-29
 
-_Henüz bir değişiklik yok._
+### Eklenenler
+- **Standart `Locator.cssSelector(String)`**: Selenium'un `By.cssSelector` adlandırma standardına tam uyumlu, akılda kalıcı ve birincil fabrika metodu olarak `Locator.cssSelector(String)` eklendi.
+- **Doğrulama Sistemi Mimari Sınırları**: TestFly'ın otomatik beklemeli Web UI doğrulamaları (`LocatorAssert`, `PageAssert`) ile genel amaçlı ilkel veri kontrolleri (AssertJ / TestNG'ye devredilen) arasındaki mimari sınırlar resmileştirildi.
+
+### Kullanımdan Kaldırılanlar (Deprecated)
+- **`Locator.css(String)`**: `Locator.cssSelector(String)` lehine kullanımdan kaldırıldı (`@Deprecated`). Mevcut kodları bozmamak için arkaplanda kesintisiz delegasyon yapmaya devam eder.
+
+### Dokümantasyon ve Spesifikasyonlar
+- **Mühendislik Spesifikasyonları Modernizasyonu**: Kök `docs/` spesifikasyonları (`internals.md`, `public-api.md`, `architecture.md`, `testng-listeners.md`), Java 21 LTS standardı, `SmartTriageEngine`, `FuzzyHealingEngine` ve assertion sınırları ile güncellendi.
+- **Dokümantasyon Sitesi Senkronizasyonu**: Semantik seçiciler, doğrulamalar ve kendini onarma kılavuzları hem İngilizce hem Türkçe yerellerinde güncellendi.
+- **Ajan Bilgi Grafiği Senkronizasyonu**: `[[wiki/assertion-system]]` sayfası oluşturuldu, mimari ve WebUI wikileri güncellendi, `MAP.md` haritasına bağlandı.
+
+---
+
+## [1.0.6] — 2026-09-29
+
+### Eklenenler
+- **Akıllı Hata Triyajı (`SmartTriageEngine`)**: `TestExecutionListener` içine entegre edilen, hata hiyerarşisini inceleyerek test başarısızlıklarını harici LLM maliyeti olmadan (0 token) sınıflandıran (`SYSTEM_FLAKY`, `APPLICATION_BUG`, `NEEDS_INVESTIGATION`) yerel heuristik analiz motoru.
+- **Fuzzy Self-Healing (`FuzzyHealingEngine`)**: Harici LLM'e gitmeden önce DOM adayları ve öznitelik ipuçları üzerinde Levenshtein mesafe algoritması kullanarak ultra hızlı (5ms altında) çalışan sıfır maliyetli yerel onarım motoru.
+- **Auto-POM Sayfa Bilgi Sistemi**: Otonom sayfa öğesi keşfi ve yerel anlamsal intent çözümlemesi sağlayan öğrenen önbellek yapısı (`PageKnowledge`).
+- **Locator Üzerinde Sıralı Koleksiyonlar (Sequenced Collections)**: Java 21 sequenced collections altyapısını kullanarak `Locator` üzerine `first()` ve `last()` gezinme metotları eklendi.
+- **`BaseJUnit5ApiTest`**: JUnit 5 Jupiter paketleri için doğrudan `api()` istemcisi desteği sağlayan REST API temel test sınıfı.
+- **`NavigationSupport` Yardımcıları**: Gelişmiş pencere yönetimi, sekmeler arası geçiş ve tarayıcı gezinme metotları.
+- **HTML Raporu Log Filtreleri**: Rapor zaman çizelgesinde etkileşimli INFO ve DEBUG log seviyesi görünürlük butonları.
+
+### Değişenler
+- **Java 21 LTS Modernizasyonu**: Framework derleyicisi ve çalışma tabanı Java 21 LTS (`--release 21`) standardına yükseltildi; kod tabanı genelinde Pattern Matching (`instanceof`), switch ifadeleri ve Stream `.toList()` yapılarına geçildi.
+- **Doğrudan Selenium By Uyumu (`Locator extends By`)**: `Locator` sınıfı doğrudan Selenium'un `org.openqa.selenium.By` sınıfını genişleterek yerel Selenium API'leri ile (`driver.findElement(locator)`) %100 şeffaf uyumlu hale getirildi.
+- **Clean API Refactor**: `Locator` sınıfı gereksiz öneklerden (`ofCss`, `inputValue`, `getValue`) arındırılarak daha sade ve tek tip (zero-boilerplate) bir API'ye kavuşturuldu.
+- **Support Interface Kapsamı**: `Support` arayüzleri (`ApiSupport`, `BrowserSupport`, `LocatorSupport`) alt motorların tüm yeteneklerini %100 kapsayacak şekilde genişletildi.
+- **Null-safe Aksiyonlar**: `Locator.type()` ve `Locator.append()` metotları artık tamamen null-safe; `null` veya `""` geçildiğinde hata fırlatmak yerine elementi güvenle temizliyor.
+
+### Performans
+- **Yük Testinde Sanal İş Parçacıkları (Virtual Threads)**: `JdkLoadEngine` içinde Project Loom `Executors.newVirtualThreadPerTaskExecutor()` kullanılarak ultra hafif ve yüksek eşzamanlı yük testi desteği sağlandı.
+- **Video Kayıt Bellek Optimizasyonu**: Video kaydedici ham byte karelerini saklar ve yalnızca test başarısız olduğunda tembel çözme (lazy-decoding) uygular; bu sayede uzun koşumlarda bellek (heap) tüketimi dramatik biçimde azaltıldı.
+
+### Düzeltmeler & Güvenilirlik
+- **Garantili WebDriver Temizliği**: Olağandışı sonlanmalarda bile tarayıcı süreçlerinin kapatılmasını garanti altına alan JVM shutdown kancaları ve `@AfterAll` listener tetikleyicisi eklendi.
+- **Thread-Safe Bootstrap**: Eşzamanlı suite başlatmaları sırasında framework bootstrap mekanizması yarış durumlarına (race condition) karşı güçlendirildi.
 
 ---
 

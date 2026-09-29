@@ -165,13 +165,13 @@ public final class TestClock {
             throw new IllegalStateException(
                     "[TestClock] No active WebDriver. Call clock().set() after open().");
         }
-        if (!(driver instanceof JavascriptExecutor)) {
+        if (!(driver instanceof JavascriptExecutor js)) {
             throw new UnsupportedOperationException(
                     "[TestClock] Browser does not support JavaScript execution.");
         }
 
         // Inject into current page
-        ((JavascriptExecutor) driver).executeScript(INJECT_JS, timeMs);
+        js.executeScript(INJECT_JS, timeMs);
 
         // For Chromium browsers, persist the mock across page navigations using CDP
         if (driver instanceof ChromiumDriver chromiumDriver) {
@@ -184,8 +184,8 @@ public final class TestClock {
     private static void executeReset() {
         try {
             WebDriver driver = DriverManager.getDriver();
-            if (driver instanceof JavascriptExecutor) {
-                ((JavascriptExecutor) driver).executeScript(RESET_JS);
+            if (driver instanceof JavascriptExecutor js) {
+                js.executeScript(RESET_JS);
             }
         } catch (Exception ignored) {
         }

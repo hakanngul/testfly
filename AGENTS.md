@@ -1,5 +1,15 @@
 # TestFly — Agent Guide
 
+> [!CAUTION]
+> **STOP — READ THIS FIRST, DO NOT SKIP.**
+> Before reading the rest of this file or touching any code:
+> 1. Read [`.agents/memories/scratchpad.md`](.agents/memories/scratchpad.md) — current state & active tasks.
+> 2. If you need deeper context, open [`.agents/MAP.md`](.agents/MAP.md) and follow only the relevant `[[wikilink]]`.
+> 3. **DO NOT** scan `src/`, `wiki/`, or this entire file blindly. You will waste tokens.
+> 4. After completing work, update `scratchpad.md` and append to [`.agents/memories/log.md`](.agents/memories/log.md).
+>
+> Full protocol: [`.agents/rules/memory-protocol.md`](.agents/rules/memory-protocol.md)
+
 This file is intended for AI coding agents working in the `testfly` repository.
 It summarizes the project's architecture, build/test workflows, code conventions, and extension points so you can be productive without guessing.
 
@@ -18,7 +28,7 @@ It summarizes the project's architecture, build/test workflows, code conventions
 ### TestFly Hafıza Döngüsü ve İki Yol Protokolü (Read & Write Path)
 - **Ajan Kimliği (Soul):** [[.agents/soul.md]] — Ajanın kıdemi, yaklaşımı ve kırmızı çizgilerini içeren tek paragraf.
 - **Okuma Yolu (Read Path - Token Koruma):** ASLA proje dosyalarını veya tüm wiki'yi körlemesine tarama. Önce [[.agents/memories/scratchpad.md]] dosyasını oku. Geçmiş karar veya derin domain bilgisi gerekiyorsa [[.agents/MAP.md]] haritasına bak ve sadece ilgili `[[wiki/<dosya>]]` sayfasına nokta atışı git.
-- **Yazma Yolu (Write Path - Sentez & Budama):** Oturum sonunda güncel durumu [[.agents/memories/scratchpad.md]] içine işle. **Maksimum 2.200 karakter sınırına** kesinlikle uy. Karakter dolduğunda kalıcı mimari kararları [[.agents/wiki/<kavram>.md]] olarak oluştur, [[.agents/MAP.md]] haritasına `[[<kavram>]]` olarak bağla ve tamamlanan işleri buda ([[ .agents/skills/memory-sync/SKILL.md ]]).
+- **Yazma Yolu (Write Path - Sentez & Budama):** Oturum sonunda güncel durumu [[.agents/memories/scratchpad.md]] içine işle. **Maksimum 2.200 karakter sınırına** kesinlikle uy. Karakter dolduğunda kalıcı mimari kararları [[.agents/wiki/<kavram>.md]] olarak oluştur, [[.agents/MAP.md]] haritasına `[[<kavram>]]` olarak bağla ve tamamlanan işleri buda ([[ .agents/skills/memory-sync/SKILL.md ]]). Önemli işlemlerden (ingest, refactor, yeni özellik, lint) sonra [[.agents/memories/log.md]] dosyasına kronolojik giriş ekle.
 - **Docusaurus Kuralı:** `docs-site` üzerinde güncelleme yapılırken her zaman `[[.agents/skills/docusaurus-config/SKILL.md]]` kullanılır, çift dil (TR/EN) korunur ve `npm run build` ile doğrulanır ([[ .agents/rules/docusaurus-workflow.md ]]).
 - **Git & Release Kuralı:** Kullanıcı "commit at" dediğinde körlemesine commit/push yapılamaz; sürüm (SemVer), tag ve checklist soruları sorularak açık onay alınır ([[ .agents/rules/git-release-workflow.md ]]).
 - **Obsidian Graph Standardı:** Tüm referanslar çift yönlü `[[...]]` link formatında tutulur ve YAML frontmatter (`tags`, `date`, `status`, `type`) kullanılır.
@@ -32,7 +42,7 @@ It is published to Maven Central as a single JAR that users add as a dependency.
 
 - **Group / Artifact:** `io.testfly:testfly`
 - **Current version:** `1.1.0`
-- **Java baseline:** 17 (compiled with `--release 17`)
+- **Java baseline:** 21 (compiled with `--release 21`)
 - **Build tool:** Maven 3.8+
 - **Primary test framework:** TestNG 7.9.0
 - **License:** Apache License 2.0

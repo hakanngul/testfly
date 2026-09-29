@@ -31,6 +31,13 @@ import static org.testng.Assert.*;
 public class LocatorTest {
 
     @Test
+    public void testFirstAndLastMethods() {
+        Locator locator = Locator.cssSelector(".item");
+        assertNotNull(locator.first());
+        assertNotNull(locator.last());
+    }
+
+    @Test
     public void resolve_throwsLocatorException_whenNoElementsFound() {
         LocatorException ex = new LocatorException("No element found for: By.id: missing");
         assertTrue(ex.getMessage().contains("No element found"));
@@ -63,7 +70,7 @@ public class LocatorTest {
 
     @Test
     public void locator_toString_includesWithText() {
-        Locator loc = Locator.ofCss("button").withText("Save");
+        Locator loc = Locator.cssSelector("button").withText("Save");
         assertTrue(loc.toString().contains("Save"), "toString should include withText value");
     }
 
@@ -76,8 +83,11 @@ public class LocatorTest {
 
     @Test
     public void locatorOfCss_createsByCssSelector() {
-        Locator loc = Locator.ofCss(".submit-btn");
+        Locator loc = Locator.cssSelector(".submit-btn");
         assertTrue(loc.toString().contains("submit-btn"));
+        @SuppressWarnings("deprecation")
+        Locator legacy = Locator.css(".submit-btn");
+        assertTrue(legacy.toString().contains("submit-btn"));
     }
 
     @Test
@@ -95,7 +105,7 @@ public class LocatorTest {
 
     @Test
     public void locator_chaining_doesNotMutateOriginal() {
-        Locator base = Locator.ofCss(".item");
+        Locator base = Locator.cssSelector(".item");
         Locator filtered = base.filter(".active");
         assertNotNull(base);
         assertNotNull(filtered);

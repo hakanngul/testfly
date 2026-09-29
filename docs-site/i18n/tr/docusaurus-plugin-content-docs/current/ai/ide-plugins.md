@@ -1,67 +1,87 @@
 ---
 id: ide-plugins
-title: IDE Eklentileri (IntelliJ IDEA & VS Code)
-sidebar_label: IDE Eklentileri (IDEA & VS Code)
+title: IDE Eklentileri & Stüdyo
+sidebar_label: IDE Eklentileri (VS Code & IntelliJ)
 sidebar_position: 3
-description: JetBrains AI Assistant, Claude Code ve GitHub Copilot'ı TestFly ile sıfır konfigürasyonla bağlayan resmi IDE eklentileri.
+description: VS Code ve IntelliJ IDEA için etkileşimli kenar çubukları, Action Cache gezginleri ve AI self-healing yama inceleyicileri içeren görsel eklentiler.
 ---
 
-# IDE Eklentileri (IntelliJ IDEA & VS Code)
+# IDE Eklentileri & Stüdyo Uzantıları
 
-TestFly, hem **IntelliJ IDEA** hem de **Visual Studio Code** için yapay zeka entegrasyonunu, ortam kontrolünü ve proje başlatma işlemlerini otomatikleştiren resmi eklentiler sunar.
+TestFly, geliştirme ortamınızı interaktif bir yapay zeka test stüdyosuna dönüştürmek için hem **Visual Studio Code** hem de **JetBrains IDE'leri (IntelliJ IDEA, Aqua)** için resmi eklentiler sunar.
 
----
-
-## 1. IntelliJ IDEA Eklentisi (`testfly-mcp-jetbrains`)
-
-IntelliJ IDEA eklentisi, TestFly'ı **JetBrains AI Assistant** ile entegre eder.
-
-### Öne Çıkan Özellikler
-- **Sıfır Konfigürasyonla AI Kaydı:** `testfly-mcp` sunucusunu `aiAssistantMcpServers.xml` dosyasına otomatik ekler.
-- **Özel Menü:** Üst menü çubuğuna **`Tools → TestFly MCP`** menüsünü ekler.
-- **Teşhis (Diagnostics):** Python, Selenium ve AI Assistant bağlantı durumunu tek tıkla doğrular.
-- **Stüdyo Başlatıcı:** **Etkileşimli Web Stüdyosu**'nu (`testfly-mcp ui`) tek tıkla açar.
-- **Şablon Üretici:** Proje kök dizinine kurumsal standartlarda bir `testfly.yml` dosyası oluşturur.
-
-### Kurulum Adımları
-1. Dağıtım zip dosyasını bulun:
-   ```text
-   testfly-mcp/jetbrains-plugin/build/distributions/testfly-mcp-jetbrains-1.0.0.zip
-   ```
-2. IntelliJ IDEA'da **Settings / Preferences** (`Cmd + ,` macOS, `Ctrl + Alt + S` Windows/Linux) penceresini açın.
-3. Sol menüden **Plugins** seçeneğini tıklayın.
-4. Sağ üstteki **Dişli çark (⚙️)** ikonuna tıklayıp **Install Plugin from Disk...** deyin.
-5. `testfly-mcp-jetbrains-1.0.0.zip` dosyasını seçip **OK** deyin.
-6. İstendiğinde IDE'yi yeniden başlatın (**Restart IDE**).
+Sıfır Python. Yerel IDE performansı.
 
 ---
 
-## 2. Visual Studio Code Eklentisi (`testfly-mcp`)
+## 1. Visual Studio Code Eklentisi (`testfly-vscode`)
 
-VS Code eklentisi, TestFly'ı **Claude Code** ve **GitHub Copilot** ile entegre eder.
+**TestFly Studio** eklentisi TestFly'ı **Cursor**, **GitHub Copilot** ve **Claude Desktop** ile entegre eder.
 
-### Öne Çıkan Özellikler
-- **Durum Çubuğu Öğesi:** Sol alt köşede `$(radio-tower) TestFly MCP` göstergesi yer alır.
-- **Hızlı İşlem Menüsü (QuickPick):** Durum çubuğuna tıklandığında teşhis yapma, AI kaydı, stüdyoyu başlatma veya `testfly.yml` üretme seçeneklerini sunar.
-- **Otomatik Kayıt:** `~/.claude/settings.json` ve çalışma alanı `.mcp.json` dosyalarını otomatik günceller.
-- **Pip Yönetimi:** Terminalde tek tıkla `pip install --upgrade testfly-mcp` çalıştırır.
+```
+┌────────────────────────────────────────────────────────┐
+│ TESTFLY STUDIO (Activity Bar)                          │
+│                                                        │
+│ ▶ Hızlı Aksiyonlar (Quick Actions)                     │
+│   • ⚡ 1-Click MCP Setup (Cursor, Claude, Copilot)     │
+│   • 🎯 Open Action Cache Explorer                      │
+│   • 🩹 AI Self-Healing Patch Reviewer                  │
+│   • ⚙️ Visual testfly.yml Editor                       │
+│                                                        │
+│ ▶ Ortam ve Proje Durumu                                │
+│   • JDK 21+: Hazır                                     │
+│   • Maven: Hazır                                       │
+│   • testfly.yml: Mevcut (✓)                            │
+│   • Action Cache: 3 hedef önbellekte                   │
+│   • Self-Healing Yamaları: 1 bekleyen                  │
+└────────────────────────────────────────────────────────┘
+```
 
-### Kurulum Adımları
-1. Hazırlanan VSIX dosyasını bulun:
-   ```text
-   testfly-mcp/vscode-extension/testfly-mcp-1.0.0.vsix
-   ```
-2. VS Code'da **Extensions** sekmesini açın (`Cmd + Shift + X`).
-3. Sağ üstteki **üç nokta (`...`)** menüsünden **Install from VSIX...** seçeneğini tıklayın.
-4. `testfly-mcp-1.0.0.vsix` dosyasını seçin.
-5. Eklenti anında aktifleşecektir.
+### Öne Çıkan Yetenekler
+- **⚡ Tek Tıkla Çoklu Asistan Kurulumu:** Playwright MCP ve TestFly Köprüsünü; Cursor (`~/.cursor/mcp.json`), Claude Desktop (`claude_desktop_config.json`), VS Code Native (`.vscode/mcp.json`) ve Claude Code için tek tıkla yapılandırır.
+- **🎯 Action Cache Explorer Webview:** Derlenmiş tüm `act("Hedef")` planlarını, adımları, lokatörleri ve zaman damgalarını görsel kartlar halinde listeler. Tek tıkla hedef önbelleğini sıfırlamanızı sağlar.
+- **🩹 AI Self-Healing Patch Reviewer Webview:** `AiHealingEngine` tarafından onarılan kırık lokatörlerin `.patch` dosyalarını renkli diff formatında açar ve **"Apply Patch to Java Code"** butonuyla koda anında uygular.
+- **⚙️ Görsel `testfly.yml` Editörü:** Zaman aşımları, paralel thread sayısı ve Yapay Zeka Sağlayıcısı (Gemini, Claude, OpenAI) ayarlarını form üzerinden düzenleme imkanı sunar.
+
+### Paketleme ve Kurulum
+En güncel VSIX paketini kaynak koddan derlemek için:
+```bash
+cd testfly-mcp/vscode-extension
+npx @vscode/vsce package
+```
+VS Code içinde:
+1. Extensions görünümünü açın (`Cmd + Shift + X` / `Ctrl + Shift + X`).
+2. Sağ üstteki `...` menüsüne tıklayın.
+3. **Install from VSIX...** seçeneğini seçip `testfly-vscode-1.1.0.vsix` dosyasını seçin.
 
 ---
 
-## 3. Bağlantının Doğrulanması
+## 2. IntelliJ IDEA Eklentisi (`testfly-mcp-jetbrains`)
 
-Kurulum tamamlandıktan sonra:
-1. IDE'nizdeki AI chat panelini açın (JetBrains AI Assistant veya Claude / Copilot).
-2. Şu prompt'u girin:
-   > *"TestFly için hangi MCP araçlarına sahipsin?"*
-3. AI asistanınız TestFly araçlarını (`start_browser`, `navigate`, `generate_java_page_object` vb.) listeliyorsa bağlantı başarıyla kurulmuş demektir.
+JetBrains IDE'leri için geliştirilen **TestFly Studio** eklentisi, VS Code eklentisindeki tüm yetenekleri IntelliJ'nin sağ şeridinde çalışan **etkileşimli bir "Tool Window" (Yan Panel)** olarak sunar.
+
+### Etkileşimli Yan Panel Sekmeleri
+1. **📊 Dashboard Sekmesi:**
+   - Gerçek zamanlı ortam ve proje durumu rozetleri (`testfly.yml`, `pom.xml`, Java 21, MCP kaydı).
+   - Hızlı butonlar: Tek Tıkla MCP Kurulumu, `testfly.yml` Oluşturma, Yenileme ve Dokümantasyon.
+2. **⚡ Action Cache Sekmesi:**
+   - `.testfly/action-cache.json` içindeki otonom `act()` planlarını listeler.
+   - Sonraki test koşumunda yapay zekanın hedefi yeniden derlemesini sağlamak için **Invalidate Goal** butonu.
+   - Tüm önbelleği silmek için **Clear All** butonu.
+3. **🩹 AI Patches Sekmesi:**
+   - `target/remediations/` altındaki bekleyen onarım `.patch` dosyalarını listeler.
+   - Kod değişikliklerini gösteren dahili diff görüntüleyici.
+   - IDE içinde doğrudan `git apply` çalıştıran **`[ ✅ Apply Patch to Java Code ]`** butonu.
+
+### Paketleme ve Kurulum
+Eklenti paketini kaynak koddan derlemek için:
+```bash
+cd testfly-mcp/jetbrains-plugin
+./gradlew buildPlugin
+```
+IntelliJ IDEA / Aqua içinde:
+1. **Settings / Preferences** menüsünü açın (`Cmd + ,` macOS / `Ctrl + Alt + S` Windows/Linux).
+2. **Plugins** sekmesine gidin.
+3. Sağ üstteki **Dişli çarka (⚙️)** tıklayıp **Install Plugin from Disk...** seçeneğini seçin.
+4. `testfly-mcp/jetbrains-plugin/build/distributions/testfly-mcp-jetbrains-1.1.0.zip` dosyasını seçin.
+5. IDE'yi yeniden başlatın. Sağ kenar şeridinde **TestFly** paneli belirecektir.

@@ -5,7 +5,10 @@ import io.testfly.listeners.SuiteExecutionListener;
 import io.testfly.listeners.TestExecutionListener;
 import io.testfly.test.support.ApiSupport;
 import io.testfly.test.support.ContextSupport;
+import io.testfly.test.support.DbSupport;
+import io.testfly.test.support.EmailSupport;
 import io.testfly.test.support.SoftAssertSupport;
+import io.testfly.test.support.StepSupport;
 import io.testfly.test.support.TestDataSupport;
 import org.testng.annotations.Listeners;
 
@@ -34,7 +37,8 @@ import org.testng.annotations.Listeners;
         SuiteExecutionListener.class,
         TestExecutionListener.class
 })
-public abstract class BaseApiTest implements SoftAssertSupport, TestDataSupport, ApiSupport, ContextSupport {
+public abstract class BaseApiTest
+        implements SoftAssertSupport, TestDataSupport, ApiSupport, ContextSupport, StepSupport, DbSupport, EmailSupport {
 
-    // softAssert(), getTestData(), apiClient(), ctx()/suiteCtx() — via io.testfly.test.support.*
+    // softAssert(), getTestData(), apiClient(), ctx()/suiteCtx(), step(), db(), mailbox()/to() — via io.testfly.test.support.*
 }

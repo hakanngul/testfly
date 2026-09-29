@@ -46,6 +46,20 @@ Geri dönüşler **orijinal locator'ın kendi içeriğinden** türetilir — fra
 
 **Örnek.** Artık eşleşmeyen `By.cssSelector("div.header input#email")` locator'ı `By.id("email")`'e, ardından `By.className("header")`'e geri döner — böylece `id` hâlâ mevcut olduğu sürece bir sarmalayıcı yeniden adlandırması testi bozmaz.
 
+### Seviye 1.5: Fuzzy Self-Healing (`FuzzyHealingEngine`)
+
+Statik kurallar başarısız olduğunda TestFly, harici LLM'e gitmeden önce yerel **FuzzyHealingEngine**'i devreye alır:
+- ID, isim ve CSS parçalarından seçici ipuçlarını (clues) ayıklar.
+- DOM'daki aday öğeler üzerinde Levenshtein mesafe algoritmasıyla sıfır maliyetli ve ultra hızlı (5ms altında) dize benzerlik analizi yapar.
+- Yeniden adlandırılan veya ufak yazım hataları içeren seçicileri 0 token maliyetiyle onarır.
+
+### Seviye 2: Yapay Zeka Destekli Onarma (`aiHealing: true`)
+
+Statik ve fuzzy stratejilerin yetersiz kaldığı durumlarda `locators.aiHealing: true` aktifse **AiHealingEngine** devreye girer:
+- Sayfa DOM'unu budayarak yapılandırılmış token bütçesine sığdırır.
+- LLM'den başarısız olan seçicinin amacına uygun yeni bir locator üretmesini talep eder.
+- Üretilen seçiciyi canlı sayfada doğrular ve `.testfly/healed-locators.json` dosyasına önbelleğe alarak sonraki koşumlarda 0ms gecikmeyle çalıştırır.
+
 ---
 
 ## Neyin onarıldığını görme

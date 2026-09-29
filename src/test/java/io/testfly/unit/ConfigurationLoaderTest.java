@@ -15,7 +15,7 @@ import static org.testng.Assert.*;
 @Test(singleThreaded = true)
 public class ConfigurationLoaderTest {
 
-    private static final Object LOCK = new Object();
+    private static final Object LOCK = ConfigurationLoader.class;
 
     @BeforeMethod
     public void clearSystemProperties() {

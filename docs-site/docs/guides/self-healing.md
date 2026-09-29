@@ -64,9 +64,16 @@ never invents selectors out of thin air. Strategies are tried in this order:
 matches will fall back to `By.id("email")`, then to `By.className("header")` — so a
 wrapper rename won't break the test as long as the `id` still exists.
 
+### Level 1.5: Fuzzy Self-Healing (`FuzzyHealingEngine`)
+
+Before escalating to external LLM calls, TestFly automatically invokes the local **FuzzyHealingEngine**:
+- Extracts locator clues (ID tokens, attribute names, CSS class fragments).
+- Executes ultra-fast, zero-token Levenshtein distance similarity matching against candidate DOM elements.
+- Resolves minor selector drift, renamed classes, or subtle DOM restructuring in under 5ms without incurring any external AI token costs.
+
 ### Level 2: AI-Driven Self-Healing (`aiHealing: true`)
 
-If all 6 static strategies fail and `locators.aiHealing: true` is configured, TestFly activates the **AiHealingEngine**:
+If all static and fuzzy strategies fail and `locators.aiHealing: true` is configured, TestFly activates the **AiHealingEngine**:
 - Uses `DomPruner` to compress the DOM below `locators.maxDomTokens` (default 8,000) while keeping semantic attributes intact.
 - Queries the configured LLM to synthesize a new locator matching the intent of the failed selector.
 - Caches the newly discovered selector into `.testfly/healed-locators.json` so subsequent runs resolve instantly without AI latency.

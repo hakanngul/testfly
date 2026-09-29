@@ -80,4 +80,14 @@ public interface BrowserSupport {
     default ClipboardHelper clipboard() {
         return ClipboardHelper.instance();
     }
+
+    /** Returns all errors collected so far via the JS console shim or WebDriver logs. */
+    default java.util.List<String> getConsoleErrors() {
+        return io.testfly.browser.ConsoleErrorCollector.getErrors();
+    }
+
+    /** Clears the JS console error buffer on the current page. */
+    default void clearConsoleErrors() {
+        io.testfly.browser.ConsoleErrorCollector.clear();
+    }
 }

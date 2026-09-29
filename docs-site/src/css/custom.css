@@ -1238,3 +1238,19 @@ table td {
   font-style: italic;
 }
 
+/* Java/Kotlin Package & Namespace tokens across code blocks */
+[data-theme='dark'] .token.namespace,
+[data-theme='dark'] .token.package,
+[data-theme='dark'] span.token.namespace,
+[data-theme='dark'] span.token.package {
+  color: #e5e5ea !important;
+  opacity: 1 !important;
+}
+
+[data-theme='light'] .token.namespace,
+[data-theme='light'] .token.package {
+  color: #3a3a3c !important;
+  opacity: 1 !important;
+}
+
+

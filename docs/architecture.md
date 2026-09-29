@@ -31,17 +31,17 @@ TestFly follows a layered, responsibility-driven architecture:
 └───────────────────────────┬────────────────────────────┘
                             │
 ┌───────────────────────────▼────────────────────────────┐
-│                   Agentic AI Layer                     │
+│         Agentic AI & Resilience Layer                  │
 │   ActionCompiler · ActionExecutor · ActionCache        │
-│   AiAssertEngine · AiHealingEngine · DomPruner         │
-│   AiFailureAnalyzer · RemediationPatchGenerator        │
+│   AiAssertEngine · FuzzyHealingEngine · AiHealingEngine│
+│   SmartTriageEngine · DomPruner · FailureAnalyzer      │
 └───────────────────────────┬────────────────────────────┘
                             │
 ┌───────────────────────────▼────────────────────────────┐
-│                      TestFly Core                      │
+│             TestFly Core (Java 21 LTS)                 │
 │   Lifecycle Orchestrator · ThreadLocal Driver Manager │
-│   Fluent Locators & Assertions (PageAssert, Locator)  │
-│   Network Mocking (CDP v152) · REST API Client        │
+│   Immutable Locators (cssSelector, byRole) & Asserts  │
+│   Network Mocking (CDP v152) · REST API & Load Engine  │
 │   Precondition Session Cache · WaitEngine & Retries   │
 └───────────────────────────┬────────────────────────────┘
                             │
@@ -78,14 +78,16 @@ Rules:
 
 ---
 
-### 2. Agentic AI Layer (Framework-Owned)
+### 2. Agentic AI & Resilience Layer (Framework-Owned)
 
 Responsibilities:
 - **Goal Compilation (`ActionCompiler`)**: Transforms natural language goals into deterministic `ActionPlan` steps via LLM reasoning.
 - **Action Execution (`ActionExecutor`)**: Executes compiled plans as Selenium WebDriver actions (`CLICK`, `TYPE`, `CLEAR`, `HOVER`, `WAIT_VISIBLE`, `PRESS_ENTER`, `SELECT`, `NAVIGATE`).
 - **Compile & Freeze Caching (`ActionCache`)**: Persists action plans to `.testfly/action-cache.json` for 0ms replay on subsequent runs.
 - **Semantic Assertions (`PageAssert` / `LocatorAssert` → `AiAssertEngine`)**: Prune the DOM, then evaluate natural language conditions via LLM reasoning; fail closed on malformed responses.
-- **AI Self-Healing (`AiHealingEngine`)**: Synthesizes new locators when selectors break, using pruned DOM context.
+- **Fuzzy Self-Healing (`FuzzyHealingEngine`)**: Fast-path, zero-token local heuristic recovery using Levenshtein distance against DOM candidates and attribute tokens before escalating to external LLMs.
+- **AI Self-Healing (`AiHealingEngine`)**: Synthesizes resilient locators when selectors break, using pruned DOM context and LLM reasoning.
+- **Smart Flakiness Triage (`SmartTriageEngine`)**: Local heuristic analyzer in test execution listeners that inspects exceptions and classifies failures (`SYSTEM_FLAKY`, `APPLICATION_BUG`, `NEEDS_INVESTIGATION`) without LLM token cost.
 - **DOM Optimization (`DomPruner`)**: Strips non-semantic HTML noise to stay within LLM token budgets (<8K tokens).
 - **Failure Analysis (`AiFailureAnalyzer`)**: Explains test failure root causes in HTML reports.
 - **Auto-PR Remediation (`RemediationPatchGenerator` + `SourceCodeLocator`)**: Generates Unified Git Diff `.patch` files for permanent locator failures.
@@ -97,16 +99,17 @@ Supported LLM Providers:
 
 ---
 
-### 3. TestFly Core (Framework-Owned)
+### 3. TestFly Core (Java 21 LTS, Framework-Owned)
 
 Responsibilities:
 - **Lifecycle Orchestration**: Automates driver start, pre-conditions, and teardown across TestNG, JUnit 5, and Cucumber.
 - **ThreadLocal Isolation**: Ensures zero cross-thread driver contamination during parallel execution.
-- **Fluent Locators & Assertions**: Auto-waiting locator factories (`find()`, `getByRole()`) and assertions.
-- **Network Mocking (`page().route()`)**: Declarative request stubbing and routing over Chrome DevTools Protocol.
-- **Unified REST API Client**: Built-in HTTP client with polling and JSONPath validation.
+- **Immutable Fluent Locators (`Locator`)**: Auto-waiting locator factories (`Locator.cssSelector()`, `Locator.byRole()`, `Locator.id()`, etc.) with in-browser JavaScript filtering and null-safe actions.
+- **Web-First Polling Assertions**: Auto-retrying assertions (`assertThat(locator)`, `assertThatPage()`) that poll until timeout; standard primitive assertions are cleanly delegated to AssertJ/TestNG.
+- **Network Mocking (`page().route()`)**: Declarative request stubbing and routing over Chrome DevTools Protocol (CDP v152).
+- **Unified REST API & Load Testing**: Built-in HTTP client (`api()`) with polling and JSONPath validation, plus lightweight embedded `JdkLoadEngine` load testing.
 - **Session Caching**: Caches cookies and web storage via `@PreCondition` to skip repetitive UI logins.
-- **Wait Engine & Retries**: Centralized explicit waits (preventing harmful implicit waits) and automated flakiness retry.
+- **Wait Engine & Retries**: Centralized explicit waits (preventing harmful implicit waits) and automated flakiness retry (`@Retryable`).
 
 ---
 

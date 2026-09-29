@@ -4,7 +4,10 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.ci.BuildQualityGateException;
 import io.testfly.ci.BuildThresholdEnforcer;
 import io.testfly.config.TestFlyConfig;
+import io.testfly.driver.DriverManager;
+import io.testfly.extension.PluginRegistry;
 import io.testfly.flakiness.FlakinessAnalyzer;
+import io.testfly.healing.HealLog;
 import io.testfly.hooks.HookRegistry;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
@@ -36,14 +39,18 @@ public class TestFlyLauncherListener implements TestExecutionListener {
         try {
             ExecutionMetrics.printSummary();
             ExecutionMetrics.exportToJson();
+            HealLog.export();
             FlakinessAnalyzer.analyze();
 
             JUnitXmlReporter.export(ExecutionMetrics.getTimings(), System.currentTimeMillis());
 
             ReportAdapterRegistry.generateAll();
             PreConditionRunner.clearAll();
+            DriverManager.quitAllSuiteDrivers();
+            DriverManager.quitDriver();
             HookRegistry.onSuiteEnd();
             TestManagementReporter.getInstance().onSuiteEnd();
+            PluginRegistry.unloadAll();
 
             TestFlyConfig config = TestFlyContext.getConfig();
             if (config != null) {

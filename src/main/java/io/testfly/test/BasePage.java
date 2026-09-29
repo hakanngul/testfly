@@ -1,12 +1,15 @@
 package io.testfly.test;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.driver.DriverManager;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.shadow.ShadowDom;
 import io.testfly.test.support.ActionSupport;
 import io.testfly.test.support.AssertionSupport;
 import io.testfly.test.support.BrowserSupport;
+import io.testfly.test.support.ContextSupport;
 import io.testfly.test.support.LocatorSupport;
+import io.testfly.test.support.NavigationSupport;
 import io.testfly.test.support.SoftAssertSupport;
 import io.testfly.test.support.StepSupport;
 import io.testfly.test.support.VisualSupport;
@@ -39,8 +42,8 @@ import java.time.Duration;
  *     private static final By PASSWORD = By.id("password");
  *     private static final By SUBMIT = By.id("submit");
  *
- *     public LoginPage(WebDriver driver) {
- *         super(driver);
+ *     public LoginPage() {
+ *         super();
  *     }
  *
  *     public void login(String user, String pass) {
@@ -53,7 +56,7 @@ import java.time.Duration;
  */
 @TestFlyApi(since = "0.8.0")
 public abstract class BasePage implements LocatorSupport, AssertionSupport, ActionSupport, StepSupport,
-        SoftAssertSupport, BrowserSupport, VisualSupport {
+        SoftAssertSupport, BrowserSupport, VisualSupport, NavigationSupport, ContextSupport {
 
     protected final WebDriver driver;
 
@@ -63,8 +66,33 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     private static final ThreadLocal<Integer> FRAME_DEPTH = ThreadLocal.withInitial(() -> 0);
 
+    /**
+     * Constructs a page object using the framework-managed WebDriver for the active
+     * thread.
+     * Delegates lazily to {@link DriverManager#getDriver()}.
+     */
+    protected BasePage() {
+        this(null);
+    }
+
+    /**
+     * Constructs a page object with an explicit WebDriver instance.
+     *
+     * @param driver custom WebDriver instance, or {@code null} to use
+     *               {@link DriverManager#getDriver()}
+     */
     protected BasePage(WebDriver driver) {
         this.driver = driver;
+    }
+
+    /**
+     * Returns the effective {@link WebDriver} for this page object.
+     * Returns the explicitly provided driver if present, otherwise falls back to
+     * {@link DriverManager#getDriver()}.
+     */
+    @Override
+    public WebDriver getDriver() {
+        return driver != null ? driver : DriverManager.getDriver();
     }
 
     // ----------------------------------------------------------
@@ -102,6 +130,15 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     protected void click(By locator) {
         find(locator).click();
+    }
+
+    /**
+     * Waits for the element to be visible, then robustly clears its text content.
+     * Uses Command+A (macOS) and Control+A (Windows/Linux) followed by native clear
+     * to ensure controlled inputs (React, Vue, Angular) clear completely.
+     */
+    protected void clear(By locator) {
+        find(locator).clear();
     }
 
     /**
@@ -244,7 +281,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
 
     private Alert waitForAlert() {
         int timeout = TestFlyContext.getConfig().getTimeouts().getExplicit();
-        return new WebDriverWait(driver, Duration.ofSeconds(timeout))
+        return new WebDriverWait(getDriver(), Duration.ofSeconds(timeout))
                 .until(ExpectedConditions.alertIsPresent());
     }
 
@@ -252,6 +289,13 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
     // Mouse action helpers
     // ----------------------------------------------------------
 
+    /**
+     * Moves the mouse over the element (hover / mouse-over).
+     *
+     * <pre>
+     * hover(By.id("menu-item"));
+     * </pre>
+     */
     /**
      * Moves the mouse over the element (hover / mouse-over).
      *
@@ -269,7 +313,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
     protected void doubleClick(By locator) {
         step("Double-click " + locator);
         WebElement el = WaitEngine.waitForClickable(locator);
-        new Actions(driver).doubleClick(el).perform();
+        new Actions(getDriver()).doubleClick(el).perform();
     }
 
     /**
@@ -278,7 +322,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
     protected void rightClick(By locator) {
         step("Right-click " + locator);
         WebElement el = WaitEngine.waitForVisible(locator);
-        new Actions(driver).contextClick(el).perform();
+        new Actions(getDriver()).contextClick(el).perform();
     }
 
     // ----------------------------------------------------------
@@ -301,7 +345,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     protected void scrollToTop() {
         step("Scroll to top");
-        ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, 0);");
+        ((JavascriptExecutor) getDriver()).executeScript("window.scrollTo(0, 0);");
     }
 
     /**
@@ -309,7 +353,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     protected void scrollToBottom() {
         step("Scroll to bottom");
-        ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, document.body.scrollHeight);");
+        ((JavascriptExecutor) getDriver()).executeScript("window.scrollTo(0, document.body.scrollHeight);");
     }
 
     // ----------------------------------------------------------
@@ -339,13 +383,20 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     protected void jsType(By locator, String text) {
         step("JS type into " + locator);
-        WebElement el = driver.findElement(locator);
-        ((JavascriptExecutor) driver).executeScript("arguments[0].value = arguments[1];", el, text);
+        WebElement el = getDriver().findElement(locator);
+        ((JavascriptExecutor) getDriver()).executeScript("arguments[0].value = arguments[1];", el, text);
     }
 
-    // ----------------------------------------------------------
-    // Soft assertions
-    // ----------------------------------------------------------
+    /**
+     * Waits for the element to be visible, clears its existing value, and types the
+     * given text.
+     *
+     * @param locator target input element
+     * @param text    text to type
+     */
+    protected void clearAndType(By locator, String text) {
+        type(locator, text);
+    }
 
     // ----------------------------------------------------------
     // SmartLocator helper
@@ -374,7 +425,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
         By[] all = new By[1 + fallbacks.length];
         all[0] = primary;
         System.arraycopy(fallbacks, 0, all, 1, fallbacks.length);
-        return SmartLocator.find(driver, all);
+        return SmartLocator.find(getDriver(), all);
     }
 
     // ----------------------------------------------------------
@@ -399,7 +450,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
     protected void withinFrame(By frameLocator, Runnable action) {
         step("Switch to frame " + frameLocator);
         WebElement frame = WaitEngine.waitForVisible(frameLocator);
-        driver.switchTo().frame(frame);
+        getDriver().switchTo().frame(frame);
         FRAME_DEPTH.set(FRAME_DEPTH.get() + 1);
         try {
             action.run();
@@ -414,7 +465,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     protected void withinFrameIndex(int index, Runnable action) {
         step("Switch to frame index " + index);
-        driver.switchTo().frame(index);
+        getDriver().switchTo().frame(index);
         FRAME_DEPTH.set(FRAME_DEPTH.get() + 1);
         try {
             action.run();
@@ -429,7 +480,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     protected void withinFrameName(String nameOrId, Runnable action) {
         step("Switch to frame \"" + nameOrId + "\"");
-        driver.switchTo().frame(nameOrId);
+        getDriver().switchTo().frame(nameOrId);
         FRAME_DEPTH.set(FRAME_DEPTH.get() + 1);
         try {
             action.run();
@@ -442,9 +493,9 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
         int depth = FRAME_DEPTH.get() - 1;
         FRAME_DEPTH.set(depth);
         if (depth == 0) {
-            driver.switchTo().defaultContent();
+            getDriver().switchTo().defaultContent();
         } else {
-            driver.switchTo().parentFrame();
+            getDriver().switchTo().parentFrame();
         }
     }
 
@@ -565,6 +616,16 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
         input.sendKeys(absolutePath);
     }
 
+    /**
+     * Sends the given file path to a file input element.
+     */
+    protected void upload(WebElement inputElement, String filePath) {
+        step("Upload file to WebElement");
+        String absolutePath = resolveFilePath(filePath);
+        WebElement input = WaitEngine.waitForVisible(inputElement);
+        input.sendKeys(absolutePath);
+    }
+
     // ----------------------------------------------------------
     // Phase 14 — Network, Storage, GeoLocation, Clipboard
     // ----------------------------------------------------------
@@ -621,7 +682,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     @Override
     public void act(String goal) {
-        io.testfly.agent.ActionCompiler.execute(driver != null ? driver : io.testfly.driver.DriverManager.getDriver(), goal);
+        io.testfly.agent.ActionCompiler.execute(getDriver(), goal);
     }
 
 }

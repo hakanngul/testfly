@@ -65,8 +65,26 @@ public class LocalFirefoxDriverProvider implements DriverProvider{
 
         WebDriver driver = new FirefoxDriver(options);
         driver.manage().timeouts().implicitlyWait(Duration.ZERO);
-
         driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(config.getTimeouts().getPageLoad()));
+
+        List<String> args = config.getBrowser().getArguments();
+        boolean hasWindowSize = args != null && args.stream().anyMatch(a -> a != null && (a.startsWith("--window-size") || a.startsWith("--width")));
+        boolean hasStartMaximized = args != null && args.contains("--start-maximized");
+        boolean hasStartFullscreen = args != null && args.contains("--start-fullscreen");
+
+        if (!config.getBrowser().isHeadless() && !hasWindowSize) {
+            if (hasStartFullscreen) {
+                try {
+                    driver.manage().window().fullscreen();
+                } catch (Exception ignored) {
+                }
+            } else if (hasStartMaximized) {
+                try {
+                    driver.manage().window().maximize();
+                } catch (Exception ignored) {
+                }
+            }
+        }
 
         return driver;
     }

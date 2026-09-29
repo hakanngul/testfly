@@ -181,6 +181,10 @@ Otonom test ajanlarının en büyük handikapı yavaşlık ve kararsızlıktır 
 }
 ```
 
+:::tip Auto-POM: Öğrenilmiş Sayfa Modeli
+Birebir hedef önbelleğinin ötesinde TestFly, **[Auto-POM (Öğrenilmiş Sayfa Modeli)](auto-pom.md)** yeteneğine de sahiptir. Auto-POM, test koşumları sırasında kalıcı bir sayfa nesnesi grafiği (`.testfly/page-knowledge.json`) inşa eder ve farklı testlerdeki anlamsal hedefleri **0 ms AI gecikmesi ve 0 token maliyetiyle** yerel olarak çözer.
+:::
+
 ---
 
 ## 5. AI Hata Onarım Yaması (Self-Remediation / Auto-PR)

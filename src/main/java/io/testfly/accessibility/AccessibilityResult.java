@@ -63,7 +63,7 @@ public final class AccessibilityResult {
     public List<AccessibilityViolation> violationsAtLevel(Impact minimum) {
         return violations.stream()
                 .filter(v -> v.impact().isAtLeast(minimum))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

@@ -1785,6 +1785,9 @@ public final class TestFlyConfig {
     }
 
     public Api getApi() {
+        if (api == null) {
+            api = new Api();
+        }
         return api;
     }
 

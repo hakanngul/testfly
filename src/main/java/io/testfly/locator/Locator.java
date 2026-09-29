@@ -2,9 +2,8 @@ package io.testfly.locator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-
 import org.openqa.selenium.By;
+import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -14,6 +13,9 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.driver.DriverManager;
 import io.testfly.steps.StepLogger;
 import io.testfly.wait.WaitEngine;
+import org.openqa.selenium.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Chainable, auto-waiting element locator.
@@ -33,11 +35,13 @@ import io.testfly.wait.WaitEngine;
  * </pre>
  */
 @TestFlyApi(since = "1.4.0")
-public final class Locator {
+public final class Locator extends By {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Locator.class);
 
     /** How the base set of candidate elements is derived. */
     private enum Kind {
-        CSS_OR_BY, ROLE, TEXT, LABEL, PLACEHOLDER, TESTID, ALT_TEXT, TITLE
+        CSS_OR_BY, ROLE, TEXT, LABEL, PLACEHOLDER, TESTID, ALT_TEXT, TITLE, ELEMENT
     }
 
     /** Default attribute used by {@link #byTestId(String)} — overridable. */
@@ -51,6 +55,7 @@ public final class Locator {
 
     private final Kind kind;
     private final By root; // set only for Kind.CSS_OR_BY
+    private final WebElement directElement; // set only for Kind.ELEMENT
     private Role semanticRole; // set only for Kind.ROLE
     private String semanticValue; // raw text/attr value for the semantic kinds
     private Integer headingLevel; // optional heading level filter
@@ -61,6 +66,7 @@ public final class Locator {
     private String withText;
     private By withinContainer;
     private int nthIndex = -1; // -1 = no nth filter
+    private boolean selectLast = false;
 
     // ------------------------------------------------------------------
     // Factory — called from BasePage / BaseTest via $() and getBy*()
@@ -70,15 +76,59 @@ public final class Locator {
         return new Locator(by);
     }
 
-    public static Locator ofCss(String css) {
+    /**
+     * Creates a chainable {@link Locator} wrapping an existing {@link WebElement}.
+     *
+     * @param element the WebElement to wrap
+     * @return a Locator wrapping the given element
+     */
+    @TestFlyApi(since = "1.0.5")
+    public static Locator of(WebElement element) {
+        if (element == null) {
+            throw new IllegalArgumentException("WebElement cannot be null");
+        }
+        return new Locator(element);
+    }
+
+    public static Locator id(String id) {
+        return new Locator(By.id(id));
+    }
+
+    public static Locator name(String name) {
+        return new Locator(By.name(name));
+    }
+
+    public static Locator className(String className) {
+        return new Locator(By.className(className));
+    }
+
+    public static Locator xpath(String xpath) {
+        return new Locator(By.xpath(xpath));
+    }
+
+    /**
+     * Creates a chainable {@link Locator} from a CSS selector.
+     *
+     * @param css CSS selector string
+     * @return chainable {@link Locator}
+     */
+    public static Locator cssSelector(String css) {
         return new Locator(By.cssSelector(css));
+    }
+
+    /**
+     * Creates a chainable {@link Locator} from a CSS selector.
+     *
+     * @deprecated Use {@link #cssSelector(String)} instead.
+     */
+    @Deprecated
+    public static Locator css(String css) {
+        return cssSelector(css);
     }
 
     /** Locates elements by their ARIA role (implicit or explicit). */
     public static Locator byRole(Role role) {
-        Locator l = new Locator(Kind.ROLE);
-        l.semanticRole = role;
-        return l;
+        return new Locator(Kind.ROLE, null, role, null);
     }
 
     /** Locates elements by visible text — case-insensitive substring by default. */
@@ -88,9 +138,7 @@ public final class Locator {
 
     /** Locates a form control by its associated label text. */
     public static Locator byLabel(String label) {
-        Locator l = semantic(Kind.LABEL, null);
-        l.accessibleName = label;
-        return l;
+        return new Locator(Kind.LABEL, null, null, label);
     }
 
     /** Locates an element by its {@code placeholder} attribute. */
@@ -123,19 +171,50 @@ public final class Locator {
     }
 
     private static Locator semantic(Kind kind, String value) {
-        Locator l = new Locator(kind);
-        l.semanticValue = value;
-        return l;
+        return new Locator(kind, value, null, null);
     }
 
     private Locator(By root) {
         this.kind = Kind.CSS_OR_BY;
         this.root = root;
+        this.directElement = null;
+        this.semanticValue = null;
+        this.semanticRole = null;
+        this.accessibleName = null;
     }
 
-    private Locator(Kind kind) {
+    private Locator(Kind kind, String semanticValue, Role semanticRole, String accessibleName) {
         this.kind = kind;
         this.root = null;
+        this.directElement = null;
+        this.semanticValue = semanticValue;
+        this.semanticRole = semanticRole;
+        this.accessibleName = accessibleName;
+    }
+
+    private Locator(WebElement element) {
+        this.kind = Kind.ELEMENT;
+        this.root = null;
+        this.directElement = element;
+        this.semanticValue = null;
+        this.semanticRole = null;
+        this.accessibleName = null;
+    }
+
+    private Locator(Locator other) {
+        this.kind = other.kind;
+        this.root = other.root;
+        this.directElement = other.directElement;
+        this.semanticRole = other.semanticRole;
+        this.semanticValue = other.semanticValue;
+        this.headingLevel = other.headingLevel;
+        this.accessibleName = other.accessibleName;
+        this.exact = other.exact;
+        this.filterCss = other.filterCss;
+        this.withText = other.withText;
+        this.withinContainer = other.withinContainer;
+        this.nthIndex = other.nthIndex;
+        this.selectLast = other.selectLast;
     }
 
     // ------------------------------------------------------------------
@@ -150,8 +229,9 @@ public final class Locator {
      * </pre>
      */
     public Locator filter(String css) {
-        this.filterCss = css;
-        return this;
+        Locator copy = new Locator(this);
+        copy.filterCss = css;
+        return copy;
     }
 
     /**
@@ -163,8 +243,9 @@ public final class Locator {
      * </pre>
      */
     public Locator withText(String text) {
-        this.withText = text;
-        return this;
+        Locator copy = new Locator(this);
+        copy.withText = text;
+        return copy;
     }
 
     /**
@@ -175,8 +256,9 @@ public final class Locator {
      * </pre>
      */
     public Locator within(By container) {
-        this.withinContainer = container;
-        return this;
+        Locator copy = new Locator(this);
+        copy.withinContainer = container;
+        return copy;
     }
 
     /**
@@ -187,8 +269,21 @@ public final class Locator {
      * </pre>
      */
     public Locator nth(int index) {
-        this.nthIndex = index;
-        return this;
+        Locator copy = new Locator(this);
+        copy.nthIndex = index;
+        return copy;
+    }
+
+    /** Narrows to the first matching element. */
+    public Locator first() {
+        return nth(0);
+    }
+
+    /** Narrows to the last matching element. */
+    public Locator last() {
+        Locator copy = new Locator(this);
+        copy.selectLast = true;
+        return copy;
     }
 
     /**
@@ -201,8 +296,9 @@ public final class Locator {
      * </pre>
      */
     public Locator withName(String name) {
-        this.accessibleName = name;
-        return this;
+        Locator copy = new Locator(this);
+        copy.accessibleName = name;
+        return copy;
     }
 
     /**
@@ -213,8 +309,9 @@ public final class Locator {
      * </pre>
      */
     public Locator withLevel(int level) {
-        this.headingLevel = level;
-        return this;
+        Locator copy = new Locator(this);
+        copy.headingLevel = level;
+        return copy;
     }
 
     /**
@@ -226,8 +323,9 @@ public final class Locator {
      * </pre>
      */
     public Locator exact() {
-        this.exact = true;
-        return this;
+        Locator copy = new Locator(this);
+        copy.exact = true;
+        return copy;
     }
 
     /**
@@ -240,6 +338,19 @@ public final class Locator {
      * use the terminal actions for the fully-resolved element.
      */
     public By toBy() {
+        if (kind == Kind.ELEMENT) {
+            return new By() {
+                @Override
+                public List<WebElement> findElements(SearchContext context) {
+                    return List.of(directElement);
+                }
+
+                @Override
+                public String toString() {
+                    return "By.element(" + directElement + ")";
+                }
+            };
+        }
         return buildRoot();
     }
 
@@ -254,19 +365,56 @@ public final class Locator {
     }
 
     /**
-     * Waits for the element to be visible, clears it, then types the given text.
+     * Waits for the element to be visible, then robustly clears its text content.
+     * Uses Command+A (macOS) and Control+A (Windows/Linux) followed by native clear
+     * to ensure controlled inputs (React, Vue, Angular) and cross-platform browsers
+     * clear completely.
+     */
+    public void clear() {
+        StepLogger.step("Clear " + this);
+        WebElement el = waitForVisible(resolve());
+        robustClear(el);
+    }
+
+    /**
+     * Robustly clears the given {@link WebElement} across all platforms (macOS
+     * Command+A,
+     * Windows/Linux Control+A) followed by native clear.
+     *
+     * @param el target WebElement to clear
+     */
+    public static void robustClear(WebElement el) {
+        if (el == null) {
+            return;
+        }
+        try {
+            el.sendKeys(Keys.chord(Keys.COMMAND, "a"), Keys.BACK_SPACE);
+            el.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.BACK_SPACE);
+            el.clear();
+        } catch (Exception e) {
+            LOGGER.warn("Robust clear işlemi sırasında hata oluştu: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Waits for the element to be visible, clears it robustly, then types the given
+     * text.
      */
     public void type(String text) {
         StepLogger.step("Type into " + this);
         WebElement el = waitForVisible(resolve());
-        el.clear();
-        el.sendKeys(text);
+        robustClear(el);
+        if (text != null && !text.isEmpty()) {
+            el.sendKeys(text);
+        }
     }
 
     /** Appends text without clearing first. */
     public void append(String text) {
         StepLogger.step("Append into " + this);
-        waitForVisible(resolve()).sendKeys(text);
+        if (text != null && !text.isEmpty()) {
+            waitForVisible(resolve()).sendKeys(text);
+        }
     }
 
     /** Waits for the element to be visible and returns its trimmed visible text. */
@@ -279,6 +427,14 @@ public final class Locator {
     public String getAttribute(String name) {
         StepLogger.step("Get attribute '" + name + "' from " + this);
         return waitForVisible(resolve()).getAttribute(name);
+    }
+
+    /**
+     * Returns the input element's current text value (shorthand for
+     * {@code getAttribute("value")}).
+     */
+    public String inputValue() {
+        return getAttribute("value");
     }
 
     /** Returns true if the element is present and displayed — does NOT wait. */
@@ -342,7 +498,16 @@ public final class Locator {
     public List<WebElement> elements() {
         return resolveAll().stream()
                 .filter(WebElement::isDisplayed)
-                .collect(Collectors.toList());
+                .toList();
+    }
+
+    // ------------------------------------------------------------------
+    // Selenium 'By' Compatibility
+    // ------------------------------------------------------------------
+
+    @Override
+    public List<WebElement> findElements(SearchContext context) {
+        return resolveAll();
     }
 
     // ------------------------------------------------------------------
@@ -362,16 +527,25 @@ public final class Locator {
             }
             throw new LocatorException("No element found for: " + describe());
         }
-        return candidates.get(0);
+        if (selectLast) {
+            return candidates.getLast();
+        }
+        return candidates.getFirst();
     }
 
-    /** True when any chain filter (filter/withText/within/nth/name) is applied. */
+    /**
+     * True when any chain filter (filter/withText/within/nth/name/last) is applied.
+     */
     private boolean hasChainFilters() {
         return filterCss != null || withText != null || withinContainer != null
-                || nthIndex >= 0 || accessibleName != null;
+                || nthIndex >= 0 || accessibleName != null || selectLast;
     }
 
     private List<WebElement> resolveAll() {
+        if (kind == Kind.ELEMENT) {
+            return directElement != null ? new ArrayList<>(List.of(directElement)) : new ArrayList<>();
+        }
+
         WebDriver d = driver();
         By effectiveRoot = buildRoot();
         List<WebElement> candidates;
@@ -389,47 +563,17 @@ public final class Locator {
 
         // apply accessible-name filter (role-based + label locators)
         if (accessibleName != null) {
-            candidates = candidates.stream()
-                    .filter(el -> nameMatches(d, el, accessibleName))
-                    .collect(Collectors.toList());
+            candidates = filterByName(d, candidates, accessibleName, exact);
         }
 
         // apply filter
         if (filterCss != null) {
-            String css = filterCss;
-            candidates = candidates.stream()
-                    .filter(el -> {
-                        try {
-                            return !el.findElements(By.cssSelector("*")).isEmpty()
-                                    || matchesCss(el, css);
-                        } catch (Exception ignored) {
-                            return false;
-                        }
-                    })
-                    .collect(Collectors.toList());
-
-            // simpler: keep elements that themselves match the extra css selector
-            // re-query from parent if possible, else filter by attribute
-            candidates = filterByCss(d, candidates, css);
+            candidates = filterByCss(d, candidates, filterCss);
         }
 
         // apply withText
         if (withText != null) {
-            String target = withText;
-            candidates = candidates.stream()
-                    .filter(el -> {
-                        try {
-                            String actual = el.getText().trim();
-                            if (exact) {
-                                return actual.equals(target);
-                            } else {
-                                return actual.toLowerCase().contains(target.toLowerCase());
-                            }
-                        } catch (Exception ignored) {
-                            return false;
-                        }
-                    })
-                    .collect(Collectors.toList());
+            candidates = filterByText(d, candidates, withText, exact);
         }
 
         // apply nth
@@ -452,26 +596,98 @@ public final class Locator {
      * JS.
      */
     private List<WebElement> filterByCss(WebDriver d, List<WebElement> candidates, String css) {
-        JavascriptExecutor js = (JavascriptExecutor) d;
-        return candidates.stream().filter(el -> {
-            try {
-                Object result = js.executeScript(
-                        "return arguments[0].matches(arguments[1]);", el, css);
-                return Boolean.TRUE.equals(result);
-            } catch (Exception ignored) {
-                return false;
-            }
-        }).collect(Collectors.toList());
+        if (candidates.isEmpty())
+            return candidates;
+        try {
+            JavascriptExecutor js = (JavascriptExecutor) d;
+            @SuppressWarnings("unchecked")
+            List<WebElement> result = (List<WebElement>) js.executeScript(
+                    "var css = arguments[1];\n" +
+                            "return arguments[0].filter(function(el) { try { return el.matches(css); } catch(e) { return false; } });",
+                    candidates, css);
+            if (result == null)
+                throw new IllegalStateException("JS returned null");
+            return result;
+        } catch (Exception e) {
+            LOGGER.debug("JS filterByCss failed, falling back to safe loop", e);
+            return candidates.stream().filter(el -> {
+                try {
+                    return Boolean.TRUE.equals(((JavascriptExecutor) d)
+                            .executeScript("return arguments[0].matches(arguments[1]);", el, css));
+                } catch (Exception ignored) {
+                    return false;
+                }
+            }).toList();
+        }
     }
 
-    private boolean matchesCss(WebElement el, String css) {
+    private List<WebElement> filterByText(WebDriver d, List<WebElement> candidates, String text, boolean exactMatch) {
+        if (candidates.isEmpty())
+            return candidates;
         try {
-            JavascriptExecutor js = (JavascriptExecutor) driver();
-            Object result = js.executeScript(
-                    "return arguments[0].matches(arguments[1]);", el, css);
-            return Boolean.TRUE.equals(result);
+            JavascriptExecutor js = (JavascriptExecutor) d;
+            String script = "var exact = arguments[1];\n"
+                    + "var target = arguments[2];\n"
+                    + "if (!exact) target = target.toLowerCase();\n"
+                    + "return arguments[0].filter(function(el) {\n"
+                    + "    try {\n"
+                    + "        var actual = (el.innerText || el.textContent || '').trim();\n"
+                    + "        if (exact) return actual === target;\n"
+                    + "        return actual.toLowerCase().includes(target);\n"
+                    + "    } catch(e) { return false; }\n"
+                    + "});";
+            @SuppressWarnings("unchecked")
+            List<WebElement> result = (List<WebElement>) js.executeScript(script, candidates, exactMatch, text);
+            if (result == null)
+                throw new IllegalStateException("JS returned null");
+            return result;
         } catch (Exception e) {
-            return false;
+            LOGGER.debug("JS filterByText failed, falling back to safe loop", e);
+            return candidates.stream().filter(el -> {
+                try {
+                    String actual = el.getText().trim();
+                    return exactMatch ? actual.equals(text) : actual.toLowerCase().contains(text.toLowerCase());
+                } catch (Exception ignored) {
+                    return false;
+                }
+            }).toList();
+        }
+    }
+
+    private List<WebElement> filterByName(WebDriver d, List<WebElement> candidates, String name, boolean exactMatch) {
+        if (candidates.isEmpty())
+            return candidates;
+        try {
+            JavascriptExecutor js = (JavascriptExecutor) d;
+            String script = "var exact = arguments[1];\n"
+                    + "var target = arguments[2];\n"
+                    + "if (!exact) target = target.toLowerCase();\n"
+                    + "function getName(arguments_0) { "
+                    + ACCESSIBLE_NAME_JS.replace("arguments[0]", "arguments_0").replace("return '';", "return null;")
+                    + " }\n"
+                    + "return arguments[0].filter(function(el) {\n"
+                    + "    try {\n"
+                    + "        var actual = getName(el);\n"
+                    + "        if (!actual) return false;\n"
+                    + "        actual = actual.trim();\n"
+                    + "        if (exact) return actual === target;\n"
+                    + "        return actual.toLowerCase().includes(target);\n"
+                    + "    } catch(e) { return false; }\n"
+                    + "});";
+            @SuppressWarnings("unchecked")
+            List<WebElement> result = (List<WebElement>) js.executeScript(script, candidates, exactMatch, name);
+            if (result == null)
+                throw new IllegalStateException("JS returned null");
+            return result;
+        } catch (Exception e) {
+            LOGGER.debug("JS filterByName failed, falling back to safe loop", e);
+            return candidates.stream().filter(el -> {
+                try {
+                    return nameMatches(d, el, name);
+                } catch (Exception ignored) {
+                    return false;
+                }
+            }).toList();
         }
     }
 
@@ -481,32 +697,24 @@ public final class Locator {
 
     /** Builds the effective base {@link By} for this locator's {@link Kind}. */
     private By buildRoot() {
-        switch (kind) {
-            case CSS_OR_BY:
-                return root;
-            case ROLE: {
+        return switch (kind) {
+            case CSS_OR_BY -> root;
+            case ROLE -> {
                 String css = semanticRole.cssSelector();
                 if (semanticRole == Role.HEADING && headingLevel != null) {
                     css = "h" + headingLevel
                             + ", [role='heading'][aria-level='" + headingLevel + "']";
                 }
-                return By.cssSelector(css);
+                yield By.cssSelector(css);
             }
-            case TEXT:
-                return By.xpath(textXPath(semanticValue, exact));
-            case LABEL:
-                return By.cssSelector(FORM_CONTROL_CSS);
-            case PLACEHOLDER:
-                return By.cssSelector(attrCss("placeholder", semanticValue, exact));
-            case ALT_TEXT:
-                return By.cssSelector(attrCss("alt", semanticValue, exact));
-            case TITLE:
-                return By.cssSelector(attrCss("title", semanticValue, exact));
-            case TESTID:
-                return By.cssSelector("[" + testIdAttribute + "='" + cssEscape(semanticValue) + "']");
-            default:
-                throw new LocatorException("Unsupported locator kind: " + kind);
-        }
+            case TEXT -> By.xpath(textXPath(semanticValue, exact));
+            case LABEL -> By.cssSelector(FORM_CONTROL_CSS);
+            case PLACEHOLDER -> By.cssSelector(attrCss("placeholder", semanticValue, exact));
+            case ALT_TEXT -> By.cssSelector(attrCss("alt", semanticValue, exact));
+            case TITLE -> By.cssSelector(attrCss("title", semanticValue, exact));
+            case TESTID -> By.cssSelector("[" + testIdAttribute + "='" + cssEscape(semanticValue) + "']");
+            case ELEMENT -> throw new UnsupportedOperationException("Kind.ELEMENT does not have a By representation.");
+        };
     }
 
     /**
@@ -620,6 +828,12 @@ public final class Locator {
     // ------------------------------------------------------------------
 
     private WebDriver driver() {
+        if (kind == Kind.ELEMENT && directElement instanceof org.openqa.selenium.WrapsDriver wrapsDriver) {
+            WebDriver d = wrapsDriver.getWrappedDriver();
+            if (d != null) {
+                return d;
+            }
+        }
         return DriverManager.getDriver();
     }
 
@@ -662,9 +876,11 @@ public final class Locator {
                 return "getByAltText(\"" + semanticValue + "\")";
             case TITLE:
                 return "getByTitle(\"" + semanticValue + "\")";
+            case ELEMENT:
+                return "WebElement[" + directElement + "]";
             case CSS_OR_BY:
             default:
-                return root.toString();
+                return root != null ? root.toString() : "empty";
         }
     }
 

@@ -86,6 +86,14 @@ public final class ActionCache {
     }
 
     /**
+     * Returns an unmodifiable snapshot of all cached plans.
+     */
+    public static Map<String, ActionPlan> getAll() {
+        load();
+        return java.util.Collections.unmodifiableMap(CACHE);
+    }
+
+    /**
      * Generates a cache key combining normalized URL path and goal.
      */
     public static String buildKey(String url, String goal) {

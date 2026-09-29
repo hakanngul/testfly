@@ -167,7 +167,11 @@ public class SoftAssertionsTest {
         AtomicReference<SoftAssertionCollector> ref2 = new AtomicReference<>();
 
         Thread t1 = new Thread(() -> {
-            try { startLatch.await(); } catch (InterruptedException e) { return; }
+            try {
+                startLatch.await();
+            } catch (InterruptedException e) {
+                return;
+            }
             SoftAssertionCollector c = SoftAssertions.get();
             c.that(false, "thread1-fail");
             ref1.set(c);
@@ -175,7 +179,11 @@ public class SoftAssertionsTest {
         });
 
         Thread t2 = new Thread(() -> {
-            try { startLatch.await(); } catch (InterruptedException e) { return; }
+            try {
+                startLatch.await();
+            } catch (InterruptedException e) {
+                return;
+            }
             SoftAssertionCollector c = SoftAssertions.get();
             c.that(false, "thread2-fail-A");
             c.that(false, "thread2-fail-B");
@@ -213,7 +221,11 @@ public class SoftAssertionsTest {
         AtomicReference<SoftAssertionCollector> ref = new AtomicReference<>();
 
         Thread otherThread = new Thread(() -> {
-            try { startLatch.await(); } catch (InterruptedException e) { return; }
+            try {
+                startLatch.await();
+            } catch (InterruptedException e) {
+                return;
+            }
             SoftAssertionCollector c = SoftAssertions.get();
             c.that(false, "other-thread-fail");
             ref.set(c);
@@ -250,7 +262,7 @@ public class SoftAssertionsTest {
     @Test
     public void assertThat_locator_returnsSoftLocatorAssert() {
         SoftAssertionCollector collector = SoftAssertions.get();
-        io.testfly.locator.Locator locator = io.testfly.locator.Locator.ofCss(".item");
+        io.testfly.locator.Locator locator = io.testfly.locator.Locator.cssSelector(".item");
         io.testfly.assertion.LocatorAssert la = collector.assertThat(locator);
 
         assertNotNull(la, "assertThat(Locator) on collector should return LocatorAssert");

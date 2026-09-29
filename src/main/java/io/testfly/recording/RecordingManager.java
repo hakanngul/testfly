@@ -99,6 +99,7 @@ public final class RecordingManager {
         RecordingSession session = SESSION.get();
         if (session != null) {
             session.cancel();
+            session.discard();
             SESSION.remove();
         }
     }
@@ -123,72 +124,78 @@ public final class RecordingManager {
      *         frames were captured
      */
     public static String save(String testId) {
-        RecordingSession session = SESSION.get();
-        if (session == null)
-            return null;
-        session.cancel();
-        SESSION.remove();
-
-        List<BufferedImage> frames = session.getFrames();
-        if (frames.isEmpty() && session.getDriver() instanceof TakesScreenshot) {
-            try {
-                byte[] png = ((TakesScreenshot) session.getDriver()).getScreenshotAs(OutputType.BYTES);
-                BufferedImage img = ImageIO.read(new ByteArrayInputStream(png));
-                if (img != null) {
-                    frames.add(img);
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        if (frames.isEmpty())
-            return null;
-
-        // Duplicate single frame so animated GIF loops gracefully
-        if (frames.size() == 1) {
-            frames.add(frames.get(0));
-        }
-
-        String safeId = testId.replaceAll("[^a-zA-Z0-9._-]", "_");
-        File dir = new File("target/recordings");
-        dir.mkdirs();
-
-        String format = "mp4";
         try {
-            if (io.testfly.internal.TestFlyContext.isInitialized()) {
-                io.testfly.config.TestFlyConfig cfg = io.testfly.internal.TestFlyContext.getConfig();
-                if (cfg != null && cfg.getRecording() != null && cfg.getRecording().getFormat() != null) {
-                    format = cfg.getRecording().getFormat().toLowerCase();
+            RecordingSession session = SESSION.get();
+            if (session == null)
+                return null;
+            session.cancel();
+            SESSION.remove();
+
+            List<BufferedImage> frames = session.getFrames();
+            session.discard();
+            if (frames.isEmpty() && session.getDriver() instanceof TakesScreenshot) {
+                try {
+                    byte[] png = ((TakesScreenshot) session.getDriver()).getScreenshotAs(OutputType.BYTES);
+                    BufferedImage img = ImageIO.read(new ByteArrayInputStream(png));
+                    if (img != null) {
+                        frames.add(img);
+                    }
+                } catch (Throwable ignored) {
                 }
             }
-        } catch (Exception ignored) {
-        }
-
-        if ("gif".equalsIgnoreCase(format)) {
-            File output = new File(dir, safeId + ".gif");
-            int delayMs = 1000 / Math.max(1, session.getFps());
-            try {
-                GifEncoder.write(frames, output, delayMs);
-                return output.getPath();
-            } catch (IOException e) {
-                System.err.println("[TestFly] Failed to save GIF recording for '" + testId + "': " + e.getMessage());
+            if (frames.isEmpty())
                 return null;
+
+            // Duplicate single frame so animated GIF loops gracefully
+            if (frames.size() == 1) {
+                frames.add(frames.get(0));
             }
-        } else {
-            File output = new File(dir, safeId + ".mp4");
+
+            String safeId = testId.replaceAll("[^a-zA-Z0-9._-]", "_");
+            File dir = new File("target/recordings");
+            dir.mkdirs();
+
+            String format = "mp4";
             try {
-                Mp4Encoder.encode(frames, output, session.getFps());
-                return output.getPath();
-            } catch (Exception e) {
-                System.err.println("[TestFly] MP4 encoding failed, falling back to GIF: " + e.getMessage());
-                File gifOutput = new File(dir, safeId + ".gif");
+                if (io.testfly.internal.TestFlyContext.isInitialized()) {
+                    io.testfly.config.TestFlyConfig cfg = io.testfly.internal.TestFlyContext.getConfig();
+                    if (cfg != null && cfg.getRecording() != null && cfg.getRecording().getFormat() != null) {
+                        format = cfg.getRecording().getFormat().toLowerCase();
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+
+            if ("gif".equalsIgnoreCase(format)) {
+                File output = new File(dir, safeId + ".gif");
                 int delayMs = 1000 / Math.max(1, session.getFps());
                 try {
-                    GifEncoder.write(frames, gifOutput, delayMs);
-                    return gifOutput.getPath();
-                } catch (IOException ioException) {
+                    GifEncoder.write(frames, output, delayMs);
+                    return output.getPath();
+                } catch (Throwable e) {
+                    System.err.println("[TestFly] Failed to save GIF recording for '" + testId + "': " + e.getMessage());
                     return null;
                 }
+            } else {
+                File output = new File(dir, safeId + ".mp4");
+                try {
+                    Mp4Encoder.encode(frames, output, session.getFps());
+                    return output.getPath();
+                } catch (Throwable e) {
+                    System.err.println("[TestFly] MP4 encoding failed, falling back to GIF: " + e.getMessage());
+                    File gifOutput = new File(dir, safeId + ".gif");
+                    int delayMs = 1000 / Math.max(1, session.getFps());
+                    try {
+                        GifEncoder.write(frames, gifOutput, delayMs);
+                        return gifOutput.getPath();
+                    } catch (Throwable ioException) {
+                        return null;
+                    }
+                }
             }
+        } catch (Throwable t) {
+            System.err.println("[TestFly] Failed to save recording for '" + testId + "': " + t.getMessage());
+            return null;
         }
     }
 
@@ -200,7 +207,7 @@ public final class RecordingManager {
         private final int maxFrames;
         private final int fps;
         private final boolean preferCdp;
-        private final ConcurrentLinkedQueue<BufferedImage> frames = new ConcurrentLinkedQueue<>();
+        private final ConcurrentLinkedQueue<byte[]> rawFrames = new ConcurrentLinkedQueue<>();
         private ScheduledExecutorService executor;
         private ScheduledFuture<?> future;
         private DevTools devTools;
@@ -223,15 +230,33 @@ public final class RecordingManager {
                     } catch (Exception ignored) {
                     }
 
+                    final long minIntervalMs = 1000L / Math.max(1, fps);
+                    final java.util.concurrent.atomic.AtomicLong lastFrameTime = new java.util.concurrent.atomic.AtomicLong(0);
+
                     dt.addListener(Page.screencastFrame(), frame -> {
-                        if (frames.size() >= maxFrames) {
+                        long now = System.currentTimeMillis();
+                        long prev = lastFrameTime.get();
+                        if (prev != 0 && (now - prev) < minIntervalMs) {
+                            try {
+                                dt.send(Page.screencastFrameAck(frame.getSessionId()));
+                            } catch (Exception ignored) {
+                            }
                             return;
                         }
+
+                        if (rawFrames.size() >= maxFrames) {
+                            try {
+                                dt.send(Page.screencastFrameAck(frame.getSessionId()));
+                            } catch (Exception ignored) {
+                            }
+                            return;
+                        }
+
+                        lastFrameTime.set(now);
                         try {
                             byte[] bytes = Base64.getDecoder().decode(frame.getData());
-                            BufferedImage img = ImageIO.read(new ByteArrayInputStream(bytes));
-                            if (img != null) {
-                                frames.add(img);
+                            if (bytes != null && bytes.length > 0) {
+                                rawFrames.add(bytes);
                             }
                         } catch (Exception ignored) {
                         } finally {
@@ -277,15 +302,14 @@ public final class RecordingManager {
         private static final int MAX_FALLBACK_HEIGHT = 720;
 
         private void captureFallback() {
-            if (frames.size() >= maxFrames) {
+            if (rawFrames.size() >= maxFrames) {
                 cancel();
                 return;
             }
             try {
                 byte[] png = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
-                BufferedImage img = ImageIO.read(new ByteArrayInputStream(png));
-                if (img != null) {
-                    frames.add(scaleDown(img, MAX_FALLBACK_WIDTH, MAX_FALLBACK_HEIGHT));
+                if (png != null && png.length > 0) {
+                    rawFrames.add(png);
                 }
             } catch (Exception ignored) {
                 // Driver may be in the middle of navigation or closing; silently skip
@@ -327,8 +351,22 @@ public final class RecordingManager {
                 executor.shutdownNow();
         }
 
+        void discard() {
+            rawFrames.clear();
+        }
+
         List<BufferedImage> getFrames() {
-            return new ArrayList<>(frames);
+            List<BufferedImage> decoded = new ArrayList<>(rawFrames.size());
+            for (byte[] bytes : rawFrames) {
+                try {
+                    BufferedImage img = ImageIO.read(new ByteArrayInputStream(bytes));
+                    if (img != null) {
+                        decoded.add(scaleDown(img, MAX_FALLBACK_WIDTH, MAX_FALLBACK_HEIGHT));
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+            return decoded;
         }
 
         int getFps() {

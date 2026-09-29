@@ -194,3 +194,11 @@ assertThat(find(".status-pill")).satisfiesAi("Indicates a successful payment");
 
 For full details, anti-throttle guarantees, and examples, see the [Agentic Testing & Autonomous AI Guide](../ai/agentic-testing#2-semantic-assertions-satisfiesai--violatesai).
 
+---
+
+## Assertion Boundary: Primitive Data Assertions
+
+TestFly's `assertThat()` is intentionally specialized for **Web & DOM elements** with automatic retries and polling.
+
+For standard Java primitive data checks (e.g. `assertEquals(user.getAge(), 30)` or list size assertions), we recommend using **AssertJ** or your test runner's built-in assertions (`TestNG` / `JUnit 5`) alongside TestFly. TestFly intentionally does not reinvent general-purpose assertion libraries to prevent API bloat and keep your test architecture clean and modular.
+

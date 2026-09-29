@@ -42,6 +42,7 @@ Ajan, token yakmamak için körlemesine arama yapmaz; önce bu haritaya bakar ve
 
 ## 3. Dinamik Hafıza / Kısa Bellek (Memories)
 - `[[memories/scratchpad]]` — En son çalışma notları, aktif hedefler ve açık maddeler (Maksimum 2.200 karakter).
+- `[[memories/log]]` — Kronolojik append-only günlük: ingest, query, lint ve wiki güncellemeleri tarihçesi.
 
 ## 4. Kalıcı LLM Wiki Bilgi Deposu (Knowledge Base)
 - `[[wiki/index]]` — Wiki ana giriş kapısı ve kavram dizini.
@@ -58,6 +59,7 @@ Ajan, token yakmamak için körlemesine arama yapmaz; önce bu haritaya bakar ve
 - `[[wiki/test-management]]` — TestRail ve Xray otomatik sonuç senkronizasyonu.
 - `[[wiki/quarantine-engine]]` — Flakiness karantina motoru, risk puanlama ve @Retryable.
 - `[[wiki/ci-quality-gates]]` — CI kalite kapıları, BuildThresholdEnforcer ve ortam tespiti.
+- `[[wiki/assertion-system]]` — Web-First DOM-polling doğrulama mimarisi ve ilkel veri doğrulaması sınırları.
 - `[[wiki/memory-system]]` — TestFly & Obsidian Graph hafıza sisteminin teknik detayları.
 - `[[wiki/roadmap]]` — TestFly sürüm fazları, tamamlananlar ve gelecek otonom özellikler yol haritası.
 
@@ -67,6 +69,7 @@ Ajan, token yakmamak için körlemesine arama yapmaz; önce bu haritaya bakar ve
 - `[[skills/testfly-workflow/SKILL]]` — TestFly framework geliştirme, birim test ve sürüm yönetimi iş akışı.
 - `[[skills/docusaurus-config/SKILL]]` — Dokümantasyon sitesi (Docusaurus) yapılandırma ve derleme adımları.
 - `[[skills/automation-architecture/SKILL]]` — SDET otomasyon mimarisi, POM, SmartLocator ve assertion standartları.
+- `[[skills/wiki-lint/SKILL]]` — Wiki sağlık kontrolü: orphan, kırık link, stale içerik ve YAML frontmatter denetimi.
 
 ## 6. Proje Çekirdek Dosyaları (Codebase Anchors)
 - [pom.xml](file:///Users/hagul/Projects/TestFramework/testfly/pom.xml) — Maven bağımlılıkları ve konfigürasyon.

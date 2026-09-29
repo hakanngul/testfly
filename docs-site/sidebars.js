@@ -87,6 +87,7 @@ const sidebars = {
       items: [
         'ai/overview',
         'ai/agentic-testing',
+        'ai/auto-pom',
         'ai/testfly-mcp',
         'ai/recorder',
         'ai/interactive-studio',

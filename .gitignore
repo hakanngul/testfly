@@ -11,6 +11,7 @@ reportportal.lock
 reportportal.sync
 .playwright-*
 review
+docs-agent
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
@@ -79,3 +80,4 @@ src/test/resources/baselines/*.png
 .qwen
 ai-docs
 .testfly/action-cache.json
+.testfly/page-knowledge.json

@@ -15,20 +15,20 @@
 
 Three files. Copy them as-is and `mvn test` goes green against a real Chrome.
 
-**Prerequisites:** Java 17+, Maven 3.8+, Chrome installed. No WebDriver binaries — Selenium Manager fetches them.
+**Prerequisites:** Java 21+, Maven 3.8+, Chrome installed. No WebDriver binaries — Selenium Manager fetches them.
 
 **1. `pom.xml`**
 
 ```xml
 <properties>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
 </properties>
 
 <dependencies>
     <dependency>
         <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
-        <version>1.0.5</version>
+        <version>1.0.7</version>
     </dependency>
 </dependencies>
 
@@ -165,7 +165,7 @@ Outcomes first — the API that delivers each one is named so you can find it in
 
 ### Prerequisites
 
-- Java 17+
+- Java 21+
 - Maven 3.8+
 - Chrome or Firefox installed
 
@@ -181,7 +181,7 @@ Add to your `pom.xml`:
 <dependency>
     <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 
@@ -189,7 +189,7 @@ Also pin the compiler plugin and add Surefire so `mvn test` discovers TestNG tes
 
 ```xml
 <properties>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
 </properties>
 
 <build>

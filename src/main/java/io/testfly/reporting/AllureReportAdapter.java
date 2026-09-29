@@ -148,9 +148,18 @@ public class AllureReportAdapter implements ReportAdapter {
             }
         }
 
-        // Test-level screenshot attachment
+        // Test-level screenshot attachment (skip if already attached on a step to avoid duplicate)
         ArrayNode attachments = result.putArray("attachments");
-        if (test.has("screenshotPath")) {
+        boolean hasStepScreenshot = false;
+        if (test.has("steps")) {
+            for (JsonNode step : test.path("steps")) {
+                if (step.has("screenshotBase64") && !step.path("screenshotBase64").asText().isBlank()) {
+                    hasStepScreenshot = true;
+                    break;
+                }
+            }
+        }
+        if (!hasStepScreenshot && test.has("screenshotPath")) {
             File screenshot = new File(test.path("screenshotPath").asText());
             if (screenshot.exists()) {
                 String attachSource = UUID.randomUUID() + "-attachment.png";

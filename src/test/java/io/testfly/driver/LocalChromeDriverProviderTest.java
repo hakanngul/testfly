@@ -61,4 +61,89 @@ public class LocalChromeDriverProviderTest {
                     "credentials service should be disabled");
         }
     }
+
+    @Test
+    public void headlessModeWithStartMaximizedSetsDefaultWindowSize() {
+        TestFlyConfig config = new TestFlyConfig();
+        TestFlyConfig.Browser browser = new TestFlyConfig.Browser();
+        browser.setName("chrome");
+        browser.setHeadless(true);
+        browser.setArguments(java.util.List.of("--start-maximized"));
+        config.setBrowser(browser);
+
+        TestFlyConfig.Execution execution = new TestFlyConfig.Execution();
+        execution.setMode("local");
+        config.setExecution(execution);
+
+        File fakeDownloadDir = new File(System.getProperty("java.io.tmpdir"), "testfly-downloads-test");
+        try (MockedStatic<DownloadManager> dmMock = mockStatic(DownloadManager.class)) {
+            dmMock.when(DownloadManager::resolveDownloadDir).thenReturn(fakeDownloadDir);
+
+            ChromeOptions options = LocalChromeDriverProvider.buildOptions(config);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> chromeOptions = (Map<String, Object>) options.asMap().get(ChromeOptions.CAPABILITY);
+            @SuppressWarnings("unchecked")
+            java.util.List<String> args = (java.util.List<String>) chromeOptions.get("args");
+
+            assertTrue(args.contains("--headless=new"), "should contain --headless=new");
+            assertTrue(args.contains("--start-maximized"), "should contain --start-maximized");
+            assertTrue(args.contains("--window-size=1920,1080"), "should contain --window-size=1920,1080 for headless");
+        }
+    }
+
+    @Test
+    public void headlessModeWithExplicitWindowSizeDoesNotOverride() {
+        TestFlyConfig config = new TestFlyConfig();
+        TestFlyConfig.Browser browser = new TestFlyConfig.Browser();
+        browser.setName("chrome");
+        browser.setHeadless(true);
+        browser.setArguments(java.util.List.of("--start-maximized", "--window-size=1280,720"));
+        config.setBrowser(browser);
+
+        TestFlyConfig.Execution execution = new TestFlyConfig.Execution();
+        execution.setMode("local");
+        config.setExecution(execution);
+
+        File fakeDownloadDir = new File(System.getProperty("java.io.tmpdir"), "testfly-downloads-test");
+        try (MockedStatic<DownloadManager> dmMock = mockStatic(DownloadManager.class)) {
+            dmMock.when(DownloadManager::resolveDownloadDir).thenReturn(fakeDownloadDir);
+
+            ChromeOptions options = LocalChromeDriverProvider.buildOptions(config);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> chromeOptions = (Map<String, Object>) options.asMap().get(ChromeOptions.CAPABILITY);
+            @SuppressWarnings("unchecked")
+            java.util.List<String> args = (java.util.List<String>) chromeOptions.get("args");
+
+            assertTrue(args.contains("--window-size=1280,720"), "should preserve explicit --window-size");
+            assertFalse(args.contains("--window-size=1920,1080"), "should NOT overwrite explicit --window-size");
+        }
+    }
+
+    @Test
+    public void headedModeDoesNotInjectWindowSize() {
+        TestFlyConfig config = new TestFlyConfig();
+        TestFlyConfig.Browser browser = new TestFlyConfig.Browser();
+        browser.setName("chrome");
+        browser.setHeadless(false);
+        browser.setArguments(java.util.List.of("--start-maximized"));
+        config.setBrowser(browser);
+
+        TestFlyConfig.Execution execution = new TestFlyConfig.Execution();
+        execution.setMode("local");
+        config.setExecution(execution);
+
+        File fakeDownloadDir = new File(System.getProperty("java.io.tmpdir"), "testfly-downloads-test");
+        try (MockedStatic<DownloadManager> dmMock = mockStatic(DownloadManager.class)) {
+            dmMock.when(DownloadManager::resolveDownloadDir).thenReturn(fakeDownloadDir);
+
+            ChromeOptions options = LocalChromeDriverProvider.buildOptions(config);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> chromeOptions = (Map<String, Object>) options.asMap().get(ChromeOptions.CAPABILITY);
+            @SuppressWarnings("unchecked")
+            java.util.List<String> args = (java.util.List<String>) chromeOptions.get("args");
+
+            assertTrue(args.contains("--start-maximized"), "should contain --start-maximized");
+            assertFalse(args.contains("--window-size=1920,1080"), "headed mode should not inject default window-size");
+        }
+    }
 }

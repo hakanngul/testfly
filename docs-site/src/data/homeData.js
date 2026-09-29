@@ -7,6 +7,7 @@ export const prismLightTheme = {
   styles: [
     { types: ['comment', 'prolog', 'doctype', 'cdata'], style: { color: '#6e6e73' } },
     { types: ['punctuation'], style: { color: '#1d1d1f' } },
+    { types: ['namespace', 'package'], style: { color: '#3a3a3c' } },
     { types: ['property', 'tag', 'boolean', 'number', 'constant', 'symbol'], style: { color: '#0071e3' } },
     { types: ['selector', 'attr-name', 'string', 'char', 'builtin'], style: { color: '#248a3d' } },
     { types: ['operator', 'entity', 'url'], style: { color: '#ff9500' } },
@@ -21,6 +22,7 @@ export const prismDarkTheme = {
   styles: [
     { types: ['comment', 'prolog', 'doctype', 'cdata'], style: { color: '#8e8e93' } },
     { types: ['punctuation'], style: { color: '#f5f5f7' } },
+    { types: ['namespace', 'package'], style: { color: '#e5e5ea' } },
     { types: ['property', 'tag', 'boolean', 'number', 'constant', 'symbol'], style: { color: '#0a84ff' } },
     { types: ['selector', 'attr-name', 'string', 'char', 'builtin'], style: { color: '#30d158' } },
     { types: ['operator', 'entity', 'url'], style: { color: '#ff9f0a' } },
@@ -661,10 +663,10 @@ export function getFaqs(isTr) {
 }
 
 export const stats = [
-  { value: '1', label: 'Single Maven Dependency' },
-  { value: '1.0.5', label: 'Latest Stable Release' },
-  { value: '<50ms', label: 'Frozen AI Action Replay' },
-  { value: '88', label: 'Built-in MCP Tools' },
+  { value: '1', label: 'Single Maven Dependency', labelTr: 'Tek Maven Bağımlılığı' },
+  { value: '1.0.7', label: 'Latest Stable Release', labelTr: 'Güncel Kararlı Sürüm' },
+  { value: '<50ms', label: 'Frozen AI Action Replay', labelTr: 'Dondurulmuş AI Oynatma Hızı' },
+  { value: '88', label: 'Built-in MCP Tools', labelTr: 'Yerleşik MCP Aracı' },
 ];
 
 export const recorderTabs = [
@@ -766,7 +768,7 @@ $ testfly mcp`,
 export const mavenDependencySnippet = `<dependency>
   <groupId>io.github.hakanngul</groupId>
   <artifactId>testfly</artifactId>
-  <version>1.0.5</version>
+  <version>1.0.7</version>
 </dependency>`;
 
 export function getQuickConfig(isTr) {

@@ -41,4 +41,14 @@ public interface ApiSupport {
     default ApiClient apiDelete(String path) {
         return ApiClient.delete(path);
     }
+
+    /** Shortcut for {@code ApiClient.to(baseUrl)}. */
+    default ApiClient apiTo(String baseUrl) {
+        return ApiClient.to(baseUrl);
+    }
+
+    /** Shortcut for {@code ApiClient.toService(service)}. */
+    default ApiClient apiToService(String service) {
+        return ApiClient.toService(service);
+    }
 }

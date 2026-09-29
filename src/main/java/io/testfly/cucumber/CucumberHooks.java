@@ -12,38 +12,53 @@ import io.testfly.internal.TestFlyContext;
 import io.testfly.lifecycle.FrameworkBootstrap;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.network.NetworkMock;
+import io.testfly.reporting.JUnitXmlReporter;
+import io.testfly.reporting.ReportAdapterRegistry;
 import io.testfly.reporting.ScreenshotManager;
 import io.testfly.steps.StepLogger;
 import io.testfly.steps.StepStatus;
 import io.testfly.testdata.TestDataStore;
 import io.cucumber.java.After;
+import io.cucumber.java.AfterAll;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
+import io.testfly.config.TestFlyConfig;
+import io.testfly.recording.RecordingManager;
 
+import java.io.File;
 import java.net.URI;
+import java.nio.file.Files;
 import java.util.Base64;
 import java.util.List;
 
 /**
  * TestFly lifecycle hooks for Cucumber scenarios.
  *
- * <p>Auto-discovered by Cucumber when {@code "io.testfly.cucumber"} is
+ * <p>
+ * Auto-discovered by Cucumber when {@code "io.testfly.cucumber"} is
  * included in {@code @CucumberOptions(glue = {...})}.
  *
- * <p>Lifecycle per scenario:
+ * <p>
+ * Lifecycle per scenario:
  * <ol>
- *   <li>{@code @Before(order=1000)} — bootstrap framework, create WebDriver, start timing.</li>
- *   <li>Cucumber steps run; step names logged via {@link CucumberStepLogger}.</li>
- *   <li>{@code @After(order=20000)} — screenshot on failure, record metrics, quit driver.</li>
+ * <li>{@code @Before(order=1000)} — bootstrap framework, create WebDriver,
+ * start timing.</li>
+ * <li>Cucumber steps run; step names logged via
+ * {@link CucumberStepLogger}.</li>
+ * <li>{@code @After(order=20000)} — screenshot on failure, record metrics, quit
+ * driver.</li>
  * </ol>
  *
- * <p>Order rationale:
+ * <p>
+ * Order rationale:
  * <ul>
- *   <li>{@code @Before(order=1000)}: runs before user's {@code @Before(order=10000)},
- *       so the driver is ready when user hooks execute.</li>
- *   <li>{@code @After(order=20000)}: Cucumber runs higher-order {@code @After} first,
- *       so this runs before user's {@code @After(order=10000)},
- *       ensuring screenshot is captured while the page is still loaded.</li>
+ * <li>{@code @Before(order=1000)}: runs before user's
+ * {@code @Before(order=10000)},
+ * so the driver is ready when user hooks execute.</li>
+ * <li>{@code @After(order=20000)}: Cucumber runs higher-order {@code @After}
+ * first,
+ * so this runs before user's {@code @After(order=10000)},
+ * ensuring screenshot is captured while the page is still loaded.</li>
  * </ul>
  */
 public class CucumberHooks {
@@ -56,19 +71,19 @@ public class CucumberHooks {
         // 2. Quarantine check — skip before creating any browser session
         checkCucumberQuarantine(scenario);
 
-        // 2. Derive a unique, readable testId for this scenario
+        // 3. Derive a unique, readable testId for this scenario
         String testId = buildTestId(scenario);
 
-        // 3. Store scenario on thread so BaseCucumberSteps.getScenario() works
+        // 4. Store scenario on thread so BaseCucumberSteps.getScenario() works
         CucumberContext.setScenario(scenario);
 
-        // 4. Register testId so StepLogger and ScreenshotManager resolve it
+        // 5. Register testId so StepLogger and ScreenshotManager resolve it
         TestFlyContext.setCurrentTestId(testId);
 
-        // 5. Per-scenario retry tag — set/clear before RetryListener fires
+        // 6. Per-scenario retry tag — set/clear before RetryListener fires
         applyRetryTag(scenario);
 
-        // 6. Initialize metrics — detect retry when testId already exists
+        // 7. Initialize metrics — detect retry when testId already exists
         if (ExecutionMetrics.getTiming(testId) != null) {
             ExecutionMetrics.recordRetry(testId);
         }
@@ -77,21 +92,42 @@ public class CucumberHooks {
         ExecutionMetrics.recordTestClass(testId, featureTitle(scenario.getUri()));
         ExecutionMetrics.recordDescription(testId, scenario.getName());
 
-        // 6. Create WebDriver (acquires session semaphore slot)
-        if (!skipBrowser(scenario)) {
+        // 8. Create WebDriver (acquires session semaphore slot)
+        boolean noBrowser = skipBrowser(scenario);
+        if (!noBrowser) {
             DriverManager.createDriver();
+            startRecordingIfEnabled();
         }
 
-        // 7. Notify plugins
+        // 9. Notify plugins
         HookRegistry.onTestStart(testId);
+    }
+
+    private void startRecordingIfEnabled() {
+        try {
+            TestFlyConfig cfg = TestFlyContext.getConfig();
+            TestFlyConfig.Recording rec = cfg != null ? cfg.getRecording() : null;
+            if (rec == null || !rec.shouldRecord())
+                return;
+            org.openqa.selenium.WebDriver driver = DriverManager.getDriver();
+            if (driver == null)
+                return;
+            RecordingManager.start(driver, rec.getFps(), rec.getMaxDurationSeconds(), rec.isCdp());
+            System.out.println(
+                    "[TestFly] 🎥 Video recording started (mode=" + rec.getMode() + ", fps=" + rec.getFps() + ")");
+        } catch (Exception e) {
+            System.err.println("[TestFly] Failed to start video recording: " + e.getMessage());
+        }
     }
 
     @After(order = 20000)
     public void afterScenario(Scenario scenario) {
         String testId = TestFlyContext.getCurrentTestId();
+        boolean noBrowser = skipBrowser(scenario);
 
         if (testId == null) {
-            if (!skipBrowser(scenario)) {
+            RecordingManager.stop();
+            if (!noBrowser) {
                 safeQuitDriver();
             }
             CucumberContext.clear();
@@ -101,53 +137,134 @@ public class CucumberHooks {
         try {
             boolean failed = scenario.isFailed();
             String status = resolveStatus(scenario);
+            TestFlyConfig cfg = TestFlyContext.isInitialized() ? TestFlyContext.getConfig() : null;
+            TestFlyConfig.Recording rec = cfg != null ? cfg.getRecording() : null;
 
             if (failed) {
-                // Capture screenshot into TestFly HTML report
+                // 1. Capture screenshot once for both TestFly HTML report and Cucumber report
+                String screenshotPath = null;
                 try {
-                    String path = ScreenshotManager.capture(sanitize(scenario.getName()));
-                    ExecutionMetrics.recordScreenshot(testId, path);
-                } catch (Exception ignored) {}
-
-                // Attach screenshot bytes to Cucumber's own report (HTML/JSON)
-                try {
-                    String base64 = ScreenshotManager.captureAsBase64();
-                    if (base64 != null) {
-                        scenario.attach(Base64.getDecoder().decode(base64), "image/png", "Failure Screenshot");
-                    }
-                } catch (Exception ignored) {}
-
-                HookRegistry.onTestFailure(testId, new RuntimeException("Scenario failed: " + scenario.getName()));
-
-                // AI failure analysis (non-critical — silently skipped if not configured)
-                try {
-                    String pageUrl = null;
-                    String pageTitle = null;
-                    try {
-                        org.openqa.selenium.WebDriver driver = DriverManager.getDriver();
-                        if (driver != null) {
-                            pageUrl = driver.getCurrentUrl();
-                            pageTitle = driver.getTitle();
+                    screenshotPath = ScreenshotManager.capture(sanitize(scenario.getName()));
+                    if (screenshotPath != null) {
+                        ExecutionMetrics.recordScreenshot(testId, screenshotPath);
+                        File scFile = new File(screenshotPath);
+                        if (scFile.exists()) {
+                            scenario.attach(Files.readAllBytes(scFile.toPath()), "image/png", "Failure Screenshot");
                         }
-                    } catch (Exception ignored) {}
-                    io.testfly.ai.AiFailureAnalyzer.analyze(testId, pageUrl, pageTitle);
-                } catch (Exception ignored) {}
+                    }
+                } catch (Throwable ignored) {
+                }
+
+                // 2. Save video recording on failure (only if recording is enabled and browser
+                // is used)
+                String recordingPath = null;
+                boolean shouldRecord = rec != null && rec.shouldRecord() && !noBrowser;
+                if (shouldRecord) {
+                    try {
+                        recordingPath = RecordingManager.saveOnFailure(testId);
+                        if (recordingPath != null) {
+                            ExecutionMetrics.recordRecording(testId, recordingPath);
+                            System.out.println("[TestFly] 🎥 Video recording saved: " + recordingPath);
+                            File recFile = new File(recordingPath);
+                            if (recFile.exists()) {
+                                boolean isMp4 = recFile.getName().toLowerCase().endsWith(".mp4");
+                                String mime = isMp4 ? "video/mp4" : "image/gif";
+                                scenario.attach(Files.readAllBytes(recFile.toPath()), mime, "Execution Video");
+                            }
+                        }
+                    } catch (Throwable e) {
+                        System.err.println("[TestFly] Failed to save video recording on failure: " + e.getMessage());
+                    }
+                }
+
+                try {
+                    HookRegistry.onTestFailure(testId, new RuntimeException("Scenario failed: " + scenario.getName()));
+                } catch (Throwable ignored) {
+                }
+
+                // 3. AI failure analysis — only query driver if AI is actually enabled and
+                // configured
+                if (isAiAnalysisEnabled(cfg)) {
+                    try {
+                        String pageUrl = null;
+                        String pageTitle = null;
+                        try {
+                            org.openqa.selenium.WebDriver driver = DriverManager.getDriver();
+                            if (driver != null) {
+                                pageUrl = driver.getCurrentUrl();
+                                pageTitle = driver.getTitle();
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                        io.testfly.ai.AiFailureAnalyzer.analyze(testId, pageUrl, pageTitle);
+                    } catch (Throwable ignored) {
+                    }
+                }
+            } else {
+                if (rec != null && rec.isRecordAll() && !noBrowser) {
+                    try {
+                        String recordingPath = RecordingManager.save(testId);
+                        if (recordingPath != null) {
+                            ExecutionMetrics.recordRecording(testId, recordingPath);
+                            System.out.println("[TestFly] 🎥 Video recording saved: " + recordingPath);
+                            File recFile = new File(recordingPath);
+                            if (recFile.exists()) {
+                                boolean isMp4 = recFile.getName().toLowerCase().endsWith(".mp4");
+                                String mime = isMp4 ? "video/mp4" : "image/gif";
+                                scenario.attach(Files.readAllBytes(recFile.toPath()), mime, "Execution Video");
+                            }
+                        }
+                    } catch (Throwable e) {
+                        System.err.println("[TestFly] Failed to save video recording: " + e.getMessage());
+                    }
+                } else {
+                    RecordingManager.stop(); // discard frames — test passed in retain-on-failure mode
+                }
             }
 
             // Collect any JS console errors captured during the scenario
             if (ConsoleErrorCollector.isEnabled()) {
-                List<String> errors = ConsoleErrorCollector.collect();
-                errors.forEach(e -> StepLogger.step("[JS Error] " + e, StepStatus.WARN));
+                try {
+                    List<String> errors = ConsoleErrorCollector.collect();
+                    errors.forEach(e -> StepLogger.step("[JS Error] " + e, StepStatus.WARN));
+                } catch (Throwable ignored) {
+                }
+            }
+
+            // Flush soft assertions — log failures and fail scenario if not already failed
+            io.testfly.assertion.SoftAssertionCollector softCollector = io.testfly.assertion.SoftAssertions.get();
+            if (softCollector.hasFailed()) {
+                List<String> softFailures = softCollector.getFailures();
+                softFailures.forEach(msg -> StepLogger.step("[Soft Assertion Failed] " + msg, StepStatus.FAIL));
+                if (!failed) {
+                    throw new AssertionError(softFailures.size() + " soft assertion(s) failed:\n" + String.join("\n", softFailures));
+                }
             }
 
             ExecutionMetrics.recordStatus(testId, status);
             ExecutionMetrics.markEnd(testId);
-            HookRegistry.onTestEnd(testId, status);
+            try {
+                HookRegistry.onTestEnd(testId, status);
+            } catch (Throwable ignored) {
+            }
 
         } finally {
-            if (!skipBrowser(scenario)) {
+            try {
+                String status = resolveStatus(scenario);
+                io.testfly.metrics.TestTiming timing = ExecutionMetrics.getTiming(testId);
+                if (timing != null && "UNKNOWN".equals(timing.getStatus())) {
+                    ExecutionMetrics.recordStatus(testId, status);
+                }
+                ExecutionMetrics.markEnd(testId);
+            } catch (Throwable ignored) {
+            }
+
+            RecordingManager.stop();
+            if (!noBrowser) {
                 safeQuitDriver();
             }
+            io.testfly.session.MultiSessionManager.clearAll();
+            io.testfly.assertion.SoftAssertions.clear();
             ScenarioContext.clear();
             TestDataStore.clear();
             ApiClient.clearGlobalAuth();
@@ -159,6 +276,13 @@ public class CucumberHooks {
         }
     }
 
+    private static boolean isAiAnalysisEnabled(TestFlyConfig cfg) {
+        if (cfg == null)
+            return false;
+        TestFlyConfig.Ai ai = cfg.getAi();
+        return ai != null && ai.isEnabled() && (ai.isFailureAnalysis() || ai.isGeneratePatch());
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
@@ -167,18 +291,20 @@ public class CucumberHooks {
      * Format: {@code <feature-filename>#<scenario-name>[L<line>]}
      *
      * Examples:
-     *   {@code login.feature#User logs in with valid credentials[L12]}
-     *   {@code checkout.feature#Purchase as {string}[L34]}  ← outline example at line 34
+     * {@code login.feature#User logs in with valid credentials[L12]}
+     * {@code checkout.feature#Purchase as {string}[L34]} ← outline example at line
+     * 34
      */
     static String buildTestId(Scenario scenario) {
         String feature = extractFileName(scenario.getUri());
-        String name    = scenario.getName() != null ? scenario.getName() : "unnamed";
-        int    line    = scenario.getLine() != null ? scenario.getLine() : 0;
+        String name = scenario.getName() != null ? scenario.getName() : "unnamed";
+        int line = scenario.getLine() != null ? scenario.getLine() : 0;
         return feature + "#" + name + "[L" + line + "]";
     }
 
     private static String extractFileName(URI uri) {
-        if (uri == null) return "unknown.feature";
+        if (uri == null)
+            return "unknown.feature";
         String path = uri.toString();
         int slash = path.lastIndexOf('/');
         return slash >= 0 ? path.substring(slash + 1) : path;
@@ -190,11 +316,13 @@ public class CucumberHooks {
     }
 
     private static String resolveStatus(Scenario scenario) {
-        if (scenario.isFailed()) return "FAILED";
+        if (scenario.isFailed())
+            return "FAILED";
         io.cucumber.java.Status s = scenario.getStatus();
         if (s == io.cucumber.java.Status.SKIPPED
                 || s == io.cucumber.java.Status.PENDING
-                || s == io.cucumber.java.Status.UNDEFINED) return "SKIPPED";
+                || s == io.cucumber.java.Status.UNDEFINED)
+            return "SKIPPED";
         return "PASSED";
     }
 
@@ -205,15 +333,19 @@ public class CucumberHooks {
     /**
      * Reads the {@code @retryable} or {@code @retryable=N} tag from the scenario
      * and stores the max-retry count in {@link CucumberRetryContext} so that
-     * {@link io.testfly.listeners.RetryListener} can apply it after the scenario finishes.
+     * {@link io.testfly.listeners.RetryListener} can apply it after the scenario
+     * finishes.
      *
-     * <p>Tag formats:
+     * <p>
+     * Tag formats:
      * <ul>
-     *   <li>{@code @retryable}    — use the global {@code retry.maxAttempts} from config</li>
-     *   <li>{@code @retryable=2}  — exactly 2 retries regardless of config</li>
+     * <li>{@code @retryable} — use the global {@code retry.maxAttempts} from
+     * config</li>
+     * <li>{@code @retryable=2} — exactly 2 retries regardless of config</li>
      * </ul>
      *
-     * <p>If no {@code @retryable} tag is present, any prior override is cleared so the
+     * <p>
+     * If no {@code @retryable} tag is present, any prior override is cleared so the
      * global config applies unchanged.
      */
     private static void applyRetryTag(Scenario scenario) {
@@ -240,43 +372,53 @@ public class CucumberHooks {
 
     private static void checkCucumberQuarantine(Scenario scenario) {
         try {
-            io.testfly.config.TestFlyConfig.Quarantine cfg =
-                    TestFlyContext.getConfig().getQuarantine();
-            if (cfg != null && !cfg.isEnabled()) return;
+            io.testfly.config.TestFlyConfig.Quarantine cfg = TestFlyContext.getConfig().getQuarantine();
+            if (cfg != null && !cfg.isEnabled())
+                return;
 
             // ── 1. In-file tag check (user adds @quarantine to the scenario) ──
             String configuredTag = (cfg != null && cfg.getCucumberTag() != null)
-                    ? cfg.getCucumberTag() : "quarantine";
+                    ? cfg.getCucumberTag()
+                    : "quarantine";
             for (String t : scenario.getSourceTagNames()) {
                 String normalized = t.startsWith("@") ? t.substring(1) : t;
                 if (normalized.equalsIgnoreCase(configuredTag)) {
                     throw new org.testng.SkipException(
-                        "[Quarantined] " + scenario.getName() + " — @" + configuredTag + " tag present"
-                    );
+                            "[Quarantined] " + scenario.getName() + " — @" + configuredTag + " tag present");
                 }
             }
 
             // ── 2. YAML-based check (tag, feature file, or feature#scenario entries) ──
-            String featureUri    = scenario.getUri() != null ? scenario.getUri().toString() : "";
-            String scenarioName  = scenario.getName() != null ? scenario.getName() : "";
+            String featureUri = scenario.getUri() != null ? scenario.getUri().toString() : "";
+            String scenarioName = scenario.getName() != null ? scenario.getName() : "";
             java.util.Collection<String> tags = scenario.getSourceTagNames();
 
             if (QuarantineLoader.isQuarantinedScenario(tags, featureUri, scenarioName)) {
                 throw new org.testng.SkipException(
-                    "[Quarantined] " + scenarioName + " — "
-                    + QuarantineLoader.getScenarioReason(tags, featureUri, scenarioName)
-                );
+                        "[Quarantined] " + scenarioName + " — "
+                                + QuarantineLoader.getScenarioReason(tags, featureUri, scenarioName));
             }
         } catch (org.testng.SkipException e) {
             throw e;
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     private void safeQuitDriver() {
         try {
-            if (DriverManager.shouldQuitAfterTest()) DriverManager.quitDriver();
+            if (DriverManager.shouldQuitAfterTest()) {
+                DriverManager.quitDriver();
+            } else {
+                org.openqa.selenium.WebDriver driver = DriverManager.getDriver();
+                if (driver != null) {
+                    try {
+                        driver.manage().deleteAllCookies();
+                    } catch (Throwable ignored) {
+                    }
+                }
+            }
         } catch (Exception e) {
-            System.err.println("[CucumberHooks] Driver quit failed: " + e.getMessage());
+            System.err.println("[CucumberHooks] Driver teardown failed: " + e.getMessage());
         }
     }
 
@@ -288,5 +430,38 @@ public class CucumberHooks {
             String lower = t.toLowerCase();
             return lower.equals("@nobrowser") || lower.equals("@api") || lower.contains("loadtest");
         });
+    }
+
+    /**
+     * Suite-level teardown for Cucumber runs.
+     *
+     * <p>
+     * Exports metrics, generates HTML/JUnit XML reports, and quits all
+     * persistent per-suite drivers when running via Cucumber CLI, JUnit, or IDE,
+     * ensuring browsers never remain open and reports are always produced —
+     * even when TestNG's {@code SuiteExecutionListener} is not in the picture.
+     */
+    @AfterAll(order = 0)
+    public static void afterAllScenarios() {
+        try {
+            // ── Report generation (mirrors SuiteExecutionListener.onFinish) ──
+            ExecutionMetrics.printSummary();
+            ExecutionMetrics.exportToJson();
+            io.testfly.healing.HealLog.export();
+            io.testfly.flakiness.FlakinessAnalyzer.analyze();
+            JUnitXmlReporter.export(ExecutionMetrics.getTimings(), System.currentTimeMillis());
+            ReportAdapterRegistry.generateAll();
+            HookRegistry.onSuiteEnd();
+        } catch (Throwable t) {
+            System.err.println("[CucumberHooks] Report generation failed: " + t.getMessage());
+        }
+
+        try {
+            io.testfly.precondition.PreConditionRunner.clearAll();
+            DriverManager.quitAllSuiteDrivers();
+            DriverManager.forceQuitDriver();
+        } catch (Throwable t) {
+            System.err.println("[CucumberHooks] afterAll driver cleanup failed: " + t.getMessage());
+        }
     }
 }

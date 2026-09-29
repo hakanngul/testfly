@@ -217,12 +217,12 @@ public final class PerformanceCollector {
             throw new IllegalStateException(
                     "[Performance] No active WebDriver. Call collect() after open().");
         }
-        if (!(driver instanceof JavascriptExecutor)) {
+        if (!(driver instanceof JavascriptExecutor js)) {
             throw new UnsupportedOperationException(
                     "[Performance] Browser does not support JavaScript execution.");
         }
 
-        Object result = ((JavascriptExecutor) driver).executeScript(COLLECT_JS);
+        Object result = js.executeScript(COLLECT_JS);
         return parse(result);
     }
 
@@ -289,12 +289,12 @@ public final class PerformanceCollector {
             throw new IllegalStateException(
                     "[Performance] No active WebDriver. Call collectSpaTransition() after open().");
         }
-        if (!(driver instanceof JavascriptExecutor)) {
+        if (!(driver instanceof JavascriptExecutor js)) {
             throw new UnsupportedOperationException(
                     "[Performance] Browser does not support JavaScript execution.");
         }
 
-        Object result = ((JavascriptExecutor) driver).executeScript(COLLECT_SPA_JS);
+        Object result = js.executeScript(COLLECT_SPA_JS);
         return parseSpa(result);
     }
 

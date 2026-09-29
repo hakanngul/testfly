@@ -71,11 +71,10 @@ public final class AccessibilityChecker {
             throw new IllegalStateException(
                     "[Accessibility] No active WebDriver. Call accessibility() after open().");
         }
-        if (!(driver instanceof JavascriptExecutor)) {
+        if (!(driver instanceof JavascriptExecutor js)) {
             throw new UnsupportedOperationException(
                     "[Accessibility] Browser does not support JavaScript execution.");
         }
-        JavascriptExecutor js = (JavascriptExecutor) driver;
 
         injectAxeIfNeeded(js);
 

@@ -132,4 +132,17 @@ public class WaitEngineTest {
         List<WebElement> result = WaitEngine.waitForMinimumElementCount(locator, 2);
         assertEquals(result.size(), 2);
     }
+
+    @Test
+    public void waitForPageLoad_withDriver_completesWhenReadyStateComplete() {
+        org.openqa.selenium.JavascriptExecutor jsDriver = mock(org.openqa.selenium.JavascriptExecutor.class,
+                org.mockito.Mockito.withSettings().extraInterfaces(WebDriver.class));
+        when(jsDriver.executeScript("return document.readyState")).thenReturn("complete");
+        WaitEngine.waitForPageLoad((WebDriver) jsDriver);
+    }
+
+    @Test
+    public void waitForPageLoad_withNullDriver_doesNotThrow() {
+        WaitEngine.waitForPageLoad(null);
+    }
 }

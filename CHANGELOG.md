@@ -7,9 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## Unreleased
+## [1.0.7] — 2026-09-29
 
-_Nothing yet._
+### Added
+- **Canonical `Locator.cssSelector(String)`**: Introduced `Locator.cssSelector(String)` as the primary, memorable factory method matching Selenium's `By.cssSelector` naming conventions.
+- **Assertion Boundary Architecture**: Formalized the separation between TestFly's auto-retrying, DOM-polling Web UI assertions (`LocatorAssert`, `PageAssert`) and general-purpose primitive assertions (delegated to AssertJ / TestNG).
+
+### Deprecated
+- **`Locator.css(String)`**: Deprecated in favor of `Locator.cssSelector(String)`. It continues to delegate seamlessly to prevent breaking existing code.
+
+### Documentation & Specifications
+- **Engineering Specs Modernization**: Modernized root `docs/` specifications (`internals.md`, `public-api.md`, `architecture.md`, `testng-listeners.md`) to reflect the Java 21 LTS baseline, `SmartTriageEngine`, `FuzzyHealingEngine`, and assertion boundaries.
+- **Documentation Site Sync**: Updated guides for semantic locators, assertions, and self-healing across both English and Turkish documentation locales.
+- **Agent Knowledge Graph Sync**: Registered `[[wiki/assertion-system]]`, updated architecture and WebUI wikis, and synchronized `MAP.md`.
+
+---
+
+## [1.0.6] — 2026-09-29
+
+### Added
+- **Smart Flakiness Triage (`SmartTriageEngine`)**: Local heuristic analyzer integrated into `TestExecutionListener` that inspects exception hierarchies to categorize failures (`SYSTEM_FLAKY`, `APPLICATION_BUG`, `NEEDS_INVESTIGATION`) without LLM token cost.
+- **Fuzzy Self-Healing (`FuzzyHealingEngine`)**: High-speed (under 5ms), zero-token heuristic fallback healing using Levenshtein distance against DOM candidates and attribute tokens before escalating to external LLMs.
+- **Auto-POM Page Knowledge System**: Autonomous page element discovery and local semantic intent resolution with continuous learning cache (`PageKnowledge`).
+- **Sequenced Collections on Locators**: Added `first()` and `last()` navigation methods to `Locator` leveraging Java 21 sequenced collections.
+- **`BaseJUnit5ApiTest`**: Native REST API testing base class with full `api()` client support for JUnit 5 Jupiter suites.
+- **`NavigationSupport` Helpers**: Added comprehensive window management, multi-tab switching, and browser navigation helpers.
+- **HTML Report Log Filters**: Interactive INFO and DEBUG log level visibility toggles in the report timeline.
+
+### Changed
+- **Java 21 LTS Modernization**: Framework baseline and compiler upgraded to Java 21 LTS (`--release 21`), adopting Pattern Matching for `instanceof`, exhaustive switch expressions, and stream `.toList()` across the repository.
+- **Native Selenium By Interoperability (`Locator extends By`)**: `Locator` now directly extends Selenium's `org.openqa.selenium.By`, enabling 100% transparent interoperability with native Selenium APIs (`driver.findElement(locator)`).
+- **Clean API Refactor**: Refactored `Locator` to remove redundant prefix methods (`ofCss`, `inputValue`, `getValue`) to embrace a unified, zero-boilerplate API.
+- **Support Interface Completeness**: Ensured 100% method delegation parity for all `Support` interfaces (`ApiSupport`, `BrowserSupport`, `LocatorSupport`), fully wrapping the internal engines.
+- **Null-Safe Actions**: `Locator.type()` and `Locator.append()` are completely null-safe; passing `null` or `""` gracefully clears the element without throwing exceptions.
+
+### Performance
+- **Virtual Threads in Load Testing**: Leveraged Project Loom `Executors.newVirtualThreadPerTaskExecutor()` in `JdkLoadEngine` for ultra-scalable, lightweight load testing.
+- **Video Recording Memory Optimization**: Video recorder stores raw byte frames and performs lazy decoding upon test failure, significantly reducing heap overhead during long runs.
+
+### Fixed & Hardened
+- **Guaranteed Driver Cleanup**: Added JVM shutdown hooks and `@AfterAll` listener execution to guarantee browser process termination even on abnormal exits.
+- **Thread-Safe Bootstrap**: Hardened framework bootstrap initialization against race conditions during concurrent suite startup.
 
 ---
 

@@ -45,30 +45,33 @@ public final class Mp4Encoder {
             if (targetWidth % 2 != 0) targetWidth--;
             if (targetHeight % 2 != 0) targetHeight--;
 
-            for (BufferedImage frame : frames) {
-                BufferedImage normalized = toRgbEven(frame, targetWidth, targetHeight);
-                encoder.encodeImage(normalized);
+            BufferedImage workBuffer = null;
+            Graphics2D g2d = null;
+
+            try {
+                for (BufferedImage frame : frames) {
+                    if (frame.getType() == BufferedImage.TYPE_3BYTE_BGR
+                            && frame.getWidth() == targetWidth
+                            && frame.getHeight() == targetHeight) {
+                        encoder.encodeImage(frame);
+                    } else {
+                        if (workBuffer == null) {
+                            workBuffer = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_3BYTE_BGR);
+                            g2d = workBuffer.createGraphics();
+                        }
+                        g2d.drawImage(frame, 0, 0, targetWidth, targetHeight, null);
+                        encoder.encodeImage(workBuffer);
+                    }
+                }
+            } finally {
+                if (g2d != null) {
+                    g2d.dispose();
+                }
             }
 
             encoder.finish();
         } finally {
             NIOUtils.closeQuietly(out);
         }
-    }
-
-    private static BufferedImage toRgbEven(BufferedImage src, int width, int height) {
-        if (src.getType() == BufferedImage.TYPE_3BYTE_BGR
-                && src.getWidth() == width
-                && src.getHeight() == height) {
-            return src;
-        }
-        BufferedImage copy = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
-        Graphics2D g2d = copy.createGraphics();
-        try {
-            g2d.drawImage(src, 0, 0, width, height, null);
-        } finally {
-            g2d.dispose();
-        }
-        return copy;
     }
 }
