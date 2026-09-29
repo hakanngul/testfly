@@ -284,15 +284,7 @@ export default function Home() {
                 <div key={i} className={styles.statItem} data-reveal style={{ '--i': i }}>
                   <span className={styles.statValue}>{s.value}</span>
                   <span className={styles.statLabel}>
-                    {isTr
-                      ? i === 0
-                        ? 'Tek Maven Bağımlılığı'
-                        : i === 1
-                          ? 'Güncel Sürüm'
-                          : i === 2
-                            ? 'Dondurulmuş AI Oynatma Hızı'
-                            : 'Yerleşik MCP Aracı'
-                      : s.label}
+                    {isTr ? (s.labelTr || s.label) : s.label}
                   </span>
                 </div>
               ))}
