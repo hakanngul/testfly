@@ -262,7 +262,7 @@ public class SoftAssertionsTest {
     @Test
     public void assertThat_locator_returnsSoftLocatorAssert() {
         SoftAssertionCollector collector = SoftAssertions.get();
-        io.testfly.locator.Locator locator = io.testfly.locator.Locator.cssSeLocator(".item");
+        io.testfly.locator.Locator locator = io.testfly.locator.Locator.cssSelector(".item");
         io.testfly.assertion.LocatorAssert la = collector.assertThat(locator);
 
         assertNotNull(la, "assertThat(Locator) on collector should return LocatorAssert");

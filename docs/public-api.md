@@ -50,20 +50,37 @@ Base class for all Page Object classes.
 ### 3. Fluent Locators & Assertions
 
 #### `Locator` & `find(...)`
-Playwright-inspired, auto-waiting locator API:
-- `find(String cssOrXPath)`
-- `getByRole(Role role, String name)`
-- `getByLabel(String label)`
-- `getByPlaceholder(String placeholder)`
-- `getByText(String text)`
-- `getByTestId(String testId)`
-- `getByAltText(String altText)`
-- `getByTitle(String title)`
-- Actions: `click()`, `fill(text)`, `type(text)`, `hover()`, `press(key)`, `clear()`, `scrollIntoView()`.
+Playwright-inspired, immutable auto-waiting locator API:
+- **Static Factory Methods:**
+  - `Locator.cssSelector(String css)` *(Standard / Primary)*
+  - `Locator.id(String id)`
+  - `Locator.name(String name)`
+  - `Locator.className(String className)`
+  - `Locator.xpath(String xpath)`
+  - `Locator.of(By by)` / `Locator.of(WebElement element)`
+  - `Locator.byRole(Role role)` / `Locator.byRole(Role role, String name)`
+  - `Locator.byLabel(String label)`
+  - `Locator.byPlaceholder(String placeholder)`
+  - `Locator.byText(String text)`
+  - `Locator.byTestId(String testId)`
+  - `Locator.byAltText(String altText)`
+  - `Locator.byTitle(String title)`
+  - `Locator.byIntent(String naturalLanguageIntent)`
+- **Immutable Chaining Filters:**
+  - `.filter(String css)`
+  - `.withText(String text)` / `.exact()`
+  - `.within(By container)` / `.within(Locator container)`
+  - `.first()` / `.last()` / `.nth(int index)`
+- **Actions (Auto-waiting & Null-safe):**
+  - `click()`, `doubleClick()`, `fill(text)`, `type(text)`, `append(text)` *(passing null/empty gracefully clears without NPE)*, `hover()`, `press(key)`, `clear()`, `scrollIntoView()`.
 
-#### Fluent Assertions
-- **Element Assertions:** `assertThat(locator)` (`isVisible()`, `isHidden()`, `hasText(text)`, `containsText(text)`, `hasAttribute(attr, val)`, `hasValue(val)`, `isEnabled()`, `isDisabled()`, `isChecked()`).
+#### Web-First Polling Assertions & Architectural Boundary
+- **Element Assertions:** `assertThat(locator)` / `assertThat(by)` (`isVisible()`, `isHidden()`, `hasText(text)`, `containsText(text)`, `hasAttribute(attr, val)`, `hasValue(val)`, `isEnabled()`, `isDisabled()`, `isChecked()`).
 - **Page Assertions:** `assertThatPage()` (`hasTitle(title)`, `titleContains(text)`, `hasUrl(url)`, `urlContains(text)`, `urlMatches(regex)`).
+- **Soft Assertions:** `softAssert(locator)` / `softAssert(by)` thread-isolated collection.
+- **Assertion Boundary Decision:**
+  > [!NOTE]
+  > TestFly's `AssertionSupport` intentionally focuses exclusively on auto-retrying, DOM-polling Web UI assertions (`LocatorAssert`, `PageAssert`). Standard primitive assertions (`assertTrue`, `assertEquals`, `assertNotNull`) are intentionally not reinvented; users are encouraged to use AssertJ or TestNG for general assertion needs.
 
 ---
 

@@ -18,7 +18,7 @@ import org.openqa.selenium.WebElement;
  *
  * <p>
  * All methods delegate to the static factories in {@link Locator}:
- * {@link Locator#css(String)}, {@link Locator#of(By)},
+ * {@link Locator#cssSelector(String)}, {@link Locator#of(By)},
  * {@link Locator#byRole(Role)}, vb.
  */
 @TestFlyApi(since = "1.10.0")
@@ -30,7 +30,7 @@ public interface LocatorSupport {
 
     /** Creates a chainable {@link Locator} from a CSS selector. */
     default Locator find(String css) {
-        return Locator.cssSeLocator(css);
+        return Locator.cssSelector(css);
     }
 
     /** Creates a chainable {@link Locator} from a Selenium {@link By} locator. */

@@ -662,8 +662,8 @@ export function getFaqs(isTr) {
 
 export const stats = [
   { value: '1', label: 'Single Maven Dependency' },
-  { value: '1.0.6', label: 'Latest Stable Release' },
-  { value: '1.0.5', label: '1.0.5' },
+  { value: '1.0.7', label: 'Latest Stable Release' },
+  { value: '1.0.6', label: '1.0.6' },
   { value: '<50ms', label: 'Frozen AI Action Replay' },
   { value: '88', label: 'Built-in MCP Tools' },
 ];
@@ -767,7 +767,7 @@ $ testfly mcp`,
 export const mavenDependencySnippet = `<dependency>
   <groupId>io.github.hakanngul</groupId>
   <artifactId>testfly</artifactId>
-  <version>1.0.6</version>
+  <version>1.0.7</version>
 </dependency>`;
 
 export function getQuickConfig(isTr) {

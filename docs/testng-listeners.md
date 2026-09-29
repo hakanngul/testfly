@@ -82,7 +82,8 @@ Implements:
 Responsibilities:
 - Driver provisioning before test method execution
 - Thread-local driver binding
-- Failure evidence capture
+- Failure evidence capture (screenshots, console logs, DOM snapshots)
+- Automated failure classification via `SmartTriageEngine` (`SYSTEM_FLAKY`, `APPLICATION_BUG`, `NEEDS_INVESTIGATION`)
 - Reporting lifecycle hooks
 - Driver cleanup after test execution
 

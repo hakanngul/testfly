@@ -59,6 +59,7 @@ Ajan, token yakmamak için körlemesine arama yapmaz; önce bu haritaya bakar ve
 - `[[wiki/test-management]]` — TestRail ve Xray otomatik sonuç senkronizasyonu.
 - `[[wiki/quarantine-engine]]` — Flakiness karantina motoru, risk puanlama ve @Retryable.
 - `[[wiki/ci-quality-gates]]` — CI kalite kapıları, BuildThresholdEnforcer ve ortam tespiti.
+- `[[wiki/assertion-system]]` — Web-First DOM-polling doğrulama mimarisi ve ilkel veri doğrulaması sınırları.
 - `[[wiki/memory-system]]` — TestFly & Obsidian Graph hafıza sisteminin teknik detayları.
 - `[[wiki/roadmap]]` — TestFly sürüm fazları, tamamlananlar ve gelecek otonom özellikler yol haritası.
 

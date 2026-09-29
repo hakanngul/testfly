@@ -460,11 +460,11 @@ export default function Home() {
                 <div className={styles.installBadges}>
                   <span className={styles.installBadge}>
                     <span className={styles.installBadgeDot} />
-                    Java 17+
+                    Java 21+
                   </span>
                   <span className={styles.installBadge}>
                     <span className={styles.installBadgeDot} />
-                    Maven Central v1.0.6
+                    Maven Central v1.0.7
                   </span>
                   <span className={styles.installBadge}>
                     <span className={styles.installBadgeDot} />

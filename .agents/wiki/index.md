@@ -32,6 +32,7 @@ Tüm sayfalar birbirine ve `[[MAP]]` ana haritasına çift yönlü bağlantılar
 ### 2. Test Yöntemleri ve Kalite (Testing & Quality)
 - `[[wiki/accessibility-visual-testing]]` — axe-core WCAG 2.2 AA ve VisualAssert piksel regresyonu.
 - `[[wiki/cucumber-bdd]]` — Cucumber 7 BDD entegrasyonu ve BaseCucumberSteps.
+- `[[wiki/assertion-system]]` — Web-First DOM-polling doğrulama mimarisi ve ilkel veri doğrulaması sınırları.
 - `[[wiki/test-management]]` — TestRail ve Xray otomatik sonuç senkronizasyonu.
 
 ### 3. Güvenilirlik ve CI/CD (Reliability & DevOps)

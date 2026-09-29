@@ -50,7 +50,7 @@ If adding TestFly to an existing project, follow the steps below:
 <dependency>
     <groupId>io.testfly</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 
@@ -59,7 +59,7 @@ If adding TestFly to an existing project, follow the steps below:
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.4'
+    testImplementation 'io.testfly:testfly:1.0.7'
 }
 
 test {
@@ -73,7 +73,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.testfly:testfly:1.0.4")
+    testImplementation("io.testfly:testfly:1.0.7")
 }
 
 tasks.test {

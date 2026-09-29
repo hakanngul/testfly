@@ -30,7 +30,7 @@ Projenizin `pom.xml` dosyasında TestFly `1.1.0` sürümünün tanımlı olduğu
 <dependency>
     <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
     <scope>test</scope>
 </dependency>
 ```

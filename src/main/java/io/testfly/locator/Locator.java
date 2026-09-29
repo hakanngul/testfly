@@ -106,8 +106,24 @@ public final class Locator extends By {
         return new Locator(By.xpath(xpath));
     }
 
-    public static Locator cssSeLocator(String css) {
+    /**
+     * Creates a chainable {@link Locator} from a CSS selector.
+     *
+     * @param css CSS selector string
+     * @return chainable {@link Locator}
+     */
+    public static Locator cssSelector(String css) {
         return new Locator(By.cssSelector(css));
+    }
+
+    /**
+     * Creates a chainable {@link Locator} from a CSS selector.
+     *
+     * @deprecated Use {@link #cssSelector(String)} instead.
+     */
+    @Deprecated
+    public static Locator css(String css) {
+        return cssSelector(css);
     }
 
     /** Locates elements by their ARIA role (implicit or explicit). */

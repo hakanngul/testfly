@@ -23,7 +23,7 @@ Add JUnit 5 dependencies alongside TestFly:
     <dependency>
         <groupId>io.testfly</groupId>
         <artifactId>testfly</artifactId>
-        <version>1.0.6</version>
+        <version>1.0.7</version>
     </dependency>
 
     <!-- JUnit 5 Jupiter & Platform Launcher -->

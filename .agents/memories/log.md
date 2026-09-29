@@ -104,3 +104,21 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
 ## [2026-09-29] architecture | AssertionSupport API Limits
 - **Eylem:** `AssertionSupport` içerisine `assertTrue`/`assertEquals` gibi temel boolean kontrollerin eklenmemesine, TestFly'ın sadece Web-first (Locator, WebDriver) auto-retry assertion sistemine odaklanmasına ve temel kontrollerin AssertJ/TestNG kütüphanelerine bırakılmasına karar verildi. API şişkinliği ve standard library'nin tekrar yazılması (reinventing the wheel) engellendi.
 - **Bağlantılar:** [[io.testfly.test.support.AssertionSupport]], [[memories/scratchpad]]
+
+## [2026-09-29] docs & refactor | Documentation, Agent Memory & Locator.cssSelector Modernization
+- **Eylem:**
+  1. `Locator.java` içerisine `cssSelector(String)` birincil fabrika metodu eklendi, `css(String)` geriye dönük uyumluluk için `@Deprecated` alias yapıldı. `LocatorSupport` ve birim testler senkronize edildi.
+  2. Kök `docs/` (`internals.md`, `public-api.md`, `architecture.md`, `testng-listeners.md`) baştan sona gözden geçirilip Java 21 LTS, `SmartTriageEngine`, `FuzzyHealingEngine` ve `AssertionSupport` sınırlarıyla güncellendi.
+  3. `docs-site` kılavuzları (`semantic-locators.md`, `assertions.md`, `self-healing.md`) Türkçe ve İngilizce çift dil olarak güncellendi ve `npm run build` ile doğrulandı.
+  4. `.agents/` bilgi grafiği güncellendi: `[[wiki/assertion-system]]` sayfası oluşturuldu, `[[wiki/architecture]]` ve `[[wiki/webui-testing]]` sayfaları güncellendi; `[[MAP]]` indeksine bağlandı.
+  5. `docs-agent/` şablonu kullanıcı talimatıyla kapsam dışı bırakıldı.
+- **Bağlantılar:** [[io.testfly.locator.Locator]], [[wiki/assertion-system]], [[wiki/architecture]], [[memories/scratchpad]]
+
+## [2026-09-29] docs | Changelog Audit & Git Commit History Synchronization
+- **Eylem:**
+  1. `git log 9f8b2de..HEAD` (30+ commit) taranarak kök `CHANGELOG.md`, `docs-site/docs/changelog.md` ve TR eşdeğeri denetlendi.
+  2. `[1.0.6]` sürümüne commit geçmişinde bulunan ancak atlanmış olan Java 21 LTS geçişi (`--release 21`, Virtual Threads, Pattern Matching), `Locator extends By` doğrudan Selenium desteği, `PageKnowledge` Auto-POM, `BaseJUnit5ApiTest`, `NavigationSupport` ve ekran kayıt bellek optimizasyonu eklendi.
+  3. `[Unreleased]` bölümü açılarak `Locator.cssSelector(String)` (ve `Locator.css` deprecation), `AssertionSupport` mimari sınır kararı ve dokümantasyon senkronizasyonu her 3 dosyada da belgelendi.
+  4. `npm run build` ve `mvn test` (1319 test) ile dökümantasyon ve framework testleri doğrulandı.
+- **Bağlantılar:** [[memories/scratchpad]], [[memories/log]], [[MAP]]
+

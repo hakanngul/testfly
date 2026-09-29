@@ -173,3 +173,11 @@ Geleneksel boolean doğrulamaları da dilediğiniz gibi kullanabilirsiniz:
 ```java
 softAssert().that(items.size() > 0, "Öğe listesi boş olmamalı");
 ```
+
+---
+
+## Doğrulama Sınırları: İlkel Veri Kontrolleri (Primitive Assertions)
+
+TestFly'ın `assertThat()` mekanizması, otomatik bekleme (polling) ve yeniden deneme özellikleriyle **Web ve DOM öğelerine** özel olarak odaklanmıştır.
+
+Standart Java ilkel veri kontrolleri (örneğin `assertEquals(user.getAge(), 30)` veya liste boyutu kontrolleri) için TestFly ile birlikte **AssertJ** veya test çalıştırıcınızın dahili assertion kütüphanelerini (`TestNG` / `JUnit 5`) kullanmanız tavsiye edilir. TestFly, API şişkinliğini önlemek ve mevcut Java test ekosistemiyle mükemmel uyum sağlamak için genel amaçlı doğrulama araçlarını baştan icat etmez.

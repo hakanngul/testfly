@@ -21,14 +21,14 @@ Three files. Copy them as-is and `mvn test` goes green against a real Chrome.
 
 ```xml
 <properties>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
 </properties>
 
 <dependencies>
     <dependency>
         <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
-        <version>1.0.6</version>
+        <version>1.0.7</version>
     </dependency>
 </dependencies>
 
@@ -181,7 +181,7 @@ Add to your `pom.xml`:
 <dependency>
     <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 
@@ -189,7 +189,7 @@ Also pin the compiler plugin and add Surefire so `mvn test` discovers TestNG tes
 
 ```xml
 <properties>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
 </properties>
 
 <build>

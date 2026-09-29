@@ -9,9 +9,9 @@ This document is intended for framework maintainers and advanced contributors.
 
 ## Java Baseline
 
-- Minimum supported Java version: **Java 17**
-- Language features may leverage modern Java constructs
-- Backward compatibility below Java 17 is not supported
+- Minimum supported Java version: **Java 21 LTS** (compiled with `--release 21`)
+- Leverages modern Java constructs: Pattern Matching, Record patterns, Switch expressions, Stream `.toList()`
+- Backward compatibility below Java 21 is not supported
 
 ---
 
@@ -215,20 +215,38 @@ Semantic assertions are split across two layers — the assertion classes own DO
 
 Unlike traditional polling (500ms intervals), semantic assertions evaluate the DOM **once**, preventing API rate limits and excessive LLM costs.
 
-### AI Self-Healing Pipeline
+### AI & Fuzzy Self-Healing Pipeline
 
-When a locator fails, `SelfHealingLocator` drives the recovery:
+When a locator fails, `SelfHealingLocator` drives the recovery through a multi-tiered pipeline:
 
-1. **Static Fallbacks**: Rule-based healing runs first (ID extraction, `name` attributes, exact text matches).
-2. **AI Healing Gate**: `SelfHealingLocator` calls `AiHealingEngine.heal(driver, original, testId)` only when `locators.aiHealing: true`. The engine also bails out if the `ai` block or `ai.apiKey` is missing, or if `ai.provider` is unresolvable. Healing is non-critical — it logs and returns rather than failing the test.
-3. **Token-Budgeted Pruning**: `DomPruner` truncates to `locators.maxDomTokens`, falling back to `DomPruner.DEFAULT_MAX_TOKENS` when the configured value is `<= 0`.
-4. **Visibility Verification**: The LLM-proposed locator is **re-checked against the live page**. If it does not resolve to a visible element the suggestion is discarded (`"AI suggested locator ... was not visible on the page"`), which keeps hallucinated selectors out of the cache.
-5. **Dual Persistence** (`HealLog`):
+1. **Static Fallbacks**: Rule-based healing runs first (ID extraction from CSS, `name` attributes, exact text matches).
+2. **Fuzzy Self-Healing (`FuzzyHealingEngine`)**: High-speed, zero-token local heuristic recovery using Levenshtein distance against DOM candidates, id tokens, and attribute clues.
+3. **AI Healing Gate**: `SelfHealingLocator` calls `AiHealingEngine.heal(driver, original, testId)` only when `locators.aiHealing: true` and local heuristics do not resolve a confident match. The engine bails out if the `ai` block or `ai.apiKey` is missing, or if `ai.provider` is unresolvable. Healing is non-critical — it logs and returns rather than failing the test.
+4. **Token-Budgeted Pruning**: `DomPruner` truncates to `locators.maxDomTokens`, falling back to `DomPruner.DEFAULT_MAX_TOKENS` when the configured value is `<= 0`.
+5. **Visibility Verification**: The suggested locator is **re-checked against the live page**. If it does not resolve to a visible element the suggestion is discarded, which keeps hallucinated selectors out of the cache.
+6. **Dual Persistence** (`HealLog`):
    - `.testfly/healed-locators.json` — durable cache written via `HealingCache`; survives `mvn clean`.
    - `target/healed-locators.json` — per-session export consumed by the HTML report.
 
-   Successful heals are recorded as `HealEvent(testId, originalDesc, healedDesc, "ai-healed")`.
-6. **0ms Replay**: Subsequent runs resolve the healed locator directly from `.testfly/healed-locators.json` with no AI latency.
+   Successful heals are recorded as `HealEvent(testId, originalDesc, healedDesc, "fuzzy-healed" | "ai-healed")`.
+7. **0ms Replay**: Subsequent runs resolve the healed locator directly from `.testfly/healed-locators.json` with no AI latency.
+
+### Smart Flakiness Triage (`SmartTriageEngine`)
+
+During test failure processing in `TestExecutionListener`:
+- `SmartTriageEngine.triageFailure(throwable, wasRetried)` inspects the root cause exception hierarchy without external LLM dependencies (0 token cost).
+- Automatically categorizes failures into:
+  - `SYSTEM_FLAKY`: Connectivity timeouts, stale element references, or tests that succeeded upon retry.
+  - `APPLICATION_BUG`: Assertion errors or explicit NullPointerExceptions originating from app logic.
+  - `NEEDS_INVESTIGATION`: Unclassified driver or unknown runtime exceptions.
+- Triage results are recorded into test metrics and surfaced in execution summaries.
+
+### Modern Locator Execution Model
+
+The `Locator` API implements an **immutable builder pattern**:
+- Every chaining call (`filter()`, `withText()`, `within()`, `first()`, `last()`, `nth()`) returns an independent, new `Locator` instance.
+- **Client-Side JS Filtering**: Candidate lists are filtered in-browser via JavaScript (`matches`, `innerText`, accessible name algorithms) to eliminate round-trip WebDriver latency.
+- **Null-Safe Actions**: `type(null)` and `append(null)` gracefully clear the field without throwing null pointer exceptions.
 
 ### Failure Analysis & Auto-PR Remediation
 
