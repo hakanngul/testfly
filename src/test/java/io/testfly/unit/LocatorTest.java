@@ -32,7 +32,7 @@ public class LocatorTest {
 
     @Test
     public void testFirstAndLastMethods() {
-        Locator locator = Locator.css(".item");
+        Locator locator = Locator.cssSeLocator(".item");
         assertNotNull(locator.first());
         assertNotNull(locator.last());
     }
@@ -70,7 +70,7 @@ public class LocatorTest {
 
     @Test
     public void locator_toString_includesWithText() {
-        Locator loc = Locator.css("button").withText("Save");
+        Locator loc = Locator.cssSeLocator("button").withText("Save");
         assertTrue(loc.toString().contains("Save"), "toString should include withText value");
     }
 
@@ -83,7 +83,7 @@ public class LocatorTest {
 
     @Test
     public void locatorOfCss_createsByCssSelector() {
-        Locator loc = Locator.css(".submit-btn");
+        Locator loc = Locator.cssSeLocator(".submit-btn");
         assertTrue(loc.toString().contains("submit-btn"));
     }
 
@@ -102,7 +102,7 @@ public class LocatorTest {
 
     @Test
     public void locator_chaining_doesNotMutateOriginal() {
-        Locator base = Locator.css(".item");
+        Locator base = Locator.cssSeLocator(".item");
         Locator filtered = base.filter(".active");
         assertNotNull(base);
         assertNotNull(filtered);

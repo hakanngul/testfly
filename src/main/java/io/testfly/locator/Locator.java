@@ -106,7 +106,7 @@ public final class Locator extends By {
         return new Locator(By.xpath(xpath));
     }
 
-    public static Locator css(String css) {
+    public static Locator cssSeLocator(String css) {
         return new Locator(By.cssSelector(css));
     }
 
@@ -328,6 +328,7 @@ public final class Locator extends By {
                 public List<WebElement> findElements(SearchContext context) {
                     return List.of(directElement);
                 }
+
                 @Override
                 public String toString() {
                     return "By.element(" + directElement + ")";
@@ -579,21 +580,24 @@ public final class Locator extends By {
      * JS.
      */
     private List<WebElement> filterByCss(WebDriver d, List<WebElement> candidates, String css) {
-        if (candidates.isEmpty()) return candidates;
+        if (candidates.isEmpty())
+            return candidates;
         try {
             JavascriptExecutor js = (JavascriptExecutor) d;
             @SuppressWarnings("unchecked")
             List<WebElement> result = (List<WebElement>) js.executeScript(
                     "var css = arguments[1];\n" +
-                    "return arguments[0].filter(function(el) { try { return el.matches(css); } catch(e) { return false; } });",
+                            "return arguments[0].filter(function(el) { try { return el.matches(css); } catch(e) { return false; } });",
                     candidates, css);
-            if (result == null) throw new IllegalStateException("JS returned null");
+            if (result == null)
+                throw new IllegalStateException("JS returned null");
             return result;
         } catch (Exception e) {
             LOGGER.debug("JS filterByCss failed, falling back to safe loop", e);
             return candidates.stream().filter(el -> {
                 try {
-                    return Boolean.TRUE.equals(((JavascriptExecutor) d).executeScript("return arguments[0].matches(arguments[1]);", el, css));
+                    return Boolean.TRUE.equals(((JavascriptExecutor) d)
+                            .executeScript("return arguments[0].matches(arguments[1]);", el, css));
                 } catch (Exception ignored) {
                     return false;
                 }
@@ -602,22 +606,24 @@ public final class Locator extends By {
     }
 
     private List<WebElement> filterByText(WebDriver d, List<WebElement> candidates, String text, boolean exactMatch) {
-        if (candidates.isEmpty()) return candidates;
+        if (candidates.isEmpty())
+            return candidates;
         try {
             JavascriptExecutor js = (JavascriptExecutor) d;
             String script = "var exact = arguments[1];\n"
-                          + "var target = arguments[2];\n"
-                          + "if (!exact) target = target.toLowerCase();\n"
-                          + "return arguments[0].filter(function(el) {\n"
-                          + "    try {\n"
-                          + "        var actual = (el.innerText || el.textContent || '').trim();\n"
-                          + "        if (exact) return actual === target;\n"
-                          + "        return actual.toLowerCase().includes(target);\n"
-                          + "    } catch(e) { return false; }\n"
-                          + "});";
+                    + "var target = arguments[2];\n"
+                    + "if (!exact) target = target.toLowerCase();\n"
+                    + "return arguments[0].filter(function(el) {\n"
+                    + "    try {\n"
+                    + "        var actual = (el.innerText || el.textContent || '').trim();\n"
+                    + "        if (exact) return actual === target;\n"
+                    + "        return actual.toLowerCase().includes(target);\n"
+                    + "    } catch(e) { return false; }\n"
+                    + "});";
             @SuppressWarnings("unchecked")
             List<WebElement> result = (List<WebElement>) js.executeScript(script, candidates, exactMatch, text);
-            if (result == null) throw new IllegalStateException("JS returned null");
+            if (result == null)
+                throw new IllegalStateException("JS returned null");
             return result;
         } catch (Exception e) {
             LOGGER.debug("JS filterByText failed, falling back to safe loop", e);
@@ -633,25 +639,29 @@ public final class Locator extends By {
     }
 
     private List<WebElement> filterByName(WebDriver d, List<WebElement> candidates, String name, boolean exactMatch) {
-        if (candidates.isEmpty()) return candidates;
+        if (candidates.isEmpty())
+            return candidates;
         try {
             JavascriptExecutor js = (JavascriptExecutor) d;
             String script = "var exact = arguments[1];\n"
-                          + "var target = arguments[2];\n"
-                          + "if (!exact) target = target.toLowerCase();\n"
-                          + "function getName(arguments_0) { " + ACCESSIBLE_NAME_JS.replace("arguments[0]", "arguments_0").replace("return '';", "return null;") + " }\n"
-                          + "return arguments[0].filter(function(el) {\n"
-                          + "    try {\n"
-                          + "        var actual = getName(el);\n"
-                          + "        if (!actual) return false;\n"
-                          + "        actual = actual.trim();\n"
-                          + "        if (exact) return actual === target;\n"
-                          + "        return actual.toLowerCase().includes(target);\n"
-                          + "    } catch(e) { return false; }\n"
-                          + "});";
+                    + "var target = arguments[2];\n"
+                    + "if (!exact) target = target.toLowerCase();\n"
+                    + "function getName(arguments_0) { "
+                    + ACCESSIBLE_NAME_JS.replace("arguments[0]", "arguments_0").replace("return '';", "return null;")
+                    + " }\n"
+                    + "return arguments[0].filter(function(el) {\n"
+                    + "    try {\n"
+                    + "        var actual = getName(el);\n"
+                    + "        if (!actual) return false;\n"
+                    + "        actual = actual.trim();\n"
+                    + "        if (exact) return actual === target;\n"
+                    + "        return actual.toLowerCase().includes(target);\n"
+                    + "    } catch(e) { return false; }\n"
+                    + "});";
             @SuppressWarnings("unchecked")
             List<WebElement> result = (List<WebElement>) js.executeScript(script, candidates, exactMatch, name);
-            if (result == null) throw new IllegalStateException("JS returned null");
+            if (result == null)
+                throw new IllegalStateException("JS returned null");
             return result;
         } catch (Exception e) {
             LOGGER.debug("JS filterByName failed, falling back to safe loop", e);

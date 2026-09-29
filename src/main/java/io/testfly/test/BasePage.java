@@ -3,7 +3,6 @@ package io.testfly.test;
 import io.testfly.api.TestFlyApi;
 import io.testfly.driver.DriverManager;
 import io.testfly.internal.TestFlyContext;
-import io.testfly.locator.Locator;
 import io.testfly.shadow.ShadowDom;
 import io.testfly.test.support.ActionSupport;
 import io.testfly.test.support.AssertionSupport;

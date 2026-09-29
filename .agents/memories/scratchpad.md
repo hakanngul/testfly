@@ -11,19 +11,10 @@ char_limit: 2200
 # Aktif Çalışma Not Defteri (Scratchpad)
 
 ### 1. Aktif Odak ve Son Durum
-- **Konu:** Java 21 LTS Modernization & Smart Locator Refactor
-- **Durum:** TAMAMLANDI. Tüm testler (1312) geçiyor.
+- **Konu:** Assertion System Architecture Decision
+- **Durum:** TAMAMLANDI.
 - **Yapılanlar:**
-  1. `Locator` Immutable Builder yapısına taşındı ve statik methodlar (`id`, `css` vb.) eklendi. (Smart Locator pattern).
-  2. Tüm framework genelinde (Repo-wide) Java 16+ `.toList()` kullanımı yapıldı (`Collectors.toList()` kaldırıldı).
-  3. Tüm framework genelinde `instanceof` castingleri Java 21 Pattern Matching (örn. `instanceof JavascriptExecutor js`) ile yenilendi.
-  4. Tüm testlerin başarıyla geçtiği onaylanıp Git'e commit edildi.
-- **Bekleyen İşler / Gelecek Planları (TypeSafe AI):** 
-  1. ~~`Smart Flakiness Triage`: Hata olan testlerin analizini AiProvider ile yapıp flaky/bug ayrımı sağlamak.~~ -> **TAMAMLANDI:** Harici API çağrısı yapmadan (0 Token maliyeti) `SmartTriageEngine.java` sınıfı ile Runtime Exception (TimeoutException, NPE vs) ve Retry geçmişine göre triyaj algoritması kuruldu. Sonuçlar `TestExecutionListener` üzerinden loglanıyor.
-  2. ~~`Zero-Code Page Object Generator`: `testfly-mcp` adında bir Model Context Protocol sunucusu yazıp IDE içinden tek komutla Locator sınıfı ürettirmek.~~ (Sonraki aşamaya ertelendi)
-  3. ~~`AiHealingEngine` sınıfını klasik LLM promptundan TypeSafe `Choice` modeline geçirmek.~~ -> **TAMAMLANDI:** Harici API çağrısı yapmadan 0 maliyetli Lokal Java Algoritması `FuzzyHealingEngine` (Levenshtein & Puanlama) yazılarak `SelfHealingLocator` içerisine entegre edildi. Testler eklendi ve başarıyla geçti.
-  4. ~~`Clean API & Locator Refactoring`: `Locator` içindeki tekrarlı metotların (`ofCss`, `getValue`) temizlenmesi, `byRole`, `byLabel` mantıklarının aynı private constructor ile tutarlı hale getirilmesi, `withText` filtrelemelerinin Java döngülerinden tarayıcı seviyesi JS executor'a taşınarak hızlandırılması ve `toBy()` contract ihlalinin düzeltilmesi.~~ -> **TAMAMLANDI:** İlgili kodlar yazıldı, tüm testler mock yapısıyla uyarlandı ve geçiyor.
-  5. ~~`Release 1.0.6`~~ -> **TAMAMLANDI:** `pom.xml`, `README.md`, `CHANGELOG.md` güncellendi, `docs-site` üzerinde `1.0.6` sürümleri set edildi ve `npm run build` ile doğrulandı. `git commit -m "release: v1.0.6 ..."` ve `git tag v1.0.6` atıldı.
+  1. `AssertionSupport` arayüzüne `assertTrue`, `assertEquals` gibi basic primitive assertion'ların eklenmemesine (reddedilmesine) karar verildi. API şişkinliğini önlemek için bu işlemler AssertJ veya TestNG'ye devredildi. TestFly sadece auto-retry özellikli Web/UI tabanlı assertion'lar (`LocatorAssert`, `PageAssert`) sağlayacak.
 
 ### 2. Kaynaklar & Bağlantılar
 - [[io.testfly.locator.Locator]]

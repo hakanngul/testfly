@@ -11,6 +11,7 @@ reportportal.lock
 reportportal.sync
 .playwright-*
 review
+docs-agent
 
 ### IntelliJ IDEA ###
 .idea/modules.xml

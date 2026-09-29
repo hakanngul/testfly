@@ -100,3 +100,7 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
 - **Bağlantılar:** [[io.testfly.loadtest.internal.JdkLoadEngine]], [[io.testfly.locator.Locator]], [[memories/scratchpad]]
 - 2026-09-29: Added SmartTriageEngine for zero-token local flakiness triage during test failure (TestExecutionListener integration).
 - 2026-09-29: Clean API Refactor, Null-safe Locator actions, SmartTriageEngine ve FuzzyHealingEngine tamamlanarak v1.0.6 tag'i ile release çıkıldı. Docs-site sürümleri 1.0.6'ya yükseltildi ve build alındı.
+
+## [2026-09-29] architecture | AssertionSupport API Limits
+- **Eylem:** `AssertionSupport` içerisine `assertTrue`/`assertEquals` gibi temel boolean kontrollerin eklenmemesine, TestFly'ın sadece Web-first (Locator, WebDriver) auto-retry assertion sistemine odaklanmasına ve temel kontrollerin AssertJ/TestNG kütüphanelerine bırakılmasına karar verildi. API şişkinliği ve standard library'nin tekrar yazılması (reinventing the wheel) engellendi.
+- **Bağlantılar:** [[io.testfly.test.support.AssertionSupport]], [[memories/scratchpad]]

@@ -7,25 +7,30 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
 /**
- * Shared locator factory — single source of truth for {@code find()} / {@code $()} / {@code getBy*()}.
+ * Shared locator factory — single source of truth for {@code find()} /
+ * {@code $()} / {@code getBy*()}.
  *
- * <p>Implemented by {@code BaseTest}, {@code BaseJUnit5Test}, {@code BasePage} and
- * {@code BaseCucumberSteps} so the delegation to {@link Locator} lives in one place.
+ * <p>
+ * Implemented by {@code BaseTest}, {@code BaseJUnit5Test}, {@code BasePage} and
+ * {@code BaseCucumberSteps} so the delegation to {@link Locator} lives in one
+ * place.
  * Adding a new {@code getBy*} strategy only requires changing this interface.
  *
- * <p>All methods delegate to the static factories in {@link Locator}:
- * {@link Locator#css(String)}, {@link Locator#of(By)}, {@link Locator#byRole(Role)}, vb.
+ * <p>
+ * All methods delegate to the static factories in {@link Locator}:
+ * {@link Locator#css(String)}, {@link Locator#of(By)},
+ * {@link Locator#byRole(Role)}, vb.
  */
 @TestFlyApi(since = "1.10.0")
 public interface LocatorSupport {
 
     // ----------------------------------------------------------
-    // Fluent Locator API  (find / $)
+    // Fluent Locator API (find / $)
     // ----------------------------------------------------------
 
     /** Creates a chainable {@link Locator} from a CSS selector. */
     default Locator find(String css) {
-        return Locator.css(css);
+        return Locator.cssSeLocator(css);
     }
 
     /** Creates a chainable {@link Locator} from a Selenium {@link By} locator. */
@@ -33,7 +38,9 @@ public interface LocatorSupport {
         return Locator.of(by);
     }
 
-    /** Creates a chainable {@link Locator} wrapping an existing {@link WebElement}. */
+    /**
+     * Creates a chainable {@link Locator} wrapping an existing {@link WebElement}.
+     */
     default Locator find(WebElement element) {
         return Locator.of(element);
     }
@@ -61,7 +68,8 @@ public interface LocatorSupport {
     /**
      * Creates a chainable {@link Locator} from a CSS selector.
      *
-     * @deprecated Use {@link #find(String)} instead. Scheduled for removal in 2.0.0.
+     * @deprecated Use {@link #find(String)} instead. Scheduled for removal in
+     *             2.0.0.
      */
     @Deprecated(since = "1.1.0", forRemoval = true)
     default Locator $(String css) {
@@ -81,7 +89,8 @@ public interface LocatorSupport {
     /**
      * Creates a chainable {@link Locator} wrapping an existing {@link WebElement}.
      *
-     * @deprecated Use {@link #find(WebElement)} instead. Scheduled for removal in 2.0.0.
+     * @deprecated Use {@link #find(WebElement)} instead. Scheduled for removal in
+     *             2.0.0.
      */
     @Deprecated(since = "1.1.0", forRemoval = true)
     default Locator $(WebElement element) {
@@ -89,7 +98,7 @@ public interface LocatorSupport {
     }
 
     // ----------------------------------------------------------
-    // Accessibility-first locators  (getBy*)
+    // Accessibility-first locators (getBy*)
     // ----------------------------------------------------------
 
     /**
@@ -110,7 +119,9 @@ public interface LocatorSupport {
         return Locator.byRole(role).withName(name);
     }
 
-    /** Locates an element by visible text — case-insensitive substring by default. */
+    /**
+     * Locates an element by visible text — case-insensitive substring by default.
+     */
     default Locator getByText(String text) {
         return Locator.byText(text);
     }
@@ -125,7 +136,9 @@ public interface LocatorSupport {
         return Locator.byPlaceholder(placeholder);
     }
 
-    /** Locates an element by its test-id attribute (default {@code data-testid}). */
+    /**
+     * Locates an element by its test-id attribute (default {@code data-testid}).
+     */
     default Locator getByTestId(String testId) {
         return Locator.byTestId(testId);
     }
@@ -141,7 +154,8 @@ public interface LocatorSupport {
     }
 
     /**
-     * Locates an element dynamically based on semantic natural language intent using AI.
+     * Locates an element dynamically based on semantic natural language intent
+     * using AI.
      *
      * <pre>
      * byIntent("cart checkout button").click();
@@ -151,7 +165,8 @@ public interface LocatorSupport {
      * @return chainable {@link Locator}
      */
     default Locator byIntent(String intent) {
-        By resolvedBy = io.testfly.agent.ActionCompiler.resolveIntent(io.testfly.driver.DriverManager.getDriver(), intent);
+        By resolvedBy = io.testfly.agent.ActionCompiler.resolveIntent(io.testfly.driver.DriverManager.getDriver(),
+                intent);
         return Locator.of(resolvedBy);
     }
 }
