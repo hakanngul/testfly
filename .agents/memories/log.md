@@ -141,6 +141,7 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
   5. `docs-site/docs/ci/bitbucket-pipelines.md` pipeline konfigürasyonundaki `maven:3.9.6-eclipse-temurin-17` imajı `temurin-21` olarak güncellendi.
   6. `docs-site/i18n/tr/.../changelog.md` içindeki `built into Java 17` ifadesi `built into Java 21` olarak güncellendi.
   7. Docusaurus `npm run build` ile EN ve TR dokümantasyon bütünlüğü doğrulandı (exit code 0).
+
 ## [2026-09-30] refactor & perf | JDK 21 Tam Kapasite Modernizasyon ve Performans İyileştirmesi
 - **Eylem:**
   1. `NotificationAdapter.java`: Her webhook isteğinde yeni `HttpClient` yaratılması yerine sanal thread (`Executors.newVirtualThreadPerTaskExecutor()`) ile güçlendirilmiş paylaşımlı `SHARED_HTTP_CLIENT` yapısına geçildi.
@@ -151,4 +152,13 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
   6. `LoadTestFeeder.describe()` ve `SmartTriageEngine`: `if-instanceof` blokları Java 21 Pattern Matching `switch` ifadelerine refactor edildi.
   7. `Route.java`, `NetworkMock.java` ve `ExcelDataReader.java`: Arrow switch ifadelerine dönüştürülerek fall-through riskleri elendi.
   8. Framework'ün 1.319 testinin tamamı (`mvn test`) ve Docusaurus (`npm run build`) ile %100 doğrulandı.
+- **Bağlantılar:** [[memories/scratchpad]], [[memories/log]], [[MAP]]
+
+## [2026-09-30] feat | API Mocking, Async BatchRunner & Specialist Agents
+- **Eylem:**
+  1. `automation-architecture` skill dosyası Nexor CRM içeriğinden temizlenerek TestFly SDET standartlarına (POM, SmartLocator, BaseApiTest) uygun hale getirildi ve yerine kapsamlı `testfly` skill'i oluşturuldu.
+  2. Web UI Test altyapısı (Java 21 LTS Locator, FuzzyHealingEngine ve SmartTriageEngine) mimari diyagramları (Architecture ve Workflow) `archify` aracı ile oluşturuldu ve HTML çıktıları üretildi.
+  3. API Testing mimarisine WireMock (`ApiMockServer`, `MockSupport`), OpenAPI (`OpenApiValidator`, `ApiResponse.assertOpenApi`) ve Asenkron İstek (`ApiClient.sendAsync`, `ApiBatchRunner`) yetenekleri opsiyonel bağımlılıklarla (`optional=true`) eklendi.
+  4. Subsystem specialist ajanları (`testfly_api`, `testfly_webui`, `testfly_load`, `testfly_reporting` vb.) entegre edildi.
+  5. Kullanıcı isteğiyle Rimz 0.4.3 ve Ghostty 1.3.1 geliştirici yapılandırmaları yapıldı.
 - **Bağlantılar:** [[memories/scratchpad]], [[memories/log]], [[MAP]]

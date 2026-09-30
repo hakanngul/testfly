@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
@@ -509,87 +510,114 @@ public class ApiClient {
 
     // ── Internal: execute single request ──────────────────────────────────────
 
+        @TestFlyApi(since = "1.2.0")
+    public CompletableFuture<ApiResponse> sendAsync() {
+        if (GLOBAL_SPEC != null) {
+            GLOBAL_SPEC.applyToIfAbsent(this);
+        }
+        if (auth != null) auth.applyToClient(this);
+        else if (GLOBAL_AUTH.get() != null) GLOBAL_AUTH.get().applyToClient(this);
+
+        String url = buildUrl();
+        int timeout = resolveTimeout();
+
+        try {
+            HttpRequest request = buildHttpRequest(url, timeout);
+            long start = System.currentTimeMillis();
+            return HTTP.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(raw -> {
+                    long duration = System.currentTimeMillis() - start;
+                    if (cookiesEnabled) captureCookies(raw);
+                    ApiResponse response = new ApiResponse(raw, duration, method, url);
+                    for (ResponseInterceptor interceptor : RESPONSE_INTERCEPTORS) {
+                        interceptor.intercept(response);
+                    }
+                    logStep(response);
+                    return response;
+                })
+                .exceptionally(e -> {
+                    StepLogger.step("[API] " + method + " " + url + " → ASYNC ERROR: " + e.getMessage(), StepStatus.FAIL);
+                    throw new ApiException(method, url, new RuntimeException(e));
+                });
+        } catch (Exception e) {
+            StepLogger.step("[API] " + method + " " + url + " → ERROR: " + e.getMessage(), StepStatus.FAIL);
+            CompletableFuture<ApiResponse> f = new CompletableFuture<>();
+            f.completeExceptionally(new ApiException(method, url, e));
+            return f;
+        }
+    }
+
     private ApiResponse executeRequest(String url, int timeout) {
         try {
-            byte[] bodyBytes = null;
-            String bodyStr = null;
-            String contentTypeOverride = null;
-
-            if (!fileParams.isEmpty() || !fieldParams.isEmpty()) {
-                MultipartBody mp = buildMultipartBody();
-                bodyBytes = mp.bytes;
-                contentTypeOverride = mp.contentType;
-            } else if (!formParams.isEmpty()) {
-                bodyStr = formParams.entrySet().stream()
-                        .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8)
-                                + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
-                        .collect(Collectors.joining("&"));
-                contentTypeOverride = "application/x-www-form-urlencoded";
-            } else {
-                bodyStr = serializeBody();
-            }
-
-            HttpRequest.Builder builder = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(Duration.ofSeconds(timeout));
-
-            // Content-Type handling
-            if (contentTypeOverride != null && !headers.containsKey("Content-Type")) {
-                builder.header("Content-Type", contentTypeOverride);
-            } else if (bodyStr != null && !headers.containsKey("Content-Type")) {
-                builder.header("Content-Type", "application/json");
-            } else if (bodyBytes != null && contentTypeOverride != null && !headers.containsKey("Content-Type")) {
-                builder.header("Content-Type", contentTypeOverride);
-            }
-            headers.forEach(builder::header);
-            ApiAuth effectiveAuth = this.auth != null ? this.auth : GLOBAL_AUTH.get();
-            if (effectiveAuth != null)
-                effectiveAuth.apply(builder);
-
-            // Apply cookies
-            if (cookiesEnabled)
-                applyCookies(builder);
-
-            // Apply request interceptors
-            for (RequestInterceptor interceptor : REQUEST_INTERCEPTORS) {
-                interceptor.intercept(builder);
-            }
-
-            HttpRequest.BodyPublisher publisher;
-            if (bodyBytes != null) {
-                publisher = HttpRequest.BodyPublishers.ofByteArray(bodyBytes);
-            } else if (bodyStr != null) {
-                publisher = HttpRequest.BodyPublishers.ofString(bodyStr);
-            } else {
-                publisher = HttpRequest.BodyPublishers.noBody();
-            }
-
-            builder.method(method, publisher);
-
+            HttpRequest request = buildHttpRequest(url, timeout);
             long start = System.currentTimeMillis();
-            HttpResponse<String> raw = HTTP.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> raw = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
             long duration = System.currentTimeMillis() - start;
 
-            // Capture cookies
-            if (cookiesEnabled)
-                captureCookies(raw);
-
+            if (cookiesEnabled) captureCookies(raw);
             ApiResponse response = new ApiResponse(raw, duration, method, url);
 
-            // Apply response interceptors
             for (ResponseInterceptor interceptor : RESPONSE_INTERCEPTORS) {
                 interceptor.intercept(response);
             }
-
             logStep(response);
             return response;
-
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
             StepLogger.step("[API] " + method + " " + url + " → ERROR: " + e.getMessage(), StepStatus.FAIL);
             throw new ApiException(method, url, e);
         }
+    }
+
+    private HttpRequest buildHttpRequest(String url, int timeout) throws Exception {
+        byte[] bodyBytes = null;
+        String bodyStr = null;
+        String contentTypeOverride = null;
+
+        if (!fileParams.isEmpty() || !fieldParams.isEmpty()) {
+            MultipartBody mp = buildMultipartBody();
+            bodyBytes = mp.bytes;
+            contentTypeOverride = mp.contentType;
+        } else if (!formParams.isEmpty()) {
+            bodyStr = formParams.entrySet().stream()
+                    .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8)
+                            + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
+                    .collect(Collectors.joining("&"));
+            contentTypeOverride = "application/x-www-form-urlencoded";
+        } else {
+            bodyStr = serializeBody();
+        }
+
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(timeout));
+
+        if (contentTypeOverride != null && !headers.containsKey("Content-Type")) {
+            builder.header("Content-Type", contentTypeOverride);
+        } else if (bodyStr != null && !headers.containsKey("Content-Type")) {
+            builder.header("Content-Type", "application/json");
+        } else if (bodyBytes != null && contentTypeOverride != null && !headers.containsKey("Content-Type")) {
+            builder.header("Content-Type", contentTypeOverride);
+        }
+        headers.forEach(builder::header);
+        
+        ApiAuth effectiveAuth = this.auth != null ? this.auth : GLOBAL_AUTH.get();
+        if (effectiveAuth != null) effectiveAuth.apply(builder);
+
+        if (cookiesEnabled) applyCookies(builder);
+
+        for (RequestInterceptor interceptor : REQUEST_INTERCEPTORS) {
+            interceptor.intercept(builder);
+        }
+
+        HttpRequest.BodyPublisher publisher;
+        if (bodyBytes != null) publisher = HttpRequest.BodyPublishers.ofByteArray(bodyBytes);
+        else if (bodyStr != null) publisher = HttpRequest.BodyPublishers.ofString(bodyStr);
+        else publisher = HttpRequest.BodyPublishers.noBody();
+
+        builder.method(method, publisher);
+        return builder.build();
     }
 
     // ── Internal: URL building ────────────────────────────────────────────────

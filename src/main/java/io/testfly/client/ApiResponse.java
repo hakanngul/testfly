@@ -47,6 +47,14 @@ public class ApiResponse {
         return response.statusCode();
     }
 
+    public String requestMethod() {
+        return requestMethod;
+    }
+
+    public String requestUrl() {
+        return requestUrl;
+    }
+
     /** Raw response body as String. */
     public String body() {
         return response.body();
@@ -181,6 +189,17 @@ public class ApiResponse {
     public ApiResponse assertSchema(String schemaPath) {
         StepLogger.step("Assert API schema: " + schemaPath);
         SchemaValidator.validate(response.body(), schemaPath);
+        return this;
+    }
+
+    /**
+     * Validates this response against an OpenAPI 3.x specification file.
+     * Requires the optional swagger-request-validator-core dependency.
+     */
+    @TestFlyApi(since = "1.2.0")
+    public ApiResponse assertOpenApi(String specPath) {
+        StepLogger.step("Assert OpenAPI spec: " + specPath);
+        OpenApiValidator.validate(this, specPath);
         return this;
     }
 

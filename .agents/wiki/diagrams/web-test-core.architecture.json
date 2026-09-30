@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "TestFly Web Test Architecture",
+    "output": "web-test-core.html",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "test-execution", "label": "Test Execution", "focus": ["test", "basepage", "locator", "driver", "browser"], "note": "Standard execution path from test code to the browser." },
+      { "id": "healing", "label": "Self Healing", "focus": ["locator", "healing_locator", "fuzzy_engine", "driver"], "note": "Self-healing mechanism activated upon locator failure." },
+      { "id": "triage", "label": "Flakiness & Triage", "focus": ["listener", "triage_engine", "test"], "note": "Zero-token heuristic triage analyzing test failures." }
+    ]
+  },
+  "components": [
+    { "id": "test", "type": "external", "label": "Web UI Test", "sublabel": "TestNG / JUnit5", "pos": [40, 200], "size": [130, 60] },
+    { "id": "listener", "type": "backend", "label": "TestExecutionListener", "sublabel": "Lifecycle Hooks", "pos": [250, 60], "size": [150, 60] },
+    { "id": "triage_engine", "type": "security", "label": "SmartTriageEngine", "sublabel": "Zero-token Flakiness", "pos": [460, 60], "size": [150, 60] },
+    { "id": "basepage", "type": "frontend", "label": "BasePage / Support", "sublabel": "Page Objects", "pos": [250, 200], "size": [150, 60] },
+    { "id": "locator", "type": "backend", "label": "Locator API", "sublabel": "Immutable / By", "pos": [460, 200], "size": [150, 60], "tag": "Java 21" },
+    { "id": "assertions", "type": "backend", "label": "SeleniumAssert", "sublabel": "Soft & Hard Asserts", "pos": [460, 320], "size": [150, 60] },
+    { "id": "healing_locator", "type": "messagebus", "label": "SelfHealingLocator", "sublabel": "Fallback Wrapper", "pos": [670, 200], "size": [150, 60] },
+    { "id": "fuzzy_engine", "type": "database", "label": "FuzzyHealingEngine", "sublabel": "Heuristics / Levenshtein", "pos": [670, 60], "size": [150, 60] },
+    { "id": "wait_engine", "type": "backend", "label": "WaitEngine", "sublabel": "Smart Waits", "pos": [670, 320], "size": [150, 60] },
+    { "id": "driver", "type": "cloud", "label": "DriverManager", "sublabel": "ThreadLocal WebDriver", "pos": [880, 200], "size": [150, 60] },
+    { "id": "browser", "type": "external", "label": "Browser", "sublabel": "Chrome / Firefox / Edge", "pos": [1090, 200], "size": [130, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Core Execution Context", "wraps": ["basepage", "locator", "assertions", "wait_engine", "healing_locator"] },
+    { "kind": "security-group", "label": "AI & Heuristics", "wraps": ["fuzzy_engine", "triage_engine"] }
+  ],
+  "connections": [
+    { "id": "test-to-page", "from": "test", "to": "basepage" },
+    { "id": "test-to-listener", "from": "test", "to": "listener", "label": "events", "variant": "dashed", "fromSide": "top", "toSide": "left", "via": [[105, 90]] },
+    { "id": "listener-to-triage", "from": "listener", "to": "triage_engine", "label": "triage failure", "variant": "emphasis", "labelAt": [405, 134] },
+    { "id": "page-to-locator", "from": "basepage", "to": "locator", "label": "find/action" },
+    { "id": "page-to-assert", "from": "basepage", "to": "assertions", "label": "validate", "variant": "dashed" },
+    { "id": "locator-to-healing", "from": "locator", "to": "healing_locator", "label": "on fail", "labelAt": [640, 180] },
+    { "id": "healing-to-fuzzy", "from": "healing_locator", "to": "fuzzy_engine", "label": "score clues", "fromSide": "top", "toSide": "bottom" },
+    { "id": "locator-to-driver", "from": "locator", "to": "driver", "label": "execute", "fromSide": "right", "toSide": "left", "via": [[630, 230], [630, 290], [860, 290], [860, 230]], "labelAt": [745, 295] },
+    { "id": "healing-to-driver", "from": "healing_locator", "to": "driver", "label": "retry new By", "variant": "emphasis", "labelAt": [850, 180] },
+    { "id": "locator-to-wait", "from": "locator", "to": "wait_engine", "label": "await", "labelAt": [565, 275] },
+    { "id": "wait-to-driver", "from": "wait_engine", "to": "driver", "label": "poll", "variant": "dashed", "fromSide": "right", "toSide": "bottom", "labelAt": [850, 320] },
+    { "id": "assert-to-wait", "from": "assertions", "to": "wait_engine", "label": "use", "variant": "dashed", "labelAt": [635, 370] },
+    { "id": "driver-to-browser", "from": "driver", "to": "browser", "label": "W3C Protocol", "labelAt": [1060, 180] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Locator Subsystem", "items": ["Fully immutable Locator API extending Selenium By.", "First/Last methods and Stream integrations."] },
+    { "dot": "emerald", "title": "Healing & Triage", "items": ["Zero-token FuzzyHealingEngine using Levenshtein distance.", "SmartTriageEngine analyzing exception/retry data at runtime."] }
+  ]
+}

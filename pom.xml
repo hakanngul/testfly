@@ -293,6 +293,23 @@
             <scope>test</scope>
         </dependency>
 
+
+        <!-- API Mocking (Optional) -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>3.5.4</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- OpenAPI Validation (Optional) -->
+        <dependency>
+            <groupId>com.atlassian.oai</groupId>
+            <artifactId>swagger-request-validator-core</artifactId>
+            <version>2.39.0</version>
+            <optional>true</optional>
+        </dependency>
+
     </dependencies>
 
     <build>

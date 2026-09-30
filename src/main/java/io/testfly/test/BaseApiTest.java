@@ -38,7 +38,7 @@ import org.testng.annotations.Listeners;
         TestExecutionListener.class
 })
 public abstract class BaseApiTest
-        implements SoftAssertSupport, TestDataSupport, ApiSupport, ContextSupport, StepSupport, DbSupport, EmailSupport {
+        implements SoftAssertSupport, TestDataSupport, ApiSupport, ContextSupport, StepSupport, DbSupport, EmailSupport, io.testfly.test.support.MockSupport {
 
-    // softAssert(), getTestData(), apiClient(), ctx()/suiteCtx(), step(), db(), mailbox()/to() — via io.testfly.test.support.*
+    // softAssert(), getTestData(), apiClient(), ctx()/suiteCtx(), step(), db(), mailbox()/to(), mockServer() — via io.testfly.test.support.*
 }
