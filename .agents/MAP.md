@@ -68,7 +68,7 @@ Ajan, token yakmamak için körlemesine arama yapmaz; önce bu haritaya bakar ve
 - `[[skills/memory-sync/SKILL]]` — Hafıza budama, scratchpad temizliği ve wiki senkronizasyon rutini.
 - `[[skills/testfly-workflow/SKILL]]` — TestFly framework geliştirme, birim test ve sürüm yönetimi iş akışı.
 - `[[skills/docusaurus-config/SKILL]]` — Dokümantasyon sitesi (Docusaurus) yapılandırma ve derleme adımları.
-- `[[skills/automation-architecture/SKILL]]` — SDET otomasyon mimarisi, POM, SmartLocator ve assertion standartları.
+- `[[skills/testfly/SKILL]]` — TestFly SDET otomasyon mimarisi: WebUI (POM, Locator, WaitEngine, Assertions), API (ApiClient, AuthStrategy), Self-Healing, SPI, Raporlama ve Yaşam Döngüsü standartları.
 - `[[skills/wiki-lint/SKILL]]` — Wiki sağlık kontrolü: orphan, kırık link, stale içerik ve YAML frontmatter denetimi.
 
 ## 6. Proje Çekirdek Dosyaları (Codebase Anchors)

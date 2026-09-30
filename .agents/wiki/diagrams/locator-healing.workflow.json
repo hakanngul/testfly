@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Zero-Token Locator Healing Workflow",
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "output": "locator-healing.html"
+  },
+  "lanes": [
+    { "id": "test", "label": "Test Script" },
+    { "id": "locator", "label": "Locator API" },
+    { "id": "healing", "label": "Fuzzy Healing Engine", "variant": "normal" },
+    { "id": "driver", "label": "WebDriver Context" }
+  ],
+  "phases": [
+    { "id": "locate", "label": "Locate", "fromCol": 0, "toCol": 1 },
+    { "id": "fail", "label": "Fail & Intercept", "fromCol": 2, "toCol": 2, "variant": "security" },
+    { "id": "recover", "label": "Heuristic Healing", "fromCol": 3, "toCol": 4, "variant": "emphasis" },
+    { "id": "succeed", "label": "Execute", "fromCol": 5, "toCol": 5 }
+  ],
+  "mainPath": ["test_action", "loc_find", "loc_fail", "heal_intercept", "fuzzy_score", "driver_retry", "test_pass"],
+  "nodes": [
+    { "id": "test_action", "lane": "test", "col": 0, "type": "frontend", "label": "Test Step", "sublabel": "click(By.id)", "width": 132 },
+    { "id": "loc_find", "lane": "locator", "col": 1, "type": "backend", "label": "SmartLocator", "sublabel": "find element", "width": 132 },
+    { "id": "loc_fail", "lane": "locator", "col": 2, "type": "security", "label": "NoSuchElement", "sublabel": "exception thrown", "width": 132 },
+    { "id": "heal_intercept", "lane": "healing", "col": 2, "type": "messagebus", "label": "SelfHealingLocator", "sublabel": "catch exception", "width": 132 },
+    { "id": "fuzzy_score", "lane": "healing", "col": 3, "type": "backend", "label": "Fuzzy Engine", "sublabel": "Levenshtein score", "tag": "zero-token", "width": 132 },
+    { "id": "driver_retry", "lane": "driver", "col": 4, "type": "cloud", "label": "Driver Retry", "sublabel": "new By locator", "width": 132 },
+    { "id": "test_pass", "lane": "test", "col": 5, "type": "frontend", "label": "Step Passed", "sublabel": "transparent success", "width": 132 }
+  ],
+  "edges": [
+    { "id": "e1", "from": "test_action", "to": "loc_find", "variant": "default" },
+    { "id": "e2", "from": "loc_find", "to": "loc_fail", "label": "not found", "variant": "security" },
+    { "id": "e3", "from": "loc_fail", "to": "heal_intercept", "label": "catch", "variant": "emphasis" },
+    { "id": "e4", "from": "heal_intercept", "to": "fuzzy_score", "label": "heuristic match", "variant": "emphasis" },
+    { "id": "e5", "from": "fuzzy_score", "to": "driver_retry", "label": "provide fallback", "variant": "default" },
+    { "id": "e6", "from": "driver_retry", "to": "test_pass", "label": "success", "variant": "emphasis", "role": "return" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Fuzzy Healing Algorithm",
+      "items": [
+        "Instant zero-token heuristic matching via Levenshtein distance.",
+        "Scans interactive elements on the page against the failed locator clues.",
+        "Completely transparent to the test script."
+      ]
+    }
+  ]
+}
