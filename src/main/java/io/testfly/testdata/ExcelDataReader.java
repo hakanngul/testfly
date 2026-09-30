@@ -119,22 +119,18 @@ final class ExcelDataReader {
         CellType type = cell.getCellType();
         if (type == CellType.FORMULA)
             type = cell.getCachedFormulaResultType();
-        switch (type) {
-            case NUMERIC:
+        return switch (type) {
+            case NUMERIC -> {
                 if (DateUtil.isCellDateFormatted(cell)) {
-                    return cell.getLocalDateTimeCellValue().toLocalDate().toString();
+                    yield cell.getLocalDateTimeCellValue().toLocalDate().toString();
                 }
                 double d = cell.getNumericCellValue();
-                if (d == Math.floor(d) && !Double.isInfinite(d))
-                    return (long) d;
-                return d;
-            case BOOLEAN:
-                return cell.getBooleanCellValue();
-            case BLANK:
-                return "";
-            default:
-                return cell.getStringCellValue();
-        }
+                yield (d == Math.floor(d) && !Double.isInfinite(d)) ? (long) d : d;
+            }
+            case BOOLEAN -> cell.getBooleanCellValue();
+            case BLANK -> "";
+            default -> cell.getStringCellValue();
+        };
     }
 
     private static String cellStringValue(Cell cell) {

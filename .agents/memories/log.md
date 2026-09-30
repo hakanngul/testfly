@@ -141,4 +141,14 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
   5. `docs-site/docs/ci/bitbucket-pipelines.md` pipeline konfigürasyonundaki `maven:3.9.6-eclipse-temurin-17` imajı `temurin-21` olarak güncellendi.
   6. `docs-site/i18n/tr/.../changelog.md` içindeki `built into Java 17` ifadesi `built into Java 21` olarak güncellendi.
   7. Docusaurus `npm run build` ile EN ve TR dokümantasyon bütünlüğü doğrulandı (exit code 0).
+## [2026-09-30] refactor & perf | JDK 21 Tam Kapasite Modernizasyon ve Performans İyileştirmesi
+- **Eylem:**
+  1. `NotificationAdapter.java`: Her webhook isteğinde yeni `HttpClient` yaratılması yerine sanal thread (`Executors.newVirtualThreadPerTaskExecutor()`) ile güçlendirilmiş paylaşımlı `SHARED_HTTP_CLIENT` yapısına geçildi.
+  2. `ApiClient.java`, `TestRailClient.java` ve `XrayClient.java`: HTTP istemcilerine sanal thread executor'ı atanarak asenkron I/O ve polling işlemleri optimize edildi.
+  3. `ReportAdapterRegistry.java`: `generateAll()` metodunda raporlayıcılar ve webhook'lar sanal thread havuzuyla paralel tetikleme mimarisine kavuştu.
+  4. `PercentileCalculator.java` ve `ExecutionMetrics.java`: İç içe `Math.max/min` aralık sınırlandırmaları Java 21 `Math.clamp(...)` metoduna dönüştürüldü.
+  5. `NavigationSupport.java`, `LocatorAssert.java`, `Mp4Encoder.java` ve `ReportPortalAttachmentSender.java`: `getLast()` ve `getFirst()` Sequenced Collection API'lerine taşındı.
+  6. `LoadTestFeeder.describe()` ve `SmartTriageEngine`: `if-instanceof` blokları Java 21 Pattern Matching `switch` ifadelerine refactor edildi.
+  7. `Route.java`, `NetworkMock.java` ve `ExcelDataReader.java`: Arrow switch ifadelerine dönüştürülerek fall-through riskleri elendi.
+  8. Framework'ün 1.319 testinin tamamı (`mvn test`) ve Docusaurus (`npm run build`) ile %100 doğrulandı.
 - **Bağlantılar:** [[memories/scratchpad]], [[memories/log]], [[MAP]]

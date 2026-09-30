@@ -36,7 +36,7 @@ public final class PercentileCalculator {
             return sorted[0];
         }
         int k = (int) Math.ceil((p / 100.0) * sorted.length);
-        int index = Math.max(0, Math.min(k - 1, sorted.length - 1));
+        int index = Math.clamp(k - 1, 0, sorted.length - 1);
         return sorted[index];
     }
 

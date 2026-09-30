@@ -11,13 +11,14 @@ char_limit: 2200
 # Aktif Çalışma Not Defteri (Scratchpad)
 
 ### 1. Aktif Odak ve Son Durum
-- **Konu:** Java 21 LTS & TestFly MCP Senkronizasyonu & Java 17 Kalıntı Temizliği
-- **Durum:** TAMAMLANDI. Tüm Java 17 belirtileri kod ve dokümanlardan temizlendi, Java 21 LTS standardı pekiştirildi.
+- **Konu:** JDK 21 Tam Kapasite Modernizasyon ve Performans İyileştirmesi
+- **Durum:** TAMAMLANDI. JDK 21 özellikleri tam kapasiteyle devreye alındı, eski yöntem ve performans kayıpları temizlendi.
 - **Yapılanlar:**
-  1. **Kod Temizliği:** `GatlingBridge.java` (`isJavaLangOpened`), `GatlingRunConfig.java` ve `JdkLoadEngine.java` (`isAvailable`) sınıflarındaki Java 17+ referansları Java 21+ LTS olarak güncellendi.
-  2. **CI & Docker Temizliği:** `distributed-docker-k8s.md` (Temurin 17 -> Temurin 21), `bitbucket-pipelines.md` (Temurin 17 -> Temurin 21) ve `changelog.md` (TR built into Java 21) güncellendi.
-  3. **Önceki Adımlar:** Getting Started & CLI sayfaları npx tabanlı `@testfly/mcp` köprüsüne geçirildi, Java 21+ ve Gradle 8.5+ önkoşulları yazıldı.
-  4. **Doğrulama:** `npm run build` ile EN ve TR doküman derlemesi sıfır hata ile doğrulandı.
+  1. **Virtual Threads & I/O:** `NotificationAdapter` tekil paylaşımlı VT `HttpClient`'a geçirildi; `ApiClient`, `TestRailClient`, `XrayClient` sanal thread executor'ı ile güçlendirildi. `ReportAdapterRegistry` paralel VT rapor dağıtımına geçirildi.
+  2. **Math.clamp:** `PercentileCalculator` ve `ExecutionMetrics` içindeki iç içe `Math.max/min` aralık sınırlandırmaları `Math.clamp(...)` ile sadeleştirildi.
+  3. **Sequenced Collections:** `NavigationSupport` (`getLast`, `getFirst`), `LocatorAssert` (`getFirst`), `Mp4Encoder` ve `ReportPortalAttachmentSender` sıralı koleksiyon standartlarına taşındı.
+  4. **Pattern Matching & Switch:** `LoadTestFeeder.describe()` ve `SmartTriageEngine` sınıfları Java 21 `switch` pattern matching'e geçirildi; `Route`, `NetworkMock`, `ExcelDataReader` arrow switch formatına kavuştu.
+  5. **Doğrulama:** 1.319 birim testinin tamamı (`mvn test`) ve Docusaurus (`npm run build`) sıfır hata ile geçti.
 
 ### 2. Kaynaklar & Bağlantılar
 - [[wiki/assertion-system]]

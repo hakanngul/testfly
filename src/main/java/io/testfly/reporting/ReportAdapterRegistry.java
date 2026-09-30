@@ -44,17 +44,22 @@ public final class ReportAdapterRegistry {
 
     /**
      * Invokes {@link ReportAdapter#generate(File)} on every registered adapter.
+     * Each adapter runs in its own Virtual Thread concurrently.
      * Failures in one adapter are logged and do not prevent others from running.
      */
     public static void generateAll() {
         File metricsJson = ReportPaths.metricsJson();
-        for (ReportAdapter adapter : adapters) {
-            try {
-                adapter.generate(metricsJson);
-            } catch (Exception e) {
-                System.err.println(
-                    "[TestFly] ReportAdapter [" + adapter.getName() + "] failed: " + e.getMessage()
-                );
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            for (ReportAdapter adapter : adapters) {
+                executor.submit(() -> {
+                    try {
+                        adapter.generate(metricsJson);
+                    } catch (Exception e) {
+                        System.err.println(
+                            "[TestFly] ReportAdapter [" + adapter.getName() + "] failed: " + e.getMessage()
+                        );
+                    }
+                });
             }
         }
     }

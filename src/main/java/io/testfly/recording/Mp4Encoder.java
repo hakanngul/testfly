@@ -38,8 +38,8 @@ public final class Mp4Encoder {
             out = NIOUtils.writableChannel(output);
             AWTSequenceEncoder encoder = new AWTSequenceEncoder(out, Rational.R(Math.max(1, fps), 1));
 
-            int targetWidth = frames.get(0).getWidth();
-            int targetHeight = frames.get(0).getHeight();
+            int targetWidth = frames.getFirst().getWidth();
+            int targetHeight = frames.getFirst().getHeight();
 
             // Dimensions must be even for standard MPEG/H.264 macroblocks
             if (targetWidth % 2 != 0) targetWidth--;

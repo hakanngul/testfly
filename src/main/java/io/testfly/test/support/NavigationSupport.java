@@ -175,7 +175,7 @@ public interface NavigationSupport {
         WebDriver driver = getDriver();
         List<String> handles = new ArrayList<>(driver.getWindowHandles());
         if (!handles.isEmpty()) {
-            driver.switchTo().window(handles.get(handles.size() - 1));
+            driver.switchTo().window(handles.getLast());
         }
     }
 
@@ -187,7 +187,7 @@ public interface NavigationSupport {
         WebDriver driver = getDriver();
         List<String> handles = new ArrayList<>(driver.getWindowHandles());
         if (!handles.isEmpty()) {
-            driver.switchTo().window(handles.get(0));
+            driver.switchTo().window(handles.getFirst());
         }
     }
 

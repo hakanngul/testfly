@@ -219,7 +219,7 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
         if (loadTestDir.exists()) {
             java.util.List<File> reps = io.testfly.loadtest.LoadTestReportAdapter.findGatlingReports(loadTestDir);
             if (!reps.isEmpty()) {
-                sb.append("📊 **Gatling Native HTML Report:** `").append(reps.get(0).getPath()).append("`\n");
+                sb.append("📊 **Gatling Native HTML Report:** `").append(reps.getFirst().getPath()).append("`\n");
             }
         }
 

@@ -95,10 +95,10 @@ public final class Route {
         Response r = (response == null) ? Response.passthrough() : response;
         if (r.delayMs() > 0) sleep(r.delayMs());
         switch (r.kind()) {
-            case ABORT:       owner.failRequest(requestId, r.abortReason()); break;
-            case PASSTHROUGH: owner.continueResponse(requestId);             break;
-            case FULFILL:
-            default:          owner.fulfill(requestId, r);                   break;
+            case ABORT -> owner.failRequest(requestId, r.abortReason());
+            case PASSTHROUGH -> owner.continueResponse(requestId);
+            case FULFILL -> owner.fulfill(requestId, r);
+            default -> owner.fulfill(requestId, r);
         }
     }
 

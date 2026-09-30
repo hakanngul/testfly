@@ -697,7 +697,7 @@ public final class ExecutionMetrics {
 
         int index = (int) Math.ceil(percentile / 100.0 * sorted.size());
 
-        index = Math.max(0, Math.min(index - 1, sorted.size() - 1));
+        index = Math.clamp(index - 1, 0, sorted.size() - 1);
 
         return sorted.get(index);
     }
