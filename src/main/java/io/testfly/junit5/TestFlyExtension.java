@@ -96,6 +96,12 @@ public class TestFlyExtension
     @Override
     public void beforeAll(ExtensionContext context) {
         FrameworkBootstrap.initialize();
+        ExtensionContext root = context.getRoot();
+        if (root != null) {
+            ExtensionContext.Store store = root.getStore(ExtensionContext.Namespace.create(TestFlyExtension.class, "api-runtime"));
+            if (store != null) store.getOrComputeIfAbsent(ApiRuntimeResource.class,
+                    key -> new ApiRuntimeResource(), ApiRuntimeResource.class);
+        }
         PreConditionRegistry.loadAll();
         TestManagementReporter.getInstance().onSuiteStart();
 
@@ -172,6 +178,7 @@ public class TestFlyExtension
 
     @Override
     public void afterEach(ExtensionContext context) {
+        io.testfly.internal.api.ApiExecution.closeScope();
         String testId = TestFlyContext.getCurrentTestId();
         String testName = context.getRequiredTestMethod().getName();
         Optional<Throwable> failure = context.getExecutionException();
@@ -322,7 +329,7 @@ public class TestFlyExtension
             DbConnectionFactory.closeAll();
             ScenarioContext.clear();
             TestDataStore.clear();
-            ApiClient.clearGlobalAuth();
+            io.testfly.internal.api.ApiExecution.cleanupTestContext();
             BrowserContext.clear();
             NetworkMock.cleanup();
             TestClock.autoReset();
@@ -330,6 +337,10 @@ public class TestFlyExtension
                 DriverManager.quitDriver();
             TestFlyContext.clearCurrentTest();
         }
+    }
+
+    private static final class ApiRuntimeResource implements ExtensionContext.Store.CloseableResource {
+        @Override public void close() { io.testfly.internal.api.ApiExecution.shutdown(); }
     }
 
     @Override

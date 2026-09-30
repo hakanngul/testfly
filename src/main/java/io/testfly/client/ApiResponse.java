@@ -25,7 +25,11 @@ public class ApiResponse {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final HttpResponse<String> response;
+    private final int statusCode;
+    private final String responseBody;
+    private final java.net.http.HttpHeaders responseHeaders;
+    private final ApiRequest request;
+    private final boolean synthetic;
     private final long durationMs;
     private final String requestMethod;
     private final String requestUrl;
@@ -36,15 +40,79 @@ public class ApiResponse {
     }
 
     ApiResponse(HttpResponse<String> response, long durationMs, String requestMethod, String requestUrl) {
-        this.response      = response;
+        this.statusCode = response.statusCode();
+        this.responseBody = response.body();
+        this.responseHeaders = response.headers();
+        this.request = null;
+        this.synthetic = false;
         this.durationMs    = durationMs;
         this.requestMethod = requestMethod;
         this.requestUrl    = requestUrl;
     }
 
+
+    private ApiResponse(Builder b) {
+        request = java.util.Objects.requireNonNull(b.request, "request");
+        if (b.status < 100 || b.status > 599) throw new IllegalArgumentException("HTTP status must be 100..599");
+        if (b.duration < 0) throw new IllegalArgumentException("duration must be non-negative");
+        statusCode = b.status;
+        responseBody = java.util.Objects.requireNonNull(b.body, "body");
+        responseHeaders = java.net.http.HttpHeaders.of(b.headers, (k, v) -> true);
+        durationMs = b.duration;
+        requestMethod = request.method();
+        requestUrl = request.uri().toString();
+        synthetic = b.synthetic;
+    }
+
+    @TestFlyApi(since = "1.1.0")
+    public static Builder builder() { return new Builder(); }
+
+    @TestFlyApi(since = "1.1.0")
+    public Builder newBuilder() {
+        Builder b = new Builder().status(status()).body(body()).durationMs(durationMs);
+        b.request = request;
+        b.synthetic = synthetic;
+        responseHeaders.map().forEach((k, values) -> b.headers.put(k, new java.util.ArrayList<>(values)));
+        return b;
+    }
+
+    @TestFlyApi(since = "1.1.0")
+    public ApiRequest request() { return request; }
+
+    @TestFlyApi(since = "1.1.0")
+    public boolean isSynthetic() { return synthetic; }
+
+    /** Attach the actually sent request without changing legacy constructors. */
+    ApiResponse withRequest(ApiRequest value) {
+        return newBuilder().request(value).build();
+    }
+
+    @TestFlyApi(since = "1.1.0")
+    public static final class Builder {
+        private ApiRequest request;
+        private int status;
+        private String body = "";
+        private long duration;
+        private boolean synthetic = true;
+        private final java.util.Map<String, List<String>> headers = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        private Builder() {}
+        public Builder request(ApiRequest value) { request = java.util.Objects.requireNonNull(value); return this; }
+        public Builder status(int value) { status = value; return this; }
+        public Builder body(String value) { body = java.util.Objects.requireNonNull(value); return this; }
+        public Builder durationMs(long value) { duration = value; return this; }
+        public Builder header(String name, String value) {
+            headers.put(java.util.Objects.requireNonNull(name), new java.util.ArrayList<>(List.of(value))); return this;
+        }
+        public Builder addHeader(String name, String value) {
+            headers.computeIfAbsent(java.util.Objects.requireNonNull(name), k -> new java.util.ArrayList<>()).add(java.util.Objects.requireNonNull(value)); return this;
+        }
+        public Builder removeHeader(String name) { headers.remove(name); return this; }
+        public ApiResponse build() { return new ApiResponse(this); }
+    }
+
     /** HTTP status code. */
     public int status() {
-        return response.statusCode();
+        return statusCode;
     }
 
     public String requestMethod() {
@@ -57,7 +125,7 @@ public class ApiResponse {
 
     /** Raw response body as String. */
     public String body() {
-        return response.body();
+        return responseBody;
     }
 
     /** Duration of the request in milliseconds. */
@@ -67,7 +135,7 @@ public class ApiResponse {
 
     /** Response header value, or null if absent. */
     public String header(String name) {
-        return response.headers().firstValue(name).orElse(null);
+        return responseHeaders.firstValue(name).orElse(null);
     }
 
     /**
@@ -117,7 +185,7 @@ public class ApiResponse {
     /** Deserialise entire response body to a POJO. */
     public <T> T asObject(Class<T> type) {
         try {
-            return MAPPER.readValue(response.body(), type);
+            return MAPPER.readValue(body(), type);
         } catch (Exception e) {
             throw new RuntimeException("[ApiResponse] Cannot deserialise body to " + type.getSimpleName(), e);
         }
@@ -126,7 +194,7 @@ public class ApiResponse {
     /** Deserialise entire response body using TypeReference (generic types). */
     public <T> T asObject(TypeReference<T> typeRef) {
         try {
-            return MAPPER.readValue(response.body(), typeRef);
+            return MAPPER.readValue(body(), typeRef);
         } catch (Exception e) {
             throw new RuntimeException("[ApiResponse] Cannot deserialise body to " + typeRef.getType(), e);
         }
@@ -135,7 +203,7 @@ public class ApiResponse {
     /** Deserialise entire response body to List. */
     public <T> List<T> asList(Class<T> elementType) {
         try {
-            return MAPPER.readValue(response.body(),
+            return MAPPER.readValue(body(),
                     MAPPER.getTypeFactory().constructCollectionType(List.class, elementType));
         } catch (Exception e) {
             throw new RuntimeException("[ApiResponse] Cannot deserialise body to List<" + elementType.getSimpleName() + ">", e);
@@ -147,9 +215,9 @@ public class ApiResponse {
     /** Fails the test if status does not match. */
     public ApiResponse assertStatus(int expected) {
         StepLogger.step("Assert API status " + expected);
-        if (response.statusCode() != expected) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
-                    "[ApiResponse] Expected status " + expected + " but got " + response.statusCode());
+        if (status() != expected) {
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
+                    "[ApiResponse] Expected status " + expected + " but got " + status());
         }
         return this;
     }
@@ -157,8 +225,8 @@ public class ApiResponse {
     /** Fails the test if the response body does not contain the given substring. */
     public ApiResponse assertBodyContains(String substring) {
         StepLogger.step("Assert API body contains '" + substring + "'");
-        if (response.body() == null || !response.body().contains(substring)) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+        if (body() == null || !body().contains(substring)) {
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] Body does not contain: '" + substring + "'");
         }
         return this;
@@ -170,7 +238,7 @@ public class ApiResponse {
         String actual = json(path);
         String expectedStr = String.valueOf(expected);
         if (!expectedStr.equals(actual)) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] JSON path '" + path + "': expected '" + expectedStr + "' but got '" + actual + "'");
         }
         return this;
@@ -188,7 +256,7 @@ public class ApiResponse {
      */
     public ApiResponse assertSchema(String schemaPath) {
         StepLogger.step("Assert API schema: " + schemaPath);
-        SchemaValidator.validate(response.body(), schemaPath);
+        SchemaValidator.validate(body(), schemaPath);
         return this;
     }
 
@@ -209,7 +277,7 @@ public class ApiResponse {
     public ApiResponse assertDurationLessThan(long maxMs) {
         StepLogger.step("Assert API duration < " + maxMs + "ms");
         if (durationMs > maxMs) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] Request took " + durationMs + "ms, expected < " + maxMs + "ms");
         }
         return this;
@@ -227,7 +295,7 @@ public class ApiResponse {
         StepLogger.step("Assert API header '" + name + "' = '" + expectedValue + "'");
         String actual = header(name);
         if (!expectedValue.equals(actual)) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] Header '" + name + "': expected '" + expectedValue + "' but got '" + actual + "'");
         }
         return this;
@@ -237,7 +305,7 @@ public class ApiResponse {
     public ApiResponse assertHeaderPresent(String name) {
         StepLogger.step("Assert API header '" + name + "' is present");
         if (header(name) == null) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] Expected header '" + name + "' to be present");
         }
         return this;
@@ -248,8 +316,8 @@ public class ApiResponse {
     /** Fails the test if the response body does not match the given regex (dotall mode). */
     public ApiResponse assertBodyMatches(String regex) {
         StepLogger.step("Assert API body matches regex '" + regex + "'");
-        if (response.body() == null || !response.body().matches("(?s).*" + regex + ".*")) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+        if (body() == null || !body().matches("(?s).*" + regex + ".*")) {
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] Body does not match regex: '" + regex + "'");
         }
         return this;
@@ -264,12 +332,12 @@ public class ApiResponse {
     public JsonNode jsonNode(String path) {
         try {
             if (parsedBody == null) {
-                parsedBody = MAPPER.readTree(response.body());
+                parsedBody = MAPPER.readTree(body());
             }
             String pointer = toPointer(path);
             return parsedBody.at(pointer);
         } catch (Exception e) {
-            throw new RuntimeException("[ApiResponse] Failed to parse JSON body. Body: " + truncate(response.body(), 200), e);
+            throw new RuntimeException("[ApiResponse] Failed to parse JSON body. Body: " + truncate(body(), 200), e);
         }
     }
 
@@ -284,7 +352,7 @@ public class ApiResponse {
         StepLogger.step("Assert API JSON '" + path + "': " + description);
         JsonNode node = jsonNode(path);
         if (node == null || node.isMissingNode() || !predicate.test(node)) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] JSON path '" + path + "' failed predicate check: " + description
                             + " (actual value: " + (node == null ? "null" : node.toString()) + ")");
         }
@@ -296,7 +364,7 @@ public class ApiResponse {
         StepLogger.step("Assert API JSON '" + path + "' > " + threshold);
         JsonNode node = jsonNode(path);
         if (node == null || !node.isNumber() || node.asDouble() <= threshold) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] JSON path '" + path + "': expected > " + threshold + " but got "
                             + (node == null ? "null" : node.asText()));
         }
@@ -308,7 +376,7 @@ public class ApiResponse {
         StepLogger.step("Assert API JSON '" + path + "' < " + threshold);
         JsonNode node = jsonNode(path);
         if (node == null || !node.isNumber() || node.asDouble() >= threshold) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] JSON path '" + path + "': expected < " + threshold + " but got "
                             + (node == null ? "null" : node.asText()));
         }
@@ -320,7 +388,7 @@ public class ApiResponse {
         StepLogger.step("Assert API JSON '" + path + "' contains '" + fragment + "'");
         String actual = json(path);
         if (actual == null || !actual.contains(fragment)) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] JSON path '" + path + "': expected to contain '" + fragment + "' but got '" + actual + "'");
         }
         return this;
@@ -331,7 +399,7 @@ public class ApiResponse {
         StepLogger.step("Assert API JSON '" + path + "' is true");
         JsonNode node = jsonNode(path);
         if (node == null || !node.isBoolean() || !node.asBoolean()) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] JSON path '" + path + "': expected true but got "
                             + (node == null ? "null" : node.asText()));
         }
@@ -343,7 +411,7 @@ public class ApiResponse {
         StepLogger.step("Assert API JSON '" + path + "' is false");
         JsonNode node = jsonNode(path);
         if (node == null || !node.isBoolean() || node.asBoolean()) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] JSON path '" + path + "': expected false but got "
                             + (node == null ? "null" : node.asText()));
         }
@@ -355,11 +423,11 @@ public class ApiResponse {
         StepLogger.step("Assert API JSON array '" + path + "' size = " + expectedSize);
         JsonNode node = jsonNode(path);
         if (node == null || !node.isArray()) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] '" + path + "' is not an array or does not exist");
         }
         if (node.size() != expectedSize) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] Array '" + path + "': expected size " + expectedSize + " but got " + node.size());
         }
         return this;
@@ -370,7 +438,7 @@ public class ApiResponse {
         StepLogger.step("Assert API JSON path '" + path + "' exists");
         JsonNode node = jsonNode(path);
         if (node == null || node.isMissingNode()) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] JSON path '" + path + "' does not exist in response body");
         }
         return this;
@@ -381,7 +449,7 @@ public class ApiResponse {
         StepLogger.step("Assert API JSON path '" + path + "' is null");
         JsonNode node = jsonNode(path);
         if (node != null && !node.isNull() && !node.isMissingNode()) {
-            throw new ApiException(requestMethod, requestUrl, response.statusCode(), response.body(),
+            throw new ApiException(requestMethod, requestUrl, status(), body(),
                     "[ApiResponse] JSON path '" + path + "': expected null but got '" + node.asText() + "'");
         }
         return this;

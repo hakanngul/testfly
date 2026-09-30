@@ -138,6 +138,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
     public void onTestSuccess(ITestResult result) {
         if (isCucumberScenario(result))
             return;
+        io.testfly.internal.api.ApiExecution.closeScope();
         String testId = result.getMethod().getQualifiedName();
 
         if (!skipBrowser(result) && ConsoleErrorCollector.isEnabled()) {
@@ -209,7 +210,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         DbConnectionFactory.closeAll();
         io.testfly.testdata.TestDataStore.clear();
         ScenarioContext.clear();
-        io.testfly.client.ApiClient.clearGlobalAuth();
+        io.testfly.internal.api.ApiExecution.cleanupTestContext();
         BrowserContext.clear();
         NetworkMock.cleanup();
         TestFlyContext.clearCurrentTestId();
@@ -220,6 +221,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
     public void onTestFailure(ITestResult result) {
         if (isCucumberScenario(result))
             return;
+        io.testfly.internal.api.ApiExecution.closeScope();
         String testName = result.getMethod().getMethodName();
         String testId = result.getMethod().getQualifiedName();
 
@@ -296,7 +298,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         DbConnectionFactory.closeAll();
         io.testfly.testdata.TestDataStore.clear();
         ScenarioContext.clear();
-        io.testfly.client.ApiClient.clearGlobalAuth();
+        io.testfly.internal.api.ApiExecution.cleanupTestContext();
         BrowserContext.clear();
         SoftAssertions.clear();
         NetworkMock.cleanup();
@@ -307,6 +309,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
     public void onTestSkipped(ITestResult result) {
         if (isCucumberScenario(result))
             return;
+        io.testfly.internal.api.ApiExecution.closeScope();
         String testId = result.getMethod().getQualifiedName();
         ExecutionMetrics.recordStatus(testId, "SKIPPED");
         ExecutionMetrics.markEnd(testId);
@@ -321,7 +324,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         DbConnectionFactory.closeAll();
         io.testfly.testdata.TestDataStore.clear();
         ScenarioContext.clear();
-        io.testfly.client.ApiClient.clearGlobalAuth();
+        io.testfly.internal.api.ApiExecution.cleanupTestContext();
         BrowserContext.clear();
         SoftAssertions.clear();
         TestFlyContext.clearCurrentTestId();

@@ -5,7 +5,7 @@ tags:
   - dataflow
   - rest-assured
   - contract-testing
-date: 2026-09-10
+date: 2026-10-01
 status: active
 type: wiki
 ---
@@ -35,6 +35,16 @@ Archify ile derlenmiş bağımsız, karanlık/aydınlık tema ve trace animasyon
 - [TestFly API Test Dataflow Diagram (HTML)](file:///Users/hagul/Projects/TestFramework/testfly/docs-site/static/diagrams/testfly-api-dataflow.html)
 
 ---
+
+## 3. API Interceptor Zinciri (1.1.0 API sözleşmesi)
+
+- `ApiInterceptor.intercept(Chain)` blocking çalışır. `proceed(request)` sabit downstream indeksinden devam eder; ardışık tekrar gönderim ve sentetik response geçerlidir. Chain, interceptor dönüşünden sonra veya başka thread üzerinde kullanılamaz; null request/response reddedilir.
+- `ApiRequest` immutable hazırlanmış method/URI/timeout/header/body snapshot'ıdır. JSON/form/multipart çağrı başında bir kez serileştirilir; builder header işlemleri case-insensitive, koleksiyonlar ve byte dizileri defensive copy kullanır. `ApiResponse.builder/newBuilder` sentetik yanıt ve yanıt değişimini sağlar.
+- Test kapsamındaki thread-local interceptor'lar istek kapsamındakilerden önce çalışır. YAML retry zincirin dışındadır; her deneme özgün snapshot ve yeniden uygulanan effective auth ile başlar. Yalnız transport hataları ve ayarlanmış HTTP status'ları retry adayıdır; kullanıcı kodu/assertion hataları ve cancellation tekrar edilmez.
+- Legacy request hook yalnız gerçek gönderimde; response hook dış denemenin nihai yanıtında bir kez çalışır. İç refresh yanıtı nihai FAIL oluşturmaz. Gerçek gönderimler INFO, otomatik retry WARN; nihai sonuç PASS/FAIL ve toplam süreyle raporlanır.
+- Sync/async ortak pipeline kullanır. Async çağıranda snapshot alır, yönetilen virtual thread'e test kimliği/auth/interceptor/log/retry bağlamını taşır. Aynı testin concurrent cookie jar'ı paylaşılır; farklı testler ayrıdır. Stateful interceptor thread-safe olmalıdır; rastgele kullanıcı ThreadLocal'ları taşınmaz.
+- `ApiExecution` internal runtime scope, cancellation, kesilebilir backoff ve executor yaşam döngüsünü yönetir. TestNG/JUnit5/Cucumber kapanışı bekleyen çağrıları iptal eder, kapanmış scope'a geç raporlama engellenir. Batch semaphore ile mantıksal concurrency sınırlar ve sonuç sırasını korur.
+- TR/EN rehber örnekleri `ApiInterceptorExamples` test kaynağında derlenir. Yeni auth-refresh/cache/mock-server/SSL motoru veya zorunlu bağımlılık eklenmemiştir.
 
 ## İlgili Bağlantılar
 - WebUI Test Mimarisi: `[[wiki/webui-testing]]`

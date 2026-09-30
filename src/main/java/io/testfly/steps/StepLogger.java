@@ -57,6 +57,11 @@ public final class StepLogger {
     // ------------------------------------------------------------------
 
     private static void logWithBase64(String name, StepStatus status, String base64) {
+        io.testfly.internal.api.ApiExecution.logInContext(() -> recordWithBase64(name, status, base64));
+    }
+
+    private static void recordWithBase64(String name, StepStatus status, String base64) {
+        if (!io.testfly.internal.api.ApiExecution.contextOpen()) return;
         String testId = TestFlyContext.getCurrentTestId();
         if (testId == null) {
             LOGGER.warn("[STEP] No active test context — step ignored: {}", name);
@@ -69,6 +74,11 @@ public final class StepLogger {
     }
 
     private static void log(String name, StepStatus status, boolean screenshot) {
+        io.testfly.internal.api.ApiExecution.logInContext(() -> record(name, status, screenshot));
+    }
+
+    private static void record(String name, StepStatus status, boolean screenshot) {
+        if (!io.testfly.internal.api.ApiExecution.contextOpen()) return;
         String testId = TestFlyContext.getCurrentTestId();
         if (testId == null) {
             LOGGER.warn("[STEP] No active test context — step ignored: {}", name);

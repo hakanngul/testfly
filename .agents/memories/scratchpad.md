@@ -1,29 +1,25 @@
-# TestFly - Güncel Durum (Scratchpad)
+# TestFly — Güncel Durum (Scratchpad)
 
-## 🎯 Mevcut Durum (v1.0.7-SNAPSHOT)
-- Proje stabil. Docusaurus dokümantasyonu başarılı derleniyor.
-- Tüm `io.testfly.test` ve `io.testfly.client` testleri başarılı.
-- **Yeni Eklenenler:** API Test katmanına WireMock tabanlı Mocking (`MockSupport`), Swagger sözleşme doğrulaması (`assertOpenApi`), ve asenkron rate-limiting/fuzzing altyapısı (`ApiBatchRunner`, `sendAsync`) eklendi.
+## Mevcut Durum
+- Maven sürümü: 1.0.7-SNAPSHOT; Java 21, JDK HTTP transport korunuyor.
+- Geliştirme development dalında. main commit/push yasak; her git işleminden önce dal kontrolü yapılır.
+- JDK 21 modernizasyonu, specialist ajan profilleri ve archify diyagramları önceki çalışmalarda tamamlandı.
 
-### 1. Aktif Odak ve Son Durum
-- **Konu:** JDK 21 Tam Kapasite Modernizasyon ve API Genişletmeleri
-- **Durum:** TAMAMLANDI.
-- **Yapılanlar:**
-  1. **Virtual Threads & I/O:** `NotificationAdapter` tekil paylaşımlı VT `HttpClient`'a geçirildi; `ApiClient`, `TestRailClient`, `XrayClient` sanal thread executor'ı ile güçlendirildi. `ReportAdapterRegistry` paralel VT rapor dağıtımına geçirildi.
-  2. **Math.clamp:** `PercentileCalculator` ve `ExecutionMetrics` içindeki iç içe `Math.max/min` aralık sınırlandırmaları `Math.clamp(...)` ile sadeleştirildi.
-  3. **Sequenced Collections:** `NavigationSupport` (`getLast`, `getFirst`), `LocatorAssert` (`getFirst`), `Mp4Encoder` ve `ReportPortalAttachmentSender` sıralı koleksiyon standartlarına taşındı.
-  4. **Pattern Matching & Switch:** `LoadTestFeeder.describe()` ve `SmartTriageEngine` sınıfları Java 21 `switch` pattern matching'e geçirildi; `Route`, `NetworkMock`, `ExcelDataReader` arrow switch formatına kavuştu.
-  5. **API Genişletmeleri:** WireMock tabanlı Mocking (`MockSupport`), Swagger sözleşme doğrulaması (`assertOpenApi`), ve asenkron rate-limiting/fuzzing altyapısı (`ApiBatchRunner`, `sendAsync`) eklendi.
-  6. **Doğrulama:** 1.319 birim testinin tamamı (`mvn test`) ve Docusaurus (`npm run build`) sıfır hata ile geçti.
+## API Interceptor Zinciri — 2026-10-01
+- Uygulandı: immutable ApiRequest, ApiInterceptor/Chain, ApiResponse builder; test/request kapsamlı kayıt, ardışık proceed ve sentetik yanıt.
+- Ortak sync/async pipeline, dış YAML retry, legacy hook uyumu, body snapshot/replay; cancellation ve kesilebilir backoff.
+- Virtual-thread runtime, test auth/cookie/context izolasyonu, batch semaphore ve lifecycle cleanup. Kapanmış teste geç rapor engellenir; gerçek request/cURL başlıkları maskelenir.
+- TR/EN rehber ve derlenen logging/refresh/mock/sync-async örnekleri eklendi. Yeni zorunlu bağımlılık/sürüm değişikliği yok; Kullanıcı isteğiyle development commit’i oluşturuldu; push yapılmadı.
+- Doğrulama: temiz API odaklı mvn clean verify (yerel GPG kapalı) 78 test, 0 hata; 30 yeni chain/execution testi dahil. Docusaurus npm run build EN/TR başarılı.
+- Tam paket yeşil değil: varsayılan mvn test takılması değişikliksiz HEAD'de de görüldü. Ayrı JVM'li geniş verify: 1348 test, 6 hata (driver registry/clock/page knowledge); driver/clock hataları HEAD'de yeniden üretildi. Page knowledge hatasının baseline tekrarı doğrulanmadı.
+- Mimari: [[wiki/api-testing]]; ayrıntı: [[memories/log]].
 
-## 📌 Sonraki Adımlar
-1. Kullanıcının raporlama sistemiyle ilgili belirleyeceği istek, problem veya geliştirmeyi beklemek ve analiz etmek.
-2. `HtmlReportGenerator` ve `report-template.html` üzerinde production-grade, thread-safe geliştirmeleri uygulamak ve testlerini koşmak.
+## API Dokümantasyon Düzeni — 2026-10-01
+- API Testing rehberi TR/EN konu sayfalarına ayrıldı; Interceptor Zinciri sol menüde ayrı öğe. Başlangıç rehberi korunup konu bağlantıları eklendi.
 
-## 📚 Hızlı Linkler
-- 2026-09-30: Kullanıcı isteğiyle makineye Rimz 0.4.3 + tmux 3.7c hazırlandı. `agy` profili `antigravity`; `peer` düzeni `codex,agy+term`. TestFly odası arka planda açık; bağlanmak için proje içinde `rimz`. Codex hook güveni onaylandı. agy açılışta statusLine `_rimz_managed` işaretini silebiliyor; tekrar hook kurulumu düzeltir. Ayrıntı: [[memories/log]].
-- Harita: [[MAP]]
-- Rimz Antigravity adaptörü yalnızca `agy` CLI oturumlarını izler; masaüstü uygulamasının sohbetleri kapsama dahil değil. GUI ile paralel iş için ayrı checkout/worktree kullanılır.
-- Proje Kuralları: [[AGENTS]]
-- Ghostty 1.3.1: tema yazımı ve kurulu font adı düzeltildi; geliştirici kısayolları, Rimz bildirimleri ve pencere kaydı ayarlandı. Eski config yedeklendi; validate-config geçti. [[memories/log]]
-- Son değişiklikler: [[memories/log]]
+## Sonraki Odak
+- Tam test paketinin izolasyon/koşucu sorunlarını ayrı görevde çözmek.
+- Kullanıcının raporlama talebi: HtmlReportGenerator/report-template thread-safe geliştirmeleri bekliyor.
+
+## Linkler
+[[MAP]] | [[rules/git-release-workflow]] | [[memories/log]]
