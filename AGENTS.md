@@ -68,7 +68,7 @@ Key selling points:
 
 | Layer | Technology |
 |-------|------------|
-| Language | Java 17 |
+| Language | Java 21 |
 | Build | Maven |
 | Browser automation | Selenium Java 4.40.0 |
 | Test framework | TestNG 7.9.0 |

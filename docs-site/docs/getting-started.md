@@ -16,23 +16,22 @@ import TabItem from '@theme/TabItem';
 
 ## Prerequisites
 
-- Java 17+
-- Maven 3.8+ **or** Gradle 7+
-- Chrome or Firefox installed
+- Java 21+
+- Maven 3.8+ **or** Gradle 8.5+
+- Chrome, Firefox, or Edge installed
 
 :::info
 No WebDriver binaries required — Selenium Manager handles browser driver downloads automatically.
 :::
 
-:::tip Instant Setup with TestFly CLI (Recommended)
-You can scaffold a production-ready TestFly project with a single command:
+:::tip Instant Setup with TestFly MCP & NPX (Recommended)
+You can scaffold a production-ready TestFly Java 21 project with a single command:
 
 ```bash
-pip install testfly-mcp
-testfly init my-test-suite
+npx @testfly/mcp init my-test-suite
 ```
 
-This generates `pom.xml`, `testfly.yml`, and ready-to-run sample tests. Learn more in the [TestFly CLI Guide](/docs/cli).
+This generates `pom.xml`, `testfly.yml`, and ready-to-run sample tests. Learn more in the [TestFly MCP & CLI Guide](/docs/cli).
 :::
 
 ---

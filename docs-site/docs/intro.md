@@ -77,8 +77,8 @@ TestFly **is** that framework — already built, maintained, tested, thread-safe
 
 ---
 
-:::tip TestFly CLI & AI-Powered MCP Automation
-**TestFly CLI & MCP Server** is now live! Scaffold new projects in seconds with `testfly init`, run diagnostics with `testfly doctor`, or let AI assistants (Claude, Cursor, Copilot) drive real browsers and generate idiomatic TestFly code with 88 built-in tools. See the [TestFly CLI Guide](/docs/cli) and [AI & MCP Overview](/docs/ai/overview).
+:::tip TestFly MCP Bridge & AI Automation
+**TestFly MCP Bridge (`@testfly/mcp`)** is now live! Scaffold new Java 21 projects in seconds with `npx @testfly/mcp init`, or pair with Playwright MCP to let AI assistants (Cursor, Claude, Copilot) drive real browsers and generate idiomatic TestFly code. See the [TestFly MCP & CLI Guide](/docs/cli) and [AI & MCP Overview](/docs/ai/overview).
 :::
 
 ---

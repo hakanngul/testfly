@@ -141,7 +141,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
           cache: 'maven'
 
       # Cache previous run metrics for optimal LPT bin-packing

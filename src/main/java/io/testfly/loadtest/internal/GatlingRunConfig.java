@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * {@link TestFlyGatlingSimulation}.
  *
  * <p>Supports in-memory passing for in-process runs, and JSON serialization
- * for forked JVM runs (which need {@code --add-opens} on Java 17+).
+ * for forked JVM runs (which need {@code --add-opens} on Java 21+).
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 final class GatlingRunConfig {

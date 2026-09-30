@@ -204,7 +204,7 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 ### Added
 - **TestRail Integration** — `@TestRailCase("C1234")` on any test method (or class) pushes results to TestRail automatically; supports multiple IDs (`@TestRailCase({"C1234", "C5678"})`); creates a named run on suite start (`autoCreateRun: true`); maps PASSED→1, FAILED→5, SKIPPED→Retest(4); failure exception message is sent as the result comment
 - **Xray Integration** — `@XrayTest("PROJ-123")` pushes results to Xray Cloud or Xray Server/DC; Cloud uses OAuth2 client credentials; Server uses HTTP Basic auth against Jira; results are batch-imported at suite end
-- **Zero extra dependencies** — both clients use `java.net.http.HttpClient` (built into Java 17)
+- **Zero extra dependencies** — both clients use `java.net.http.HttpClient` (built into Java 21)
 - **TestNG + JUnit 5** — same annotations work in both test frameworks; framework automatically detects and routes to the correct listener
 
 ### Config

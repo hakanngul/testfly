@@ -10,7 +10,7 @@ description: Record live web interactions in Google Chrome and automatically gen
 
 The **TestFly Interactive Recorder** is a live companion testing studio that bridges real user browser interactions directly with production-grade Java automation code. 
 
-By pairing an injected Chrome companion window with real-time Server-Sent Events (SSE), every click, text entry, dropdown selection, and web assertion is streamed to the studio and instantly compiled into **TestFly Java 17+** code across multiple test architectures.
+By pairing an injected Chrome companion window with real-time Server-Sent Events (SSE), every click, text entry, dropdown selection, and web assertion is streamed to the studio and instantly compiled into **TestFly Java 21+** code across multiple test architectures.
 
 ```bash
 testfly record https://www.saucedemo.com

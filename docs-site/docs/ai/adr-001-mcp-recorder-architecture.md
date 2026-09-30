@@ -23,7 +23,7 @@ Enterprise Java test automation teams face two significant modern testing challe
 We needed an architecture that:
 - Connects AI agents to browsers via the official **Model Context Protocol (MCP)** specification.
 - Provides human engineers with a visual, low-latency **Live Companion Recorder**.
-- Generates idiomatic, framework-native **TestFly Java 17+** code with auto-waiting assertions and accessibility-first locators.
+- Generates idiomatic, framework-native **TestFly Java 21+** code with auto-waiting assertions and accessibility-first locators.
 - Emits clean, compilable multi-file project structures (`pages/`, `tests/`, and `resources/features/`).
 
 ---

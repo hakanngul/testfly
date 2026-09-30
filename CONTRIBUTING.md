@@ -31,7 +31,7 @@ Features that significantly increase complexity without clear user value may be 
 
 ### Prerequisites
 
-- Java 17+
+- Java 21+
 - Maven 3.8+
 - Git
 

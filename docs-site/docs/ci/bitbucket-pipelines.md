@@ -18,7 +18,7 @@ TestFly's built-in **`CiEnvironmentDetector`** automatically recognizes the Bitb
 Create `bitbucket-pipelines.yml` in your repository root:
 
 ```yaml title="bitbucket-pipelines.yml"
-image: maven:3.9.6-eclipse-temurin-17
+image: maven:3.9.6-eclipse-temurin-21
 
 definitions:
   caches:

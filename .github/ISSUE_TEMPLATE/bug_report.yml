@@ -39,7 +39,7 @@ body:
     id: java-version
     attributes:
       label: Java version
-      placeholder: "17.0.10 (Temurin)"
+      placeholder: "21.0.2 (Temurin)"
     validations:
       required: true
   - type: input

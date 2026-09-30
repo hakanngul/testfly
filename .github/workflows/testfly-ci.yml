@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - master
+      - development
   pull_request:
     branches:
       - main
       - master
+      - development
   workflow_dispatch:
 
 permissions:
@@ -26,7 +28,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: temurin
           cache: maven
 
@@ -86,7 +88,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: temurin
           cache: maven
 
@@ -133,7 +135,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: temurin
           cache: maven
 

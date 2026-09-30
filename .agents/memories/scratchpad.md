@@ -11,13 +11,13 @@ char_limit: 2200
 # Aktif Çalışma Not Defteri (Scratchpad)
 
 ### 1. Aktif Odak ve Son Durum
-- **Konu:** Release v1.0.7 & Git Commit Hazırlığı
-- **Durum:** HAZIR. Tüm changelog ve sürüm referansları 1.0.7'ye yükseltildi. Docusaurus derlemesi ve TestNG testleri sıfır hata ile doğrulandı.
+- **Konu:** Java 21 LTS & TestFly MCP Senkronizasyonu & Java 17 Kalıntı Temizliği
+- **Durum:** TAMAMLANDI. Tüm Java 17 belirtileri kod ve dokümanlardan temizlendi, Java 21 LTS standardı pekiştirildi.
 - **Yapılanlar:**
-  1. **Versiyon Yükseltme (1.0.7):** `pom.xml`, `README.md`, `CHANGELOG.md`, `docs-site` sayfaları (homeData, index, getting-started, junit5, loadtest) `1.0.7` olarak senkronize edildi.
-  2. **Changelog Senkronizasyonu:** Kök `CHANGELOG.md`, `docs-site/docs/changelog.md` ve TR eşdeğeri `[1.0.7] — 2026-09-29` başlığı ile güncellendi.
-  3. **Çekirdek & Doküman:** `Locator.cssSelector(String)` birincil metod yapıldı, `Locator.css` `@Deprecated` alias oldu. Dokümanlar Java 21 LTS standardına getirildi.
-  4. **Doğrulama:** `npm run build` (EN & TR) ve `mvn test` (1319 test) hatasız tamamlandı.
+  1. **Kod Temizliği:** `GatlingBridge.java` (`isJavaLangOpened`), `GatlingRunConfig.java` ve `JdkLoadEngine.java` (`isAvailable`) sınıflarındaki Java 17+ referansları Java 21+ LTS olarak güncellendi.
+  2. **CI & Docker Temizliği:** `distributed-docker-k8s.md` (Temurin 17 -> Temurin 21), `bitbucket-pipelines.md` (Temurin 17 -> Temurin 21) ve `changelog.md` (TR built into Java 21) güncellendi.
+  3. **Önceki Adımlar:** Getting Started & CLI sayfaları npx tabanlı `@testfly/mcp` köprüsüne geçirildi, Java 21+ ve Gradle 8.5+ önkoşulları yazıldı.
+  4. **Doğrulama:** `npm run build` ile EN ve TR doküman derlemesi sıfır hata ile doğrulandı.
 
 ### 2. Kaynaklar & Bağlantılar
 - [[wiki/assertion-system]]

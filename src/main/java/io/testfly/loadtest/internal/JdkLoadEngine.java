@@ -65,7 +65,7 @@ public final class JdkLoadEngine implements LoadTestEngine {
 
     @Override
     public boolean isAvailable() {
-        return true; // JDK HttpClient is always available on Java 17+
+        return true; // JDK HttpClient is always available on Java 21+
     }
 
     @Override

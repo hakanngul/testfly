@@ -1,178 +1,106 @@
 ---
 id: cli
-title: TestFly CLI & Scaffolder
-sidebar_label: TestFly CLI
+title: TestFly MCP Bridge & CLI
+sidebar_label: MCP Bridge & CLI
 sidebar_position: 3
-description: "Resmi TestFly CLI: proje iskeleti oluşturma (TestNG, JUnit 5, Cucumber BDD), ortam teşhisleri, interaktif stüdyo ve MCP sunucusu."
+description: "Resmi TestFly MCP Bridge & CLI: NPX üzerinden sıfır bağımlılıkla Java 21 proje iskeleti oluşturma, yapay zeka asistanı entegrasyonu (Cursor, Claude, Copilot) ve Playwright MCP eşleşmesi."
 ---
 
-# TestFly CLI & Scaffolder
+# TestFly MCP Bridge & CLI
 
-**TestFly CLI** (`testfly`), TestFly framework'ünün resmi komut satırı aracıdır. Hızlı proje iskeleti oluşturma, ortam teşhisleri, interaktif görsel stüdyo ve yapay zeka destekli test otomasyonu için entegre bir Model Context Protocol (MCP) sunucusu sunar.
+**TestFly MCP Bridge** (`@testfly/mcp`), TestFly framework'ünün resmi Model Context Protocol (MCP) köprüsü ve komut satırı araç setidir. Node.js üzerinde inşa edilmiş olup **sıfır Python ve sıfır pip bağımlılığı** ile çalışır. Canlı tarayıcı yönetimi için **Playwright MCP** ile eşleşirken, otonom **TestFly Java 21 test üretimi**, proje iskeleti oluşturma, eylem önbelleği (action-cache) yönetimi ve yapay zeka self-healing yama onarımı sağlar.
 
 ---
 
-## Kurulum
+## ⚡ NPX ile Anında Proje İskeleti Oluşturma
 
-TestFly CLI'ı `pip` veya `uv` ile kurabilirsiniz:
-
-```bash
-# pip ile
-pip install testfly-mcp
-
-# Veya testfly-mcp deposundan yerel geliştirme için
-cd testfly-mcp
-pip install -e .
-```
-
-Kurulumunuzu doğrulayın:
+Önceden herhangi bir kurulum yapmaya gerek kalmadan, tek bir komutla üretime hazır tam bir TestFly Java 21 test projesi oluşturabilirsiniz:
 
 ```bash
-testfly --version
-# Çıktı: testfly 1.0.0
+npx @testfly/mcp init my-test-suite
 ```
 
-:::info Geriye Dönük Uyumluluk
-CLI aracına `testfly`, `testfly-cli` veya `testfly-mcp` isimleriyle erişilebilir. `testfly-mcp` referansı veren mevcut IDE ve MCP istemci ayarlarınız kesintisiz çalışmaya devam eder.
+Bu komut saniyeler içinde şunları üretir:
+- `testfly.yml` — Önceden yapılandırılmış yürütme modu, zaman aşımları ve raporlama ayarları.
+- `pom.xml` — Java 21 (`<maven.compiler.release>21</maven.compiler.release>`) ve en güncel `io.github.hakanngul:testfly:1.0.7` bağımlılığı ile hazırlanmış Maven yapılandırması.
+- `src/test/java/com/example/tests/SampleWebTest.java` — `BaseTest` extend eden, web-first assertion'lara sahip çalışan örnek test sınıfı.
+
+Yeni test takımınızı hemen çalıştırın:
+
+```bash
+cd my-test-suite
+mvn test
+```
+
+---
+
+## 🤖 Yapay Zeka Asistanları (MCP) Entegrasyonu
+
+TestFly MCP; **Cursor**, **Claude Desktop**, **GitHub Copilot** ve **Claude Code** araçlarına standart I/O (JSON-RPC) üzerinden doğrudan bağlanır.
+
+### Seçenek 1: VS Code Eklentisi ile Tek Tıkla Kurulum (Önerilen)
+
+1. **TestFly Studio** VS Code eklentisini (`testfly-vscode-1.1.0.vsix`) yükleyin.
+2. Komut Paletini açın (`Cmd+Shift+P` / `Ctrl+Shift+P`).
+3. **`TestFly: 1-Click Multi-Assistant MCP Setup`** komutunu çalıştırın.
+4. Cursor, Claude Desktop ve VS Code; hem **Playwright MCP** hem de **TestFly Bridge** ile otomatik olarak yapılandırılır.
+
+---
+
+### Seçenek 2: NPX ile Manuel MCP Yapılandırması
+
+`claude_desktop_config.json` veya `.cursor/mcp.json` dosyanıza aşağıdaki sunucuları ekleyin:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-playwright"]
+    },
+    "testfly": {
+      "command": "npx",
+      "args": ["-y", "@testfly/mcp"]
+    }
+  }
+}
+```
+
+:::info Kendi Tarayıcını Getir (BYOB) Mimarisi
+- **Tarayıcı Yürütme:** Resmi ve yüksek performanslı **Playwright MCP** (`@modelcontextprotocol/server-playwright`) tarafından yönetilir.
+- **Test Üretimi ve Zeka:** Tarayıcı etkileşimlerini TestFly Java 21 kodlarına derleyen **TestFly Bridge** (`@testfly/mcp`) tarafından sağlanır.
 :::
 
 ---
 
-## Temel Komutlara Genel Bakış
+## 🛠️ Kullanılabilir MCP Araçları
 
-```bash
-testfly --help
-```
+Yapay zeka asistanınıza kaydedildiğinde, `@testfly/mcp` aşağıdaki araçları sunar:
 
-| Komut | Açıklama |
+| Araç | Açıklama |
 | :--- | :--- |
-| `testfly init [name]` | Yeni, çalışmaya hazır bir TestFly projesi oluşturur (TestNG, JUnit 5, Cucumber). |
-| `testfly doctor` | Ortam ve bağımlılık tanı kontrollerini çalıştırır (Python, Selenium, Chrome, IDE yapılandırmaları). |
-| `testfly studio` *(veya `ui`)* | `http://127.0.0.1:8765` adresinde interaktif görsel Web Stüdyosunu başlatır. |
-| `testfly mcp` *(veya `stdio`)* | Yapay zeka asistanları için standart I/O üzerinden MCP sunucusunu başlatır. |
-| `testfly tools` | Mevcut 88 MCP otomasyon ve kod üretim aracını listeler ve arar. |
-| `testfly init-config` | Bulunulan dizinde standart `testfly.yml` şablonu oluşturur. |
-| `testfly` *(terminalde)* | Parametresiz çalıştırıldığında interaktif terminal menüsünü açar. |
+| `generate_testfly_code` | Kaydedilen tarayıcı eylemlerini veya DOM anlık görüntülerini standart TestFly Java 21 test sınıflarına dönüştürür (`BaseTest`, `BasePage`, `getByRole`, `assertThat`). |
+| `init_testfly_project` | Eksiksiz bir TestFly Java 21 Maven test projesi (`pom.xml`, `testfly.yml`, örnek test) oluşturur. |
+| `inspect_action_cache` | Otonom `act("Hedef")` planlarını 0 ms yeniden oynatma için `.testfly/action-cache.json` üzerinden inceler. |
+| `manage_action_cache` | Önbellekteki eylem planlarını geçersiz kılar veya temizler, böylece yapay zeka bunları bir sonraki çalıştırmada yeniden derler. |
+| `list_remediations` | `target/remediations/` dizininde üretilen bekleyen AI self-healing git diff `.patch` dosyalarını listeler. |
+| `apply_remediation_patch` | Kendi kendini onaran bir `.patch` dosyasını doğrudan Java test kaynak koduna uygular. |
 
 ---
 
-## 1. Proje Oluşturma (`testfly init`)
+## CLI Komutları Referansı
 
-Tek bir komutla üretime hazır bir TestFly otomasyon projesi başlatın:
-
-```bash
-testfly init my-test-suite
-```
-
-Bu komut; `pom.xml`, `testfly.yml`, `.gitignore`, `README.md` ve `BaseTest` ya da `BaseApiTest` extend eden örnek test sınıflarını içeren eksiksiz bir proje yapısı üretir.
-
-### Komut Seçenekleri
+Terminalden doğrudan çalıştırıldığında `@testfly/mcp` şu komutları destekler:
 
 ```bash
-testfly init [name] [seçenekler]
-```
+# Yeni bir test projesi iskeleti oluşturun
+npx @testfly/mcp init [dizin-adi]
 
-- `--framework`, `-f`: Test çalıştırıcı framework (`testng` [varsayılan], `junit5`, `cucumber`).
-- `--type`, `-t`: Test paketi türü (`web` [varsayılan], `api`, `hybrid`).
-- `--base-url`, `-u`: Hedef uygulama adresi (varsayılan: `https://example.com`).
-- `--group-id`, `-g`: Maven groupId (varsayılan: `com.example`).
-- `--artifact-id`, `-a`: Maven artifactId (varsayılan: proje adından türetilir).
-- `--dir`, `-d`: Özel hedef dizin yolu.
+# Köprü sunucu versiyonunu kontrol edin
+npx @testfly/mcp --version
 
-### Örnekler
-
-#### TestNG Web UI Otomasyon Paketi
-```bash
-testfly init web-regression --framework testng --type web --base-url https://my-app.com
-```
-
-#### JUnit 5 API Test Paketi
-```bash
-testfly init payment-api-tests --framework junit5 --type api --base-url https://api.my-app.com
-```
-
-#### Cucumber BDD Hibrit Test Paketi (Web + API)
-```bash
-testfly init e2e-bdd --framework cucumber --type hybrid
-```
-
----
-
-## 2. Ortam Teşhisi (`testfly doctor`)
-
-Ortamınızın test koşumu, tarayıcı otomasyonu ve yapay zeka araçları için gerekli tüm önkoşulları karşılayıp karşılamadığını denetleyin:
-
-```bash
-testfly doctor
-```
-
-Örnek Çıktı:
-
-```text
-========================================================
-✈  TestFly MCP Environment Doctor — Status: HEALTHY
-========================================================
-
-✓ [PASS]  [Runtime] Python Version
-          Details: Python 3.12.14 (/usr/local/bin/python3)
-
-✓ [PASS]  [Dependencies] Selenium Package
-          Details: Version 4.48.0
-
-✓ [PASS]  [Dependencies] Model Context Protocol SDK
-          Details: Installed (>=2.0.0)
-
-✓ [PASS]  [Browser] Google Chrome
-          Details: Detected at /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
-
-✓ [PASS]  [IDE / AI Assistant] Claude Code Registration
-          Details: Registered in ~/.claude/settings.json
-
-✓ [PASS]  [Project] testfly.yml in Working Directory
-          Details: Found at /workspace/testfly.yml
-
-========================================================
-```
-
----
-
-## 3. İnteraktif Web Stüdyosu (`testfly studio`)
-
-Canlı sayfadaki öğeleri incelemenizi, TestFly Page Object sınıfları üretmenizi ve doğrulamaları gerçek zamanlı test etmenizi sağlayan görsel web arayüzünü başlatın:
-
-```bash
-testfly studio
-```
-
-Seçenekler:
-- `--port`, `-p`: Web stüdyosu portu (varsayılan: `8765`).
-- `--no-browser`: Başlangıçta tarayıcıyı otomatik açmaz.
-
----
-
-## 4. Yapay Zeka Asistanları İçin MCP Sunucusu (`testfly mcp`)
-
-JSON-RPC Model Context Protocol sunucusunu başlatın:
-
-```bash
-testfly mcp
-```
-
-Bu uç nokta; Cursor, Claude Code, Windsurf veya JetBrains AI Assistant gibi yapay zeka ajanlarına 88 adet araç sunarak gerçek tarayıcı kontrolü, DOM hiyerarşi doğrulaması ve idiomatik TestFly Java test kodlarının otomatik üretilmesini sağlar.
-
----
-
-## 5. Araç Kataloğu Arama (`testfly tools`)
-
-Kullanılabilir otomasyon araçlarını listeleyin ve arayın:
-
-```bash
-# 88 aracın tamamını listele
-testfly tools
-
-# Anahtar kelimeye göre filtrele
-testfly tools --search locator
-testfly tools --search assertion
+# Yardım çıktısını görüntüleyin
+npx @testfly/mcp --help
 ```
 
 ---
@@ -181,4 +109,5 @@ testfly tools --search assertion
 
 - [Hızlı Başlangıç](/docs/getting-started) — İlk testinizi 5 dakikada çalıştırın.
 - [Yapılandırma Referansı](/docs/configuration) — Tüm `testfly.yml` seçenekleri.
-- [Yapay Zeka & MCP Genel Bakış](/docs/ai/overview) — TestFly ile ajan tabanlı test otomasyonu.
+- [MCP Bridge & Playwright Mimarisi](/docs/ai/testfly-mcp) — Kod üretim motoru ve eylem önbelleğinin detayları.
+- [Ajan Tabanlı Test & Otonom AI](/docs/ai/agentic-testing) — `act()` ile hedef odaklı yürütme ve kendi kendini onarma.

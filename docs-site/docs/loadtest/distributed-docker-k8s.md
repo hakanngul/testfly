@@ -19,7 +19,7 @@ TestFly's load testing module natively supports containerized execution via **Do
 Build a minimal, headless Docker container running your performance suite:
 
 ```dockerfile title="Dockerfile.loadtest"
-FROM maven:3.9.6-eclipse-temurin-17 AS builder
+FROM maven:3.9.6-eclipse-temurin-21 AS builder
 
 WORKDIR /app
 COPY pom.xml .

@@ -122,3 +122,23 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
   4. `npm run build` ve `mvn test` (1319 test) ile dökümantasyon ve framework testleri doğrulandı.
 - **Bağlantılar:** [[memories/scratchpad]], [[memories/log]], [[MAP]]
 
+## [2026-09-30] docs & tooling | @testfly/mcp (Node.js/NPX) Modernizasyonu & Pip Temizliği
+- **Eylem:**
+  1. `docs-site/docs/getting-started.md` ve TR eşdeğerindeki `pip install testfly-mcp` / `testfly init` eski CLI referansları `npx @testfly/mcp init my-test-suite` olarak güncellendi.
+  2. `docs-site/docs/cli.md` ve TR eşdeğeri baştan sona yeniden yazılarak eski Python CLI (88 araç, testfly doctor, studio) yerine modern Node.js `@testfly/mcp` Bridge, NPX çalıştırma ve Playwright MCP eşleşmesi dokümante edildi.
+  3. `docs-site/docs/ai/overview.md`, `intro.md` ve `ROADMAP.md` içindeki Python/pip referansları `@testfly/mcp` ile güncellendi.
+  4. `FrameworkBootstrap.java` ve `TestFlyApi.java` konsol çıktısı ve Javadoc'u `npx -y @testfly/mcp` olarak eşitlendi.
+  5. `../testfly-mcp/bin/testfly-mcp.js` dosyasına doğrudan `init` CLI komut desteği eklendi (`testfly.yml`, Java 21 `pom.xml`, `SampleWebTest.java` otomatik oluşturma).
+  6. `docusaurus-config` doğrulaması ve `npm run build` (EN & TR) sıfır hata ile tamamlandı.
+- **Bağlantılar:** [[docs-site/docs/cli]], [[docs-site/docs/getting-started]], [[memories/scratchpad]], [[memories/log]], [[MAP]]
+
+## [2026-09-30] refactor & docs | Java 17 Kalıntılarının Temizlenmesi & Java 21 Standardizasyonu
+- **Eylem:**
+  1. `GatlingBridge.java` Javadoc'undaki `MethodHandles.privateLookupIn on Java 17+` referansı `Java 21+` yapıldı.
+  2. `GatlingRunConfig.java` Javadoc'undaki `which need --add-opens on Java 17+` referansı `Java 21+` yapıldı.
+  3. `JdkLoadEngine.java` içindeki `JDK HttpClient is always available on Java 17+` yorum satırı `Java 21+` olarak güncellendi.
+  4. `docs-site/docs/loadtest/distributed-docker-k8s.md` Dockerfile içindeki `maven:3.9.6-eclipse-temurin-17` imajı `temurin-21` olarak güncellendi.
+  5. `docs-site/docs/ci/bitbucket-pipelines.md` pipeline konfigürasyonundaki `maven:3.9.6-eclipse-temurin-17` imajı `temurin-21` olarak güncellendi.
+  6. `docs-site/i18n/tr/.../changelog.md` içindeki `built into Java 17` ifadesi `built into Java 21` olarak güncellendi.
+  7. Docusaurus `npm run build` ile EN ve TR dokümantasyon bütünlüğü doğrulandı (exit code 0).
+- **Bağlantılar:** [[memories/scratchpad]], [[memories/log]], [[MAP]]

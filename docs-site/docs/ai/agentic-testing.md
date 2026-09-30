@@ -10,7 +10,7 @@ description: Autonomous goal-oriented testing, AI-driven self-healing, natural l
 
 Traditional test automation requires test engineers to imperatively script every single step and selector. When an application's DOM structure, ID, or styling changes, tests break immediately.
 
-**TestFly Agentic Testing** introduces autonomous AI capabilities directly into the test runtime while preserving strict Java 17 performance, deterministic execution, and `@TestFlyApi` stability.
+**TestFly Agentic Testing** introduces autonomous AI capabilities directly into the test runtime while preserving strict Java 21 performance, deterministic execution, and `@TestFlyApi` stability.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐

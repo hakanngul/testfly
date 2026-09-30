@@ -23,7 +23,7 @@ Kurumsal Java test otomasyon ekipleri günümüzde iki önemli zorlukla karşıl
 Aşağıdaki niteliklere sahip bir mimariye ihtiyaç duyulmuştur:
 - Yapay zeka ajanlarını resmi **Model Context Protocol (MCP)** standardı üzerinden tarayıcılara bağlamak.
 - Manuel QA mühendislerine görsel ve düşük gecikmeli bir **Canlı Refakatçi Kaydedici (Live Companion Recorder)** sunmak.
-- Otomatik bekleme mekanizmalarına ve erişilebilirlik öncelikli seçicilere sahip, standart **TestFly Java 17+** kodu üretmek.
+- Otomatik bekleme mekanizmalarına ve erişilebilirlik öncelikli seçicilere sahip, standart **TestFly Java 21+** kodu üretmek.
 - Projeye kaydederken modüler, derlenebilir ve standart dosya yapısı (`pages/`, `tests/` ve `resources/features/`) oluşturmak.
 
 ---
