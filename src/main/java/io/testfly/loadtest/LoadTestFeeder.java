@@ -55,36 +55,34 @@ public abstract class LoadTestFeeder {
      * Inspects and describes this feeder for serialization or bridge execution.
      */
     public FeederDescriptor describe() {
-        if (this instanceof CsvFeeder c) {
-            return new FeederDescriptor("csv", c.path, null, null, null, null, null, null, new ArrayList<>(c.rows));
-        }
-        if (this instanceof JsonFeeder j) {
-            return new FeederDescriptor("json", j.path, null, null, null, null, null, null, new ArrayList<>(j.rows));
-        }
-        if (this instanceof SequenceFeeder s) {
-            return new FeederDescriptor("sequence", null, s.variable, s.start, s.step, null, null, null, null);
-        }
-        if (this instanceof RandomFeeder r) {
-            return new FeederDescriptor("random", null, r.variable, null, null, r.min, r.max, null, null);
-        }
-        if (this instanceof UuidFeeder u) {
-            return new FeederDescriptor("uuid", null, u.variable, null, null, null, null, null, null);
-        }
-        if (this instanceof ConstantFeeder cf) {
-            return new FeederDescriptor("constant", null, cf.variable, null, null, null, null, cf.value, null);
-        }
-        List<Map<String, Object>> sampled = new ArrayList<>();
-        reset();
-        int count = 0;
-        while (hasNext() && count < 5000) {
-            Map<String, Object> n = next();
-            if (n == null)
-                break;
-            sampled.add(n);
-            count++;
-        }
-        reset();
-        return new FeederDescriptor("records", null, null, null, null, null, null, null, sampled);
+        return switch (this) {
+            case CsvFeeder c ->
+                new FeederDescriptor("csv", c.path, null, null, null, null, null, null, new ArrayList<>(c.rows));
+            case JsonFeeder j ->
+                new FeederDescriptor("json", j.path, null, null, null, null, null, null, new ArrayList<>(j.rows));
+            case SequenceFeeder s ->
+                new FeederDescriptor("sequence", null, s.variable, s.start, s.step, null, null, null, null);
+            case RandomFeeder r ->
+                new FeederDescriptor("random", null, r.variable, null, null, r.min, r.max, null, null);
+            case UuidFeeder u ->
+                new FeederDescriptor("uuid", null, u.variable, null, null, null, null, null, null);
+            case ConstantFeeder cf ->
+                new FeederDescriptor("constant", null, cf.variable, null, null, null, null, cf.value, null);
+            default -> {
+                List<Map<String, Object>> sampled = new ArrayList<>();
+                reset();
+                int count = 0;
+                while (hasNext() && count < 5000) {
+                    Map<String, Object> n = next();
+                    if (n == null)
+                        break;
+                    sampled.add(n);
+                    count++;
+                }
+                reset();
+                yield new FeederDescriptor("records", null, null, null, null, null, null, null, sampled);
+            }
+        };
     }
 
     // ── Factory methods ──────────────────────────────────────────────────

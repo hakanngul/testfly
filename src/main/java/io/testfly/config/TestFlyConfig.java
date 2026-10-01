@@ -1798,6 +1798,34 @@ public final class TestFlyConfig {
     public static final class Api {
         private String baseUrl;
         private java.util.Map<String, String> baseUrls = new java.util.LinkedHashMap<>();
+        private int connectTimeoutSeconds = 30;
+        private int maxConcurrentRequests = 0;
+        private Ssl ssl = new Ssl();
+        public int getConnectTimeoutSeconds() { return connectTimeoutSeconds; }
+        public void setConnectTimeoutSeconds(int value) { connectTimeoutSeconds = value; }
+        public int getMaxConcurrentRequests() { return maxConcurrentRequests; }
+        public void setMaxConcurrentRequests(int value) { maxConcurrentRequests = value; }
+        public Ssl getSsl() { return ssl; }
+        public void setSsl(Ssl value) { ssl = value; }
+        public static final class Ssl {
+            private boolean trustAll;
+            private TrustStore trustStore;
+            public boolean isTrustAll() { return trustAll; }
+            public void setTrustAll(boolean value) { trustAll = value; }
+            public TrustStore getTrustStore() { return trustStore; }
+            public void setTrustStore(TrustStore value) { trustStore = value; }
+        }
+        public static final class TrustStore {
+            private String path;
+            private String type = "PKCS12";
+            private String password;
+            public String getPath() { return path; }
+            public void setPath(String value) { path = value; }
+            public String getType() { return type; }
+            public void setType(String value) { type = value; }
+            public String getPassword() { return password; }
+            public void setPassword(String value) { password = value; }
+        }
         private int timeoutSeconds = 30;
         private boolean logBody = false;
         private boolean logContext = true;

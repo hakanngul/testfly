@@ -66,7 +66,7 @@ public final class FrameworkBootstrap {
             PluginRegistry.loadAll(config);
 
             System.out.println(
-                    "[TestFly] 🤖 AI test authoring: pip install testfly-mcp  →  https://pypi.org/project/testfly-mcp");
+                    "[TestFly] 🤖 AI test authoring: npx -y @testfly/mcp  →  https://github.com/hakanngul/testfly-mcp");
 
             // Opt-in built-in adapters
             TestFlyConfig.Reporting reporting = config.getReporting();

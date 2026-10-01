@@ -18,7 +18,7 @@ TestFly is "The Spring Boot of Selenium" — an opinionated, zero-boilerplate Ja
 
 ## Positioning
 
-Unlike raw Selenium (which requires hundreds of lines of boilerplate setup and flaky sleep logic) or Playwright/Cypress (which require moving away from the enterprise Java ecosystem), TestFly provides convention-over-configuration, automatic waiting (`WaitEngine`), accessibility-first locators (`getByRole`), thread-local driver isolation, self-healing locators, and built-in timeline HTML reporting natively in Java 17.
+Unlike raw Selenium (which requires hundreds of lines of boilerplate setup and flaky sleep logic) or Playwright/Cypress (which require moving away from the enterprise Java ecosystem), TestFly provides convention-over-configuration, automatic waiting (`WaitEngine`), accessibility-first locators (`getByRole`), thread-local driver isolation, self-healing locators, and built-in timeline HTML reporting natively in Java 21.
 
 ## Operating Context
 
@@ -29,7 +29,7 @@ Unlike raw Selenium (which requires hundreds of lines of boilerplate setup and f
 
 ## Capabilities and Constraints
 
-- **Language Baseline:** Java 17 (`--release 17`).
+- **Language Baseline:** Java 21 (`--release 21`).
 - **Core Dependencies:** Selenium Java 4.40+, TestNG 7.9.0, SnakeYAML, Jackson Databind.
 - **Web Stack (Docs):** Docusaurus 3.5.2, React 18, Node.js 18+.
 - **Architectural Rules:** No raw `Thread.sleep()`, thread-safe WebDriver lifecycle, `@TestFlyApi` backward compatibility commitment.

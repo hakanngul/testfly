@@ -155,7 +155,7 @@ public final class LocatorAssert {
                 List<WebElement> els = driver.findElements(by);
                 if (els.isEmpty())
                     return null;
-                WebElement el = els.get(0);
+                WebElement el = els.getFirst();
                 return el.isDisplayed() && el.isEnabled() ? true : null;
             } catch (StaleElementReferenceException e) {
                 return null;
@@ -172,7 +172,7 @@ public final class LocatorAssert {
                 List<WebElement> els = driver.findElements(by);
                 if (els.isEmpty())
                     return null;
-                WebElement el = els.get(0);
+                WebElement el = els.getFirst();
                 return el.isDisplayed() && !el.isEnabled() ? true : null;
             } catch (StaleElementReferenceException e) {
                 return null;
@@ -189,7 +189,7 @@ public final class LocatorAssert {
                 List<WebElement> els = driver.findElements(by);
                 if (els.isEmpty())
                     return null;
-                return els.get(0).isSelected() ? true : null;
+                return els.getFirst().isSelected() ? true : null;
             } catch (StaleElementReferenceException e) {
                 return null;
             }
@@ -259,7 +259,7 @@ public final class LocatorAssert {
                 List<WebElement> els = driver.findElements(by);
                 if (els.isEmpty())
                     return null;
-                return els.get(0).getAttribute(attribute) != null ? true : null;
+                return els.getFirst().getAttribute(attribute) != null ? true : null;
             } catch (StaleElementReferenceException e) {
                 return null;
             }
@@ -278,7 +278,7 @@ public final class LocatorAssert {
                 List<WebElement> els = driver.findElements(by);
                 if (els.isEmpty())
                     return null;
-                String val = els.get(0).getCssValue(propertyName);
+                String val = els.getFirst().getCssValue(propertyName);
                 return expectedValue != null && expectedValue.equals(val) ? true : null;
             } catch (StaleElementReferenceException e) {
                 return null;
@@ -299,7 +299,7 @@ public final class LocatorAssert {
                 if (els.isEmpty())
                     return null;
                 WebElement active = driver.switchTo().activeElement();
-                return els.get(0).equals(active) ? true : null;
+                return els.getFirst().equals(active) ? true : null;
             } catch (StaleElementReferenceException e) {
                 return null;
             }
@@ -315,7 +315,7 @@ public final class LocatorAssert {
                 List<WebElement> els = driver.findElements(by);
                 if (els.isEmpty())
                     return null;
-                String classes = els.get(0).getAttribute("class");
+                String classes = els.getFirst().getAttribute("class");
                 if (classes == null)
                     return null;
                 for (String cls : classes.split("\\s+")) {
@@ -400,9 +400,9 @@ public final class LocatorAssert {
 
         String rawHtml;
         try {
-            rawHtml = els.get(0).getAttribute("outerHTML");
+            rawHtml = els.getFirst().getAttribute("outerHTML");
         } catch (Exception e) {
-            rawHtml = els.get(0).getText();
+            rawHtml = els.getFirst().getText();
         }
 
         String pruned = DomPruner.prune(rawHtml);

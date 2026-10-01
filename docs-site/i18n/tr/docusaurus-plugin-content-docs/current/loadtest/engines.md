@@ -15,7 +15,7 @@ TestFly, motor bağımsız bir mimariye sahiptir. İki farklı motor seçeneği 
 
 | Özellik | Gatling Motoru (`gatling`) | JDK Motoru (`jdk`) |
 | :--- | :--- | :--- |
-| **Temel Altyapı** | Gatling 3.10.x + Netty asenkron IO | Java 17+ `HttpClient` + Sanal İş Parçacıkları |
+| **Temel Altyapı** | Gatling 3.10.x + Netty asenkron IO | Java 21+ `HttpClient` + Sanal İş Parçacıkları |
 | **Bağımlılık Durumu** | İsteğe bağlı (`gatling-charts-highcharts`)| Java standart kütüphanesine gömülü |
 | **Maksimum Eşzamanlılık**| 10.000+ sanal kullanıcı | ~100–500 sanal kullanıcı |
 | **Süreç İzolasyonu** | Forked ayrı JVM alt süreci | Test iş parçacığında aynı süreçte çalışır |

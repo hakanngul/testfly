@@ -10,7 +10,7 @@ description: Google Chrome üzerinde canlı kullanıcı etkileşimlerini kaydedi
 
 **TestFly İnteraktif Kaydedici (Interactive Recorder)**, gerçek kullanıcı tarayıcı etkileşimlerini doğrudan üretime hazır Java test otomasyon koduna dönüştüren canlı bir refakatçi stüdyosudur.
 
-Chrome DevTools Protocol (CDP) üzerinden enjekte edilen bir Chrome refakatçi penceresi ile gerçek zamanlı Server-Sent Events (SSE) akışını birleştirir. Yapılan her tıklama, metin girişi, açılır menü seçimi ve assertion anında stüdyoya iletilir ve **TestFly Java 17+** standartlarında derlenir.
+Chrome DevTools Protocol (CDP) üzerinden enjekte edilen bir Chrome refakatçi penceresi ile gerçek zamanlı Server-Sent Events (SSE) akışını birleştirir. Yapılan her tıklama, metin girişi, açılır menü seçimi ve assertion anında stüdyoya iletilir ve **TestFly Java 21+** standartlarında derlenir.
 
 ```bash
 testfly record https://www.saucedemo.com

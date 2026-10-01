@@ -8,6 +8,11 @@ import io.testfly.steps.StepLogger;
 import io.testfly.steps.StepStatus;
 
 import java.io.IOException;
+import io.testfly.internal.api.ApiExecution;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.CancellationException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -18,11 +23,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
@@ -56,10 +61,7 @@ import java.util.stream.Collectors;
 public class ApiClient {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final HttpClient HTTP = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(30))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+
 
     /**
      * Thread-local global auth — applied to every request on this thread unless
@@ -71,7 +73,7 @@ public class ApiClient {
      * Thread-local cookie jar — shared across requests on the same thread when
      * cookies are enabled.
      */
-    private static final ThreadLocal<Map<String, String>> COOKIE_JAR = ThreadLocal.withInitial(HashMap::new);
+    private static final ThreadLocal<Map<String, String>> COOKIE_JAR = ThreadLocal.withInitial(ConcurrentHashMap::new);
 
     /** Global request interceptors — applied to every request. */
     private static final List<RequestInterceptor> REQUEST_INTERCEPTORS = new CopyOnWriteArrayList<>();
@@ -119,6 +121,7 @@ public class ApiClient {
     public static void clearInterceptors() {
         REQUEST_INTERCEPTORS.clear();
         RESPONSE_INTERCEPTORS.clear();
+        clearChainInterceptors();
     }
 
     /** Set a global request spec applied to every request. */
@@ -141,8 +144,55 @@ public class ApiClient {
     private final Map<String, Path> fileParams = new LinkedHashMap<>();
     private final Map<String, String> fieldParams = new LinkedHashMap<>();
     private Object body;
+    private static final ThreadLocal<List<ApiInterceptor>> CHAIN_INTERCEPTORS = ThreadLocal.withInitial(ArrayList::new);
+    private final List<ApiInterceptor> interceptors = new ArrayList<>();
+
+    /** Register middleware for the current test thread. */
+    @TestFlyApi(since = "1.1.0")
+    public static void addInterceptor(ApiInterceptor interceptor) {
+        CHAIN_INTERCEPTORS.get().add(Objects.requireNonNull(interceptor));
+    }
+
+    @TestFlyApi(since = "1.1.0")
+    public static void clearChainInterceptors() { CHAIN_INTERCEPTORS.remove(); }
+
+    /** Register middleware for this request instance. */
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient interceptor(ApiInterceptor interceptor) {
+        interceptors.add(Objects.requireNonNull(interceptor));
+        return this;
+    }
+
     private ApiAuth auth;
-    private Integer timeoutOverride;
+    private Duration timeoutOverride;
+    private io.testfly.internal.api.ApiTransport.SslSelection sslOverride;
+    private boolean sslConflict;
+    private final List<ApiMockRule> mockRules = new ArrayList<>();
+    private static final ThreadLocal<List<ApiMockRule>> MOCK_RULES = ThreadLocal.withInitial(ArrayList::new);
+
+    @TestFlyApi(since = "1.1.0")
+    public static void addMockRule(ApiMockRule rule) { MOCK_RULES.get().add(Objects.requireNonNull(rule)); }
+    @TestFlyApi(since = "1.1.0")
+    public static void clearMockRules() { MOCK_RULES.remove(); }
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient mockRule(ApiMockRule rule) { mockRules.add(Objects.requireNonNull(rule)); return this; }
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient trustAllCerts() {
+        if (sslOverride != null && !sslOverride.trustAll()) sslConflict = true;
+        sslOverride = io.testfly.internal.api.ApiTransport.SslSelection.trustAllSelection(); return this;
+    }
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient trustStore(Path path, char[] password) { return trustStore(path, password, "PKCS12"); }
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient trustStore(Path path, char[] password, String type) {
+        if (sslOverride != null && sslOverride.trustAll()) sslConflict = true;
+        sslOverride = io.testfly.internal.api.ApiTransport.SslSelection.store(path, password, type); return this;
+    }
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient requestTimeout(Duration value) {
+        if (value == null || value.isZero() || value.isNegative()) throw new IllegalArgumentException("Positive request timeout required");
+        timeoutOverride = value; return this;
+    }
     private boolean cookiesEnabled;
 
     private ApiClient() {
@@ -263,8 +313,7 @@ public class ApiClient {
 
     /** Override the request timeout for this request only. */
     public ApiClient timeout(int seconds) {
-        this.timeoutOverride = seconds;
-        return this;
+        return requestTimeout(Duration.ofSeconds(seconds));
     }
 
     /** Add a query parameter (URL-encoded automatically). */
@@ -404,6 +453,8 @@ public class ApiClient {
                             + (System.currentTimeMillis() - start) + "ms)");
                     return lastResponse;
                 }
+            } catch (CancellationException e) {
+                throw e;
             } catch (Exception e) {
                 StepLogger.step("[API Polling] Attempt " + attempt + " failed with error: " + e.getMessage(),
                         StepStatus.WARN);
@@ -413,7 +464,7 @@ public class ApiClient {
             if (elapsed + intervalMs >= maxMs) {
                 break;
             }
-            sleep(intervalMs);
+            ApiExecution.delay(intervalMs, ApiExecution.scope());
         }
 
         long totalElapsed = System.currentTimeMillis() - start;
@@ -430,164 +481,205 @@ public class ApiClient {
     // ── Execute ───────────────────────────────────────────────────────────────
 
     public ApiResponse send() {
-        // Apply global spec first (if any) — per-request values win
-        if (GLOBAL_SPEC != null) {
-            GLOBAL_SPEC.applyToIfAbsent(this);
-        }
-        // Allow auth to modify client (e.g. apiKeyQuery adds query param) before URL is
-        // built
-        if (auth != null)
-            auth.applyToClient(this);
-        else if (GLOBAL_AUTH.get() != null)
-            GLOBAL_AUTH.get().applyToClient(this);
-
-        String url = buildUrl();
-        int timeout = resolveTimeout();
-
-        boolean retryEnabled = false;
-        int maxAttempts = 1;
-        long backoffMs = 500;
-        List<Integer> retryOnStatus = List.of();
-        boolean retryOnException = true;
-
-        try {
-            TestFlyConfig.Api.RetryConfig retry = TestFlyContext.getConfig().getApi().getRetry();
-            if (retry != null && retry.isEnabled()) {
-                retryEnabled = true;
-                maxAttempts = retry.getMaxAttempts();
-                backoffMs = retry.getBackoffMs();
-                retryOnStatus = retry.getRetryOnStatus();
-                retryOnException = retry.isRetryOnException();
-            }
-        } catch (Exception ignored) {
-            // Config not available — no retry
-        }
-
-        if (!retryEnabled) {
-            return executeRequest(url, timeout);
-        }
-
-        ApiException lastException = null;
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            try {
-                ApiResponse response = executeRequest(url, timeout);
-
-                if (attempt < maxAttempts && retryOnStatus.contains(response.status())) {
-                    StepLogger.step("[API] Retry " + attempt + "/" + maxAttempts
-                            + " — status " + response.status(), StepStatus.WARN);
-                    sleep(backoffMs * attempt);
-                    continue;
-                }
-                return response;
-            } catch (ApiException e) {
-                lastException = e;
-                if (attempt < maxAttempts && retryOnException) {
-                    StepLogger.step("[API] Retry " + attempt + "/" + maxAttempts
-                            + " — " + e.getMessage(), StepStatus.WARN);
-                    sleep(backoffMs * attempt);
-                } else if (attempt >= maxAttempts) {
-                    throw e;
-                }
-            } catch (RuntimeException e) {
-                // Wrap non-ApiException runtime as ApiException for retry classification
-                ApiException wrapped = new ApiException(method, url, e);
-                lastException = wrapped;
-                if (attempt < maxAttempts && retryOnException) {
-                    StepLogger.step("[API] Retry " + attempt + "/" + maxAttempts
-                            + " — " + e.getMessage(), StepStatus.WARN);
-                    sleep(backoffMs * attempt);
-                } else if (attempt >= maxAttempts) {
-                    throw wrapped;
-                }
-            }
-        }
-        throw lastException != null ? lastException
-                : new ApiException(method, url, 0, null, "Request failed without exception");
+        return execute(prepare());
     }
 
-    // ── Internal: execute single request ──────────────────────────────────────
+    @TestFlyApi(since = "1.2.0")
+    public CompletableFuture<ApiResponse> sendAsync() { return sendAsync(null); }
 
-    private ApiResponse executeRequest(String url, int timeout) {
-        try {
-            byte[] bodyBytes = null;
-            String bodyStr = null;
-            String contentTypeOverride = null;
-
-            if (!fileParams.isEmpty() || !fieldParams.isEmpty()) {
-                MultipartBody mp = buildMultipartBody();
-                bodyBytes = mp.bytes;
-                contentTypeOverride = mp.contentType;
-            } else if (!formParams.isEmpty()) {
-                bodyStr = formParams.entrySet().stream()
-                        .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8)
-                                + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
-                        .collect(Collectors.joining("&"));
-                contentTypeOverride = "application/x-www-form-urlencoded";
-            } else {
-                bodyStr = serializeBody();
+    // Batch calls snapshot on the caller thread, then limit active logical calls on workers.
+    CompletableFuture<ApiResponse> sendAsync(Semaphore limit) {
+        final Call call;
+        try { call = prepare(); }
+        catch (RuntimeException error) { return CompletableFuture.failedFuture(error); }
+        return ApiExecution.submit(call.scope, () -> {
+            GLOBAL_AUTH.set(call.auth);
+            COOKIE_JAR.set(call.cookies);
+            CHAIN_INTERCEPTORS.set(new ArrayList<>(call.testInterceptors));
+            MOCK_RULES.set(new ArrayList<>(call.testMockRules));
+            boolean acquired = false;
+            try {
+                if (limit != null) { limit.acquire(); acquired = true; }
+                ApiExecution.check(call.scope);
+                return execute(call);
+            } catch (InterruptedException error) {
+                Thread.currentThread().interrupt();
+                throw new CancellationException("API batch cancelled");
+            } finally {
+                if (acquired) limit.release();
+                GLOBAL_AUTH.remove();
+                COOKIE_JAR.remove();
+                CHAIN_INTERCEPTORS.remove();
+                MOCK_RULES.remove();
             }
+        });
+    }
 
-            HttpRequest.Builder builder = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(Duration.ofSeconds(timeout));
-
-            // Content-Type handling
-            if (contentTypeOverride != null && !headers.containsKey("Content-Type")) {
-                builder.header("Content-Type", contentTypeOverride);
-            } else if (bodyStr != null && !headers.containsKey("Content-Type")) {
-                builder.header("Content-Type", "application/json");
-            } else if (bodyBytes != null && contentTypeOverride != null && !headers.containsKey("Content-Type")) {
-                builder.header("Content-Type", contentTypeOverride);
-            }
-            headers.forEach(builder::header);
-            ApiAuth effectiveAuth = this.auth != null ? this.auth : GLOBAL_AUTH.get();
-            if (effectiveAuth != null)
-                effectiveAuth.apply(builder);
-
-            // Apply cookies
-            if (cookiesEnabled)
-                applyCookies(builder);
-
-            // Apply request interceptors
-            for (RequestInterceptor interceptor : REQUEST_INTERCEPTORS) {
-                interceptor.intercept(builder);
-            }
-
-            HttpRequest.BodyPublisher publisher;
-            if (bodyBytes != null) {
-                publisher = HttpRequest.BodyPublishers.ofByteArray(bodyBytes);
-            } else if (bodyStr != null) {
-                publisher = HttpRequest.BodyPublishers.ofString(bodyStr);
-            } else {
-                publisher = HttpRequest.BodyPublishers.noBody();
-            }
-
-            builder.method(method, publisher);
-
-            long start = System.currentTimeMillis();
-            HttpResponse<String> raw = HTTP.send(builder.build(), HttpResponse.BodyHandlers.ofString());
-            long duration = System.currentTimeMillis() - start;
-
-            // Capture cookies
-            if (cookiesEnabled)
-                captureCookies(raw);
-
-            ApiResponse response = new ApiResponse(raw, duration, method, url);
-
-            // Apply response interceptors
-            for (ResponseInterceptor interceptor : RESPONSE_INTERCEPTORS) {
-                interceptor.intercept(response);
-            }
-
-            logStep(response);
-            return response;
-
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            StepLogger.step("[API] " + method + " " + url + " → ERROR: " + e.getMessage(), StepStatus.FAIL);
-            throw new ApiException(method, url, e);
+    private Call prepare() {
+        if (sslConflict) throw new IllegalArgumentException("Conflicting SSL selection");
+        if (GLOBAL_SPEC != null) GLOBAL_SPEC.applyToIfAbsent(this);
+        ApiAuth effectiveAuth = auth != null ? auth : GLOBAL_AUTH.get();
+        if (effectiveAuth != null) effectiveAuth.applyToClient(this);
+        ApiRequest request;
+        try { request = buildRequest(buildUrl(), resolveTimeout()); }
+        catch (RuntimeException error) { throw error; }
+        catch (Exception error) { throw new ApiException(method, buildUrl(), error); }
+        List<ApiInterceptor> test = List.copyOf(CHAIN_INTERCEPTORS.get());
+        List<ApiInterceptor> all = new ArrayList<>(test);
+        all.addAll(interceptors);
+        int attempts = 1;
+        long backoff = 500;
+        List<Integer> statuses = List.of();
+        boolean exceptions = false;
+        TestFlyConfig.Api api = null;
+        if (TestFlyContext.isInitialized()) api = TestFlyContext.getConfig().getApi();
+        if (api != null && api.getRetry() != null && api.getRetry().isEnabled()) {
+            var retry = api.getRetry();
+            attempts = retry.getMaxAttempts();
+            backoff = retry.getBackoffMs();
+            statuses = List.copyOf(retry.getRetryOnStatus());
+            exceptions = retry.isRetryOnException();
+            if (attempts < 1 || backoff < 0) throw new IllegalArgumentException("Invalid API retry attempts/backoff");
         }
+        List<ApiMockRule> rules = new ArrayList<>(mockRules);
+        rules.addAll(MOCK_RULES.get());
+        ApiExecution.Scope scope = ApiExecution.scope();
+        var profile = io.testfly.internal.api.ApiTransport.prepare(scope, api, sslOverride);
+        return new Call(request, effectiveAuth, COOKIE_JAR.get(), cookiesEnabled,
+                test, List.copyOf(all), List.copyOf(REQUEST_INTERCEPTORS), List.copyOf(RESPONSE_INTERCEPTORS),
+                attempts, backoff, statuses, exceptions, LogSettings.capture(api), scope, List.copyOf(rules), List.copyOf(MOCK_RULES.get()), profile);
+    }
+
+    private record Call(ApiRequest request, ApiAuth auth, Map<String, String> cookies, boolean cookiesEnabled,
+                        List<ApiInterceptor> testInterceptors, List<ApiInterceptor> interceptors,
+                        List<RequestInterceptor> requestHooks, List<ResponseInterceptor> responseHooks,
+                        int attempts, long backoff, List<Integer> retryStatuses, boolean retryExceptions,
+                        LogSettings logging, ApiExecution.Scope scope, List<ApiMockRule> mockRules, List<ApiMockRule> testMockRules,
+                        io.testfly.internal.api.ApiTransport.Profile profile) {}
+
+    private ApiResponse execute(Call call) {
+        long started = System.nanoTime();
+        int[] exchanges = {0};
+        try {
+            for (int attempt = 1; attempt <= call.attempts; attempt++) {
+                ApiExecution.check(call.scope);
+                // Build auth afresh for every outer attempt, before user middleware.
+                HttpRequest.Builder authenticated = HttpRequest.newBuilder(call.request.toHttpRequest(), (k, v) -> true);
+                if (call.auth != null) call.auth.apply(authenticated);
+                ApiRequest.Builder prepared = call.request.newBuilder();
+                call.request.headers().keySet().forEach(prepared::removeHeader);
+                authenticated.build().headers().map().forEach((k, values) -> values.forEach(v -> prepared.addHeader(k, v)));
+                try {
+                    ApiResponse response = ApiExecution.invoke(call.interceptors, prepared.build(),
+                            request -> transport(request, call, exchanges), call.scope);
+                    ApiExecution.check(call.scope);
+                    // Hook errors are not transport failures and must not be retried.
+                    for (ResponseInterceptor hook : call.responseHooks) {
+                        ApiExecution.check(call.scope);
+                        hook.intercept(response);
+                    }
+                    ApiExecution.check(call.scope);
+                    if (attempt < call.attempts && call.retryStatuses.contains(response.status())) {
+                        int current = attempt;
+                        call.scope.log(() -> StepLogger.step("[API] Retry " + current + "/" + call.attempts
+                                + " — status " + response.status(), StepStatus.WARN));
+                        ApiExecution.delay(Math.multiplyExact(call.backoff, attempt), call.scope);
+                        continue;
+                    }
+                    logStep(response, call.logging, call.scope, elapsed(started));
+                    return response;
+                } catch (ApiExecution.TransportFailure error) {
+                    if (!call.retryExceptions || attempt == call.attempts) throw error;
+                    int current = attempt;
+                    call.scope.log(() -> StepLogger.step("[API] Retry " + current + "/" + call.attempts
+                            + " — transport failure", StepStatus.WARN));
+                    ApiExecution.delay(Math.multiplyExact(call.backoff, attempt), call.scope);
+                }
+            }
+            throw new IllegalStateException("Unreachable API retry state");
+        } catch (CancellationException error) {
+            throw error;
+        } catch (RuntimeException error) {
+            call.scope.log(() -> StepLogger.step("[API] " + call.request.method() + " " + call.request.uri()
+                    + " → ERROR: " + error.getClass().getSimpleName(), StepStatus.FAIL));
+            throw error;
+        }
+    }
+
+    private ApiResponse transport(ApiRequest request, Call call, int[] exchanges) {
+        ApiExecution.check(call.scope);
+        for (ApiMockRule rule : call.mockRules) {
+            if (rule.matches(request)) return rule.respond(request);
+        }
+        HttpRequest.Builder builder = HttpRequest.newBuilder(request.toHttpRequest(), (k, v) -> true);
+        if (call.cookiesEnabled && !call.cookies.isEmpty()) {
+            builder.header("Cookie", call.cookies.entrySet().stream()
+                    .map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("; ")));
+        }
+        for (RequestInterceptor hook : call.requestHooks) hook.intercept(builder);
+        // Preserve the legacy builder hook contract: method/body are assigned after hooks.
+        builder.method(request.method(), HttpRequest.BodyPublishers.ofByteArray(request.body()));
+        HttpRequest http = builder.build();
+        ApiRequest.Builder sentBuilder = request.newBuilder().uri(http.uri()).timeout(http.timeout().orElse(request.timeout()));
+        request.headers().keySet().forEach(sentBuilder::removeHeader);
+        http.headers().map().forEach((k, values) -> values.forEach(v -> sentBuilder.addHeader(k, v)));
+        ApiRequest sent = sentBuilder.build();
+        long started;
+        int exchange = ++exchanges[0];
+        try {
+            ApiExecution.check(call.scope);
+            HttpResponse<String> raw;
+            try (var permit = io.testfly.internal.api.ApiTransport.acquire(call.profile, call.scope)) {
+                ApiExecution.check(call.scope);
+                io.testfly.internal.api.ApiTransport.warnTrustAll(call.profile, call.scope, http.uri());
+                started = System.nanoTime();
+                raw = call.profile.client().send(http, HttpResponse.BodyHandlers.ofString());
+            }
+            ApiExecution.check(call.scope);
+            if (call.cookiesEnabled) captureCookies(raw, call.cookies);
+            ApiResponse response = new ApiResponse(raw, elapsed(started), sent.method(), sent.uri().toString()).withRequest(sent);
+            call.scope.log(() -> StepLogger.step("[API] Exchange " + exchange + " " + sent.method() + " " + sent.uri()
+                    + " → " + response.status() + " (" + response.durationMs() + "ms)", StepStatus.INFO));
+            return response;
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            throw new CancellationException("API transport interrupted");
+        } catch (IOException error) {
+            ApiExecution.check(call.scope);
+            throw new ApiExecution.TransportFailure(sent, error);
+        }
+    }
+
+    private static long elapsed(long start) { return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start); }
+
+    private ApiRequest buildRequest(String url, Duration timeout) throws Exception {
+        byte[] bodyBytes = null;
+        String bodyStr = null;
+        String contentTypeOverride = null;
+
+        if (!fileParams.isEmpty() || !fieldParams.isEmpty()) {
+            MultipartBody mp = buildMultipartBody();
+            bodyBytes = mp.bytes;
+            contentTypeOverride = mp.contentType;
+        } else if (!formParams.isEmpty()) {
+            bodyStr = formParams.entrySet().stream()
+                    .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8)
+                            + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
+                    .collect(Collectors.joining("&"));
+            contentTypeOverride = "application/x-www-form-urlencoded";
+        } else {
+            bodyStr = serializeBody();
+        }
+
+        ApiRequest.Builder builder = ApiRequest.builder().uri(URI.create(url))
+                .method(method).timeout(timeout);
+        boolean contentTypeSet = headers.keySet().stream().anyMatch(k -> k.equalsIgnoreCase("Content-Type"));
+        if (!contentTypeSet && contentTypeOverride != null) builder.header("Content-Type", contentTypeOverride);
+        else if (!contentTypeSet && bodyStr != null) builder.header("Content-Type", "application/json");
+        headers.forEach(builder::header);
+        if (bodyBytes != null) builder.body(bodyBytes);
+        else if (bodyStr != null) builder.body(bodyStr.getBytes(StandardCharsets.UTF_8));
+        return builder.build();
     }
 
     // ── Internal: URL building ────────────────────────────────────────────────
@@ -638,14 +730,14 @@ public class ApiClient {
         }
     }
 
-    private int resolveTimeout() {
+    private Duration resolveTimeout() {
         if (timeoutOverride != null)
             return timeoutOverride;
         try {
             TestFlyConfig.Api api = TestFlyContext.getConfig().getApi();
-            return api != null ? api.getTimeoutSeconds() : 30;
+            return Duration.ofSeconds(api != null ? api.getTimeoutSeconds() : 30);
         } catch (Exception e) {
-            return 30;
+            return Duration.ofSeconds(30);
         }
     }
 
@@ -710,98 +802,62 @@ public class ApiClient {
 
     // ── Cookie management ─────────────────────────────────────────────────────
 
-    private void applyCookies(HttpRequest.Builder builder) {
-        Map<String, String> jar = COOKIE_JAR.get();
-        if (!jar.isEmpty()) {
-            String cookieHeader = jar.entrySet().stream()
-                    .map(e -> e.getKey() + "=" + e.getValue())
-                    .collect(Collectors.joining("; "));
-            builder.header("Cookie", cookieHeader);
-        }
-    }
-
-    private void captureCookies(HttpResponse<String> response) {
+    private static void captureCookies(HttpResponse<String> response, Map<String, String> jar) {
         response.headers().allValues("set-cookie").forEach(cookie -> {
-            int eqIdx = cookie.indexOf('=');
-            if (eqIdx > 0) {
-                String name = cookie.substring(0, eqIdx);
-                String value = cookie.substring(eqIdx + 1);
-                int semiIdx = value.indexOf(';');
-                if (semiIdx > 0)
-                    value = value.substring(0, semiIdx);
-                COOKIE_JAR.get().put(name, value);
+            int eq = cookie.indexOf('=');
+            if (eq > 0) {
+                String value = cookie.substring(eq + 1);
+                int semi = value.indexOf(';');
+                jar.put(cookie.substring(0, eq), semi >= 0 ? value.substring(0, semi) : value);
             }
         });
     }
 
     // ── Logging ───────────────────────────────────────────────────────────────
 
-    private void logStep(ApiResponse response) {
-        boolean logBody = false;
-        boolean prettyLog = false;
-        boolean logCurl = false;
-        int truncationLimit = 300;
-        Set<String> maskedHeaders = Set.of("Authorization", "Cookie", "X-Api-Key");
-        try {
-            TestFlyConfig.Api api = TestFlyContext.getConfig().getApi();
-            if (api != null) {
-                logBody = api.isLogBody();
-                prettyLog = api.isPrettyLog();
-                logCurl = api.isLogCurl();
-                truncationLimit = api.getTruncationLimit();
-                if (api.getMaskedHeaders() != null && !api.getMaskedHeaders().isEmpty()) {
-                    maskedHeaders = Set.copyOf(api.getMaskedHeaders());
-                }
-            }
-        } catch (Exception ignored) {
+    private record LogSettings(boolean body, boolean pretty, boolean curl, int limit, Set<String> masked) {
+        static LogSettings capture(TestFlyConfig.Api api) {
+            Set<String> masked = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+            masked.addAll(List.of("Authorization", "Cookie", "X-Api-Key"));
+            if (api != null && api.getMaskedHeaders() != null) masked.addAll(api.getMaskedHeaders());
+            return new LogSettings(api != null && api.isLogBody(), api != null && api.isPrettyLog(),
+                    api != null && api.isLogCurl(), api == null ? 300 : api.getTruncationLimit(),
+                    java.util.Collections.unmodifiableSet(masked));
         }
-
-        StepStatus status = response.status() >= 400 ? StepStatus.FAIL : StepStatus.PASS;
-        StringBuilder log = new StringBuilder(
-                "[API] " + method + " " + path + " → " + response.status() + " (" + response.durationMs() + "ms)");
-
-        if (!headers.isEmpty()) {
-            log.append("\n  Headers: ");
-            for (Map.Entry<String, String> e : headers.entrySet()) {
-                String val = maskedHeaders.contains(e.getKey()) ? "***" : e.getValue();
-                log.append(e.getKey()).append("=").append(val).append(" ");
-            }
-        }
-
-        if (logBody && response.body() != null && !response.body().isBlank()) {
-            String body = response.body();
-            if (prettyLog) {
-                try {
-                    body = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(MAPPER.readTree(body));
-                } catch (Exception ignored) {
-                }
-            }
-            log.append("\n  Body: ").append(truncate(body, truncationLimit));
-        }
-
-        if (logCurl) {
-            log.append("\n  curl: ").append(toCurl());
-        }
-
-        StepLogger.step(log.toString(), status);
     }
 
-    private String toCurl() {
-        StringBuilder curl = new StringBuilder("curl -X ").append(method).append(" '").append(buildUrl()).append("'");
-        headers.forEach((k, v) -> curl.append(" -H '").append(k).append(": ").append(v).append("'"));
-        if (body != null) {
-            try {
-                curl.append(" -d '").append(serializeBody()).append("'");
-            } catch (Exception ignored) {
-            }
-        } else if (!formParams.isEmpty()) {
-            String form = formParams.entrySet().stream()
-                    .map(e -> e.getKey() + "=" + e.getValue())
-                    .collect(Collectors.joining("&"));
-            curl.append(" -d '").append(form).append("'");
+    private void logStep(ApiResponse response, LogSettings settings, ApiExecution.Scope scope, long totalMs) {
+        ApiRequest sent = response.request();
+        StringBuilder log = new StringBuilder("[API] " + response.requestMethod() + " " + response.requestUrl()
+                + " → " + response.status() + " (" + response.durationMs() + "ms; total " + totalMs + "ms)"
+                + (response.isSynthetic() ? " [synthetic]" : ""));
+        if (sent != null && !sent.headers().isEmpty()) {
+            log.append("\n  Headers: ");
+            sent.headers().forEach((k, values) -> log.append(k).append("=")
+                    .append(settings.masked.contains(k) ? "***" : String.join(", ", values)).append(" "));
         }
+        if (settings.body && response.body() != null && !response.body().isBlank()) {
+            String value = response.body();
+            if (settings.pretty) {
+                try { value = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(MAPPER.readTree(value)); }
+                catch (Exception ignored) { }
+            }
+            log.append("\n  Body: ").append(truncate(value, settings.limit));
+        }
+        if (settings.curl && sent != null) log.append("\n  curl: ").append(toCurl(sent, settings));
+        scope.log(() -> StepLogger.step(log.toString(), response.status() >= 400 ? StepStatus.FAIL : StepStatus.PASS));
+    }
+
+    private String toCurl(ApiRequest request, LogSettings settings) {
+        StringBuilder curl = new StringBuilder("curl -X ").append(request.method()).append(" ").append(shellQuote(request.uri().toString()));
+        request.headers().forEach((k, values) -> values.forEach(value -> curl.append(" -H ")
+                .append(shellQuote(k + ": " + (settings.masked.contains(k) ? "***" : value)))));
+        if (request.body().length > 0) curl.append(" --data-binary ")
+                .append(shellQuote(new String(request.body(), StandardCharsets.UTF_8)));
         return curl.toString();
     }
+
+    private static String shellQuote(String value) { return "'" + value.replace("'", "'\"'\"'") + "'"; }
 
     // ── Utilities ─────────────────────────────────────────────────────────────
 
@@ -818,14 +874,6 @@ public class ApiClient {
 
     private String truncate(String s, int max) {
         return s != null && s.length() > max ? s.substring(0, max) + "..." : s;
-    }
-
-    private static void sleep(long ms) {
-        try {
-            Thread.sleep(ms);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
     }
 
     // ── Interceptor interfaces ────────────────────────────────────────────────

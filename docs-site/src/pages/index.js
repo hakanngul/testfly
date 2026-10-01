@@ -229,7 +229,7 @@ export default function Home() {
             <div className={styles.heroContent}>
               <div className={styles.heroHeader}>
                 <span className={styles.heroEyebrow}>
-                  Java 17 · Selenium 4 · TestNG · JUnit 5 · Cucumber · AI/MCP
+                  Java 21 · Selenium 4 · TestNG · JUnit 5 · Cucumber · AI/MCP
                 </span>
                 <h1 className={styles.heroTitle}>
                   {isTr ? (

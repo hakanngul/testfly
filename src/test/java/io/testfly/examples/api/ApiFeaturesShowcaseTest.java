@@ -221,4 +221,68 @@ public class ApiFeaturesShowcaseTest extends BaseApiTest {
 
         res.assertStatus(200);
     }
+
+    // ── API Mocking (WireMock) ─────────────────────────────────────────────────
+
+    @Test
+    public void mockSupport_stubAndCall() {
+        // MockSupport arayüzünden gelen stubGet metodu ile WireMock sunucusunda sahte bir endpoint oluşturuyoruz.
+        stubGet("/mock-endpoint", 200, "{\"mocked\": true}");
+        
+        // Gerçek API yerine ayağa kalkan Mock sunucusuna (localhost:PORT) istek atıyoruz
+        ApiResponse res = ApiClient.to(mockServer().getBaseUrl())
+                .path("/mock-endpoint")
+                .get()
+                .send();
+                
+        res.assertStatus(200)
+           .assertJson("$.mocked", true);
+    }
+
+    // ── OpenAPI Validation ─────────────────────────────────────────────────────
+
+    @Test
+    public void openApiValidator_contractTesting() {
+        // Not: src/test/resources/schemas/sample-api.yaml dosyası olduğunu varsayıyoruz
+        // ApiResponse.assertOpenApi ile tüm request/response yapısı şemaya uyumlu mu denetlenir.
+        // Eğer kütüphane pom.xml'de yoksa IllegalStateException dönecektir (çünkü opsiyonel bağımlılık).
+        try {
+            apiClient().get("/users/1").send()
+                    .assertStatus(200)
+                    .assertOpenApi("schemas/sample-api.yaml");
+        } catch (IllegalStateException e) {
+            if (!e.getMessage().contains("swagger-request-validator-core")) {
+                throw e;
+            }
+        }
+    }
+
+    // ── Asenkron İstek & BatchRunner (Concurrency) ─────────────────────────────
+
+    @Test
+    public void asyncApi_sendParallelRequests() throws Exception {
+        java.util.concurrent.CompletableFuture<ApiResponse> req1 = apiClient().get("/users/1").sendAsync();
+        java.util.concurrent.CompletableFuture<ApiResponse> req2 = apiClient().get("/users/2").sendAsync();
+        
+        // Her iki asenkron isteğin tamamlanmasını bekle
+        java.util.concurrent.CompletableFuture.allOf(req1, req2).join();
+        
+        req1.get().assertStatus(200);
+        req2.get().assertStatus(200);
+    }
+
+    @Test
+    public void apiBatchRunner_rateLimitFuzzing() {
+        // 50 isteği aynı anda (maksimum 10 thread çalışacak şekilde) ateşler
+        java.util.List<ApiResponse> responses = io.testfly.client.ApiBatchRunner.fire(50)
+                .concurrently(10)
+                .request(() -> apiClient().get("/products/1"))
+                .execute();
+                
+        assert responses.size() == 50 : "50 adet yanıt toplanmış olmalı";
+        long successCount = responses.stream().filter(r -> r.status() == 200).count();
+        long rateLimitedCount = responses.stream().filter(r -> r.status() == 429).count();
+        
+        System.out.println("Başarılı: " + successCount + ", Rate Limited (429): " + rateLimitedCount);
+    }
 }

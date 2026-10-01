@@ -122,6 +122,7 @@ public class CucumberHooks {
 
     @After(order = 20000)
     public void afterScenario(Scenario scenario) {
+        io.testfly.internal.api.ApiExecution.closeScope();
         String testId = TestFlyContext.getCurrentTestId();
         boolean noBrowser = skipBrowser(scenario);
 
@@ -267,7 +268,7 @@ public class CucumberHooks {
             io.testfly.assertion.SoftAssertions.clear();
             ScenarioContext.clear();
             TestDataStore.clear();
-            ApiClient.clearGlobalAuth();
+            io.testfly.internal.api.ApiExecution.cleanupTestContext();
             BrowserContext.clear();
             NetworkMock.cleanup();
             TestClock.autoReset();
@@ -443,6 +444,7 @@ public class CucumberHooks {
      */
     @AfterAll(order = 0)
     public static void afterAllScenarios() {
+        io.testfly.internal.api.ApiExecution.shutdown();
         try {
             // ── Report generation (mirrors SuiteExecutionListener.onFinish) ──
             ExecutionMetrics.printSummary();

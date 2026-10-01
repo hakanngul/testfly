@@ -233,6 +233,7 @@ public final class SuiteExecutionListener implements ISuiteListener {
 
     @Override
     public void onFinish(ISuite suite) {
+        io.testfly.internal.api.ApiExecution.shutdown();
         ExecutionMetrics.printSummary();
         ExecutionMetrics.exportToJson();
         HealLog.export();

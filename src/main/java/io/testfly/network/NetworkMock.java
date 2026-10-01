@@ -493,16 +493,10 @@ public final class NetworkMock {
             sleep(response.delayMs());
         }
         switch (response.kind()) {
-            case ABORT:
-                failRequest(reqId, response.abortReason());
-                break;
-            case PASSTHROUGH:
-                continueRequest(reqId);
-                break;
-            case FULFILL:
-            default:
-                fulfill(reqId, response);
-                break;
+            case ABORT -> failRequest(reqId, response.abortReason());
+            case PASSTHROUGH -> continueRequest(reqId);
+            case FULFILL -> fulfill(reqId, response);
+            default -> fulfill(reqId, response);
         }
     }
 

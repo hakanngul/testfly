@@ -10,7 +10,7 @@ description: TestFly ile hedef odaklı otonom testler, yapay zeka destekli self-
 
 Geleneksel test otomasyonunda mühendislerin arayüzdeki her adımı, tıklamayı ve seçiciyi (locator) tek tek kodlaması gerekir. Uygulamanın DOM yapısı, ID'si veya tasarımı değiştiğinde testler anında kırılır.
 
-**TestFly Agentic Testing**, otonom yapay zeka yeteneklerini doğrudan test çalışma zamanına entegre ederken Java 17 performansını, deterministik yürütmeyi ve `@TestFlyApi` geriye dönük kararlılığını korur.
+**TestFly Agentic Testing**, otonom yapay zeka yeteneklerini doğrudan test çalışma zamanına entegre ederken Java 21 performansını, deterministik yürütmeyi ve `@TestFlyApi` geriye dönük kararlılığını korur.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐

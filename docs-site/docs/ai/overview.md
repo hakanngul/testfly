@@ -58,22 +58,21 @@ Modern AI coding assistants (such as **JetBrains AI Assistant**, **Claude Code**
 
 ## Ecosystem Components
 
-The TestFly AI ecosystem consists of 5 tightly integrated components:
+The TestFly AI ecosystem consists of tightly integrated components:
 
 | Component | Purpose | How to Access |
 | :--- | :--- | :--- |
-| **Agentic Testing Runtime** | Embedded Java engine for goal actions (`act()`), semantic assertions (`assertWithAi()`), intent locators (`byIntent()`), self-healing, and auto-remediation patches. | Built-in Java library: `io.testfly:testfly` |
-| **`testfly-mcp` Server** | Python MCP server exposing 88 tools to AI assistants via standard I/O. | `pip install -e .` or CLI: `testfly-mcp` |
-| **IntelliJ IDEA Plugin** | Zero-config registration with JetBrains AI Assistant, diagnostics, and project bootstrap. | Disk installation: `testfly-mcp-jetbrains-1.0.0.zip` |
-| **VS Code Extension** | Auto-registration for Claude Code & GitHub Copilot, status bar menu, and config generator. | VSIX installation: `testfly-mcp-1.0.0.vsix` |
-| **Interactive Web Studio** | Zero-dependency browser dashboard for visual playground testing and codegen. | CLI command: `testfly-mcp ui` |
+| **Agentic Testing Runtime** | Embedded Java engine for goal actions (`act()`), semantic assertions (`assertWithAi()`), intent locators (`byIntent()`), self-healing, and auto-remediation patches. | Built-in Java library: `io.github.hakanngul:testfly` |
+| **`@testfly/mcp` Bridge** | Lightweight Node.js MCP bridge for TestFly Java 21 codegen, action-cache, and self-healing. | `npx -y @testfly/mcp` |
+| **IntelliJ IDEA Plugin** | Zero-config registration with JetBrains AI Assistant, diagnostics, and project bootstrap. | Disk installation: `testfly-mcp-jetbrains-1.1.0.zip` |
+| **VS Code Extension** | 1-Click Multi-Assistant setup (Cursor, Claude, Copilot), Action Cache explorer, and visual patch reviewer. | VSIX installation: `testfly-vscode-1.1.0.vsix` |
 
 ---
 
 ## Next Steps
 
 - [Agentic Testing & Autonomous AI](./agentic-testing) — Goal-oriented execution, Compile & Freeze caching, semantic assertions, and self-remediation.
-- [TestFly MCP Server & CLI](./testfly-mcp) — Learn about installation, the 88 MCP tools, and command-line usage.
+- [TestFly MCP Bridge & Playwright](./testfly-mcp) — Learn about the architecture, available tools, and NPX setup.
 - [IDE Plugins & Extensions](./ide-plugins) — Set up the IntelliJ IDEA and VS Code plugins.
 - [Interactive Web Studio](./interactive-studio) — Use the visual browser playground and live codegen studio.
 - [Prompt Recipes](./prompt-recipes) — Copy-paste prompt templates for generating Page Objects, TestNG, JUnit 5, and Cucumber tests.

@@ -42,15 +42,14 @@ public final class SmartTriageEngine {
         Throwable rootCause = getRootCause(exception);
 
         // Rule 2: Exception heuristics
-        if (rootCause instanceof TimeoutException || rootCause instanceof StaleElementReferenceException) {
-            flakyScore += 80;
-        } else if (rootCause instanceof ConnectException) {
-            flakyScore += 90;
-        } else if (rootCause instanceof AssertionError) {
-            flakyScore -= 50; // Assertion errors are almost always application bugs
-        } else if (rootCause instanceof WebDriverException) {
-            flakyScore += 40; 
-        }
+        flakyScore += switch (rootCause) {
+            case TimeoutException t -> 80;
+            case StaleElementReferenceException s -> 80;
+            case ConnectException c -> 90;
+            case AssertionError a -> -50; // Assertion errors are almost always application bugs
+            case WebDriverException w -> 40;
+            case null, default -> 0;
+        };
 
         if (flakyScore >= 70) {
             return TriageResult.SYSTEM_FLAKY;

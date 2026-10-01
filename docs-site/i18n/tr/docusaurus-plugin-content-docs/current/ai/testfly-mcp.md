@@ -15,30 +15,31 @@ Python üzerinde hantal ve kırılgan bir tarayıcı otomasyon motoru sürdürme
 1. **Tarayıcı Yönetimi:** Sektör standardı olan ultra hızlı **Playwright MCP** (`@modelcontextprotocol/server-playwright`) tarafından üstlenilir.
 2. **TestFly Zekası & Kod Üretimi:** **TestFly Köprüsü** (`@testfly/mcp`) tarafından yönetilir; tarayıcı etkileşimlerini TestFly Java 21 testlerine (`BaseTest`, `BasePage`, `getByRole`, `assertThat`) derler, `.testfly/action-cache.json` otonom plan önbelleğini yönetir ve yapay zeka self-healing `.patch` yamalarını uygular.
 
-```mermaid
-flowchart LR
-    subgraph Yapay Zeka Asistanları
-        AI[Cursor / Claude / Copilot]
-    end
-
-    subgraph Tarayıcı Katmanı
-        PW[Playwright MCP]
-        CHROME[(Canlı Chrome / Web)]
-        PW <--> CHROME
-    end
-
-    subgraph TestFly Katmanı
-        TF[TestFly Köprüsü]
-        CACHE[(.testfly/action-cache.json)]
-        PATCH[(target/remediations/*.patch)]
-        JAVA[Java 21 Test Paketleri]
-        TF <--> CACHE
-        TF <--> PATCH
-        TF --> JAVA
-    end
-
-    AI <-->|Tarayıcıyı Yönetir & İnceler| PW
-    AI <-->|Kod Üretimi & Agentic Araçlar| TF
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              YAPAY ZEKA KODLAMA ASİSTANLARI                            │
+│                     Cursor  ·  Claude Desktop  ·  GitHub Copilot  ·  Claude Code       │
+└──────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                           │
+                    ┌──────────────────────┴──────────────────────┐
+                    │ JSON-RPC (stdio / SSE)                      │ JSON-RPC (stdio / SSE)
+                    ▼                                             ▼
+┌──────────────────────────────────────┐     ┌───────────────────────────────────────────┐
+│     TARAYICI KATMANI: PLAYWRIGHT MCP │     │       TEST MOTORU: TESTFLY MCP KÖPRÜSÜ    │
+│     (@modelcontextprotocol/server)   │     │               (@testfly/mcp)              │
+│  ┌────────────────────────────────┐  │     │  ┌─────────────────────────────────────┐  │
+│  │  Canlı CDP Tarayıcı Yönetimi   │  │     │  │  Framework Odaklı Kod Üretim Motoru │  │
+│  │  • browser_navigate            │  │     │  │  • Java 21 BaseTest & POM sınıfları │  │
+│  │  • browser_click / fill_form   │  │     │  │  • Erişilebilirlik odaklı getByRole │  │
+│  │  • browser_snapshot (DOM Ağacı)│  │     │  │  • Akıcı doğrulamalar (assertThat)  │  │
+│  └────────────────┬───────────────┘  │     │  └──────────────────┬──────────────────┘  │
+│                   │                  │     │                     │                     │
+│                   ▼                  │     │  ┌──────────────────┴──────────────────┐  │
+│  ┌────────────────────────────────┐  │     │  │  Otonom Plan & Self-Healing Deposu  │  │
+│  │  İzole Chrome / Edge / Web     │  │     │  │  • .testfly/action-cache.json       │  │
+│  │  (Sıfır ek yük, canlı çalışma) │  │     │  │  • target/remediations/*.patch      │  │
+│  └────────────────────────────────┘  │     │  └─────────────────────────────────────┘  │
+└──────────────────────────────────────┘     └───────────────────────────────────────────┘
 ```
 
 ---

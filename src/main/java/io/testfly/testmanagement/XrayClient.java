@@ -35,7 +35,9 @@ final class XrayClient {
 
     XrayClient(TestFlyConfig.TestManagement.Xray cfg) {
         this.cfg     = cfg;
-        this.http    = HttpClient.newHttpClient();
+        this.http    = HttpClient.newBuilder()
+                .executor(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor())
+                .build();
         this.isCloud = "cloud".equalsIgnoreCase(cfg.getMode());
     }
 

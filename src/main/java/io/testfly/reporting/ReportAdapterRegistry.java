@@ -44,11 +44,12 @@ public final class ReportAdapterRegistry {
 
     /**
      * Invokes {@link ReportAdapter#generate(File)} on every registered adapter.
+     * Adapters run serially in registration order because they may share output files.
      * Failures in one adapter are logged and do not prevent others from running.
      */
-    public static void generateAll() {
+    public static synchronized void generateAll() {
         File metricsJson = ReportPaths.metricsJson();
-        for (ReportAdapter adapter : adapters) {
+        for (ReportAdapter adapter : List.copyOf(adapters)) {
             try {
                 adapter.generate(metricsJson);
             } catch (Exception e) {

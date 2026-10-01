@@ -58,22 +58,21 @@ Günümüzün modern yapay zeka kodlama asistanları (**JetBrains AI Assistant**
 
 ## Ekosistem Bileşenleri
 
-TestFly AI ekosistemi 5 ana bileşenden oluşur:
+TestFly AI ekosistemi sıkı şekilde entegre edilmiş bileşenlerden oluşur:
 
 | Bileşen | Görevi | Nasıl Erişilir |
 | :--- | :--- | :--- |
-| **Agentic Testing Çalışma Zamanı** | Doğal dil hedefleri (`act()`), semantik doğrulamalar (`assertWithAi()`), niyet seçicileri (`byIntent()`), AI self-healing ve otomatik yama (auto-PR) motoru. | Yerleşik Java kütüphanesi: `io.testfly:testfly` |
-| **`testfly-mcp` Sunucusu** | AI asistanlarına standart I/O üzerinden 88 araç sunan Python MCP sunucusu. | `pip install -e .` veya CLI: `testfly-mcp` |
-| **IntelliJ IDEA Eklentisi** | JetBrains AI Assistant ile sıfır konfigürasyonlu kayıt, sistem teşhisi ve proje başlatma. | Diskten kurulum: `testfly-mcp-jetbrains-1.0.0.zip` |
-| **VS Code Eklentisi** | Claude Code & GitHub Copilot için otomatik kayıt, durum çubuğu menüsü. | VSIX kurulumu: `testfly-mcp-1.0.0.vsix` |
-| **Etkileşimli Web Stüdyosu** | Tarayıcı üzerinden görsel test yapma ve kod üretme paneli. | CLI komutu: `testfly-mcp ui` |
+| **Agentic Testing Çalışma Zamanı** | Doğal dil hedefleri (`act()`), semantik doğrulamalar (`assertWithAi()`), niyet seçicileri (`byIntent()`), AI self-healing ve otomatik yama (auto-PR) motoru. | Yerleşik Java kütüphanesi: `io.github.hakanngul:testfly` |
+| **`@testfly/mcp` Köprüsü** | TestFly Java 21 test üretimi, action-cache ve self-healing yöneten hafif Node.js MCP köprüsü. | `npx -y @testfly/mcp` |
+| **IntelliJ IDEA Eklentisi** | JetBrains AI Assistant ile sıfır konfigürasyonlu kayıt, sistem teşhisi ve proje başlatma. | Diskten kurulum: `testfly-mcp-jetbrains-1.1.0.zip` |
+| **VS Code Eklentisi** | Tek tıkla çoklu asistan kurulumu (Cursor, Claude, Copilot), Action Cache gezgini ve görsel yama inceleyici. | VSIX kurulumu: `testfly-vscode-1.1.0.vsix` |
 
 ---
 
 ## Sonraki Adımlar
 
 - [Agentic Testing & Otonom AI](./agentic-testing) — Hedef odaklı test adımları, Compile & Freeze önbelleği, semantik doğrulamalar ve otomatik hata yamaları.
-- [TestFly MCP Sunucusu ve CLI](./testfly-mcp) — Kurulum, 88 MCP aracı ve komut satırı kullanımı.
+- [TestFly MCP Köprüsü ve Playwright](./testfly-mcp) — Mimari detaylar, kullanılabilir araçlar ve NPX yapılandırması.
 - [IDE Eklentileri](./ide-plugins) — IntelliJ IDEA ve VS Code eklentilerinin kurulumu.
 - [Etkileşimli Web Stüdyosu](./interactive-studio) — Görsel tarayıcı denetimi ve anlık kod üretimi.
 - [Hazır AI Prompt Şablonları](./prompt-recipes) — Page Object, TestNG, JUnit 5 ve Cucumber testleri üreten kopyala-yapıştır prompt şablonları.

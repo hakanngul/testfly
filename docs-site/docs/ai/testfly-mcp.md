@@ -15,30 +15,31 @@ Instead of maintaining a heavy, fragile browser automation driver in Python, Tes
 1. **Browser Driving:** Delegated to the official, ultra-fast **Playwright MCP** (`@modelcontextprotocol/server-playwright`).
 2. **TestFly Intelligence & Codegen:** Handled by the **TestFly Bridge** (`@testfly/mcp`), which compiles browser interactions into idiomatic TestFly Java 21 tests (`BaseTest`, `BasePage`, `getByRole`, `assertThat`), manages the `.testfly/action-cache.json` autonomous plan cache, and applies AI self-healing `.patch` files.
 
-```mermaid
-flowchart LR
-    subgraph AI Assistants
-        AI[Cursor / Claude / Copilot]
-    end
-
-    subgraph Browser Layer
-        PW[Playwright MCP]
-        CHROME[(Live Chrome / Web)]
-        PW <--> CHROME
-    end
-
-    subgraph TestFly Layer
-        TF[TestFly Bridge]
-        CACHE[(.testfly/action-cache.json)]
-        PATCH[(target/remediations/*.patch)]
-        JAVA[Java 21 Test Suites]
-        TF <--> CACHE
-        TF <--> PATCH
-        TF --> JAVA
-    end
-
-    AI <-->|Drives & Inspects| PW
-    AI <-->|Codegen & Agentic Tools| TF
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   AI CODING ASSISTANTS                                 │
+│                     Cursor  ·  Claude Desktop  ·  GitHub Copilot  ·  Claude Code       │
+└──────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                           │
+                    ┌──────────────────────┴──────────────────────┐
+                    │ JSON-RPC (stdio / SSE)                      │ JSON-RPC (stdio / SSE)
+                    ▼                                             ▼
+┌──────────────────────────────────────┐     ┌───────────────────────────────────────────┐
+│     BROWSER LAYER: PLAYWRIGHT MCP    │     │      TEST ENGINE: TESTFLY MCP BRIDGE      │
+│     (@modelcontextprotocol/server)   │     │               (@testfly/mcp)              │
+│  ┌────────────────────────────────┐  │     │  ┌─────────────────────────────────────┐  │
+│  │  Live CDP Browser Control      │  │     │  │  Framework-Native Codegen Engine    │  │
+│  │  • browser_navigate            │  │     │  │  • Java 21 BaseTest & POM classes   │  │
+│  │  • browser_click / fill_form   │  │     │  │  • Accessibility-first getByRole()  │  │
+│  │  • browser_snapshot (DOM Tree) │  │     │  │  • Fluent assertions assertThat()   │  │
+│  └────────────────┬───────────────┘  │     │  └──────────────────┬──────────────────┘  │
+│                   │                  │     │                     │                     │
+│                   ▼                  │     │  ┌──────────────────┴──────────────────┐  │
+│  ┌────────────────────────────────┐  │     │  │  Autonomous Plan & Healing Store    │  │
+│  │  Isolated Chrome / Edge / Web  │  │     │  │  • .testfly/action-cache.json       │  │
+│  │  (Zero-overhead live runtime)  │  │     │  │  • target/remediations/*.patch      │  │
+│  └────────────────────────────────┘  │     │  └─────────────────────────────────────┘  │
+└──────────────────────────────────────┘     └───────────────────────────────────────────┘
 ```
 
 ---

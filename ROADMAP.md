@@ -32,9 +32,9 @@ Most users find a framework by searching, not by browsing GitHub.
 - ✅ More built-in `WaitEngine` conditions requested by users.
 - ✅ Additional first-class browser providers (Edge, Safari) via the existing SPI.
 - ✅ CI metadata capture — provider, build, branch, commit, and build URL auto-detected from major CI/CD platforms and surfaced in HTML/JUnit reports and metrics JSON.
-- ✅ **TestFly CLI & Scaffolder (`testfly init`)** — Official developer CLI and project generator for TestNG, JUnit 5, and Cucumber BDD.
+- ✅ **TestFly MCP Bridge & Scaffolder (`npx @testfly/mcp init`)** — Official developer MCP bridge and project generator for Java 21 test suites.
 - ✅ **Smart Test Sharder (LPT Bin-Packing)** — Mathematical multi-worker CI/CD load balancing via Longest Processing Time bin-packing.
-- ✅ **TestFly MCP Server** — Standard Model Context Protocol server exposing 88 browser automation and codegen tools to Claude Code, Cursor, and IDE assistants.
+- ✅ **TestFly MCP Bridge** — Model Context Protocol bridge paired with Playwright MCP for autonomous Java 21 codegen, action-caching, and self-healing.
 
 ### Ongoing quality
 

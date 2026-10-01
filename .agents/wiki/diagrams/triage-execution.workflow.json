@@ -1,0 +1,50 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Smart Triage Execution Workflow",
+    "animation": "trace",
+    "visual_preset": "blueprint",
+    "quality_profile": "showcase",
+    "output": "triage-execution.html"
+  },
+  "lanes": [
+    { "id": "test", "label": "Test Runtime" },
+    { "id": "listener", "label": "TestNG Listeners" },
+    { "id": "triage", "label": "SmartTriageEngine", "variant": "normal" },
+    { "id": "reporter", "label": "Reporting Subsystem" }
+  ],
+  "phases": [
+    { "id": "exec", "label": "Execute", "fromCol": 0, "toCol": 0 },
+    { "id": "fail", "label": "Failure", "fromCol": 1, "toCol": 1, "variant": "security" },
+    { "id": "analyze", "label": "Heuristic Triage", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "report", "label": "Result", "fromCol": 4, "toCol": 4 }
+  ],
+  "mainPath": ["test_run", "test_fail", "listener_catch", "triage_eval", "triage_res", "report_log"],
+  "nodes": [
+    { "id": "test_run", "lane": "test", "col": 0, "type": "frontend", "label": "Test Method", "sublabel": "@Test execution", "width": 132 },
+    { "id": "test_fail", "lane": "test", "col": 1, "type": "security", "label": "AssertionError", "sublabel": "test failed", "width": 132 },
+    { "id": "listener_catch", "lane": "listener", "col": 1, "type": "backend", "label": "onTestFailure", "sublabel": "TestNG hook", "width": 132 },
+    { "id": "triage_eval", "lane": "triage", "col": 2, "type": "backend", "label": "Analyze Failure", "sublabel": "check history & trace", "tag": "zero-token", "width": 132 },
+    { "id": "triage_res", "lane": "triage", "col": 3, "type": "messagebus", "label": "TriageResult", "sublabel": "SYSTEM_FLAKY", "width": 132 },
+    { "id": "report_log", "lane": "reporter", "col": 4, "type": "database", "label": "Execution Report", "sublabel": "tag as flaky", "width": 132 }
+  ],
+  "edges": [
+    { "id": "e1", "from": "test_run", "to": "test_fail", "label": "fail", "variant": "security" },
+    { "id": "e2", "from": "test_fail", "to": "listener_catch", "label": "trigger", "variant": "dashed" },
+    { "id": "e3", "from": "listener_catch", "to": "triage_eval", "label": "evaluate", "variant": "emphasis" },
+    { "id": "e4", "from": "triage_eval", "to": "triage_res", "variant": "default" },
+    { "id": "e5", "from": "triage_res", "to": "report_log", "label": "record", "variant": "emphasis" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Zero-Token Triage",
+      "items": [
+        "Analyzes failures at runtime without external API calls.",
+        "Classifies failures as APPLICATION_BUG, SYSTEM_FLAKY, or NEEDS_INVESTIGATION.",
+        "Reduces debugging time by instantly identifying infrastructure flakes."
+      ]
+    }
+  ]
+}

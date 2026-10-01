@@ -77,8 +77,8 @@ TestFly **bu tekerleği yeniden icat etme derdini bitirir** — endüstri standa
 
 ---
 
-:::tip TestFly CLI & Yapay Zeka Destekli MCP Otomasyonu
-**TestFly CLI & MCP Sunucusu** artık yayında! `testfly init` ile saniyeler içinde yeni proje oluşturun, `testfly doctor` ile ortamınızı denetleyin veya yapay zeka asistanlarının (Claude, Cursor, Copilot) 88 yerleşik araçla gerçek tarayıcıları yönetmesini sağlayın. İncelemek için: [TestFly CLI Rehberi](/docs/cli) ve [Yapay Zeka & MCP Genel Bakış](/docs/ai/overview).
+:::tip TestFly MCP Köprüsü & Yapay Zeka Otomasyonu
+**TestFly MCP Köprüsü (`@testfly/mcp`)** artık yayında! `npx @testfly/mcp init` ile saniyeler içinde yeni Java 21 projeleri oluşturun ya da Playwright MCP eşleşmesiyle yapay zeka asistanlarının (Cursor, Claude, Copilot) gerçek tarayıcıları yönetmesini ve idiomatik TestFly kodları üretmesini sağlayın. İncelemek için: [TestFly MCP & CLI Rehberi](/docs/cli) ve [Yapay Zeka & MCP Genel Bakış](/docs/ai/overview).
 :::
 
 ---

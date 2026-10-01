@@ -38,7 +38,7 @@ public final class GatlingBridge {
 
     /**
      * Checks whether {@code java.base/java.lang} is opened to unnamed module.
-     * Gatling uses {@link java.lang.invoke.MethodHandles#privateLookupIn} on Java 17+,
+     * Gatling uses {@link java.lang.invoke.MethodHandles#privateLookupIn} on Java 21+,
      * which requires {@code --add-opens java.base/java.lang=ALL-UNNAMED}.
      */
     public static boolean isJavaLangOpened() {

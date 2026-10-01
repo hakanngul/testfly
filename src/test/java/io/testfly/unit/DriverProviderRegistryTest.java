@@ -14,6 +14,7 @@ import static org.testng.Assert.*;
 /**
  * Unit tests for {@link DriverProviderRegistry}.
  */
+@Test(singleThreaded = true)
 public class DriverProviderRegistryTest {
 
     @AfterMethod

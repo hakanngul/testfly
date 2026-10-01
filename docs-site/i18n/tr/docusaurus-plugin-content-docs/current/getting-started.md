@@ -16,23 +16,22 @@ import TabItem from '@theme/TabItem';
 
 ## Ön Koşullar
 
-- Java 17+
-- Maven 3.8+ **veya** Gradle 7+
-- Chrome veya Firefox yüklü
+- Java 21+
+- Maven 3.8+ **veya** Gradle 8.5+
+- Chrome, Firefox veya Edge yüklü
 
 :::info
 WebDriver binary'leri gerekmez — Selenium Manager browser driver'larını otomatik indirir.
 :::
 
-:::tip TestFly CLI ile Anında Kurulum (Önerilen)
-Tek bir komutla üretime hazır bir TestFly projesi oluşturabilirsiniz:
+:::tip TestFly MCP & NPX ile Anında Kurulum (Önerilen)
+Tek bir komutla üretime hazır bir TestFly Java 21 test projesi oluşturabilirsiniz:
 
 ```bash
-pip install testfly-mcp
-testfly init my-test-suite
+npx @testfly/mcp init my-test-suite
 ```
 
-Bu komut `pom.xml`, `testfly.yml` ve çalışmaya hazır örnek testleri otomatik üretir. Detaylar için [TestFly CLI Rehberi](/docs/cli)'ne göz atın.
+Bu komut `pom.xml`, `testfly.yml` ve çalışmaya hazır örnek testleri otomatik üretir. Detaylar için [TestFly MCP & CLI Rehberi](/docs/cli)'ne göz atın.
 :::
 
 ---

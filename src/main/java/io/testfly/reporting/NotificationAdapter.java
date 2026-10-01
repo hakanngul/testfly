@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Executors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -181,6 +182,11 @@ public class NotificationAdapter implements ReportAdapter {
     // HTTP
     // ----------------------------------------------------------
 
+    private static final HttpClient SHARED_HTTP_CLIENT = HttpClient.newBuilder()
+            .executor(Executors.newVirtualThreadPerTaskExecutor())
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+
     /**
      * POSTs {@code payload} as JSON to {@code webhookUrl}.
      * Override in tests to capture calls without making real HTTP requests.
@@ -189,16 +195,13 @@ public class NotificationAdapter implements ReportAdapter {
      */
     protected int sendWebhook(String webhookUrl, String payload)
             throws Exception {
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(webhookUrl))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(payload))
                 .timeout(Duration.ofSeconds(10))
                 .build();
-        HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+        HttpResponse<Void> response = SHARED_HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
         return response.statusCode();
     }
 

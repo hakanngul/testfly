@@ -7,8 +7,9 @@
 > 2. If you need deeper context, open [`.agents/MAP.md`](.agents/MAP.md) and follow only the relevant `[[wikilink]]`.
 > 3. **DO NOT** scan `src/`, `wiki/`, or this entire file blindly. You will waste tokens.
 > 4. After completing work, update `scratchpad.md` and append to [`.agents/memories/log.md`](.agents/memories/log.md).
+> 5. **ASLA `main` DALINA COMMIT VEYA PUSH YAPMA.** `main` dalı korumalıdır. Tüm geliştirme ve commit'ler istisnasız `development` dalına yapılır. Her git işleminden önce `git branch --show-current` kontrolü ZORUNLUDUR.
 >
-> Full protocol: [`.agents/rules/memory-protocol.md`](.agents/rules/memory-protocol.md)
+> Full protocol: [`.agents/rules/memory-protocol.md`](.agents/rules/memory-protocol.md) | Git kuralı: [`.agents/rules/git-release-workflow.md`](.agents/rules/git-release-workflow.md)
 
 This file is intended for AI coding agents working in the `testfly` repository.
 It summarizes the project's architecture, build/test workflows, code conventions, and extension points so you can be productive without guessing.
@@ -30,7 +31,7 @@ It summarizes the project's architecture, build/test workflows, code conventions
 - **Okuma Yolu (Read Path - Token Koruma):** ASLA proje dosyalarını veya tüm wiki'yi körlemesine tarama. Önce [[.agents/memories/scratchpad.md]] dosyasını oku. Geçmiş karar veya derin domain bilgisi gerekiyorsa [[.agents/MAP.md]] haritasına bak ve sadece ilgili `[[wiki/<dosya>]]` sayfasına nokta atışı git.
 - **Yazma Yolu (Write Path - Sentez & Budama):** Oturum sonunda güncel durumu [[.agents/memories/scratchpad.md]] içine işle. **Maksimum 2.200 karakter sınırına** kesinlikle uy. Karakter dolduğunda kalıcı mimari kararları [[.agents/wiki/<kavram>.md]] olarak oluştur, [[.agents/MAP.md]] haritasına `[[<kavram>]]` olarak bağla ve tamamlanan işleri buda ([[ .agents/skills/memory-sync/SKILL.md ]]). Önemli işlemlerden (ingest, refactor, yeni özellik, lint) sonra [[.agents/memories/log.md]] dosyasına kronolojik giriş ekle.
 - **Docusaurus Kuralı:** `docs-site` üzerinde güncelleme yapılırken her zaman `[[.agents/skills/docusaurus-config/SKILL.md]]` kullanılır, çift dil (TR/EN) korunur ve `npm run build` ile doğrulanır ([[ .agents/rules/docusaurus-workflow.md ]]).
-- **Git & Release Kuralı:** Kullanıcı "commit at" dediğinde körlemesine commit/push yapılamaz; sürüm (SemVer), tag ve checklist soruları sorularak açık onay alınır ([[ .agents/rules/git-release-workflow.md ]]).
+- **Git & Release Kuralı:** **`main` dalına doğrudan commit/push KESİNLİKLE YASAKTIR (Protected Main Branch).** Tüm geliştirmeler, commit'ler ve push'lar istisnasız `development` dalında yürütülür. Herhangi bir git commit/push işleminden önce `git branch --show-current` ile dal doğrulanır. Kullanıcı "commit at" dediğinde [[ .agents/rules/git-release-workflow.md ]] protokolüne harfiyen uyulur.
 - **Obsidian Graph Standardı:** Tüm referanslar çift yönlü `[[...]]` link formatında tutulur ve YAML frontmatter (`tags`, `date`, `status`, `type`) kullanılır.
 
 ---
@@ -68,7 +69,7 @@ Key selling points:
 
 | Layer | Technology |
 |-------|------------|
-| Language | Java 17 |
+| Language | Java 21 |
 | Build | Maven |
 | Browser automation | Selenium Java 4.40.0 |
 | Test framework | TestNG 7.9.0 |

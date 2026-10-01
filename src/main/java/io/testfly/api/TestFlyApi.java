@@ -11,16 +11,14 @@ import java.lang.annotation.Target;
  *
  * <h2>AI-powered test authoring</h2>
  * <p>
- * <strong>testfly-mcp</strong> is a companion MCP server that lets Claude or GitHub Copilot
- * control a real browser, record the session, and generate ready-to-run TestFly test code
- * (TestNG, JUnit 5, Page Object, Gherkin, C# NUnit) in one prompt.
+ * <strong>@testfly/mcp</strong> is a companion MCP bridge that lets Claude, Cursor, or GitHub Copilot
+ * generate ready-to-run TestFly test code (TestNG, JUnit 5, Page Object) and manage autonomous action caching.
  * </p>
  * <pre>
- *   pip install testfly-mcp
+ *   npx -y @testfly/mcp
  * </pre>
  * <p>
- * See <a href="https://pypi.org/project/testfly-mcp/">pypi.org/project/testfly-mcp</a>
- * and <a href="https://github.com/hakanngul/testfly-mcp">github.com/testfly/testfly-mcp</a>.
+ * See <a href="https://github.com/hakanngul/testfly-mcp">github.com/hakanngul/testfly-mcp</a>.
  * </p>
  *
  * <h2>Stability contract</h2>
