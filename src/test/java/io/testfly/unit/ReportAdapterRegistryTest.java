@@ -91,6 +91,42 @@ public class ReportAdapterRegistryTest {
         assertTrue(good.generated, "Adapter after broken one should still run");
     }
 
+    @Test
+    public void generateAll_finishesSharedOutputBeforeNextAdapterReadsIt() throws Exception {
+        java.nio.file.Path output = java.nio.file.Files.createTempFile("testfly-report-order", ".html");
+        Thread caller = Thread.currentThread();
+        java.util.concurrent.atomic.AtomicBoolean sameThread = new java.util.concurrent.atomic.AtomicBoolean();
+        java.util.concurrent.atomic.AtomicReference<String> captured = new java.util.concurrent.atomic.AtomicReference<>();
+        try {
+            ReportAdapterRegistry.register(new ReportAdapter() {
+                @Override public String getName() { return "writer"; }
+                @Override public void generate(File metricsJson) {
+                    sameThread.set(Thread.currentThread() == caller);
+                    try {
+                        java.nio.file.Files.writeString(output, "<html>complete report</html>");
+                    } catch (java.io.IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+            ReportAdapterRegistry.register(new ReportAdapter() {
+                @Override public String getName() { return "reader"; }
+                @Override public void generate(File metricsJson) {
+                    try {
+                        captured.set(java.nio.file.Files.readString(output));
+                    } catch (java.io.IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+            ReportAdapterRegistry.generateAll();
+            assertTrue(sameThread.get(), "Generation must remain on the caller thread, without concurrent workers");
+            assertEquals(captured.get(), "<html>complete report</html>");
+        } finally {
+            java.nio.file.Files.deleteIfExists(output);
+        }
+    }
+
     // ----------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------

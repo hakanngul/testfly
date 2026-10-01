@@ -258,3 +258,6 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
 
 ## 2026-10-01 — Development push
 - Kullanıcı tüm development değişikliklerini gönderme yetkisi verdi. Dal development; ürün kodu zaten f77bd59/48b5840 commitlerinde, kalan değişiklikler çalışma notları. Not commitinde GPG pinentry açılamadı; yalnız bu commit için imzalama kapatıldı. Normal origin/development push; sürüm artışı/main commit yok. Önceden test/verify/docs build başarılı.
+
+## 2026-10-01 — #27 report adapter race fix
+- generateAll synchronized ve serial kayıt sırası; List.copyOf snapshot, hata sonrası devam korunuyor. Shared HTML writer/reader regresyon testi eklendi. İlgili raporlama testleri ve tam mvn test BUILD SUCCESS. Kullanıcı düzeltme yetkisi kapsamında development commit/push ve ilgili review resolution yapılacak; sürüm artışı yok.
