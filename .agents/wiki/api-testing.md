@@ -46,6 +46,16 @@ Archify ile derlenmiş bağımsız, karanlık/aydınlık tema ve trace animasyon
 - `ApiExecution` internal runtime scope, cancellation, kesilebilir backoff ve executor yaşam döngüsünü yönetir. TestNG/JUnit5/Cucumber kapanışı bekleyen çağrıları iptal eder, kapanmış scope'a geç raporlama engellenir. Batch semaphore ile mantıksal concurrency sınırlar ve sonuç sırasını korur.
 - TR/EN rehber örnekleri `ApiInterceptorExamples` test kaynağında derlenir. Yeni auth-refresh/cache/mock-server/SSL motoru veya zorunlu bağımlılık eklenmemiştir.
 
+## 4. Mock, SSL ve Transport Ayarları
+
+- `ApiMockRule` immutable predicate/response factory taşır. İstek kuralları test kurallarından önce, ilk eşleşme kazanacak şekilde çalışır. Snapshot çağıranda alınır; mock terminali interceptor'ların ardından ve legacy request hook/transport öncesindedir. Mock sonuçları sentetik işaretlidir, response hook/status retry davranışını korur; hatalı kullanıcı kodu retry edilmez. Cleanup thread-local mock kayıtlarını temizler.
+- `ApiTransport` internal registry default JDK client'larını connect timeout ile paylaşır; özel SSL profillerini test scope'unda tutar ve cleanup'ta shutdownNow ile kapatır. Profilde truststore ilk kullanımda yüklenir; parola hash/map anahtarı veya log'a yazılmaz. Çağrı hazırlığı SSL seçimini yakalar.
+- PKCS12/JKS özel truststore varsayılan trust anchor'larını değiştirir. İstek SSL seçimi YAML'ın tamamını override eder; aynı kapsamda trustAll + truststore geçersizdir. TrustAll peer leaf'i geçici trust anchor yapıp JDK X509ExtendedTrustManager'ın HTTPS endpoint identity doğrulamasına devreder; hostname kontrolü yoksa fail-closed. JVM SSL/global hostname ayarları değiştirilmez.
+- `api.connectTimeoutSeconds` 30; `api.timeoutSeconds` 30; `api.maxConcurrentRequests` 0 (sınırsız). `.requestTimeout(Duration)` ile `.timeout(int)` aynı request timeout'u ayarlar; son seçim kazanır. Read-idle timeout API'si yoktur.
+- Runtime genelindeki pozitif transport limiti fair semaphore ile gerçek HTTP gönderimlerini sınırlar. Mock permit kullanmaz, refresh/retry ayrı permit alır. Limit aktif scope'lar varken değiştirilemez. Permit bekleme cancellation ile kesilir; toplam süreye dahil, transport süresinden ayrıdır. Batch'in mantıksal concurrency limiti ayrıca korunur.
+- Test koşucu: sınıflar ayrı JVM'lerde (reuseForks=false); ortak durum kullanan driver registry, clock ve page knowledge testleri singleThreaded. Diğer sınıflarda method parallel korunur.
+- Çalıştırılabilir örnek: `ApiMockExamplesTest`; localhost ölçümü: `ApiTransportBenchmark`. TR/EN API Mocking, SSL Configuration ve Timeouts & Performance rehberleri sol menüdedir.
+
 ## İlgili Bağlantılar
 - WebUI Test Mimarisi: `[[wiki/webui-testing]]`
 - Hibrit Test: `[[wiki/api-webui-testing]]`

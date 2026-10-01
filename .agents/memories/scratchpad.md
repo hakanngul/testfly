@@ -1,25 +1,21 @@
 # TestFly — Güncel Durum (Scratchpad)
 
 ## Mevcut Durum
-- Maven sürümü: 1.0.7-SNAPSHOT; Java 21, JDK HTTP transport korunuyor.
-- Geliştirme development dalında. main commit/push yasak; her git işleminden önce dal kontrolü yapılır.
-- JDK 21 modernizasyonu, specialist ajan profilleri ve archify diyagramları önceki çalışmalarda tamamlandı.
+- Maven: 1.0.7-SNAPSHOT; Java 21 ve JDK HTTP transport korunuyor.
+- development dalı; main commit/push yasak. Her git işleminden önce dal kontrolü zorunlu.
+- Interceptor/doc konu ayrımı önceki f77bd59 commit’inde; API geliştirmeleri ve kalan değişiklikler kullanıcı isteğiyle development commit’ine kaydedildi; push/release yok.
 
-## API Interceptor Zinciri — 2026-10-01
-- Uygulandı: immutable ApiRequest, ApiInterceptor/Chain, ApiResponse builder; test/request kapsamlı kayıt, ardışık proceed ve sentetik yanıt.
-- Ortak sync/async pipeline, dış YAML retry, legacy hook uyumu, body snapshot/replay; cancellation ve kesilebilir backoff.
-- Virtual-thread runtime, test auth/cookie/context izolasyonu, batch semaphore ve lifecycle cleanup. Kapanmış teste geç rapor engellenir; gerçek request/cURL başlıkları maskelenir.
-- TR/EN rehber ve derlenen logging/refresh/mock/sync-async örnekleri eklendi. Yeni zorunlu bağımlılık/sürüm değişikliği yok; Kullanıcı isteğiyle development commit’i oluşturuldu; push yapılmadı.
-- Doğrulama: temiz API odaklı mvn clean verify (yerel GPG kapalı) 78 test, 0 hata; 30 yeni chain/execution testi dahil. Docusaurus npm run build EN/TR başarılı.
-- Tam paket yeşil değil: varsayılan mvn test takılması değişikliksiz HEAD'de de görüldü. Ayrı JVM'li geniş verify: 1348 test, 6 hata (driver registry/clock/page knowledge); driver/clock hataları HEAD'de yeniden üretildi. Page knowledge hatasının baseline tekrarı doğrulanmadı.
-- Mimari: [[wiki/api-testing]]; ayrıntı: [[memories/log]].
-
-## API Dokümantasyon Düzeni — 2026-10-01
-- API Testing rehberi TR/EN konu sayfalarına ayrıldı; Interceptor Zinciri sol menüde ayrı öğe. Başlangıç rehberi korunup konu bağlantıları eklendi.
+## API Geliştirmeleri — 2026-10-01
+- ApiMockRule: request/test kapsamı, ilk eşleşme, interceptor sonrası sentetik response. Snapshot, dış status retry, hook uyumu ve cleanup korunuyor.
+- SSL: PKCS12/JKS truststore, request override, opt-in trustAll. Hostname kontrolü JDK HTTPS identity ile korunur; eksik kimlik bağlamı fail-closed. JVM SSL ayarı değiştirilmez; özel profiller test kapanışında kapatılır.
+- Transport registry: default client paylaşımı, connectTimeoutSeconds=30; requestTimeout(Duration)/timeout(int) son seçim kazanır. maxConcurrentRequests=0 sınırsız, pozitif değer runtime fiziksel gönderimleri fair semaphore ile sınırlar; mock permit tüketmez. Aktif scope varken limit değiştirilemez.
+- Tam suite izolasyonu düzeltildi: sınıf başına ayrı JVM (4 fork); ortak durumlu registry/clock/page knowledge testleri singleThreaded. Eski timeout reflection testi Duration’a uyarlandı; assertion korunuyor.
+- Doğrulama: mvn test ve temiz verify (gpg.skip=true) başarılı; son temiz koşu 1360 test, 0 failure/error/skip. Yeni ApiFeaturesTest 11 test; çalıştırılabilir ApiMockExamplesTest 2 test ayrıca geçti. TR/EN npm run build başarılı.
+- Localhost benchmark 20 çağrıda tek TCP bağlantısı gözlemledi; ölçümler bilgilendirici, CI eşiği yok.
+- Yeni mandatory dependency veya sürüm artışı yok. Önceden mevcut kullanıcı değişiklikleri korundu.
 
 ## Sonraki Odak
-- Tam test paketinin izolasyon/koşucu sorunlarını ayrı görevde çözmek.
-- Kullanıcının raporlama talebi: HtmlReportGenerator/report-template thread-safe geliştirmeleri bekliyor.
+- Kullanıcının raporlama isteği: HtmlReportGenerator/report-template thread-safe geliştirmeleri bekliyor.
 
 ## Linkler
-[[MAP]] | [[rules/git-release-workflow]] | [[memories/log]]
+[[wiki/api-testing]] | [[MAP]] | [[rules/git-release-workflow]] | [[memories/log]]

@@ -43,3 +43,7 @@ public class UserApiTest extends BaseApiTest {
 - [Hybrid UI + API Tests](api-hybrid-tests.md)
 - [Logging & Reporting](api-reporting.md)
 - [Scenario & Suite Context](scenario-context.md)
+
+- [Client-side Mocking](api-mocking.md)
+- [SSL Configuration](api-ssl.md)
+- [Timeouts & Performance](api-performance.md)

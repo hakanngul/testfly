@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import static org.testng.Assert.*;
 
+@Test(singleThreaded = true)
 public class PageKnowledgeTest {
 
     private static final String LOGIN_URL = "https://www.stage.letsbet.de/tr/uyelik/giris";

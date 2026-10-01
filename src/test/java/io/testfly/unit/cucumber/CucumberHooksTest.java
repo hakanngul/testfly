@@ -7,7 +7,6 @@ import io.testfly.cucumber.CucumberContext;
 import io.testfly.cucumber.CucumberHooks;
 import io.testfly.driver.DriverManager;
 import io.testfly.internal.TestFlyContext;
-import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.recording.RecordingManager;
 import io.testfly.reporting.ScreenshotManager;
 import org.mockito.MockedStatic;
@@ -57,10 +56,14 @@ public class CucumberHooksTest {
 
     @AfterMethod
     public void tearDown() {
-        if (driverManagerMock != null) driverManagerMock.close();
-        if (recordingManagerMock != null) recordingManagerMock.close();
-        if (screenshotManagerMock != null) screenshotManagerMock.close();
-        if (frameworkBootstrapMock != null) frameworkBootstrapMock.close();
+        if (driverManagerMock != null)
+            driverManagerMock.close();
+        if (recordingManagerMock != null)
+            recordingManagerMock.close();
+        if (screenshotManagerMock != null)
+            screenshotManagerMock.close();
+        if (frameworkBootstrapMock != null)
+            frameworkBootstrapMock.close();
         CucumberContext.clear();
         TestFlyContext.clearCurrentTestId();
     }
@@ -107,7 +110,7 @@ public class CucumberHooksTest {
 
         File tempScreenshot = File.createTempFile("test_failure", ".png");
         tempScreenshot.deleteOnExit();
-        Files.write(tempScreenshot.toPath(), new byte[]{1, 2, 3});
+        Files.write(tempScreenshot.toPath(), new byte[] { 1, 2, 3 });
 
         screenshotManagerMock.when(() -> ScreenshotManager.capture(anyString()))
                 .thenReturn(tempScreenshot.getAbsolutePath());

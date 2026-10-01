@@ -25,6 +25,8 @@ You are an expert Java Test Automation Architect assisting with development and 
    Methods/classes with `@TestFlyApi` cannot have their names, return types, or parameter signatures modified. Always provide `default` methods when adding to existing `@TestFlyApi` interfaces.
 5. **NO Unmanaged Configuration:**
    Follow [`testfly.yml`](file:///testfly.yml) schema strictly. Support environment variable placeholders (`${VAR}`) and keep config objects immutable at runtime.
+6. **NO Direct Commit or Push to `main` (Protected Branch):**
+   Committing or pushing directly to `main` is **strictly forbidden**. `main` is a protected release branch. All active development, feature additions, fixes, commits, and pushes MUST target `development`. Always execute `git branch --show-current` before staging or committing any changes. If currently on `main`, stop immediately and switch to `development` (`git checkout development`).
 
 ---
 

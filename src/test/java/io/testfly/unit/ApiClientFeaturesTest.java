@@ -70,14 +70,14 @@ public class ApiClientFeaturesTest {
     @Test
     public void timeout_setsOverride() throws Exception {
         ApiClient client = ApiClient.get("/slow").timeout(120);
-        Integer timeout = getTimeoutOverride(client);
-        assertEquals(timeout, Integer.valueOf(120));
+        java.time.Duration timeout = getTimeoutOverride(client);
+        assertEquals(timeout, java.time.Duration.ofSeconds(120));
     }
 
     @Test
     public void timeout_notSet_returnsNull() throws Exception {
         ApiClient client = ApiClient.get("/fast");
-        Integer timeout = getTimeoutOverride(client);
+        java.time.Duration timeout = getTimeoutOverride(client);
         assertNull(timeout, "Timeout override should be null by default");
     }
 
@@ -212,9 +212,9 @@ public class ApiClientFeaturesTest {
         return (Map<String, String>) field.get(client);
     }
 
-    private Integer getTimeoutOverride(ApiClient client) throws Exception {
+    private java.time.Duration getTimeoutOverride(ApiClient client) throws Exception {
         Field field = ApiClient.class.getDeclaredField("timeoutOverride");
         field.setAccessible(true);
-        return (Integer) field.get(client);
+        return (java.time.Duration) field.get(client);
     }
 }

@@ -22,6 +22,7 @@ import static org.testng.Assert.*;
 /**
  * Unit tests for {@link TestClock} CDP persistence behavior.
  */
+@Test(singleThreaded = true)
 public class TestClockTest {
 
     private WebDriver mockDriver;

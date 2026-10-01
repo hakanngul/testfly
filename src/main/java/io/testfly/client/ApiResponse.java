@@ -87,6 +87,10 @@ public class ApiResponse {
         return newBuilder().request(value).build();
     }
 
+    ApiResponse asSynthetic(ApiRequest request) {
+        Builder builder = newBuilder(); builder.synthetic = true; return builder.request(request).build();
+    }
+
     @TestFlyApi(since = "1.1.0")
     public static final class Builder {
         private ApiRequest request;

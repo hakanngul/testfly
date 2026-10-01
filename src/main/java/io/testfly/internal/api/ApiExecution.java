@@ -35,6 +35,7 @@ public final class ApiExecution {
                 pending.clear();
             }
             SCOPES.remove(this);
+            ApiTransport.closeScope(this);
             // Future callbacks can execute application code: never invoke them under the scope monitor.
             for (CompletableFuture<?> future : calls) future.cancel(true);
         }
@@ -60,12 +61,14 @@ public final class ApiExecution {
     public static void cleanupTestContext() {
         closeScope();
         ApiClient.clearChainInterceptors();
+        ApiClient.clearMockRules();
         ApiClient.clearGlobalAuth();
         ApiClient.clearCookies();
     }
     public static synchronized void shutdown() {
         for (Scope scope : List.copyOf(SCOPES)) scope.close();
         CURRENT.remove();
+        ApiTransport.shutdown();
         if (executor != null) { executor.shutdownNow(); executor = null; }
     }
     private static synchronized ExecutorService executor() {

@@ -162,3 +162,71 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
   4. Subsystem specialist ajanları (`testfly_api`, `testfly_webui`, `testfly_load`, `testfly_reporting` vb.) entegre edildi.
   5. Kullanıcı isteğiyle Rimz 0.4.3 ve Ghostty 1.3.1 geliştirici yapılandırmaları yapıldı.
 - **Bağlantılar:** [[memories/scratchpad]], [[memories/log]], [[MAP]]
+
+## [2026-09-30] rule | Protected Main Branch & Pre-Flight Branch Check Kuralı Eklendi
+- **Eylem:** 
+  1. `main` dalına doğrudan `commit` ve `push` yapılması kesin ve tavizsiz olarak yasaklandı (Protected Main Branch).
+  2. Herhangi bir git commit/push öncesinde `git branch --show-current` çalıştırma ve `development` dalını doğrulama adımı anayasal kural haline getirildi.
+  3. `GEMINI.md` Strict Architectural Constraints (#6), `AGENTS.md` (CAUTION & Constitution), `.agents/rules/git-release-workflow.md`, `.agents/skills/testfly-workflow/SKILL.md` (Bölüm 6), `.agents/soul.md` ve `.agents/MAP.md` güncellendi.
+- **Bağlantılar:** [[rules/git-release-workflow]], [[AGENTS]], [[MAP]], [[soul]], [[memories/scratchpad]]
+
+
+## [2026-09-30] query | API Chain Interceptor Önerisi İncelendi
+- Mevcut ApiClient kaynak akışı incelendi: request/response hook’ları void; send() konfigürasyonlu retry içeriyor, sendAsync() bu retry döngüsünü kullanmıyor. HTTP 401 ApiResponse olarak dönüyor ve FAIL adımı loglanıyor; assertion ayrı.
+- Öneri: mevcut hook’ları koruyan ek chain API; immutable request snapshot, sentetik response factory, tekrarlı proceed için sabit downstream index, ortak sync/async politikası ve çağıran test context’inin taşınması. OAuth2 cache süre bazlı; 401 sonrası hedefli invalidation/refresh ayrıca gerekli. Retry/refresh sınırları ve body replay sözleşmesi belirlenmeli; mock/cache açık tercihle etkin olmalı.
+- Durum: mimari değerlendirme; framework kodu değiştirilmedi, test çalıştırılmadı.
+- Bağlantılar: [[wiki/api-testing]], [[memories/scratchpad]], [[MAP]]
+
+## [2026-09-30] query | API Özelliklerinin Gereklilik Değerlendirmesi
+- Baseline Java 21; framework zero-dependency değil, HTTP transport JDK tabanlı. Paylaşımlı HttpClient ve virtual-thread executor zaten mevcut.
+- Öncelik önerisi: sync/async context ve retry uyumu, ardından chain; client mock talebe göre, ikinci server motoru düşük öncelikli (WireMock optional mevcut).
+- Oracle Java 21 belgeleriyle doğrulandı: connectionPoolSize HTTP/1.1 idle-cache sınırıdır, aktif bağlantı sınırı değildir; keepalive JVM sistem ayarıdır, runtime System.setProperty garantisi yok. Native read-idle timeout ve HostnameVerifier builder metodu yok; SSLContext client düzeyinde. Truststore/özel CA desteği bypass öncesinde değerlendirilmeli.
+- Framework kodu değiştirilmedi; performans ölçümü veya test çalıştırılmadı.
+- Bağlantılar: [[wiki/api-testing]], [[memories/scratchpad]], [[MAP]]
+
+## [2026-09-30] query | HTTP/2 ve Apache HttpClient Sürüm Ayrımı
+- ApiClient java.net.http.HttpClient kullanıyor; pom.xml içinde doğrudan Apache httpclient/httpcore bağımlılığı yok. HTTP/2 protokol sürümü, Apache HttpClient 5.6 kütüphane sürümü; aralarında eski/yeni sürüm ilişkisi yok. JDK transport JDK güncellemeleriyle güncellenir. Apache geçişi ancak gelişmiş transport ihtiyaçlarıyla gerekçelendirilmeli; mevcut seçimin tarihsel nedeni araştırılmadı.
+- Kaynaklar: Oracle Java 21 HttpClient API ve Apache HttpClient 5.6 overview. Framework kodu değiştirilmedi.
+- Bağlantılar: [[wiki/api-testing]], [[memories/scratchpad]], [[MAP]]
+
+
+## [2026-10-01] implementation | API Interceptor Zinciri
+- development üzerinde immutable ApiRequest, ApiInterceptor/Chain ve sentetik ApiResponse builder eklendi. Request/test kapsamı, tekrar proceed, null/expired/cross-thread guard ve eski hook imzaları korundu.
+- Sync/async ortak snapshot pipeline; dış YAML retry, transport hata ayrımı, body replay, interrupt/cancellation, concurrent test cookie jar ve captured auth/log/retry bağlamı uygulandı. Batch semaphore, TestNG/JUnit5/Cucumber cleanup ve managed virtual-thread runtime entegre edildi.
+- Gerçek transport gönderimleri INFO, retry WARN ve yalnız nihai sonuç PASS/FAIL; süre, güncel URI/header ve maskeli cURL raporlanıyor. Sentetik yanıtlar işaretleniyor.
+- 30 yeni chain/execution testi ve derlenen kullanıcı örnekleri eklendi; localhost HttpServer smoke, refresh, replay, async izolasyon/cancellation ve batch sınırı doğrulandı. TR/EN API rehberi güncellendi.
+- Son temiz doğrulama: mvn -q clean verify -Dtest=ApiInterceptorChainTest,ApiInterceptorExecutionTest,ApiClientFeaturesTest,ApiResponseAdvancedTest,ApiResponseAssertionsTest -Dgpg.skip=true: 78 test, 0 failure/error. npm run build: EN/TR başarılı. src/docs diff whitespace kontrolü başarılı.
+- Tam suite teslim kriteri karşılanmadı: varsayılan mvn test takılması değişikliksiz HEAD snapshot'ında da görüldü. Ayrı JVM'lerle geniş verify 1348 test/6 failure (DriverProviderRegistryTest, TestClockTest, PageKnowledgeTest). Driver/clock hataları HEAD'de yeniden üretildi; PageKnowledge başarısızlığı baseline koşusunda tekrarlanmadı. Bu ilgisiz alanlar değiştirilmedi.
+- Yeni zorunlu dependency, version bump, commit, push veya release yok. Önceden mevcut kullanıcı değişiklikleri korundu.
+- Bağlantılar: [[wiki/api-testing]], [[memories/scratchpad]], [[MAP]]
+
+
+## [2026-10-01] docs | API Konu Sayfaları
+- API Testing tek sayfa içeriği TR/EN istekler, yanıtlar, polling, şema, hibrit, raporlama, interceptor ve async/batch sayfalarına taşındı. Başlangıç/BaseApiTest örneği mevcut URL üzerinde korundu; konu bağlantıları eklendi.
+- sidebars.js API kategorisine ayrı konu öğeleri eklendi; Interceptor Chain doğrudan erişilebilir. Authentication ve Scenario Context mevcut sayfalarında korundu. cURL için logCurl ayarı netleştirildi.
+- Bağlantılar: [[wiki/api-testing]], [[memories/scratchpad]], [[rules/docusaurus-workflow]]
+- Doğrulama: npm run build EN/TR başarılı; docs-site diff whitespace kontrolü temiz. development üzerinde çalışıldı; commit/push/yayın yapılmadı.
+
+
+## [2026-10-01] git | API Interceptor Commit
+- Kullanıcı commit istedi; development doğrulandı. API kaynak/test/örnek ve TR/EN konu dokümantasyonu sahneleniyor. Önceden mevcut kural değişiklikleri ve bağımsız CucumberHooksTest biçim değişikliği dışarıda tutuluyor. Version bump/push/release önceki kapsam gereği yapılmıyor.
+- Bağlantılar: [[memories/scratchpad]], [[wiki/api-testing]]
+- Commit oluşturuldu. GPG pinentry terminal hatası nedeniyle yalnız bu çağrıda commit.gpgsign=false kullanıldı; kalıcı git ayarları değiştirilmedi. Push yapılmadı.
+
+
+## [2026-10-01] implementation | API Mock, SSL ve Transport Geliştirmeleri
+- ApiMockRule immutable matcher/factory; request önce test kuralları, interceptor sonrası terminal değerlendirme, sentetik response, snapshot/async transfer ve lifecycle cleanup eklendi. Factory/predicate hataları retry edilmez; response hook/status retry korunur.
+- Internal ApiTransport registry default client paylaşımı ve test kapsamlı SSL profillerini yönetir. PKCS12/JKS özel truststore ve request override; opt-in trustAll peer leaf’i geçici trust anchor yapıp JDK HTTPS endpoint identity kontrolünü korur. Hostname uyuşmazlığı default/store/trustAll modlarında reddedildi. JVM SSL/global pool ayarları değiştirilmedi; parolalar log/cache anahtarına yazılmadı.
+- connectTimeoutSeconds, maxConcurrentRequests ve requestTimeout(Duration) eklendi. Runtime fair semaphore gerçek gönderimleri sınırlar, mock permit tüketmez; cancellation/interrupt permit bırakır, bekleme toplam süreye dahil edilir. Batch logical limit korunur.
+- Baseline mvn test takılması yeniden üretildi. Surefire sınıf izolasyonu reuseForks=false/forkCount=4 ile sağlandı; ortak durum kullanan driver registry, CDP clock ve page knowledge testleri singleThreaded yapıldı. Private timeout representation testi Duration’a güncellendi; test/assertion kapatılmadı.
+- Doğrulama: mvn test başarılı; mvn -q clean verify -Dgpg.skip=true başarılı (1360 test, 0 failure/error/skip). ApiFeaturesTest 11 test; mvn -q -Dtest=ApiMockExamplesTest test ile 2 çalıştırılabilir mock örneği ayrıca başarılı. npm run build EN/TR başarılı; src/docs/pom diff whitespace kontrolü temiz.
+- Localhost ApiTransportBenchmark main 20 çağrıda 1 TCP bağlantısı gözlemledi (yaklaşık 893.83 çağrı/s, p50 1.08ms, p95 1.22ms); yerel bilgilendirici sonuç, performans garantisi/CI eşiği değil.
+- TR/EN Mocking, SSL Configuration ve Timeouts & Performance sayfaları ile API sidebar güncellendi. Yeni zorunlu dependency, version bump, commit/push/release yok. Önceden mevcut kullanıcı kural/CucumberHooksTest değişiklikleri korunuyor.
+- Bağlantılar: [[wiki/api-testing]], [[memories/scratchpad]], [[rules/docusaurus-workflow]], [[MAP]]
+
+
+## [2026-10-01] git | Tüm Git Changes Development Commit
+- Kullanıcı tüm Git Changes dosyalarının commit edilmesini istedi. development doğrulandı; API mock/SSL/performans geliştirmeleri, TR/EN docs, test izolasyonu ve önceden kalan kural/test/hafıza değişiklikleri birlikte commit kapsamına alındı.
+- Önceki GPG pinentry terminal hatası nedeniyle yalnız commit çağrısında commit.gpgsign=false kullanılır; kalıcı ayarlar değiştirilmez. Push, release veya version bump yapılmaz.
+- Önceki doğrulama: temiz verify 1360 test/0 hata, mock örnekleri 2 test/0 hata, EN/TR docs build başarılı.
+- Bağlantılar: [[memories/scratchpad]], [[wiki/api-testing]], [[rules/git-release-workflow]]

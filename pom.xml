@@ -337,7 +337,11 @@
                 <configuration>
                     <argLine>-Dnet.bytebuddy.experimental=true --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
 
-                    <!-- Paralellik için ekle -->
+                    <!-- Isolate class-scoped static mocks and inherited framework listeners. -->
+                    <reuseForks>false</reuseForks>
+                    <forkCount>4</forkCount>
+
+                    <!-- Parallelize independent methods inside each fork. -->
                     <parallel>methods</parallel>
                     <threadCount>4</threadCount>
                     <perCoreThreadCount>true</perCoreThreadCount>

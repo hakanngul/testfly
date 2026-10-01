@@ -61,10 +61,7 @@ import java.util.stream.Collectors;
 public class ApiClient {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final HttpClient HTTP = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(30))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+
 
     /**
      * Thread-local global auth — applied to every request on this thread unless
@@ -167,7 +164,35 @@ public class ApiClient {
     }
 
     private ApiAuth auth;
-    private Integer timeoutOverride;
+    private Duration timeoutOverride;
+    private io.testfly.internal.api.ApiTransport.SslSelection sslOverride;
+    private boolean sslConflict;
+    private final List<ApiMockRule> mockRules = new ArrayList<>();
+    private static final ThreadLocal<List<ApiMockRule>> MOCK_RULES = ThreadLocal.withInitial(ArrayList::new);
+
+    @TestFlyApi(since = "1.1.0")
+    public static void addMockRule(ApiMockRule rule) { MOCK_RULES.get().add(Objects.requireNonNull(rule)); }
+    @TestFlyApi(since = "1.1.0")
+    public static void clearMockRules() { MOCK_RULES.remove(); }
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient mockRule(ApiMockRule rule) { mockRules.add(Objects.requireNonNull(rule)); return this; }
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient trustAllCerts() {
+        if (sslOverride != null && !sslOverride.trustAll()) sslConflict = true;
+        sslOverride = io.testfly.internal.api.ApiTransport.SslSelection.trustAllSelection(); return this;
+    }
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient trustStore(Path path, char[] password) { return trustStore(path, password, "PKCS12"); }
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient trustStore(Path path, char[] password, String type) {
+        if (sslOverride != null && sslOverride.trustAll()) sslConflict = true;
+        sslOverride = io.testfly.internal.api.ApiTransport.SslSelection.store(path, password, type); return this;
+    }
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient requestTimeout(Duration value) {
+        if (value == null || value.isZero() || value.isNegative()) throw new IllegalArgumentException("Positive request timeout required");
+        timeoutOverride = value; return this;
+    }
     private boolean cookiesEnabled;
 
     private ApiClient() {
@@ -288,8 +313,7 @@ public class ApiClient {
 
     /** Override the request timeout for this request only. */
     public ApiClient timeout(int seconds) {
-        this.timeoutOverride = seconds;
-        return this;
+        return requestTimeout(Duration.ofSeconds(seconds));
     }
 
     /** Add a query parameter (URL-encoded automatically). */
@@ -472,6 +496,7 @@ public class ApiClient {
             GLOBAL_AUTH.set(call.auth);
             COOKIE_JAR.set(call.cookies);
             CHAIN_INTERCEPTORS.set(new ArrayList<>(call.testInterceptors));
+            MOCK_RULES.set(new ArrayList<>(call.testMockRules));
             boolean acquired = false;
             try {
                 if (limit != null) { limit.acquire(); acquired = true; }
@@ -485,11 +510,13 @@ public class ApiClient {
                 GLOBAL_AUTH.remove();
                 COOKIE_JAR.remove();
                 CHAIN_INTERCEPTORS.remove();
+                MOCK_RULES.remove();
             }
         });
     }
 
     private Call prepare() {
+        if (sslConflict) throw new IllegalArgumentException("Conflicting SSL selection");
         if (GLOBAL_SPEC != null) GLOBAL_SPEC.applyToIfAbsent(this);
         ApiAuth effectiveAuth = auth != null ? auth : GLOBAL_AUTH.get();
         if (effectiveAuth != null) effectiveAuth.applyToClient(this);
@@ -514,16 +541,21 @@ public class ApiClient {
             exceptions = retry.isRetryOnException();
             if (attempts < 1 || backoff < 0) throw new IllegalArgumentException("Invalid API retry attempts/backoff");
         }
+        List<ApiMockRule> rules = new ArrayList<>(mockRules);
+        rules.addAll(MOCK_RULES.get());
+        ApiExecution.Scope scope = ApiExecution.scope();
+        var profile = io.testfly.internal.api.ApiTransport.prepare(scope, api, sslOverride);
         return new Call(request, effectiveAuth, COOKIE_JAR.get(), cookiesEnabled,
                 test, List.copyOf(all), List.copyOf(REQUEST_INTERCEPTORS), List.copyOf(RESPONSE_INTERCEPTORS),
-                attempts, backoff, statuses, exceptions, LogSettings.capture(api), ApiExecution.scope());
+                attempts, backoff, statuses, exceptions, LogSettings.capture(api), scope, List.copyOf(rules), List.copyOf(MOCK_RULES.get()), profile);
     }
 
     private record Call(ApiRequest request, ApiAuth auth, Map<String, String> cookies, boolean cookiesEnabled,
                         List<ApiInterceptor> testInterceptors, List<ApiInterceptor> interceptors,
                         List<RequestInterceptor> requestHooks, List<ResponseInterceptor> responseHooks,
                         int attempts, long backoff, List<Integer> retryStatuses, boolean retryExceptions,
-                        LogSettings logging, ApiExecution.Scope scope) {}
+                        LogSettings logging, ApiExecution.Scope scope, List<ApiMockRule> mockRules, List<ApiMockRule> testMockRules,
+                        io.testfly.internal.api.ApiTransport.Profile profile) {}
 
     private ApiResponse execute(Call call) {
         long started = System.nanoTime();
@@ -576,6 +608,9 @@ public class ApiClient {
 
     private ApiResponse transport(ApiRequest request, Call call, int[] exchanges) {
         ApiExecution.check(call.scope);
+        for (ApiMockRule rule : call.mockRules) {
+            if (rule.matches(request)) return rule.respond(request);
+        }
         HttpRequest.Builder builder = HttpRequest.newBuilder(request.toHttpRequest(), (k, v) -> true);
         if (call.cookiesEnabled && !call.cookies.isEmpty()) {
             builder.header("Cookie", call.cookies.entrySet().stream()
@@ -589,11 +624,17 @@ public class ApiClient {
         request.headers().keySet().forEach(sentBuilder::removeHeader);
         http.headers().map().forEach((k, values) -> values.forEach(v -> sentBuilder.addHeader(k, v)));
         ApiRequest sent = sentBuilder.build();
-        long started = System.nanoTime();
+        long started;
         int exchange = ++exchanges[0];
         try {
             ApiExecution.check(call.scope);
-            HttpResponse<String> raw = HTTP.send(http, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> raw;
+            try (var permit = io.testfly.internal.api.ApiTransport.acquire(call.profile, call.scope)) {
+                ApiExecution.check(call.scope);
+                io.testfly.internal.api.ApiTransport.warnTrustAll(call.profile, call.scope, http.uri());
+                started = System.nanoTime();
+                raw = call.profile.client().send(http, HttpResponse.BodyHandlers.ofString());
+            }
             ApiExecution.check(call.scope);
             if (call.cookiesEnabled) captureCookies(raw, call.cookies);
             ApiResponse response = new ApiResponse(raw, elapsed(started), sent.method(), sent.uri().toString()).withRequest(sent);
@@ -611,7 +652,7 @@ public class ApiClient {
 
     private static long elapsed(long start) { return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start); }
 
-    private ApiRequest buildRequest(String url, int timeout) throws Exception {
+    private ApiRequest buildRequest(String url, Duration timeout) throws Exception {
         byte[] bodyBytes = null;
         String bodyStr = null;
         String contentTypeOverride = null;
@@ -631,7 +672,7 @@ public class ApiClient {
         }
 
         ApiRequest.Builder builder = ApiRequest.builder().uri(URI.create(url))
-                .method(method).timeout(Duration.ofSeconds(timeout));
+                .method(method).timeout(timeout);
         boolean contentTypeSet = headers.keySet().stream().anyMatch(k -> k.equalsIgnoreCase("Content-Type"));
         if (!contentTypeSet && contentTypeOverride != null) builder.header("Content-Type", contentTypeOverride);
         else if (!contentTypeSet && bodyStr != null) builder.header("Content-Type", "application/json");
@@ -689,14 +730,14 @@ public class ApiClient {
         }
     }
 
-    private int resolveTimeout() {
+    private Duration resolveTimeout() {
         if (timeoutOverride != null)
             return timeoutOverride;
         try {
             TestFlyConfig.Api api = TestFlyContext.getConfig().getApi();
-            return api != null ? api.getTimeoutSeconds() : 30;
+            return Duration.ofSeconds(api != null ? api.getTimeoutSeconds() : 30);
         } catch (Exception e) {
-            return 30;
+            return Duration.ofSeconds(30);
         }
     }
 

@@ -131,3 +131,20 @@ When bumping the framework version (e.g., `1.0.0` -> `1.1.0`), update **all** oc
 5. `docs-site/docs/junit5.md`
 6. `docs-site/docs/changelog.md`
 7. `docs-site/src/pages/index.js`
+
+---
+
+## 6. Git Branching & Protected Main Policy
+
+- **Protected `main` Branch:** Committing or pushing directly to `main` is strictly forbidden.
+- **Active Branch:** All development, testing, fixes, and release preparation commits MUST occur on `development`.
+- **Pre-Flight Check:** Before any `git add`, `git commit`, or `git push`, always execute:
+  ```bash
+  git branch --show-current
+  ```
+  If on `main`, immediately checkout `development` (`git checkout development`).
+- **Push Target:** Always push exclusively to `origin/development`:
+  ```bash
+  git push origin development
+  ```
+

@@ -35,7 +35,7 @@ Ajan, token yakmamak için körlemesine arama yapmaz; önce bu haritaya bakar ve
 - `[[AGENTS]]` — Proje genel geliştirici/ajan anayasası, teknoloji yığını ve kod standartları.
 - `[[rules/memory-protocol]]` — "2 Yol & 3 Parça", hafıza döngüsü ve token tasarruf kuralları.
 - `[[rules/docusaurus-workflow]]` — docs-site için zorunlu `/docusaurus-config` skill, çift dil ve build kuralları.
-- `[[rules/git-release-workflow]]` — Körlemesine commit/push yasağı, SemVer sürüm soruları ve tag tabanlı sürüm politikası.
+- `[[rules/git-release-workflow]]` — `main` dalına commit/push yasağı (Protected Branch), pre-flight dal kontrolü ve sürüm politikası.
 
 ## 2. Kimlik ve Öz (Soul)
 - `[[soul]]` — Ajanın kimliği, kıdemi, kırmızı çizgileri ve çalışma yaklaşımı (Tek paragraf).
