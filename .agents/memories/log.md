@@ -230,3 +230,31 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
 - Önceki GPG pinentry terminal hatası nedeniyle yalnız commit çağrısında commit.gpgsign=false kullanılır; kalıcı ayarlar değiştirilmez. Push, release veya version bump yapılmaz.
 - Önceki doğrulama: temiz verify 1360 test/0 hata, mock örnekleri 2 test/0 hata, EN/TR docs build başarılı.
 - Bağlantılar: [[memories/scratchpad]], [[wiki/api-testing]], [[rules/git-release-workflow]]
+
+
+## [2026-10-01] review | Açık GitHub PR ve Merge Riski
+- GitHub plugin ile #27/#28/#29 incelendi; hepsi main hedefli, mevcut main karşısında mergeable=true fakat CI unstable. Uzak development 2922115; yerel f77bd59 ve 48b5840 henüz push edilmemiş.
+- git merge-tree dry-run: main dfbeff6 ile yerel HEAD temiz. #28 ile HEAD conflict: pom.xml, ApiClient, ApiBatchRunner, log/scratchpad. #29 ile HEAD conflict: ApiClient, ApiBatchRunner, log/scratchpad. PR28↔PR29 temiz. Branch checkout/merge/push yapılmadı.
+- Dependabot dalları development’taki API commit’inin eski 7334e04 varyantını taşıyor; sadece son commitleri pom Jackson 2.21.7 ve brace-expansion lockfile değişikliği. Güncellemeleri development tabanında yeniden hazırlamak/rebase edip testlemek önerildi. Mevcut dependabot.yml zaten development hedefli; eski PR’lar main hedefli kalmış.
+- #28/#29 Unit Tests logları: release version 21 not supported. #27 Unit Tests iptal; integration job’ları skipped. Yerel test başarısı GitHub’da henüz doğrulanmış değil.
+- GitHub branches/main protected=false, repository rulesets boş; AGENTS koruma kuralı platformda uygulanmıyor. #27 Codex P2 yorumu ReportAdapterRegistry ile LoadTestReportAdapter’ın ortak HTML dosyasına paralel yazma yarışı; mevcut kaynakta doğrulandı, çözülmedi.
+- Bağlantılar: https://github.com/hakanngul/testfly/pull/27 | https://github.com/hakanngul/testfly/pull/28 | https://github.com/hakanngul/testfly/pull/29 | [[memories/scratchpad]]
+
+## 2026-10-01 — PR cleanup ve main koruması
+- Kullanıcının açık yetkisiyle GitHub connector üzerinden eski tabanlı #28/#29 kapatıldı; #27 açık bırakıldı. Dependency güncellemeleri güncel development üzerinde yeniden hazırlanmalı.
+- Ego-browser TaskSpace 1/p1 üzerinde Protect main aktif ruleset formu hazırlandı (main hedefi, bypass yok, PR, 0 approval, conversation resolution, strict GitHub Actions Unit Tests, deletion/non-fast-forward engeli). Create işlemi GitHub Confirm access doğrulaması istedi; kayıt henüz oluşmadı (rulesets GET=[]). Kullanıcıdan tarayıcıda kimlik doğrulaması istendi; form açık tutuldu. Merge/push/commit yapılmadı.
+
+## 2026-10-01 — Main koruması tamamlandı
+- Kullanıcı GitHub Mobile doğrulamasını tamamladı. Protect main ruleset 24296278 kaydedildi; API enforcement=active, refs/heads/main, bypass_actors=[], current_user_can_bypass=never ve main protected=true doğrulandı. PR zorunlu; approval=0; tüm review thread’leri çözülmeli; GitHub Actions Unit Tests (integration 15368) strict/up-to-date zorunlu; deletion ve non_fast_forward engelli. #27 açık; #28/#29 kapalı. Merge/push/commit yapılmadı.
+
+## 2026-10-01 — #27 CI teşhisi
+- GitHub head 2922115; PR koşusu 36771442520 Unit Tests cancelled, integration skipped. Java 21.0.12 kurulmuş. TestNG GraphOrchestrator.setStatus:116 worker=null NPE çok sayıda worker’da; son test çıktısı 20:18, cancellation 02:16 (~6 saat). Surefire XML yok. Remote pom tek JVM methods parallel; yerel 48b5840 izolasyon düzeltmeleri push edilmemiş. Yeni CI gerekli; kod/commit/push yapılmadı.
+
+## 2026-10-01 — #27 CI rerun
+- Kullanıcı rerun/main merge istedi. GitHub connector rerun başarılı; yeni job 110306145802, run 36771442520. Checkout/Java geçti; Unit Tests in_progress. Head 2922115; yerel düzeltmeler push edilmemiş. Required check tamamlanmadığı için merge yapılmadı.
+
+## 2026-10-01 — #27 rerun takılma kontrolü
+- API ve browser: job 110306145802 Run unit tests, 1h32m sürüyor; PR head hâlâ 2922115. Canlı log endpoint BlobNotFound, UI log içeriği yüklenmedi; aynı NPE’nin bu koşuda tekrar ettiği doğrulanamadı. Önceki koşu worker=null NPE ardından 6 saat iptal. Açık review 4145160034: ReportAdapterRegistry paralel HtmlReportAdapter/LoadTestReportAdapter aynı dosyalara yazıyor. CI ve conversation çözülmeden merge yok.
+
+## 2026-10-01 — Development push
+- Kullanıcı tüm development değişikliklerini gönderme yetkisi verdi. Dal development; ürün kodu zaten f77bd59/48b5840 commitlerinde, kalan değişiklikler çalışma notları. Not commitinde GPG pinentry açılamadı; yalnız bu commit için imzalama kapatıldı. Normal origin/development push; sürüm artışı/main commit yok. Önceden test/verify/docs build başarılı.

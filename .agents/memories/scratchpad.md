@@ -9,10 +9,13 @@
 - ApiMockRule: request/test kapsamı, ilk eşleşme, interceptor sonrası sentetik response. Snapshot, dış status retry, hook uyumu ve cleanup korunuyor.
 - SSL: PKCS12/JKS truststore, request override, opt-in trustAll. Hostname kontrolü JDK HTTPS identity ile korunur; eksik kimlik bağlamı fail-closed. JVM SSL ayarı değiştirilmez; özel profiller test kapanışında kapatılır.
 - Transport registry: default client paylaşımı, connectTimeoutSeconds=30; requestTimeout(Duration)/timeout(int) son seçim kazanır. maxConcurrentRequests=0 sınırsız, pozitif değer runtime fiziksel gönderimleri fair semaphore ile sınırlar; mock permit tüketmez. Aktif scope varken limit değiştirilemez.
-- Tam suite izolasyonu düzeltildi: sınıf başına ayrı JVM (4 fork); ortak durumlu registry/clock/page knowledge testleri singleThreaded. Eski timeout reflection testi Duration’a uyarlandı; assertion korunuyor.
 - Doğrulama: mvn test ve temiz verify (gpg.skip=true) başarılı; son temiz koşu 1360 test, 0 failure/error/skip. Yeni ApiFeaturesTest 11 test; çalıştırılabilir ApiMockExamplesTest 2 test ayrıca geçti. TR/EN npm run build başarılı.
-- Localhost benchmark 20 çağrıda tek TCP bağlantısı gözlemledi; ölçümler bilgilendirici, CI eşiği yok.
-- Yeni mandatory dependency veya sürüm artışı yok. Önceden mevcut kullanıcı değişiklikleri korundu.
+
+## PR Yönetimi — 2026-10-01
+- GitHub #28/#29 eski taban/conflict nedeniyle kullanıcı yetkisiyle kapatıldı; güncellemeler development üzerinde yeniden hazırlanmalı. #27 açık; yerel API commit’leri development push kapsamında.
+- Main Protect main ruleset 24296278 ACTIVE; GitHub API protected=true. PR, GitHub Actions Unit Tests, up-to-date, conversation resolution, force-push/silme engeli; bypass yok (admin dahil), approval=0.
+
+- Kullanıcı tüm development değişikliklerinin push edilmesini istedi; f77bd59/48b5840 ve operasyon notları gönderilecek. #27 açık report adapter write race hâlâ çözülmeli; yeni CI izlenmeli.
 
 ## Sonraki Odak
 - Kullanıcının raporlama isteği: HtmlReportGenerator/report-template thread-safe geliştirmeleri bekliyor.
