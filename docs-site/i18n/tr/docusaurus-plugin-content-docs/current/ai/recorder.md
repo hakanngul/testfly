@@ -6,6 +6,11 @@ sidebar_position: 3
 description: Google Chrome üzerinde canlı kullanıcı etkileşimlerini kaydedin; temiz, üretime hazır TestFly Java testleri ve Page Object sınıfları üretin.
 ---
 
+:::info Tarihsel uygulama — güncel mimari tarafından değiştirildi (2026-10-04)
+Bu sayfa önceki Python/Selenium recorder tasarımını korur. Güncel [Node bridge kaynağı](https://github.com/hakanngul/testfly-mcp/blob/main/bin/testfly-mcp.js) altı MCP aracı ile `init`, `--version` ve `--help` sunar; `testfly studio`, `testfly ui` veya `testfly record` komutlarını içermez. Aşağıdaki komutlar, port davranışları ve araç sayıları tarihsel uygulamayı anlatır. Güncel kaynak kurulumu için [MCP Bridge & CLI](/docs/cli), mimari için [MCP mimarisi](/docs/ai/testfly-mcp) sayfasını izleyin.
+:::
+
+
 # İnteraktif Kaydedici & Chrome Companion
 
 **TestFly İnteraktif Kaydedici (Interactive Recorder)**, gerçek kullanıcı tarayıcı etkileşimlerini doğrudan üretime hazır Java test otomasyon koduna dönüştüren canlı bir refakatçi stüdyosudur.

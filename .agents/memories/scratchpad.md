@@ -1,21 +1,18 @@
 # TestFly — Güncel Durum (Scratchpad)
 
 ## Mevcut Durum
-- Maven: 1.0.7-SNAPSHOT; Java 21 ve JDK HTTP transport korunuyor.
-- development dalı; main commit/push yasak. Her git işleminden önce dal kontrolü zorunlu.
-- Interceptor/doc konu ayrımı önceki f77bd59 commit’inde; API geliştirmeleri ve kalan değişiklikler kullanıcı isteğiyle development commit’ine kaydedildi; release yok.
+- Yerel pom: io.github.hakanngul:testfly:1.0.7; Java21/JDK HTTP. development doğrulandı; main commit/push yasak.
+- Interceptor/mock/SSL/timeout/concurrency tamamlandı. Report race 44a0403 ile push; önceki 1361 test sonucu tarihsel.
 
-## API Geliştirmeleri — 2026-10-01
-- ApiMockRule: request/test kapsamı, ilk eşleşme, interceptor sonrası sentetik response. Snapshot, dış status retry, hook uyumu ve cleanup korunuyor.
-- SSL: PKCS12/JKS truststore, request override, opt-in trustAll. Hostname kontrolü JDK HTTPS identity ile korunur; eksik kimlik bağlamı fail-closed. JVM SSL ayarı değiştirilmez; özel profiller test kapanışında kapatılır.
-- Transport registry: default client paylaşımı, connectTimeoutSeconds=30; requestTimeout(Duration)/timeout(int) son seçim kazanır. maxConcurrentRequests=0 sınırsız, pozitif değer runtime fiziksel gönderimleri fair semaphore ile sınırlar; mock permit tüketmez. Aktif scope varken limit değiştirilemez.
-- Doğrulama: mvn test ve temiz verify (gpg.skip=true) başarılı; son temiz koşu 1360 test, 0 failure/error/skip. Yeni ApiFeaturesTest 11 test; çalıştırılabilir ApiMockExamplesTest 2 test ayrıca geçti. TR/EN npm run build başarılı.
+## Docs Denetimi & Düzeltmeler — 2026-10-04
+- 2026-10-04 tarihli Docs audit raporu üzerinden düzeltmeler (EN+TR) uygulandı (Commit/push atılmadı).
+- **Koordinat/Sürüm:** Tüm sayfalarda `io.testfly` yerine `io.github.hakanngul:testfly` kullanıldı. Central sürümü olan yerler `1.0.4` bırakıldı ve Central uyarısı eklendi. Load test modülü sonradan (1.0.5) eklendiği için `loadtest/getting-started` sayfasında `1.0.7` (local install) olarak bırakıldı.
+- **API ve Kod Düzeltmeleri:** `why-waitengine`, `infinite-scroll`, `oauth-sso` için `WaitEngine` API uyumsuzlukları giderildi. `report-adapters` içindeki IOException durumu ve `Allure` page'indeki label hataları çözüldü. OpenApiValidator'daki (URL ve Content-Type eksikliği) bug tespit edildi, workaround eklendi (Kod düzeltmesi henüz yapılmadı). `LoadScenario.assertStatus` içindeki !=200 durumu için potansiyel bug not edildi.
+- **Config & CI:** Yeni `api.*` değerleri eklendi, hatalı CI overrides (`TESTFLY_HEADLESS`) düzeltildi.
+- **Eksik TR Sayfalar:** allure, bitbucket, docker-k8s, from-restassured TR dosyaları yazıldı. `loadtest/distributed-docker-k8s` İngilizce ve Türkçe olarak hatalı iddialardan (100K RPS, reportportal live streaming) arındırıldı.
 
-## PR Yönetimi — 2026-10-01
-- #28/#29 kapatıldı. #27 development→main; API commitleri 5e12d2f ile push edildi, GitHub unit/integration kontrolleri başarılı.
-- Main ruleset 24296278 aktif: PR, strict GitHub Actions Unit Tests, conversation resolution, force-push/silme engeli; bypass yok, approval=0.
-- Açık P2 report write race düzeltildi: ReportAdapterRegistry.generateAll synchronized, adapter’lar snapshot kayıt sırasıyla caller thread’de çalışır; hata izolasyonu korunur. Regresyon testi shared-output write/read sırasını doğrular.
-- İlgili raporlama testleri ve tam mvn test başarılı. Düzeltme development commit/push kapsamında; review PRRT_kwDOUBZN7c6njS4- çözülüp yeni CI izlenecek. Sürüm/release yok.
+## Yeni Ajan Yeteneği (Skill) — testfly-test-authoring
+- Ajanların TestFly'ı kullanarak WebUI, API, TestNG, JUnit 5, Cucumber ve Load testleri yazabilmesi için `testfly-test-authoring` skill'i eklendi (Plan üzerinden 6 java dosya örneği kaynak koda göre doğrulanarak oluşturuldu). SKILL.md kararlar, kurallar ve checklist içeriyor.
 
 ## Linkler
-[[wiki/api-testing]] | [[MAP]] | [[rules/git-release-workflow]] | [[memories/log]]
+[[MAP]] | [[wiki/api-testing]] | [[memories/log]] | [[skills/testfly-test-authoring/SKILL]]

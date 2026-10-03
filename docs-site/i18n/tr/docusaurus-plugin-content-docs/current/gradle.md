@@ -7,6 +7,10 @@ sidebar_position: 3
 
 # Gradle Derleme Desteği
 
+:::note Yayımlanmış sürüm ve development
+Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests -Dgpg.skip=true` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
+:::
+
 TestFly, kutudan çıktığı gibi Gradle ile çalışır — Maven Central'daki JAR, derleme aracından bağımsızdır. Bu sayfa, hem Groovy DSL (`build.gradle`) hem Kotlin DSL (`build.gradle.kts`) için önerilen kurulumu kapsar.
 
 ---
@@ -29,7 +33,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.testfly:testfly:2.6.0'
+    testImplementation 'io.github.hakanngul:testfly:2.6.0'
 }
 ```
 
@@ -46,7 +50,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation("io.testfly:testfly:2.6.0")
+    testImplementation("io.github.hakanngul:testfly:2.6.0")
 }
 ```
 
@@ -112,7 +116,7 @@ tasks.test {
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:2.6.0'
+    testImplementation 'io.github.hakanngul:testfly:2.6.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
 }
@@ -128,7 +132,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.testfly:testfly:2.6.0")
+    testImplementation("io.github.hakanngul:testfly:2.6.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
 }
@@ -274,7 +278,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.testfly:testfly:2.6.0'
+    testImplementation 'io.github.hakanngul:testfly:2.6.0'
 }
 
 test {

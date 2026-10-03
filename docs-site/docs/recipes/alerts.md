@@ -7,6 +7,8 @@ sidebar_label: Alerts
 
 # Handle alerts
 
+The snippets below run in `BaseTest` using `getWait().until(alertIsPresent())`. The short `acceptAlert`/`dismissAlert` helpers are protected `BasePage` methods; use them inside a page object.
+
 Browser alerts (`alert()`, `confirm()`, `prompt()`) block the WebDriver command queue. You cannot interact with the page until the alert is dismissed. TestFly's `BasePage` helpers wait for the alert to appear, then accept, dismiss, read, or type into it — all in one call.
 
 ---
@@ -25,7 +27,7 @@ public class DeleteTest extends BaseTest {
         find("#delete-account").click();
 
         // Clicks OK on the browser confirm()
-        acceptAlert();
+        getWait().until(org.openqa.selenium.support.ui.ExpectedConditions.alertIsPresent()).accept();
 
         assertThat(find("#toast")).hasText("Account deleted");
     }
@@ -38,7 +40,7 @@ public class DeleteTest extends BaseTest {
 
 ```java
 find("#cancel-order").click();
-dismissAlert();   // clicks Cancel — keeps the order
+getWait().until(org.openqa.selenium.support.ui.ExpectedConditions.alertIsPresent()).dismiss();   // clicks Cancel — keeps the order
 ```
 
 ---
@@ -47,15 +49,20 @@ dismissAlert();   // clicks Cancel — keeps the order
 
 ```java
 find("#submit").click();
-String message = getAlertText();
+org.openqa.selenium.Alert alert = getWait().until(
+    org.openqa.selenium.support.ui.ExpectedConditions.alertIsPresent());
+String message = alert.getText();
 softAssert().that(message.equals("Are you sure you want to submit?"), "Alert text should match");
-acceptAlert();
+getWait().until(org.openqa.selenium.support.ui.ExpectedConditions.alertIsPresent()).accept();
 ```
 
 Or accept and capture the text in one step:
 
 ```java
-String message = getAndAcceptAlert();
+org.openqa.selenium.Alert alert = getWait().until(
+    org.openqa.selenium.support.ui.ExpectedConditions.alertIsPresent());
+String message = alert.getText();
+alert.accept();
 softAssert().that(message.equals("Item added to cart"), "Alert text should match");
 ```
 
@@ -65,7 +72,10 @@ softAssert().that(message.equals("Item added to cart"), "Alert text should match
 
 ```java
 find("#rename").click();
-typeInAlert("new-name");   // types and clicks OK
+org.openqa.selenium.Alert alert = getWait().until(
+    org.openqa.selenium.support.ui.ExpectedConditions.alertIsPresent());
+alert.sendKeys("new-name");
+alert.accept();   // types and clicks OK
 ```
 
 ---

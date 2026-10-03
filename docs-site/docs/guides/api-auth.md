@@ -45,20 +45,22 @@ The framework sends a `POST` with `grant_type=client_credentials` and caches the
 
 ---
 
-## Global Auth — Set Once, Use Everywhere
+## Global Auth — Set for Each Test
 
-Set auth once in `@BeforeSuite` and every subsequent request on that thread automatically includes it. No `.auth()` call needed on each request.
+Set auth for each test in `@BeforeMethod`; subsequent requests in that test include it. Global auth is thread-local and is cleared at test cleanup. It is not suite-wide; parallel tests must each install their own auth. No `.auth()` call is needed on each request.
 
 ```java
 import io.testfly.test.BaseApiTest;
 import io.testfly.client.ApiAuth;
 import io.testfly.client.ApiClient;
-import org.testng.annotations.BeforeSuite;
+import io.testfly.client.ApiResponse;
+import java.util.Map;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class UserApiTest extends BaseApiTest {
 
-    @BeforeSuite
+    @BeforeMethod
     public void authenticate() {
         ApiResponse login = ApiClient.post("/api/auth/login")
                 .body(Map.of("username", "admin", "password", "pass"))

@@ -109,6 +109,15 @@ module.exports = function createConfig() {
       /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
       ({
         image: 'img/logo.svg',
+        announcementBar: {
+          id: 'development-docs-version',
+          content: currentLocale === 'tr'
+            ? 'Bu belgeler development (1.0.7) kodunu kapsar. Maven Central sürümü: 1.0.4. <a href="/testfly/docs/getting-started">Kurulum ve sürüm farkları</a>.'
+            : 'These docs cover development (1.0.7). Maven Central release: 1.0.4. <a href="/testfly/docs/getting-started">Setup and version differences</a>.',
+          backgroundColor: '#172554',
+          textColor: '#ffffff',
+          isCloseable: false,
+        },
         colorMode: {
           defaultMode: 'light',
           disableSwitch: false,

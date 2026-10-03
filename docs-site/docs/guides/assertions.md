@@ -24,8 +24,8 @@ Traditional assertions (like TestNG `Assert.assertTrue(el.isDisplayed())` or JUn
 
 TestFly's `assertThat()`:
 1. **Auto-retries** during the configured `timeouts.explicit` (default 10s).
-2. **Logs each step** automatically into [`StepLogger`](file:///src/main/java/io/testfly/steps/StepLogger.java) and surfaces it in the HTML report.
-3. **Works seamlessly** with both Selenium [`By`](file:///src/main/java/io/testfly/assertion/SeleniumAssert.java#L35) and fluent [`Locator`](file:///src/main/java/io/testfly/assertion/SeleniumAssert.java#L43) instances (`$()`, `getByRole()`, etc.).
+2. **Logs each step** automatically into [`StepLogger`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/steps/StepLogger.java) and surfaces it in the HTML report.
+3. **Works seamlessly** with both Selenium [`By`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/assertion/SeleniumAssert.java) and fluent [`Locator`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/locator/Locator.java) instances (`$()`, `getByRole()`, etc.).
 
 ---
 

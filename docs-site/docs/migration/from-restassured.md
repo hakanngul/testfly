@@ -10,7 +10,7 @@ sidebar_position: 6
 
 If your team uses **REST Assured**, you are familiar with fluent HTTP request builders and JsonPath validation. 
 
-TestFly's built-in **`ApiClient`** and **`BaseApiTest`** provide the same testing power — without pulling in Apache HTTP Client, Groovy, Hamcrest, or heavy transitive dependency trees. Moreover, TestFly seamlessly integrates API tests into the same HTML report, execution hooks, and scenario context as your WebUI tests.
+TestFly's built-in **`ApiClient`** and **`BaseApiTest`** provide a fluent alternative for status, JSON and schema assertions — without pulling in Apache HTTP Client, Groovy, Hamcrest, or heavy transitive dependency trees. Moreover, TestFly seamlessly integrates API tests into the same HTML report, execution hooks, and scenario context as your WebUI tests.
 
 ---
 
@@ -19,10 +19,10 @@ TestFly's built-in **`ApiClient`** and **`BaseApiTest`** provide the same testin
 | Capability | REST Assured | TestFly ApiClient |
 |---|---|---|
 | **Underlying Engine** | Apache HttpClient + Groovy runtime | Modern JDK `java.net.http.HttpClient` |
-| **Dependencies** | ~20+ transitive JARs (Groovy, Hamcrest, etc.) | Zero extra dependencies (bundled in TestFly) |
+| **Dependencies** | REST Assured dependencies (Groovy, Hamcrest, etc.) | JDK HTTP transport; JSON Schema validation uses an optional dependency |
 | **Hybrid UI + API** | Requires manual glue code / thread locals | Built-in `ScenarioContext` & cookie injection |
 | **Reporting** | Third-party plugins required | Native `StepLogger` + cURL command in HTML report |
-| **Configuration** | Static setup code per test class | Centralized `testfly.yml` with named services |
+| **Configuration** | Static setup code per test class | Centralized `testfly.yml` with named auth profiles |
 
 ---
 
@@ -97,7 +97,7 @@ given().get("/products/1")
 // TestFly ApiClient
 apiClient().get("/products/1")
     .send()
-    .assertMatchesSchema("schemas/product.json");
+    .assertSchema("schemas/product.json");
 ```
 
 ---

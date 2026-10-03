@@ -219,7 +219,7 @@ public final class LoadScenario {
      * Runs the scenario and asserts all responses returned the given status code.
      */
     public LoadTestAssert assertStatus(int expected) {
-        return run().assertNoStatus(expected == 200 ? 500 : expected);
+        return run().assertStatus(expected);
     }
 
     /**

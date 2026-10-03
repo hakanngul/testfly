@@ -29,13 +29,19 @@ public class OrdersPage extends BasePage {
     }
 
     private String cellByRowText(By table, String rowKey, String columnName) {
-        WebElement tableEl = find(table).first();
+        WebElement tableEl = find(table).first().element();
 
         // Map header text to column index
+        java.util.List<WebElement> headers = tableEl.findElements(By.tagName("th"));
         int columnIndex = -1;
-        for (WebElement th : tableEl.findElements(By.tagName("th"))) {
-            columnIndex++;
-            if (th.getText().trim().equals(columnName)) break;
+        for (int i = 0; i < headers.size(); i++) {
+            if (headers.get(i).getText().trim().equals(columnName)) {
+                columnIndex = i;
+                break;
+            }
+        }
+        if (columnIndex < 0) {
+            throw new AssertionError("Column not found: " + columnName);
         }
 
         // Find the row whose first cell (or any cell) contains rowKey

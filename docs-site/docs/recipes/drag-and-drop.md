@@ -28,8 +28,8 @@ public class BoardTest extends BaseTest {
     public void movesCardToDone() {
         open("/board");
 
-        WebElement card = find("#card-42").first();
-        WebElement doneColumn = find("#done").first();
+        WebElement card = find("#card-42").first().element();
+        WebElement doneColumn = find("#done").first().element();
 
         new Actions(getDriver())
             .dragAndDrop(card, doneColumn)
@@ -48,7 +48,7 @@ public class BoardTest extends BaseTest {
 Use this when the drop target is a coordinate region rather than an element, or when you need to drag part-way:
 
 ```java
-WebElement card = find("#card-42").first();
+WebElement card = find("#card-42").first().element();
 
 new Actions(getDriver())
     .clickAndHold(card)
@@ -73,8 +73,8 @@ import org.openqa.selenium.WebElement;
 public class BoardPage extends BasePage {
 
     public void dragAndDropJs(By sourceLocator, By targetLocator) {
-        WebElement source = find(sourceLocator).first();
-        WebElement target = find(targetLocator).first();
+        WebElement source = find(sourceLocator).first().element();
+        WebElement target = find(targetLocator).first().element();
 
         String script =
             "function createEvent(typeOfEvent) {" +

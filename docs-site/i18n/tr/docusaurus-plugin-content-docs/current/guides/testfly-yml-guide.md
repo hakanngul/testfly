@@ -139,11 +139,11 @@ Tek bir temel dosya tutun ve ortam başına geçersiz kılmalar oluşturun:
 
 ```text
 testfly.yml            # base config
-testfly-staging.yml    # staging overrides
-testfly-ci.yml         # CI overrides
+testfly-staging.yml    # complete staging config
+testfly-ci.yml         # complete CI config
 ```
 
-Profil dosyasında bulunan alanlar yalnızca değiştirilir; diğer her şey temel yapılandırmadan miras alınır.
+Profil, tam yapılandırma olarak `testfly-<profil>.yml` dosyasını seçer. `testfly.yml` ile birleştirme yapılmaz; belirtilmeyen isteğe bağlı alanlar framework varsayılanını kullanır. Her profilde zorunlu ayarları tanımlayın.
 
 Bir profili şu şekilde etkinleştirin:
 
@@ -161,6 +161,8 @@ browser:
     - --disable-dev-shm-usage
 
 execution:
+  mode: local
+  baseUrl: https://www.saucedemo.com/
   parallel: methods
   threadCount: 8
   maxActiveSessions: 8
@@ -185,14 +187,13 @@ execution:
 execution:
   mode: browserstack
   baseUrl: https://www.saucedemo.com/
-
-browserstack:
-  username: ${BS_USER}
-  accessKey: ${BS_KEY}
-  os: Windows
-  osVersion: "11"
-  browser: chrome
-  browserVersion: latest
+  browserstack:
+    username: ${BS_USER}
+    accessKey: ${BS_KEY}
+    os: Windows
+    osVersion: "11"
+    browser: chrome
+    browserVersion: latest
 ```
 
 ### Geliştirme sırasında hızlı geri bildirim için retry'ı devre dışı bırakma

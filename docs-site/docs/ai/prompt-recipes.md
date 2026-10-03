@@ -8,24 +8,26 @@ description: Ready-to-use prompt templates for generating TestFly Page Objects, 
 
 # AI Prompt Recipes for TestFly
 
-Use these tested prompt templates with **JetBrains AI Assistant**, **Claude Code**, or **GitHub Copilot** to produce clean, compilable, and idiomatic TestFly Java test automation code.
+Use these prompt templates with **JetBrains AI Assistant**, **Claude Code**, or **GitHub Copilot** to produce clean, compilable, and idiomatic TestFly Java test automation code.
+
+These prompts guide an assistant; generated code still needs compilation and a run against your application. Tool names depend on the MCP server you installed; use `generate_testfly_code` only when that bridge is configured.
 
 ---
 
 ## The Golden Rule for AI Prompting
 
 > **Always instruct the AI to drive the browser first.**
-> Ask the AI assistant to navigate to the target URL, inspect the real DOM elements via TestFly MCP tools, and call the `generate_*` codegen tools. Never ask the AI to write Java locators from imagination.
+> Ask the AI assistant to navigate to the target URL, inspect the real DOM elements via configured browser MCP tools, and call the `generate_testfly_code` codegen tools. Never ask the AI to write Java locators from imagination.
 
 ---
 
 ## Recipe 1: Page Object Model (`BasePage`)
 
-Use this prompt to generate a Page Object adhering to TestFly v1.0.0 conventions:
+Use this prompt to generate a Page Object adhering to TestFly Java 21 conventions:
 
 ```text
 Navigate to https://www.saucedemo.com.
-Inspect the login form elements using TestFly MCP tools (preferring accessibility attributes).
+Inspect the login form elements using configured browser MCP tools (preferring accessibility attributes).
 Generate a TestFly Page Object named 'LoginPage' in package 'io.testfly.examples.pages' extending BasePage.
 Include fluent action methods for entering username, password, and clicking the login button.
 ```
@@ -34,29 +36,29 @@ Include fluent action methods for entering username, password, and clicking the 
 ```java
 package io.testfly.examples.pages;
 
-import io.testfly.core.BasePage;
-import io.testfly.locators.Role;
+import io.testfly.test.BasePage;
+import io.testfly.locator.Role;
 import org.openqa.selenium.By;
 
 public class LoginPage extends BasePage {
 
-    public LoginPage open() {
+    public LoginPage openLogin() {
         super.open("https://www.saucedemo.com");
         return this;
     }
 
     public LoginPage enterUsername(String username) {
-        find(getByPlaceholder("Username")).fill(username);
+        getByPlaceholder("Username").type(username);
         return this;
     }
 
     public LoginPage enterPassword(String password) {
-        find(getByPlaceholder("Password")).fill(password);
+        getByPlaceholder("Password").type(password);
         return this;
     }
 
     public void clickLogin() {
-        find(getByRole(Role.BUTTON, "Login")).click();
+        getByRole(Role.BUTTON, "Login").click();
     }
 }
 ```
@@ -79,7 +81,7 @@ Write a TestFly TestNG test for SauceDemo login:
 ```java
 package io.testfly.examples.testng;
 
-import io.testfly.core.BaseTest;
+import io.testfly.test.BaseTest;
 import io.testfly.examples.pages.LoginPage;
 import org.openqa.selenium.By;
 import org.testng.annotations.Test;
@@ -91,7 +93,7 @@ public class SauceDemoLoginTest extends BaseTest {
     @Test(description = "Verify successful login to SauceDemo inventory")
     public void testSuccessfulLogin() {
         new LoginPage()
-            .open()
+            .openLogin()
             .enterUsername("standard_user")
             .enterPassword("secret_sauce")
             .clickLogin();

@@ -98,7 +98,7 @@ Here is an example demonstrating `retain-on-failure` behavior in TestNG:
 ```java
 package io.testfly.examples.testng;
 
-import io.testfly.core.BaseTest;
+import io.testfly.test.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -107,8 +107,8 @@ public class WebUiRecordingExampleTest extends BaseTest {
     @Test(description = "Passing test: Video recording is discarded automatically")
     public void successfulLoginTest() {
         open("https://www.saucedemo.com/");
-        $("#user-name").val("standard_user");
-        $("#password").val("secret_sauce");
+        $("#user-name").type("standard_user");
+        $("#password").type("secret_sauce");
         $("#login-button").click();
         
         Assert.assertTrue(getDriver().getCurrentUrl().contains("inventory.html"),
@@ -119,8 +119,8 @@ public class WebUiRecordingExampleTest extends BaseTest {
     @Test(description = "Failing test: Video recording is compiled and embedded in reports")
     public void failingCheckoutTest() {
         open("https://www.saucedemo.com/");
-        $("#user-name").val("standard_user");
-        $("#password").val("secret_sauce");
+        $("#user-name").type("standard_user");
+        $("#password").type("secret_sauce");
         $("#login-button").click();
 
         // Deliberate failure:

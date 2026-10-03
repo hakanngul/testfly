@@ -7,6 +7,10 @@ sidebar_position: 3
 
 # Gradle Build Support
 
+:::note Published release and development
+The verified Maven Central release is `io.github.hakanngul:testfly:1.0.4`. The installation examples below use that release. This checkout is version `1.0.7`; new development features may not exist in the published artifact. To use the current source, run `mvn clean install -DskipTests -Dgpg.skip=true` from the TestFly repository root and set your consumer dependency version to `1.0.7`. Do not assume `1.0.7` is available on Central.
+:::
+
 TestFly works with Gradle out of the box — the JAR on Maven Central is build-tool-agnostic. This page covers the recommended setup for both Groovy DSL (`build.gradle`) and Kotlin DSL (`build.gradle.kts`).
 
 ---
@@ -29,7 +33,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.0'
+    testImplementation 'io.github.hakanngul:testfly:1.0.4'
 }
 ```
 
@@ -46,7 +50,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation("io.testfly:testfly:1.0.0")
+    testImplementation("io.github.hakanngul:testfly:1.0.4")
 }
 ```
 
@@ -112,7 +116,7 @@ If you're using `BaseJUnit5Test` or `@EnableTestFly`:
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.0'
+    testImplementation 'io.github.hakanngul:testfly:1.0.4'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
 }
@@ -128,7 +132,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.testfly:testfly:1.0.0")
+    testImplementation("io.github.hakanngul:testfly:1.0.4")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
 }
@@ -274,7 +278,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.0'
+    testImplementation 'io.github.hakanngul:testfly:1.0.4'
 }
 
 test {

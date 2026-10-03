@@ -244,6 +244,15 @@ Profiles are activated with `-Dtestfly.profile=<name>` and load `testfly-<name>.
 
 ---
 
+## Shared Agent and Product Context
+
+`AGENTS.md` is the single entry point for coding-agent instructions, including Gemini/Antigravity. Consult the linked rules and skills rather than maintaining separate tool-specific copies.
+
+- Follow the `testfly.yml` schema and `${VAR}` environment placeholders. Treat loaded configuration as immutable during execution; use framework APIs for scoped overrides.
+- TestFly serves QA engineers, SDETs, and Java automation teams in local, CI, Grid, and cloud environments. Preserve direct access to Selenium primitives and prefer convention over boilerplate.
+- Public documentation and HTML reports should use clear, practical language and meet WCAG AA contrast, keyboard navigation, and semantic markup requirements. Visual rules live in [DESIGN.md](DESIGN.md).
+- For real-backend integration checks use `mvn verify -Preal-backends`; for the optional quality gate use `mvn clean verify -Pquality`. These are separate from browser-free unit tests.
+
 ## Code Style Guidelines
 
 - **No enforced formatter** — follow the style already present in the file you are editing.

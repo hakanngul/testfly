@@ -64,7 +64,7 @@ load("/api/payments")
     .assertNoStatus(503)                 // No Service Unavailable
     .assertNoStatus(504)                 // No Gateway Timeout
     .assertNoStatus(429)                 // No Too Many Requests
-    .assertStatusCodeCount(200, 1000);   // Exactly 1,000 OK responses
+    .assertStatusCodeCount(200, 1000);   // At least 1,000 OK responses
 ```
 
 ---
@@ -73,18 +73,33 @@ load("/api/payments")
 
 In multi-step scenarios, you can assert against individual steps by name:
 
-```java
-LoadScenario flow = LoadScenario.named("Checkout Flow")
-    .step("Login", req -> req.post("/api/login").body("..."))
-    .step("Process Payment", req -> req.post("/api/pay").body("..."));
 
-load(flow)
-    .users(15)
-    .run()
-    .assertStepP95Below("Login", 150)
-    .assertStepP95Below("Process Payment", 800)
-    .assertStepErrorRateBelow("Process Payment", 0.0);
+```java
+import io.testfly.loadtest.BaseLoadTest;
+import io.testfly.loadtest.LoadTestFeeder;
+import org.testng.annotations.Test;
+import java.time.Duration;
+import java.util.Map;
+
+public class CheckoutLoadTest extends BaseLoadTest {
+    @Test
+    public void checkout() {
+        loadScenario("Checkout")
+            .engine("jdk").users(15).hold(Duration.ofSeconds(10))
+            .feed(LoadTestFeeder.csv("testdata/users.csv"))
+            .step("Login").post("/login")
+                .body(Map.of("username", "${username}", "password", "${password}"))
+                .check(status().is(200)).extract("token", "$.accessToken").and()
+            .step("Payment").post("/payment")
+                .header("Authorization", "Bearer ${token}")
+                .body(Map.of("amount", 10)).check(status().is(200)).and()
+            .run().assertStepP95Below("Login", 300)
+                .assertStepP95Below("Payment", 800)
+                .assertStepErrorRateBelow("Payment", 0.01);
+    }
+}
 ```
+
 
 ---
 

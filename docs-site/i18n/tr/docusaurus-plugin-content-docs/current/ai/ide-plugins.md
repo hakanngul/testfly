@@ -6,6 +6,11 @@ sidebar_position: 3
 description: VS Code ve IntelliJ IDEA için etkileşimli kenar çubukları, Action Cache gezginleri ve AI self-healing yama inceleyicileri içeren görsel eklentiler.
 ---
 
+:::info Kaynak erişimi ve kurulum sınırı (2026-10-04)
+[Ayrı kaynak deposu](https://github.com/hakanngul/testfly-mcp), `vscode-extension` ve `jetbrains-plugin` projelerini içerir. Bu sayfa kaynak özelliklerini ve yerel paketlemeyi anlatır; marketplace yayını veya uçtan uca IDE kurulumu doğrulaması değildir. Güncel kayıt kodları, erişilemeyen `@testfly/mcp` paketine npm referansları üretir; VS Code kayıt kodu yanlış Playwright paketini de yazar. Üretilen MCP yapılandırmasını [manuel kaynak kurulumu](/docs/cli) ile karşılaştırıp düzeltin. Kurulum eylemi şu anda tek başına yeterli değildir.
+:::
+
+
 # IDE Eklentileri & Stüdyo Uzantıları
 
 TestFly, geliştirme ortamınızı interaktif bir yapay zeka test stüdyosuna dönüştürmek için hem **Visual Studio Code** hem de **JetBrains IDE'leri (IntelliJ IDEA, Aqua)** için resmi eklentiler sunar.
@@ -47,12 +52,14 @@ Sıfır Python. Yerel IDE performansı.
 En güncel VSIX paketini kaynak koddan derlemek için:
 ```bash
 cd testfly-mcp/vscode-extension
+npm ci
+npm run compile
 npx @vscode/vsce package
 ```
 VS Code içinde:
 1. Extensions görünümünü açın (`Cmd + Shift + X` / `Ctrl + Shift + X`).
 2. Sağ üstteki `...` menüsüne tıklayın.
-3. **Install from VSIX...** seçeneğini seçip `testfly-vscode-1.1.0.vsix` dosyasını seçin.
+3. **Install from VSIX...** seçeneğini seçip `üretilen `.vsix` dosyası` dosyasını seçin.
 
 ---
 
@@ -83,5 +90,5 @@ IntelliJ IDEA / Aqua içinde:
 1. **Settings / Preferences** menüsünü açın (`Cmd + ,` macOS / `Ctrl + Alt + S` Windows/Linux).
 2. **Plugins** sekmesine gidin.
 3. Sağ üstteki **Dişli çarka (⚙️)** tıklayıp **Install Plugin from Disk...** seçeneğini seçin.
-4. `testfly-mcp/jetbrains-plugin/build/distributions/testfly-mcp-jetbrains-1.1.0.zip` dosyasını seçin.
+4. `testfly-mcp/jetbrains-plugin/build/distributions/` altında üretilen ZIP dosyasını seçin.
 5. IDE'yi yeniden başlatın. Sağ kenar şeridinde **TestFly** paneli belirecektir.

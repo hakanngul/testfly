@@ -151,7 +151,9 @@ The framework calls `TestClock.autoReset()` after every test in all outcome path
 
 ## Scope
 
-`TestClock` controls the `Date` object **only within the currently loaded page** in the browser. It does not affect:
+`TestClock` replaces `Date` in the active page. On local Chromium drivers (`ChromiumDriver`: Chrome, Edge), it also registers a CDP script to reapply the override after refresh and navigation in that browser context. The refresh examples above require this CDP support. With `RemoteWebDriver` (Selenium Grid, BrowserStack, Sauce Labs) no CDP script is registered, so the mock is lost on refresh or navigation — call `clock().set(...)` again after navigating. If CDP registration fails, TestFly logs a warning and the mock applies only to the current document. On other browsers, call `clock().set(...)` again after navigation; avoid relying on a mocked date during the next page's initial load.
+
+It does not affect:
 
 - Server-side date/time checks (use a server-side date override or environment variable for those)
 - Other browser tabs / windows

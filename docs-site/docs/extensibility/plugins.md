@@ -32,7 +32,7 @@ public class SlackNotificationPlugin implements TestFlyPlugin {
     @Override
     public void onLoad(TestFlyConfig config) {
         // called once after config is loaded — read settings, open connections
-        String baseUrl = config.getBrowser().getBaseUrl();
+        String baseUrl = config.getExecution().getBaseUrl();
         System.out.println("SlackPlugin initialised for " + baseUrl);
     }
 
@@ -69,9 +69,9 @@ For plugins that need to be registered before framework boot:
 
 ```java
 import io.testfly.extension.PluginRegistry;
-import io.testfly.context.TestFlyContext;
+import io.testfly.config.ConfigurationLoader;
 
-PluginRegistry.register(new SlackNotificationPlugin(), TestFlyContext.getConfig());
+PluginRegistry.register(new SlackNotificationPlugin(), ConfigurationLoader.load());
 ```
 
 ---

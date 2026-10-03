@@ -30,6 +30,10 @@ Archify ile derlenmiş interaktif, izlenebilir ve sunum modu destekli veri akı�
 
 ---
 
+## Korunan Tasarım Kararları
+
+Eski mimari ve sprint planları kaldırılmıştır. Motor bağımsız fluent DSL, YAML → annotation → fluent önceliği, opsiyonel harici motorlar, per-step metrikler ve hata/percentile assertion'ları korunur. Güncel kullanım EN/TR `docs-site` loadtest rehberlerinde; gelişim önerileri [ROADMAP.md](../../ROADMAP.md#retained-decisions-from-completed-plans) içinde tutulur.
+
 ## İlgili Bağlantılar
 - Mimari: `[[wiki/architecture]]`
 - Ana Harita: `[[MAP]]`

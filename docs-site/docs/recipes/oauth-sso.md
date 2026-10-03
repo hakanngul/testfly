@@ -71,13 +71,13 @@ public class SsoFlowTest extends BaseTest {
         find("#sso-login").click();   // triggers redirect to IdP
 
         // IdP login page
-        getWait().waitForUrlContains("idp.example.com");
+        waitForUrlContains("idp.example.com");
         find("#username").type("testuser");
         find("#password").type("testpass");
         find("#submit").click();
 
         // Redirect back to app with authorization code
-        getWait().waitForUrlContains("/callback?code=");
+        waitForUrlContains("/callback?code=");
 
         assertThat(find("h1")).hasText("Dashboard");
     }
@@ -102,6 +102,9 @@ public void adminInviteCreatesLoginForUser() {
     find("#email").type("newuser@example.com");
     find("#send-invite").click();
     assertThat(find("#toast")).hasText("Invitation sent");
+
+    // Your own helper: read the token from the invite email (see Email Verification) or a test API
+    String inviteToken = fetchInviteToken("newuser@example.com");
 
     MultiSessionManager.withSession("newuser", () -> {
         open("/signup?token=" + inviteToken);
@@ -129,7 +132,7 @@ public void adminInviteCreatesLoginForUser() {
 
 - **Hard-coding IdP selectors.** Identity-provider UIs change. Prefer API-first login for routine tests.
 - **Storing real passwords in tests.** Use config placeholders or environment variables.
-- **Not waiting for redirect.** Use `getWait().waitForUrlContains(...)` instead of `Thread.sleep`.
+- **Not waiting for redirect.** Use `waitForUrlContains(...)` (or `waitForUrlMatches(regex)`) from `BaseTest`/`BasePage` — both delegate to `WaitEngine` — instead of `Thread.sleep`.
 - **Forgetting third-party cookies.** Some IdPs reject cookies in headless/CI mode; add `--disable-features=SameSiteByDefaultCookies` only if needed, and test it.
 
 ---

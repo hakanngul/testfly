@@ -20,21 +20,29 @@ TestFly hâlâ Selenium'dur. `WebDriver`, `By`, `WebElement` ve mevcut page-obje
 
 ## Kurulum — bağımlılıkları değiştirin
 
-Selenium, WebDriverManager ve raporlama bağımlılıklarınızı kaldırın ve bir tane ekleyin:
+Önce TestFly bağımlılığını ekleyin. Selenium/WebDriverManager kullanan son sınıfı taşıdıktan sonra tekrar eden bağımlılıkları kaldırın:
+
+:::note Yayımlanmış sürüm ve development
+Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests -Dgpg.skip=true` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
+:::
 
 ```xml title="pom.xml"
 <dependency>
-    <groupId>io.testfly</groupId>
+    <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
-TestFly, Selenium'u (ve TestNG'i) geçişli olarak getirir. Artık `selenium-java`, `webdrivermanager` veya bir raporlama kütüphanesini kendiniz bildirmezsiniz.
+TestFly Selenium ve TestNG bağımlılıklarını geçişli getirir. Mevcut sürüm override ayarlarını kontrol edin; kullanmaya devam ettiğiniz raporlama entegrasyonlarının bağımlılıklarını koruyun.
 
 Ardından küçük bir [`testfly.yml`](/docs/configuration) oluşturun — aşağıdaki [yapılandırma eşlemesine](#config-mapping) bakın.
 
 ---
+
+:::info Java sürümü ve kademeli geçiş
+Central sürümü `1.0.4` Java 17+ gerektirir; `1.0.6` ve sonrası (yerel `1.0.7` build dahil) Java 21 gerektirir. Maven/Gradle, IDE ve CI JDK sürümlerini birlikte güncelleyin. Bağımlılık koordinatı `io.github.hakanngul:testfly:1.0.4` şeklindedir. Önce bir test sınıfını taşıyın; eski altyapıyı son kullanıcı sınıf taşınmadan silmeyin. Özel Allure/ExtentReports entegrasyonunu kullanmaya devam ediyorsanız bağımlılığını koruyun.
+:::
 
 ## 1. Driver kurulumu
 
@@ -88,7 +96,7 @@ public class LoginTest extends BaseTest {
 - Ham driver'a mı ihtiyacınız var? Hâlâ orada: `getDriver()`.
 
 :::caution Örtük beklentiyi bırakın
-`implicitlyWait(...)` öğesini silin. TestFly'ın locator'ları açıkça otomatik bekler; örtük ve açık bekelemeleri karıştırmak, flaky ve yavaş testlerin klasik kaynağıdır.
+`implicitlyWait(...)` öğesini silin. TestFly'ın locator'ları açıkça otomatik bekler; örtük ve açık beklemeleri karıştırmak, flaky ve yavaş testlerin klasik kaynağıdır.
 :::
 
 ---
@@ -113,12 +121,15 @@ public class WaitUtils {
 WaitUtils.waitVisible(driver, By.id("login")).click();
 ```
 
-**Sonra** — her locator **otomatik bekler** ve `WaitEngine` (sizin `timeouts.explicit` değerinizden önceden yapılandırılmış) açık durumları kapsar:
+**Sonra** — TestFly locator işlemleri otomatik bekler. `getWait()` yapılandırılmış Selenium `WebDriverWait` döndürür; özel koşullarda `until(ExpectedConditions...)` kullanın:
 
 ```java
+import org.openqa.selenium.By;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+
 find("#login").click();                          // tıklanabilirlik için otomatik bekler
-getWait().waitForInvisible(By.cssSelector(".spinner"));
-getWait().waitForText(By.cssSelector("h1"), "Welcome back");
+getWait().until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".spinner")));
+getWait().until(ExpectedConditions.textToBePresentInElementLocated(By.cssSelector("h1"), "Welcome back"));
 ```
 
 `Thread.sleep()` yok, sayfa başına `WebDriverWait` kurulumu yok, `driver` taşımak yok. [WaitEngine rehberine](/docs/guides/wait-engine) bakın.
@@ -212,12 +223,15 @@ Page object'leriniz ve `@Test` metotlarınız aynı kalır — sadece kısalırl
 
 ---
 
+Yalnızca TestFly ile aynı işi yapan eski lifecycle/retry/screenshot listener kayıtlarını kaldırın. İş kurallarını, test verisini veya harici entegrasyonları yöneten listener'ları koruyun. TestFly listener'larını ikinci kez kaydetmeyin.
+
 ## Yapılandırma eşlemesi {#config-mapping}
 
 `testng.xml` özniteliklerinde ve dağınık sabitlerde yaşayan ayarlar tek bir dosyaya taşınır:
 
 ```yaml title="testfly.yml"
 execution:
+  mode: local
   baseUrl: https://your-app.com
   parallel: methods        # şuydu: <suite parallel="methods">
   threadCount: 4           # şuydu: thread-count="4"
@@ -235,7 +249,7 @@ retry:
   maxAttempts: 2           # şuydu: RetryAnalyzer MAX
 ```
 
-Test sınıflarınızı listelemek için hâlâ minimal bir `testng.xml` tutarsınız — TestFly kendi listener'larını kaydeder, böylece `<listeners>` bloğunu kaldırabilirsiniz. Her seçenek için [Yapılandırma Referansına](/docs/configuration) bakın.
+Test sınıflarınızı listelemek için hâlâ minimal bir `testng.xml` tutarsınız — TestFly kendi listener'larını kaydeder, bu nedenle `<listeners>` bloğundan yalnızca tekrar eden kayıtları kaldırın. Her seçenek için [Yapılandırma Referansına](/docs/configuration) bakın.
 
 ---
 
@@ -244,12 +258,35 @@ Test sınıflarınızı listelemek için hâlâ minimal bir `testng.xml` tutars�
 Her şeyi bir kerede dönüştürmek zorunda değilsiniz:
 
 1. Bağımlılığı ve bir `testfly.yml` dosyası ekleyin.
-2. **Bir** test sınıfını `BaseTest`'e yönlendirin, `@BeforeMethod`/`@AfterMethod` metotlarını silin ve çalıştırın.
+2. **Bir** test sınıfını `BaseTest`'e yönlendirin, `@BeforeMethod`/`@AfterMethod` içinden driver oluşturma/kapatma kodunu çıkarın; iş verisi hazırlığı ve temizliğini koruyun ve çalıştırın.
 3. Yeşil olduğunda, son sınıf onlara atıfta bulunmayı bıraktıkça `DriverFactory`, `WaitUtils`, yeniden deneme analizciniz ve ekran görüntüsü listener'ınızı silin.
 
-Çünkü TestFly *Selenium'dur*, yarısı geçirilmiş bir suite sorunsuz çalışır.
+Geçirilmiş sınıfları önce ayrı bir TestNG koşusunda doğrulayın. Eski listener ve driver teardown kodunun TestFly tarafından yönetilen testlere uygulanmasını önleyin; karma suite davranışını paralelliği açmadan kontrol edin.
 
 ---
+
+## Mevcut Page Object'leri koruyun
+
+Driver alan mevcut bir Page Object'i `new LoginPage(getDriver())` ile kullanabilirsiniz. İlk geçişte `By`, `WebElement`, `PageFactory` ve TestNG assertion'larını yeniden yazmanız gerekmez. Otomatik bekleme TestFly `Locator` işlemlerindedir; ham `WebElement` çağrıları kendi Selenium beklemelerine ihtiyaç duyar.
+
+TestFly fluent API'sine geçerken locator'ları sayfa nesnesinde tanımlayın:
+
+```java title="LoginPage.java"
+import io.testfly.test.BasePage;
+import io.testfly.locator.Locator;
+
+public class LoginPage extends BasePage {
+    private final Locator username = find("#username");
+    private final Locator password = find("#password");
+    private final Locator submit = find("button[type='submit']");
+
+    public void login(String user, String pass) {
+        username.type(user);
+        password.type(pass);
+        submit.click();
+    }
+}
+```
 
 ## Sonraki adımlar
 

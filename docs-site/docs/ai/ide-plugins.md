@@ -6,6 +6,11 @@ sidebar_position: 3
 description: Modern visual extensions for VS Code and IntelliJ IDEA featuring interactive sidebars, Action Cache explorers, and AI self-healing patch reviewers.
 ---
 
+:::info Source availability and setup limitation (2026-10-04)
+The [separate source repository](https://github.com/hakanngul/testfly-mcp) contains `vscode-extension` and `jetbrains-plugin` projects. This page describes their source features and local packaging; it does not confirm marketplace publication or an end-to-end IDE installation. Their current registration code still emits npm references to the unavailable `@testfly/mcp`, and the VS Code registrar emits the wrong Playwright package. Inspect and correct generated MCP configuration using the [manual source setup](/docs/cli). The setup action alone is not sufficient at present.
+:::
+
+
 # IDE Plugins & Studio Extensions
 
 TestFly provides official extensions for both **Visual Studio Code** and **JetBrains IDEs (IntelliJ IDEA, Aqua)**, transforming your development environment into an interactive AI test studio.
@@ -47,12 +52,14 @@ The **TestFly Studio** extension integrates TestFly with **Cursor**, **GitHub Co
 To build the latest VSIX package from source:
 ```bash
 cd testfly-mcp/vscode-extension
+npm ci
+npm run compile
 npx @vscode/vsce package
 ```
 In VS Code:
 1. Open the Extensions view (`Cmd + Shift + X` / `Ctrl + Shift + X`).
 2. Click the `...` menu in the top right.
-3. Select **Install from VSIX...** and choose `testfly-vscode-1.1.0.vsix`.
+3. Select **Install from VSIX...** and choose `the generated `.vsix` file`.
 
 ---
 
@@ -83,5 +90,5 @@ In IntelliJ IDEA / Aqua:
 1. Open **Settings / Preferences** (`Cmd + ,` on macOS, `Ctrl + Alt + S` on Windows/Linux).
 2. Navigate to **Plugins**.
 3. Click the **Gear icon (⚙️)** and select **Install Plugin from Disk...**.
-4. Select `testfly-mcp/jetbrains-plugin/build/distributions/testfly-mcp-jetbrains-1.1.0.zip`.
+4. Select the generated ZIP under `testfly-mcp/jetbrains-plugin/build/distributions/`.
 5. Restart the IDE. The **TestFly** tool window icon will appear on the right sidebar stripe.

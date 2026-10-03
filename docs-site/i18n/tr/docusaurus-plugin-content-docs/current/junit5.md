@@ -1,5 +1,5 @@
 ---
-description: "TestFly'ı JUnit 5 ile çalıştırın: BaseJUnit5Test, @EnableTestFly veya @ExtendWith(TestFlyExtension) ile UI, API, veritabanı ve erişilebilirlik dahil TestNG ile %100 özellik eşitliği."
+description: "TestFly'ı JUnit 5 ile çalıştırın: BaseJUnit5Test, @EnableTestFly veya @ExtendWith(TestFlyExtension) ile UI, API, veritabanı ve erişilebilirlik dahil TestNG BaseTest yeteneklerinin çoğu; retry ve yaşam döngüsü farkları belgelenmiştir."
 id: junit5
 title: JUnit 5 Desteği
 sidebar_position: 10
@@ -7,7 +7,11 @@ sidebar_position: 10
 
 # JUnit 5 Desteği
 
-TestFly, hem **TestNG** (yerleşik) hem de **JUnit 5** (tercihe bağlı) test çatılarını birinci sınıf vatandaş olarak destekler. JUnit 5 entegrasyonu yalnızca basit bir çalıştırıcı (runner) sunmakla kalmaz; TestNG `BaseTest` ile **%100 özellik eşitliği** sağlar: framework tarafından yönetilen WebDriver yaşam döngüsü, ThreadLocal sürücü izolasyonu, akıcı locator'lar, web-öncelikli ve soft assertion'lar, yerleşik REST API testi, çoklu kullanıcı oturumları (multi-session), HTML zaman çizelgesi raporlaması, AI hata analizi ve flakiness takibi.
+:::note Yayımlanmış sürüm ve development
+Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests -Dgpg.skip=true` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
+:::
+
+TestFly, hem **TestNG** (yerleşik) hem de **JUnit 5** (tercihe bağlı) test çatılarını birinci sınıf vatandaş olarak destekler. JUnit 5 entegrasyonu yalnızca basit bir çalıştırıcı (runner) sunmakla kalmaz; TestNG `BaseTest` ile temel yetenekleri paylaşır: framework tarafından yönetilen WebDriver yaşam döngüsü, ThreadLocal sürücü izolasyonu, akıcı locator'lar, web-öncelikli ve soft assertion'lar, yerleşik REST API testi, çoklu kullanıcı oturumları (multi-session), HTML zaman çizelgesi raporlaması, AI hata analizi ve flakiness takibi.
 
 ---
 
@@ -21,9 +25,9 @@ Projenizin `pom.xml` dosyasına TestFly'ın yanına JUnit 5 bağımlılıkların
 <dependencies>
     <!-- TestFly Çekirdeği -->
     <dependency>
-        <groupId>io.testfly</groupId>
+        <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
-        <version>1.0.7</version>
+        <version>1.0.4</version>
     </dependency>
 
     <!-- JUnit 5 Jupiter ve Platform Launcher -->
@@ -48,7 +52,7 @@ Maven Surefire 3.x, ek bir eklenti yapılandırmasına ihtiyaç duymadan JUnit 5
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.0'
+    testImplementation 'io.github.hakanngul:testfly:1.0.4'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
 }
@@ -305,15 +309,16 @@ class DashboardTest extends BaseJUnit5Test {
 ```java
 import io.testfly.precondition.BaseConditions;
 import io.testfly.precondition.ConditionProvider;
+import org.openqa.selenium.By;
 
 public class AppConditions extends BaseConditions {
 
     @ConditionProvider("loginAsAdmin")
     public void loginAsAdmin() {
         open("/login");
-        find("#username").type("admin");
-        find("#password").type("secret");
-        find("#login-btn").click();
+        type(By.id("username"), "admin");
+        type(By.id("password"), "secret");
+        click(By.id("login-btn"));
     }
 }
 ```
@@ -361,6 +366,15 @@ retry:
 
 Yeniden denenmiş testler HTML test raporunda **↻ Nx** rozeti ile işaretlenir.
 
+:::caution TestNG'den retry farkları
+JUnit 5 retry'ları testi yeniden planlayarak değil, `TestFlyExtension.interceptTestMethod` içinde uygulanır:
+
+- Yalnızca test metodunun gövdesi yeniden çağrılır. Kendi `@BeforeEach` / `@AfterEach` metotlarınız ve TestFly'ın `beforeEach` hazırlığı (test verisi yükleme, `@UseAuth`, kayıt başlatma, console-error shim) denemeler arasında **tekrarlanmaz**. Sürücü yeniden oluşturulur ve `@PreCondition` yeniden çalıştırılır.
+- JUnit tek bir test sonucu raporlar (son deneme). Önceki başarısız denemeler ayrı JUnit kayıtları olarak görünmez; yalnızca TestFly raporundaki retry sayısında görülür.
+- `maxAttempts` **ek** deneme sayısıdır (`maxAttempts = 2` → en fazla 3 çalıştırma).
+- Retry sırasında yalnızca `WebDriver` metot parametreleri yeni sürücüyle değiştirilir; diğer enjekte edilen parametreler ilk değerlerini korur.
+:::
+
 ---
 
 ## Tarayıcı Yaşam Döngüsü: Per-Test ve Per-Suite
@@ -374,7 +388,7 @@ browser:
 ```
 
 - **`per-test` (Varsayılan):** Her test metodundan önce temiz bir tarayıcı açılır (`beforeEach`) ve test biter bitmez kapatılır (`afterEach`). Maksimum test izolasyonu sağlar.
-- **`per-suite`:** Test sınıfı içindeki tüm testler boyunca tek bir tarayıcı açık tutulur. `TestFlyExtension.afterAll()` sınıfın son testi bittiğinde süitteki tüm sürücüleri otomatik olarak sonlandırır.
+- **`per-suite`:** Daha hızlı çalışma için tek bir tarayıcı testler arasında yeniden kullanılır. JUnit 5'te `TestFlyExtension.afterAll()` her test sınıfı bittiğinde tüm süit sürücülerini kapatır; bu nedenle yeniden kullanım TestNG'deki gibi tüm koşu boyunca değil, fiilen **test sınıfı başına** olur.
 
 ---
 
@@ -427,11 +441,14 @@ Karantinaya alınan testler henüz tarayıcı ayağa kaldırılmadan güvenle at
 
 ---
 
-## Özellik Eşitliği: TestNG vs. JUnit 5
+## Özellik Karşılaştırması: TestNG vs. JUnit 5
+
+`BaseTest` yeteneklerinin çoğu JUnit 5'te mevcuttur. ⚠️ işareti, yukarıda açıklanan farklarla çalışan özellikleri gösterir.
 
 | Özellik | TestNG | JUnit 5 |
 |---|:---:|:---:|
 | Otomatik WebDriver Yaşam Döngüsü | ✅ | ✅ |
+| `per-suite` Tarayıcı Yeniden Kullanımı | ✅ | ⚠️ test sınıfı başına |
 | ThreadLocal Sürücü İzolasyonu | ✅ | ✅ |
 | Akıcı Locator'lar (`$()`, `find()`) | ✅ | ✅ |
 | Anlamsal Locator'lar (`getByRole`, `getByText` vb.) | ✅ | ✅ |
@@ -449,6 +466,6 @@ Karantinaya alınan testler henüz tarayıcı ayağa kaldırılmadan güvenle at
 | Yürütme İzi (Trace) ve Ekran Kaydı (Video) | ✅ | ✅ |
 | JavaScript Konsol Hataları Denetimi | ✅ | ✅ |
 | `@PreCondition` Oturum Önbellekleme | ✅ | ✅ |
-| `@Retryable` Akıllı Yeniden Deneme Mekanizması | ✅ | ✅ |
+| `@Retryable` Akıllı Yeniden Deneme Mekanizması | ✅ | ⚠️ yalnızca metot gövdesi |
 | `testfly-quarantine.yml` Karantina Desteği | ✅ | ✅ |
 | ReportPortal, TestRail ve Xray Entegrasyonu | ✅ | ✅ |

@@ -21,9 +21,13 @@ on:
     branches: [main, master]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -49,32 +53,49 @@ jobs:
           path: target/testfly-report.html
 ```
 
+`permissions: contents: read` workflow token'ını en az yetkiyle sınırlar; `timeout-minutes` ise takılan bir tarayıcı oturumunun varsayılan altı saat boyunca runner dakikası tüketmesini engeller.
+
 ---
 
 ## Headless Chrome
 
-CI çalıştırıcılarındaki Chrome, headless modda çalışmalıdır. Bunu `testfly.yml` içinde yapılandırın:
+CI çalıştırıcılarında ekran yoktur, bu yüzden tarayıcılar headless çalışmalıdır. TestFly CI ortamını otomatik algılar (GitHub Actions `GITHUB_ACTIONS=true` ve `CI=true` değişkenlerini ayarlar) ve açılışta `browser.headless=true` değerini zorlar — logda `[TestFly] CI override: browser.headless=true` satırı görünür. Ek bir ortam değişkeni gerekmez.
+
+İsterseniz `testfly.yml` içinde açıkça da belirtebilirsiniz:
 
 ```yaml title="testfly.yml"
 browser:
-  type: chrome
+  name: chrome
   headless: true
 ```
 
-Ya da yalnızca CI'de bir ortam değişkeni geçersiz kılması kullanarak ayarlayın (yapılandırma yüklemeniz destekliyorsa):
+:::note Ortam değişkeniyle geçersiz kılma
+TestFly, `SELENIUM_HEADLESS` veya `-Dbrowser.name` gibi serbest değişkenleri okumaz. Ortam değerleri yapılandırmaya yalnızca `testfly.yml` içindeki `${VAR}` / `${VAR:-default}` yer tutucularıyla ulaşır ve yer tutucular yalnızca **metin (string)** alanlarda çözülür (örneğin `browser.name`, `execution.baseUrl`). `headless` veya `threadCount` gibi boolean ve sayısal alanlar sabit değer olmalıdır — ortama göre farklılaşmaları gerekiyorsa bir profil dosyası kullanın (`-Dtestfly.profile=ci` → `testfly-ci.yml`).
+:::
 
-```yaml
-      - name: Run tests
-        run: mvn test -B
-        env:
-          SELENIUM_HEADLESS: true
+```yaml title="testfly.yml"
+browser:
+  name: ${TESTFLY_BROWSER:-chrome}
 ```
 
 ---
 
 ## JUnit XML test sonuçlarını yayınlama
 
+Check run yayınlamak `checks: write` yetkisi gerektirir. Diğer job'lar salt okunur varsayılanı korusun diye bu yetkiyi job düzeyinde verin:
+
 ```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: write
+
+    steps:
+      # ... checkout, setup-java, testleri çalıştır ...
+
       - name: Publish test results
         uses: dorny/test-reporter@v1
         if: always()
@@ -85,17 +106,21 @@ Ya da yalnızca CI'de bir ortam değişkeni geçersiz kılması kullanarak ayarl
           fail-on-empty: false
 ```
 
-Bu, geçti/kaldı sayılarını doğrudan GitHub Actions özetinde ve PR denetimlerinde gösterir.
+Bu, geçti/kaldı sayılarını doğrudan GitHub Actions özetinde ve PR denetimlerinde gösterir. Fork'lardan gelen pull request'lerde token, `permissions` ayarından bağımsız olarak salt okunurdur; bu nedenle yayınlama adımı orada check oluşturamaz.
 
 ---
 
 ## Matrix — birden çok tarayıcı
 
+Yukarıdaki `${TESTFLY_BROWSER:-chrome}` yer tutucusunu kullanın; ortam değişkenleri YAML içinde referans verilmedikçe tarayıcı alanlarını geçersiz kılmaz.
+
 ```yaml
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
         browser: [chrome, firefox]
 
@@ -118,7 +143,9 @@ jobs:
         uses: browser-actions/setup-firefox@v1
 
       - name: Run tests
-        run: mvn test -B -Dbrowser.type=${{ matrix.browser }}
+        run: mvn test -B
+        env:
+          TESTFLY_BROWSER: ${{ matrix.browser }}
 
       - name: Upload report
         if: always()
@@ -138,9 +165,12 @@ jobs:
 
 ## Paralel testlerle tam örnek
 
-```yaml
-      - name: Run tests
-        run: mvn test -B -Dparallel=methods -DthreadCount=4
+```yaml title="testfly.yml"
+execution:
+  mode: local
+  baseUrl: https://example.com
+  parallel: methods
+  threadCount: 4
 ```
 
-Ya da paralel ayarlarını `testfly.yml` içinde tanımlayıp commit'leyin — CI çalıştırıcısı bunları otomatik olarak alır.
+Bu paralel ayarlarını `testfly.yml` içinde commit'leyin — CI çalıştırıcısı bunları otomatik olarak alır. `threadCount` varsayılan `1` değerinde bırakılırsa (ve `parallel` `none` değilse) TestFly, CI algılandığında değeri runner'ın CPU çekirdek sayısına göre ayarlar.

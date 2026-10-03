@@ -7,6 +7,10 @@ sidebar_position: 11
 
 # BDD / Cucumber Entegrasyonu
 
+:::note Yayımlanmış sürüm ve development
+Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests -Dgpg.skip=true` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
+:::
+
 TestFly, Cucumber 7 ile kutudan çıktığı gibi tam entegre çalışır. Framework tüm yaşam döngüsünü yönetir: her senaryo için bağımsız WebDriver sağlama, ThreadLocal sürücü izolasyonu, hata anında otomatik ekran görüntüsü, HTML raporunda adım zaman çizelgesi, adımlar içinde doğrudan REST API test desteği, dependency injection gerektirmeyen yerleşik `ScenarioContext` veri paylaşımı, karantina mekanizması ve yapay zeka (AI) destekli hata analizi.
 
 ---
@@ -19,9 +23,9 @@ Projenizin `pom.xml` dosyasına TestFly'ın yanına Cucumber bağımlılıkları
 <dependencies>
     <!-- TestFly Çekirdeği -->
     <dependency>
-        <groupId>io.testfly</groupId>
+        <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.4</version>
     </dependency>
 
     <!-- Cucumber Java ve TestNG -->

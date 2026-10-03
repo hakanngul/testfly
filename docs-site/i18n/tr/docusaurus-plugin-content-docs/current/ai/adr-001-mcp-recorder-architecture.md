@@ -6,6 +6,11 @@ sidebar_position: 8
 description: TestFly MCP sunucusu, Chrome refakatçi kaydedicisi ve çoklu dosya Java kod üretim motoru için Mimari Karar Kaydı.
 ---
 
+:::info Tarihsel uygulama — güncel mimari tarafından değiştirildi (2026-10-04)
+Bu sayfa önceki Python/Selenium recorder tasarımını korur. Güncel [Node bridge kaynağı](https://github.com/hakanngul/testfly-mcp/blob/main/bin/testfly-mcp.js) altı MCP aracı ile `init`, `--version` ve `--help` sunar; `testfly studio`, `testfly ui` veya `testfly record` komutlarını içermez. Aşağıdaki komutlar, port davranışları ve araç sayıları tarihsel uygulamayı anlatır. Güncel kaynak kurulumu için [MCP Bridge & CLI](/docs/cli), mimari için [MCP mimarisi](/docs/ai/testfly-mcp) sayfasını izleyin.
+:::
+
+
 # ADR-001: MCP Sunucusu ve İnteraktif Kaydedici Mimarisi
 
 ## Durum

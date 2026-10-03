@@ -7,6 +7,10 @@ sidebar_position: 11
 
 # BDD / Cucumber Integration
 
+:::note Published release and development
+The verified Maven Central release is `io.github.hakanngul:testfly:1.0.4`. The installation examples below use that release. This checkout is version `1.0.7`; new development features may not exist in the published artifact. To use the current source, run `mvn clean install -DskipTests -Dgpg.skip=true` from the TestFly repository root and set your consumer dependency version to `1.0.7`. Do not assume `1.0.7` is available on Central.
+:::
+
 TestFly integrates with Cucumber 7 out of the box. The framework manages the entire lifecycle — WebDriver provisioning per scenario, ThreadLocal driver isolation, screenshots on failure, step timelines in the HTML report, built-in REST API testing inside steps, cross-step state sharing via `ScenarioContext` without DI boilerplate, quarantine handling, and AI root cause analysis.
 
 ---
@@ -19,9 +23,9 @@ Add Cucumber dependencies alongside TestFly:
 <dependencies>
     <!-- TestFly Core -->
     <dependency>
-        <groupId>io.testfly</groupId>
+        <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.4</version>
     </dependency>
 
     <!-- Cucumber Java & TestNG -->

@@ -6,122 +6,41 @@ sidebar_position: 2
 description: Architecture, tools catalog, and 1-click configuration for the TestFly MCP Bridge paired with Playwright MCP.
 ---
 
-# TestFly MCP Bridge & Playwright Integration
+# TestFly MCP Bridge & Playwright
 
-The **TestFly MCP Bridge** is a lightweight, zero-dependency [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that connects AI coding assistants (**Cursor**, **Claude Desktop**, **GitHub Copilot**, and **Claude Code**) to the TestFly Java ecosystem.
-
-Instead of maintaining a heavy, fragile browser automation driver in Python, TestFly adopts the modern **Bring Your Own Browser** pattern:
-
-1. **Browser Driving:** Delegated to the official, ultra-fast **Playwright MCP** (`@modelcontextprotocol/server-playwright`).
-2. **TestFly Intelligence & Codegen:** Handled by the **TestFly Bridge** (`@testfly/mcp`), which compiles browser interactions into idiomatic TestFly Java 21 tests (`BaseTest`, `BasePage`, `getByRole`, `assertThat`), manages the `.testfly/action-cache.json` autonomous plan cache, and applies AI self-healing `.patch` files.
+TestFly's current source bridge separates browser automation from Java tooling:
 
 ```text
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   AI CODING ASSISTANTS                                 │
-│                     Cursor  ·  Claude Desktop  ·  GitHub Copilot  ·  Claude Code       │
-└──────────────────────────────────────────┬─────────────────────────────────────────────┘
-                                           │
-                    ┌──────────────────────┴──────────────────────┐
-                    │ JSON-RPC (stdio / SSE)                      │ JSON-RPC (stdio / SSE)
-                    ▼                                             ▼
-┌──────────────────────────────────────┐     ┌───────────────────────────────────────────┐
-│     BROWSER LAYER: PLAYWRIGHT MCP    │     │      TEST ENGINE: TESTFLY MCP BRIDGE      │
-│     (@modelcontextprotocol/server)   │     │               (@testfly/mcp)              │
-│  ┌────────────────────────────────┐  │     │  ┌─────────────────────────────────────┐  │
-│  │  Live CDP Browser Control      │  │     │  │  Framework-Native Codegen Engine    │  │
-│  │  • browser_navigate            │  │     │  │  • Java 21 BaseTest & POM classes   │  │
-│  │  • browser_click / fill_form   │  │     │  │  • Accessibility-first getByRole()  │  │
-│  │  • browser_snapshot (DOM Tree) │  │     │  │  • Fluent assertions assertThat()   │  │
-│  └────────────────┬───────────────┘  │     │  └──────────────────┬──────────────────┘  │
-│                   │                  │     │                     │                     │
-│                   ▼                  │     │  ┌──────────────────┴──────────────────┐  │
-│  ┌────────────────────────────────┐  │     │  │  Autonomous Plan & Healing Store    │  │
-│  │  Isolated Chrome / Edge / Web  │  │     │  │  • .testfly/action-cache.json       │  │
-│  │  (Zero-overhead live runtime)  │  │     │  │  • target/remediations/*.patch      │  │
-│  └────────────────────────────────┘  │     │  └─────────────────────────────────────┘  │
-└──────────────────────────────────────┘     └───────────────────────────────────────────┘
+AI assistant
+  ├─ Playwright MCP (@playwright/mcp): browser + DOM observations
+  └─ TestFly Node bridge: Java generation + project/cache/patch tools
+                            ↓
+                      Java 21 TestFly tests
 ```
 
----
+Source checked on 2026-10-04: `package.json` declares `@testfly/mcp` 1.1.0, Node.js 18+, and `bin/testfly-mcp.js`. The public npm registry returned 404 for that package, so this guide uses the source checkout. The package name/version in source is not proof of an npm release.
 
-## ⚡ Quick 1-Click Setup
+## Source installation and configuration
 
-### Option 1: Via TestFly VS Code Extension (Recommended)
-1. Install the **TestFly Studio** extension (`testfly-vscode-1.1.0.vsix`).
-2. Open the Command Palette (`Cmd + Shift + P` or `Ctrl + Shift + P`).
-3. Select **`TestFly: 1-Click Multi-Assistant MCP Setup`**.
-4. Both Playwright MCP and TestFly Bridge are automatically configured for **Cursor**, **Claude Desktop**, and **VS Code Native Copilot**.
+Follow [MCP Bridge & CLI](/docs/cli) for source checkout, CLI commands and the complete assistant configuration. Do not use `@modelcontextprotocol/server-playwright`: Microsoft's package is [`@playwright/mcp`](https://github.com/microsoft/playwright-mcp).
 
----
+## Bridge tools
 
-### Option 2: Manual JSON Configuration
+| Tool | Purpose |
+|---|---|
+| `generate_testfly_code` | Generate Java from supplied actions; review and compile the output. |
+| `init_testfly_project` | Create a Maven test project. |
+| `inspect_action_cache` | Read cached plans. |
+| `manage_action_cache` | Invalidate one goal or clear cached plans. |
+| `list_remediations` | List generated patch files. |
+| `apply_remediation_patch` | Apply a selected patch to the workspace. |
 
-Add both servers to your assistant's configuration file (e.g. `~/.cursor/mcp.json` or `claude_desktop_config.json`):
+The source exposes six tools over stdio JSON-RPC. Its `generate_testfly_code` schema accepts `testng`, `junit5`, and `page_object`, but the checked implementation currently emits a TestNG `BaseTest` class without branching on `framework`. Treat generated code as a starting point: do not assume a JUnit, Page Object, or Cucumber output is implemented just because a schema value or earlier guide mentions it.
 
-```json
-{
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-playwright"]
-    },
-    "testfly": {
-      "command": "npx",
-      "args": ["-y", "@testfly/mcp"]
-    }
-  }
-}
-```
+Browser actions come from the separate browser MCP server. Reusing an action plan can avoid a new LLM request, but browser actions, cache reads and validations still take time; replay is not guaranteed to take 0 ms.
 
-No Python, pip, uv, or virtual environments required. Only **Node.js 18+** is needed.
+## Availability and verification
 
----
+The [source repository](https://github.com/hakanngul/testfly-mcp) contains the Node bridge and IDE subprojects. The public npm package was unavailable at the verification date. A source checkout is the supported path shown here; publication and IDE marketplace availability must be checked separately. This guide does not claim that external IDE installation or browser execution was tested end to end.
 
-## 🛠️ MCP Tools Reference
-
-The TestFly Bridge exposes 7 focused, high-value tools to AI agents:
-
-| Tool | Parameters | Description |
-| :--- | :--- | :--- |
-| `generate_testfly_code` | `actions`, `className`, `packageName`, `framework` | Compiles recorded actions into Java 21 TestFly tests (`BaseTest`, `BasePage`, `getByRole`, `assertThat`). |
-| `inspect_action_cache` | `workspaceRoot` | Reads and inspects autonomous `act("Goal")` plans frozen in `.testfly/action-cache.json` for 0ms replay. |
-| `manage_action_cache` | `workspaceRoot`, `action`, `goal` | Invalidates specific cached goals or clears the entire cache to force LLM re-compilation. |
-| `list_remediations` | `workspaceRoot` | Lists pending AI self-healing git diff `.patch` files generated by `AiHealingEngine` in `target/remediations/`. |
-| `apply_remediation_patch` | `workspaceRoot`, `patchFilePath` | Applies a synthesized `.patch` file directly to the test Java source code via `git apply`. |
-| `init_testfly_project` | `directory` | Scaffolds a complete TestFly 1.0.6 + Java 21 Maven test automation suite (`pom.xml`, `testfly.yml`, smoke test). |
-| `calculate_shards` | `totalNodes`, `targetNodeIndex`, `items` | Computes optimal parallel test execution across CI nodes using LPT (Longest Processing Time) bin packing. |
-
----
-
-## 🤖 End-to-End Workflow: How AI Writes Tests
-
-Here is how an AI assistant (like Cursor or Claude) uses this setup:
-
-1. **Step 1 — Navigate & Inspect:**  
-   The AI calls Playwright MCP (`browser_navigate`) to open `https://example.com` and inspects the live accessibility tree (`browser_snapshot`).
-2. **Step 2 — Interact:**  
-   The AI interacts with elements using Playwright MCP (`browser_click`, `browser_type`).
-3. **Step 3 — Generate TestFly Java Code:**  
-   The AI calls TestFly Bridge (`generate_testfly_code`) passing the recorded actions. The bridge returns compile-ready Java 21 code:
-   ```java
-   package io.testfly.examples.testng;
-
-   import io.testfly.locator.Role;
-   import io.testfly.locator.RoleOptions;
-   import io.testfly.test.BaseTest;
-   import org.testng.annotations.Test;
-
-   public class LoginTest extends BaseTest {
-
-       @Test
-       public void executeRecordedFlow() {
-           open();
-           getByRole(Role.TEXTBOX, new RoleOptions().setName("Username")).type("standard_user");
-           getByRole(Role.TEXTBOX, new RoleOptions().setName("Password")).type("secret_sauce");
-           getByRole(Role.BUTTON, new RoleOptions().setName("Login")).click();
-           assertThatPage().hasUrl("https://example.com/inventory.html");
-       }
-   }
-   ```
-4. **Step 4 — Save & Run:**  
-   The AI saves the code to `src/test/java/...` and runs `mvn test`. Zero boilerplate, zero flakiness.
+The [Python recorder ADR](/docs/ai/adr-001-mcp-recorder-architecture), [Web Studio](/docs/ai/interactive-studio) and [recorder](/docs/ai/recorder) describe a historical implementation; those commands are not shipped by the Node CLI.

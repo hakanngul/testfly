@@ -18,7 +18,7 @@ pipeline {
     agent any
 
     tools {
-        jdk 'JDK17'
+        jdk 'JDK21'
         maven 'Maven3'
     }
 
@@ -78,7 +78,6 @@ Aracınızdaki `PATH` içinde Chrome yoksa, ikili dosya yolunu ayarlayın:
 browser:
   type: chrome
   headless: true
-  binaryPath: /usr/bin/google-chrome
 ```
 
 ---
@@ -92,12 +91,16 @@ stage('Test') {
     parallel {
         stage('Chrome') {
             steps {
-                sh 'mvn test -B -Dbrowser.type=chrome'
+                withEnv(["TESTFLY_BROWSER=chrome"]) {
+                    sh 'mvn test -B'
+                }
             }
         }
         stage('Firefox') {
             steps {
-                sh 'mvn test -B -Dbrowser.type=firefox'
+                withEnv(["TESTFLY_BROWSER=firefox"]) {
+                    sh 'mvn test -B'
+                }
             }
         }
     }
@@ -117,7 +120,7 @@ environment {
 
 stage('Test') {
     steps {
-        sh "mvn test -B -DbaseUrl=${env.BASE_URL}"
+        sh 'mvn test -B'
     }
 }
 ```
@@ -133,3 +136,16 @@ triggers {
 ```
 
 Ya da push'ta pipeline'ı tetiklemek için bir GitHub webhook'u kullanın.
+
+### Ortam değerlerini YAML alanlarına bağlama
+
+Paralel tarayıcı aşamaları ve `BASE_URL` örneği, seçilen tam yapılandırmada aşağıdaki yer tutucuları gerektirir. Otomatik `-Dbrowser.name` veya `-DbaseUrl` override uygulanmaz. Her agent üzerinde ilgili tarayıcıyı kurun; paralel Maven koşumlarını ayrı workspace içinde çalıştırarak `target` dosyalarının çakışmasını önleyin.
+
+```yaml title="testfly.yml"
+execution:
+  mode: local
+  baseUrl: ${BASE_URL:-https://example.com}
+browser:
+  name: ${TESTFLY_BROWSER:-chrome}
+  headless: true
+```

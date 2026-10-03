@@ -71,13 +71,13 @@ public class SsoFlowTest extends BaseTest {
         find("#sso-login").click();   // triggers redirect to IdP
 
         // IdP login page
-        getWait().waitForUrlContains("idp.example.com");
+        waitForUrlContains("idp.example.com");
         find("#username").type("testuser");
         find("#password").type("testpass");
         find("#submit").click();
 
         // Redirect back to app with authorization code
-        getWait().waitForUrlContains("/callback?code=");
+        waitForUrlContains("/callback?code=");
 
         assertThat(find("h1")).hasText("Dashboard");
     }
@@ -102,6 +102,9 @@ public void adminInviteCreatesLoginForUser() {
     find("#email").type("newuser@example.com");
     find("#send-invite").click();
     assertThat(find("#toast")).hasText("Invitation sent");
+
+    // Kendi yardımcınız: token'ı davet e-postasından (bkz. Email Verification) veya bir test API'sinden okuyun
+    String inviteToken = fetchInviteToken("newuser@example.com");
 
     MultiSessionManager.withSession("newuser", () -> {
         open("/signup?token=" + inviteToken);
@@ -129,7 +132,7 @@ public void adminInviteCreatesLoginForUser() {
 
 - **IdP seçicilerini sabit kodlama.** Kimlik sağlayıcı arayüzleri değişir. Rutin testler için önce API girişini tercih edin.
 - **Testlerde gerçek parolaları saklama.** Yapılandırma yer tutucularını veya ortam değişkenlerini kullanın.
-- **Yönlendirmeyi beklememek.** `Thread.sleep` yerine `getWait().waitForUrlContains(...)` kullanın.
+- **Yönlendirmeyi beklememek.** `Thread.sleep` yerine `BaseTest`/`BasePage` üzerindeki `waitForUrlContains(...)` (veya `waitForUrlMatches(regex)`) metodunu kullanın — ikisi de `WaitEngine`'e yönlendirir.
 - **Üçüncü taraf çerezlerini unutmak.** Bazı IdP'ler headless/CI modunda çerezleri reddeder; yalnızca gerekirse `--disable-features=SameSiteByDefaultCookies` ekleyin ve test edin.
 
 ---

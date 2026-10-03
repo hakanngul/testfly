@@ -142,4 +142,6 @@ public class CheckoutTest extends BaseTest {
 | Pass data from test A to test B | `suiteCtx()` — `SuiteContext` |
 | Share a created resource ID across the suite | `suiteCtx()` |
 | Store a token for one test only | `ctx()` |
-| Store a suite-wide auth token | `ApiClient.setGlobalAuth()` |
+| Store a suite-wide auth token | `suiteCtx()`; apply it with `ApiClient.setGlobalAuth()` in each test |
+
+`ApiClient.setGlobalAuth()` is thread-local test state and is cleared after each test. Storing a token in the suite context does not automatically install auth in other tests.

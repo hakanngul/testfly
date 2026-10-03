@@ -151,7 +151,9 @@ Framework, her testten sonra tüm sonuç yollarında (başarı, başarısızlık
 
 ## Kapsam
 
-`TestClock`, `Date` nesnesini yalnızca tarayıcıda şu anda yüklü sayfa içinde kontrol eder. Şunları etkilemez:
+`TestClock`, aktif sayfada `Date` nesnesini değiştirir. Yerel Chromium driverlarında (`ChromiumDriver`: Chrome, Edge) ayrıca CDP scripti kaydederek yenileme ve gezinme sonrasında aynı tarayıcı bağlamında taklidi tekrar uygular. Yukarıdaki refresh örnekleri bu CDP desteğini gerektirir. `RemoteWebDriver` (Selenium Grid, BrowserStack, Sauce Labs) ile CDP scripti kaydedilmez; taklit yenileme veya gezinmede kaybolur — gezinmeden sonra `clock().set(...)` çağrısını tekrarlayın. CDP kaydı başarısızsa TestFly uyarı yazar ve taklit yalnızca mevcut belgede kalır. Diğer tarayıcılarda gezinme sonrasında `clock().set(...)` işlemini tekrar çağırın; yeni sayfanın ilk yüklenmesinde taklit saatin geçerli olmasına güvenmeyin.
+
+Şunları etkilemez:
 
 - Sunucu tarafı tarih/saat kontrolleri (onlar için sunucu tarafı tarih geçersiz kılma veya ortam değişkeni kullanın)
 - Diğer tarayıcı sekmeleri / pencereleri

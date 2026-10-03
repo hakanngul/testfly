@@ -7,7 +7,7 @@ sidebar_position: 16
 
 # Performance Assertions (Core Web Vitals)
 
-TestFly 1.0.0 lets you assert Google's Core Web Vitals directly in your Selenium tests — no extra tool, no proxy, no external service. Call `assertPerformance()` after `open()` and set thresholds for each metric.
+TestFly lets you assert Google's Core Web Vitals (LCP, CLS) and Navigation Timing metrics (FCP, FP, TTFB, DOMContentLoaded, full page load) directly in your Selenium tests — no extra tool, no proxy, no external service. Call `assertPerformance()` after `open()` and set thresholds for each metric. If a metric is not available in the current browser (for example LCP or CLS outside Chrome/Edge), that assertion is skipped with a logged warning instead of failing the test.
 
 ---
 

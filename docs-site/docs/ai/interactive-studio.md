@@ -6,6 +6,11 @@ sidebar_position: 4
 description: Visual test generation, browser playground, live companion recording, and configuration management powered by TestFly Web Studio.
 ---
 
+:::info Historical implementation — superseded (2026-10-04)
+This page preserves the earlier Python/Selenium recorder design. The current [Node bridge source](https://github.com/hakanngul/testfly-mcp/blob/main/bin/testfly-mcp.js) exposes six MCP tools and `init`, `--version`, and `--help`; it does not ship `testfly studio`, `testfly ui`, or `testfly record`. Commands, port behavior, and tool counts below describe that historical implementation. Follow [MCP Bridge & CLI](/docs/cli) for the current source installation and [MCP architecture](/docs/ai/testfly-mcp) for the current design.
+:::
+
+
 # Interactive Web Studio
 
 The **TestFly Web Studio** is a local, zero-dependency visual interface that empowers QA teams and developers to interactively drive browsers, test MCP tools, generate production-ready Java code, and manage project configurations.

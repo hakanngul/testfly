@@ -261,3 +261,31 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
 
 ## 2026-10-01 — #27 report adapter race fix
 - generateAll synchronized ve serial kayıt sırası; List.copyOf snapshot, hata sonrası devam korunuyor. Shared HTML writer/reader regresyon testi eklendi. İlgili raporlama testleri ve tam mvn test BUILD SUCCESS. Kullanıcı düzeltme yetkisi kapsamında development commit/push ve ilgili review resolution yapılacak; sürüm artışı yok.
+
+## 2026-10-01 — MD analizi
+- 274 MD; birebir duplicate yok. Arşiv adayları: completed load sprint, Draft load mimarisi, unchecked JDK21 plan ve AI fikir raporu. PRODUCT tekrar/kırık lokal link adayı; DESIGN aktif referanslı. ROADMAP master stale; README docs/features RFC linkleri yok. Dosya silinmedi. Secret HEAD pattern ön taraması güçlü token bulmadı; tam geçmiş audit yapılmadı.
+
+## 2026-10-01 — MD konsolidasyonu
+- Kullanıcı yetkisiyle GEMINI/PRODUCT ek kuralları AGENTS’a, feature fikirleri ROADMAP’e, eski planların kararları ROADMAP/load wiki’ye taşındı. Altı MD silindi: GEMINI, PRODUCT, features-report, loadtest architecture/sprint ve JDK21 migration. README kırık docs/features linkleri düzeltildi; ROADMAP master hedefi development; .gitignore GEMINI satırı kaldırıldı. Aktif referans kontrolü/diff --check temiz. Tarihsel log korunuyor; kod/site değişmedi, commit/push yok.
+
+## 2026-10-03 — Selenium migration docs
+- EN/TR from-selenium-testng: eski io.testfly:1.0.0 yerine mevcut pom io.github.hakanngul:1.0.7, Java21; olmayan getWait.waitFor* çağrıları WebDriverWait.until ile düzeltildi. Page Object/fluent LoginPage, listener ve setup/teardown seçici kaldırma, ayrı migration run önerileri eklendi. Kaynak API kontrolü ve npm run build başarılı (iki locale), diff --check temiz. Kod/test değişmedi; commit/push yok.
+
+## 2026-10-03 — Docs tüm başlıklar ilk denetim
+- 101 sidebar sayfası/altbaşlık envanteri; EN101/TR97. Rapor /tmp/testfly-docs-audit-2026-10-03.md. Kurulum coordinate, WebDriverWait API, load sürüm çelişkisi, report adapter checked exception source doğrulandı; eksik yeni api config/OpenAPI içeriği ve TR4 kaydedildi. CI overrides/clock refresh/parity henüz test edilmedi. Java snippetlerin tamamı derlenmedi. Kullanıcı talimatına göre docs metni değiştirilmedi; uygulama bekliyor.
+
+## 2026-10-04 — Docs derin denetim
+- Prompt-refine ile kullanıcı kapsamı korundu: rapor/öneri, uygulama yok. EN101/TR97 sayfa; 830 Java/YAML blok; 264 YAML parser/bean kontrolü (loader case-insensitive/tire toleransı ve dış CI YAML ayrımı). 129 Java sınıf adayı context importları/package sırası tamamlanarak derlendi: 62 başarılı/67 başarısız; temsili sınıf/optional dependency hataları API hatası diye sayılmadı.
+- /tmp/testfly-docs-audit-2026-10-04.md: 30 bulgu grubu/38 EN sayfa; ayrıntılı page coverage ve ham kanıt /tmp/testfly-docs-audit-work/. Yeni kesinler: profil merge vaadi yanlış, load annotation/feeder/step/base-class API eskimiş, Locator/WebElement, BaseTest alert/BaseConditions find, video/AI importları, plugin baseUrl/context, BeforeSuite auth cleanup, etkisiz CI overrides, Allure resultsDir. Adapter IOException stub ile ayrıca derleme doğrulandı.
+- Plugin skip, Chromium clock persist, JUnit retry, testmanagement casing adayları elendi. Microsoft resmi README @playwright/mcp; public npm @testfly/mcp ve @modelcontextprotocol/server-playwright sorguları 404. Ayrı MCP/IDE ürünleri ve dış servisler uçtan uca doğrulanmadı; bunlar raporda sınırlı. 4 TR eksik; file URI linkleri kaydedildi.
+- mvn -q test-compile dependency:build-classpath ve npm run build başarılı. Tam mvn test/browser/servis testleri bu audit için çalıştırılmadı. development doğrulandı; mevcut working tree korundu. Docs/ürün kodu değişmedi, commit/push yok.
+
+## 2026-10-04 — Docs Audit Düzeltmeleri & test-authoring Skill Eklentisi
+- 2026-10-04 tarihli audit raporuna istinaden Docs-site EN ve TR i18n dosyalarında düzeltmeler yapıldı:
+  - Eski `io.testfly` koordinatları `io.github.hakanngul` ile güncellendi, Central / 1.0.4 uyarıları düzeltildi.
+  - Hatalı `WaitEngine` snippet'ları güncellendi, JUnit 5 feature parity iddiaları gerçeğe uygun hale getirildi.
+  - Allure log içerikleri ve Kubernetes manifest iddiaları düzeltildi.
+  - Eksik olan TR sayfaları oluşturuldu/çevrildi.
+- İki locale için de `npm run build` hatasız geçti. `docs-site` kod değişikliği yapıldı ancak commit/push atılmadı (Kullanıcı onayı bekleniyor).
+- OpenApiValidator `assertOpenApi` ve `LoadScenario.assertStatus` API'lerindeki kod hataları (bug) tespit edildi, test ve fix yazılmasına henüz başlanmadı.
+- AI ajanlarının tüketici (consumer) projelerinde TestFly testi yazabilmesi için `testfly-test-authoring` yeteneği (.agents/skills/testfly-test-authoring) geliştirildi ve eklendi. Test senaryoları `target/classes` üzerinden compile edilerek doğrulandı.

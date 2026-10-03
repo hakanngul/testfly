@@ -37,6 +37,10 @@ TestFly projesinin tamamlanan aşamaları ve planlanan gelecek nesil otonom yete
 
 ---
 
+## Tek Yol Haritası Kaynağı
+
+Güncel özellik backlog'u ve tamamlanan planlardan korunan kararlar kökteki [ROADMAP.md](../../ROADMAP.md#consolidated-feature-backlog) dosyasında tutulur. AI confidence healing, hata triyajı, semantic assertion ve MCP üretim fikirleri burada birleştirilmiştir; bu wiki ajanlar için kısa mimari özet olarak kalır.
+
 ## İlgili Bağlantılar
 - CI Dağıtım Motoru: `[[wiki/ci-quality-gates]]`
 - Yapay Zeka & MCP: `[[wiki/ai-mcp-automation]]`

@@ -7,6 +7,10 @@ sidebar_position: 2
 
 # Getting Started
 
+:::note Published release and development
+The verified Maven Central release is `io.github.hakanngul:testfly:1.0.4`. The installation examples below use that release. This checkout is version `1.0.7`; new development features may not exist in the published artifact. To use the current source, run `mvn clean install -DskipTests -Dgpg.skip=true` from the TestFly repository root and set your consumer dependency version to `1.0.7`. Do not assume `1.0.7` is available on Central.
+:::
+
 Get your first TestFly test running in under 5 minutes.
 
 ---
@@ -47,9 +51,9 @@ If adding TestFly to an existing project, follow the steps below:
 
 ```xml title="pom.xml"
 <dependency>
-    <groupId>io.testfly</groupId>
+    <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.7</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
@@ -58,7 +62,7 @@ If adding TestFly to an existing project, follow the steps below:
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.7'
+    testImplementation 'io.github.hakanngul:testfly:1.0.4'
 }
 
 test {
@@ -72,7 +76,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.testfly:testfly:1.0.7")
+    testImplementation("io.github.hakanngul:testfly:1.0.4")
 }
 
 tasks.test {

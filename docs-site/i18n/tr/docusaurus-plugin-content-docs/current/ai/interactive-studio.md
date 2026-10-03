@@ -6,6 +6,11 @@ sidebar_position: 4
 description: Görsel test üretimi, tarayıcı deneme alanı, canlı refakatçi kaydı ve TestFly Web Stüdyosu ile yapılandırma yönetimi.
 ---
 
+:::info Tarihsel uygulama — güncel mimari tarafından değiştirildi (2026-10-04)
+Bu sayfa önceki Python/Selenium recorder tasarımını korur. Güncel [Node bridge kaynağı](https://github.com/hakanngul/testfly-mcp/blob/main/bin/testfly-mcp.js) altı MCP aracı ile `init`, `--version` ve `--help` sunar; `testfly studio`, `testfly ui` veya `testfly record` komutlarını içermez. Aşağıdaki komutlar, port davranışları ve araç sayıları tarihsel uygulamayı anlatır. Güncel kaynak kurulumu için [MCP Bridge & CLI](/docs/cli), mimari için [MCP mimarisi](/docs/ai/testfly-mcp) sayfasını izleyin.
+:::
+
+
 # İnteraktif Web Stüdyosu
 
 **TestFly Web Stüdyosu**, QA ekiplerinin ve geliştiricilerin tarayıcıları görsel olarak kontrol etmesini, MCP araçlarını denemesini, üretime hazır Java kodları üretmesini ve proje ayarlarını yönetmesini sağlayan yerel ve sıfır bağımlılıklı bir web arayüzüdür.

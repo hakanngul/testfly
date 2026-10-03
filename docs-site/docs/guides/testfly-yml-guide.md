@@ -135,15 +135,15 @@ reporting:
 
 ## Environment profiles
 
-Keep one base file and create per-environment overrides:
+Create a complete configuration file for each environment:
 
 ```text
 testfly.yml            # base config
-testfly-staging.yml    # staging overrides
-testfly-ci.yml         # CI overrides
+testfly-staging.yml    # complete staging config
+testfly-ci.yml         # complete CI config
 ```
 
-Only the fields present in the profile file are replaced; everything else is inherited from the base config.
+A profile selects `testfly-<profile>.yml` as the complete configuration. It is not merged with `testfly.yml`; omitted optional fields use framework defaults. Include all required settings in each profile.
 
 Activate a profile with:
 
@@ -161,6 +161,8 @@ browser:
     - --disable-dev-shm-usage
 
 execution:
+  mode: local
+  baseUrl: https://www.saucedemo.com/
   parallel: methods
   threadCount: 8
   maxActiveSessions: 8
@@ -185,14 +187,13 @@ execution:
 execution:
   mode: browserstack
   baseUrl: https://www.saucedemo.com/
-
-browserstack:
-  username: ${BS_USER}
-  accessKey: ${BS_KEY}
-  os: Windows
-  osVersion: "11"
-  browser: chrome
-  browserVersion: latest
+  browserstack:
+    username: ${BS_USER}
+    accessKey: ${BS_KEY}
+    os: Windows
+    osVersion: "11"
+    browser: chrome
+    browserVersion: latest
 ```
 
 ### Disable retry for fast feedback during development

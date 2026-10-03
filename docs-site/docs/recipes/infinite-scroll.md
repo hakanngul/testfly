@@ -17,8 +17,8 @@ The safest stop condition is finding the element you actually care about:
 
 ```java title="ProductListPage.java"
 import io.testfly.test.BasePage;
+import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.By;
-import org.openqa.selenium.support.ui.ExpectedConditions;
 
 public class ProductListPage extends BasePage {
 
@@ -31,9 +31,14 @@ public class ProductListPage extends BasePage {
             if (find(target).count() > 0) {
                 return;                  // found it
             }
+            int before = find(PRODUCTS).count();
             scrollToBottom();
-            // Wait for the DOM to settle and at least one new card to render
-            getWait().wait(ExpectedConditions.numberOfElementsToBeMoreThan(PRODUCTS, i * 10));
+            WaitEngine.wait(d -> !d.findElements(target).isEmpty()
+                || d.findElements(PRODUCTS).size() > before
+                || !d.findElements(By.cssSelector(".catalog-end")).isEmpty());
+            if (find(target).count() == 0 && find(".catalog-end").count() > 0) {
+                throw new AssertionError("Catalog ended before product: " + productId);
+            }
         }
         throw new AssertionError("Product not loaded after scrolling: " + productId);
     }
@@ -41,6 +46,9 @@ public class ProductListPage extends BasePage {
 ```
 
 ```java title="ProductTest.java"
+import io.testfly.test.BaseTest;
+import org.testng.annotations.Test;
+
 public class ProductTest extends BaseTest {
 
     @Test
@@ -55,32 +63,29 @@ public class ProductTest extends BaseTest {
 
 ---
 
-## Scroll until the list stops growing
+## Load the catalog until its end marker
 
 Use this when you want to load the entire catalog before making assertions:
 
 ```java
+// Inside ProductListPage (scrollToBottom() is a protected BasePage helper)
 public int loadAllProducts() {
-    int previousCount = 0;
-    int sameCountIterations = 0;
-
-    while (sameCountIterations < 2) {
-        scrollToBottom();
-        getWait().waitForPageLoad();
-
-        int currentCount = find(".product-card").count();
-        if (currentCount == previousCount) {
-            sameCountIterations++;
-        } else {
-            sameCountIterations = 0;
-            previousCount = currentCount;
+    By products = By.cssSelector(".product-card");
+    By end = By.cssSelector(".catalog-end");
+    for (int page = 0; page < 100; page++) {
+        if (find(end).count() > 0) {
+            return find(products).count();
         }
+        int before = find(products).count();
+        scrollToBottom();
+        WaitEngine.wait(d -> d.findElements(products).size() > before
+            || !d.findElements(end).isEmpty());
     }
-    return previousCount;
+    throw new AssertionError("Catalog did not reach its end within 100 scrolls");
 }
 ```
 
-Two consecutive iterations with the same count usually means the feed has reached the end.
+Use an application-specific end marker such as `.catalog-end`. An unchanged count or `document.readyState` does not prove that asynchronous loading has finished. The iteration bound prevents an endless feed from hanging the test.
 
 ---
 
@@ -100,14 +105,15 @@ Two consecutive iterations with the same count usually means the feed has reache
 Some feeds use a "Load more" button instead of automatic scroll:
 
 ```java
+// Inside ProductListPage; imports WaitEngine and ExpectedConditions
 while (find("#load-more").isVisible()) {
     int before = find(".product-card").count();
     find("#load-more").click();
-    getWait().wait(ExpectedConditions.numberOfElementsToBeMoreThan(
+    WaitEngine.wait(ExpectedConditions.numberOfElementsToBeMoreThan(
         By.cssSelector(".product-card"), before));
 }
 ```
 
 ---
 
-**Deeper reference:** [WaitEngine](/docs/guides/wait-engine) — `waitForPageLoad`, custom `ExpectedConditions`, and other wait patterns.
+**Deeper reference:** [WaitEngine](/docs/guides/wait-engine) — `WaitEngine.wait(ExpectedCondition)` for custom conditions, `waitForPageLoad()`, and other wait patterns.

@@ -7,7 +7,7 @@ sidebar_position: 16
 
 # Performans Doğrulamaları (Core Web Vitals)
 
-TestFly 2.4.0, Google'ın Core Web Vitals metriklerini doğrudan Selenium testlerinizde doğrulamanıza olanak tanır — ekstra araç, proxy veya harici servis yok. `open()` işleminden sonra `assertPerformance()` çağırın ve her metrik için eşikler belirleyin.
+TestFly, Google'ın Core Web Vitals metriklerini (LCP, CLS) ve Navigation Timing metriklerini (FCP, FP, TTFB, DOMContentLoaded, tam sayfa yükleme) doğrudan Selenium testlerinizde doğrulamanıza olanak tanır — ekstra araç, proxy veya harici servis yok. `open()` işleminden sonra `assertPerformance()` çağırın ve her metrik için eşikler belirleyin. Bir metrik mevcut tarayıcıda ölçülemiyorsa (örneğin Chrome/Edge dışında LCP veya CLS), o doğrulama testi düşürmek yerine bir uyarı loglanarak atlanır.
 
 ---
 
