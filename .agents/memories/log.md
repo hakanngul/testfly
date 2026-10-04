@@ -289,3 +289,8 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
 - İki locale için de `npm run build` hatasız geçti. `docs-site` kod değişikliği yapıldı ancak commit/push atılmadı (Kullanıcı onayı bekleniyor).
 - OpenApiValidator `assertOpenApi` ve `LoadScenario.assertStatus` API'lerindeki kod hataları (bug) tespit edildi, test ve fix yazılmasına henüz başlanmadı.
 - AI ajanlarının tüketici (consumer) projelerinde TestFly testi yazabilmesi için `testfly-test-authoring` yeteneği (.agents/skills/testfly-test-authoring) geliştirildi ve eklendi. Test senaryoları `target/classes` üzerinden compile edilerek doğrulandı.
+
+## 2026-10-04 — Development commit/push hazırlığı
+- Kullanıcı tüm git changes için commit ve push istedi. Önceki docs/core düzeltmesi 299a4c6 zaten commit; kalan GEMINI/PRODUCT ve eski planların silinmesi, README/ROADMAP/.gitignore konsolidasyonu incelendi; aktif referanslar temiz.
+- mvn test ilk koşuda SemanticLocatorTest global test-id paralel yarışı nedeniyle 1/1362 fail; sınıfa @Test(singleThreaded=true) eklenip tam paket yeniden çalıştırıldı: 1362 test, 0 fail/error/skip, BUILD SUCCESS. EN/TR npm run build başarılı. Test izolasyonu ayrı commit, MD temizliği ve hafıza ayrı commit kapsamı.
+- development ve remote ahead durumu doğrulandı; release/sürüm bump/tag kapsam dışı. GPG signing inappropriate ioctl hatası için yalnız commit komutunda commit.gpgsign=false kullanıldı; kalıcı Git ayarı değişmedi. Push hedefi origin/development.

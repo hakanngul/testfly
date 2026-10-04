@@ -7,7 +7,7 @@
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Good first issues](https://img.shields.io/github/issues/hakanngul/testfly/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
-**[Documentation](https://hakanngul.github.io/testfly) · [Sample Project](https://github.com/hakanngul/testfly-test) · [TestFly MCP](https://github.com/hakanngul/testfly-mcp) · [Feature Roadmap](docs/features/README.md)**
+**[Documentation](https://hakanngul.github.io/testfly) · [Sample Project](https://github.com/hakanngul/testfly-test) · [TestFly MCP](https://github.com/hakanngul/testfly-mcp) · [Feature Roadmap](ROADMAP.md)**
 
 ---
 
@@ -809,14 +809,9 @@ A working demo project covering all framework features is available at:
 
 ## Future Feature Roadmap (RFCs)
 
-Explore the architectural specifications and phased delivery plans for upcoming releases:
-- ⏱️ [**RFC 01: Time-Travel & Interactive Trace Viewer**](docs/features/01-time-travel-trace-viewer.md) (`v1.2.0`)
-- 🌐 [**RFC 02: Declarative Network Interception & Mocking DSL**](docs/features/02-declarative-network-mocking.md) (`v1.2.0`)
-- 🤖 [**RFC 03: Agentic CI Failure Auto-Healer & PR Creator**](docs/features/03-agentic-ci-failure-auto-healer.md) (`v1.3.0`)
-- 👁️ [**RFC 04: Built-in Visual Regression & Pixel Diffing Engine**](docs/features/04-visual-regression-testing.md) (`v1.2.0`)
-- 💡 [**RFC 05: IDE In-Gutter Live Locator Inspector & Highlighting**](docs/features/05-ide-in-gutter-locator-inspector.md) (`v1.3.0`)
-
-See the comprehensive comparison table and milestone roadmap at **[docs/features/README.md](docs/features/README.md)**.
+Upcoming feature proposals and retained architecture decisions are consolidated in
+[ROADMAP.md](ROADMAP.md#consolidated-feature-backlog). This includes trace exploration,
+network mocking, CI remediation, visual regression and IDE locator inspection.
 
 ---
 
@@ -840,7 +835,7 @@ Contributions are warmly welcome — TestFly is opinionated, and contributions t
 
 - 🙌 [**Good first issues**](https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — scoped, self-contained tasks
 - 🤝 [**Help wanted**](https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) — larger pieces we'd love a hand with
-- 🗺️ [**Roadmap & Feature RFCs**](docs/features/README.md) — where the project is heading and where help fits
+- 🗺️ [**Roadmap & Feature RFCs**](ROADMAP.md) — where the project is heading and where help fits
 - 💬 [**Discussions**](https://github.com/hakanngul/testfly/discussions) — questions and feature ideas
 
 Then read [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, the PR checklist, and the backward-compatibility policy. Bug reports and feature requests both have [issue templates](https://github.com/hakanngul/testfly/issues/new/choose) to guide you.
