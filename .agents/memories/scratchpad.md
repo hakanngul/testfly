@@ -1,21 +1,20 @@
 # TestFly — Güncel Durum (Scratchpad)
 
 ## Mevcut Durum
-- Yerel pom: io.github.hakanngul:testfly:1.0.7; Java21/JDK HTTP. development doğrulandı; main commit/push yasak.
-- Interceptor/mock/SSL/timeout/concurrency tamamlandı. Report race 44a0403 ile push; önceki 1361 test sonucu tarihsel.
+- Yerel pom: io.github.hakanngul:testfly:1.0.7; Java21. main commit/push yasak; her git işleminden önce `git branch --show-current`.
+- Denetim remediation Faz 1 worktree'de (`testfly-worktrees/audit-phase1`, development, HEAD d6ca2ff) UNCOMMITTED. Ana checkout `chore/docs-cloudflare-workers` dalında, dokunulmadı.
 
-## Docs Denetimi & Düzeltmeler — 2026-10-04
-- 2026-10-04 tarihli Docs audit raporu üzerinden düzeltmeler (EN+TR) uygulandı (önceki düzeltmeler 299a4c6 commit’inde).
-- **Koordinat/Sürüm:** Tüm sayfalarda `io.testfly` yerine `io.github.hakanngul:testfly` kullanıldı. Central sürümü olan yerler `1.0.4` bırakıldı ve Central uyarısı eklendi. Load test modülü sonradan (1.0.5) eklendiği için `loadtest/getting-started` sayfasında `1.0.7` (local install) olarak bırakıldı.
-- **API:** `why-waitengine`, `infinite-scroll`, `oauth-sso` için `WaitEngine` API uyumsuzlukları giderildi. `report-adapters` içindeki IOException durumu ve `Allure` page'indeki label hataları çözüldü. OpenApiValidator'daki (URL ve Content-Type eksikliği) bug tespit edildi, workaround eklendi (Kod düzeltmesi henüz yapılmadı). `LoadScenario.assertStatus` içindeki !=200 durumu için potansiyel bug not edildi.
-- **Config & CI:** Yeni `api.*` değerleri eklendi, hatalı CI overrides (`TESTFLY_HEADLESS`) düzeltildi.
-- **Eksik TR Sayfalar:** allure, bitbucket, docker-k8s, from-restassured TR dosyaları yazıldı. `loadtest/distributed-docker-k8s` İngilizce ve Türkçe olarak hatalı iddialardan (100K RPS, reportportal live streaming) arındırıldı.
+## Faz 1 Sonucu — 2026-10-08
+- Final doğrulama: `mvn clean verify -Dgpg.skip=true` 1444 test/0 hata (taban 1362→1405→1444), jacoco.exec var; docs EN+TR build OK. 5 mutasyonla regresyon testleri düzeltmesiz kırmızı doğrulandı, geri yükleme byte-identical.
+- Yapılan: T1.2 release.yml sertleştirme, T1.4 kısmi koordinat/sürüm, T1.5, T1.6 jackson-bom 2.21.7, T1.7 HtmlReport kaçış+tek geçiş, T1.8-10/12 DriverManager (izin sızıntısı, per-suite recreate, sessionWaitSeconds), T1.11 LoadTestDetector, T1.14b hata mesajı, T1.16 kısmi, T1.17 Locator auto-wait, T1.18 innermost getByText, T1.20 JaCoCo, T1.21 kısmi, T1.22 docs örnekleri.
+- Rapor: `testfly/target/audit-scratch/phase1-summary.md` (görev bazlı detay, takipler).
 
-## Yeni Ajan Yeteneği (Skill) — testfly-test-authoring
-- Ajanların TestFly'ı kullanarak WebUI, API, TestNG, JUnit 5, Cucumber ve Load testleri yazabilmesi için `testfly-test-authoring` skill'i eklendi. SKILL.md kararlar, kurallar ve checklist içeriyor.
+## Bekleyen Kullanıcı Kararları
+- D-01 sürüm/koordinat + Central kök neden; D-02 retry; D-03 config katmanlama; D-04 yük testi 4xx/5xx/targetRps; D-06 lazy driver; T1.13 quitAllSuiteDrivers daraltma.
+- T1.3 öncesi: release.yml fork kuru koşusu + GitHub `release` environment.
 
-## Git — 2026-10-04
-- Kullanıcı commit/push istedi: MD temizliği ve SemanticLocatorTest global ayar izolasyonu development kapsamında. mvn test: 1362/0 hata; EN/TR docs build başarılı. GPG terminal hatası: bu commitlerde geçici imzasız mod; global ayar değişmedi. Release/tag yok.
+## Sonraki Adım
+- Kullanıcı onayıyla development'a commit (GPG terminal sorunu olursa yalnız komutta commit.gpgsign=false); release/tag yok.
 
 ## Linkler
 [[MAP]] | [[wiki/api-testing]] | [[memories/log]] | [[skills/testfly-test-authoring/SKILL]]
