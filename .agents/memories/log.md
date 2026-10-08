@@ -261,3 +261,7 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
 
 ## 2026-10-01 — #27 report adapter race fix
 - generateAll synchronized ve serial kayıt sırası; List.copyOf snapshot, hata sonrası devam korunuyor. Shared HTML writer/reader regresyon testi eklendi. İlgili raporlama testleri ve tam mvn test BUILD SUCCESS. Kullanıcı düzeltme yetkisi kapsamında development commit/push ve ilgili review resolution yapılacak; sürüm artışı yok.
+## 2026-10-08 — Docs Cloudflare Workers (testfly.dev) geçişi
+- wrangler.jsonc eklendi (assets docs-site/build, 404-page); docusaurus url=https://testfly.dev, baseUrl=/; GoatCounter prefix kaldırıldı; robots.txt sitemap güncellendi; deploy-docs.yml (GitHub Pages) silindi.
+- Eski hakanngul.github.io linkleri README/ROADMAP/pom url/ISSUE_TEMPLATE/profile README/testfly.yml/AGENTS.md içinde testfly.dev yapıldı; güvenlik e-postası founder@testfly.dev oldu.
+- Deploy Cloudflare GitHub entegrasyonuyla yapılacak; CLI deploy yok. Sürüm/tag yok. Hostinger MX/SPF/DKIM/DMARC DNS kayıtları korunmalı.

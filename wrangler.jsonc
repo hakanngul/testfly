@@ -1,0 +1,9 @@
+{
+  "name": "testfly",
+  "compatibility_date": "2026-10-08",
+  "assets": {
+    "directory": "./docs-site/build",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  }
+}

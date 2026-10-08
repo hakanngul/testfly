@@ -324,7 +324,7 @@ Important stable entry points:
 - Maven Central publishing uses `central-publishing-maven-plugin` + GPG signing.
 - Credentials live in `~/.m2/settings.xml`; they are **not** in this repository.
 - Publishing is currently a manual step: `mvn deploy`
-- The docs site deploys via GitHub Pages when `docs-site/**` changes on `master`.
+- The docs site is served at https://testfly.dev and deploys to Cloudflare Workers (static assets from `docs-site/build`, configured in `wrangler.jsonc`) when `docs-site/**` changes on `main`. GitHub Pages is no longer used.
 
 ### Version-bump checklist
 
@@ -347,7 +347,7 @@ After release, also update `LATEST_VERSION` in the separate `testfly/website` re
 - TestFly is a test framework; it runs inside your build and drives browsers you control.
 - **Never commit secrets** (API keys, cloud credentials, OAuth client secrets, DB passwords) to this repo.
 - Sensitive config values should be injected via environment variables and referenced with `${VAR}` placeholders in `testfly.yml`.
-- Report vulnerabilities privately to `security@testfly.github.io/testfly` per `SECURITY.md`; do not open public issues.
+- Report vulnerabilities privately to `founder@testfly.dev` per `SECURITY.md`; do not open public issues.
 - Optional dependencies (Cucumber, JUnit 5, JSON Schema validator, IMAP, POI) are marked `<optional>true</optional>` so they are not pulled transitively into consumer projects.
 - If you add a feature that reads external input (config files, test data, email bodies, network stubs), validate and sanitize it defensively.
 

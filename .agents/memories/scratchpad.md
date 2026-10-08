@@ -17,5 +17,6 @@
 - Açık P2 report write race düzeltildi: ReportAdapterRegistry.generateAll synchronized, adapter’lar snapshot kayıt sırasıyla caller thread’de çalışır; hata izolasyonu korunur. Regresyon testi shared-output write/read sırasını doğrular.
 - İlgili raporlama testleri ve tam mvn test başarılı. Düzeltme development commit/push kapsamında; review PRRT_kwDOUBZN7c6njS4- çözülüp yeni CI izlenecek. Sürüm/release yok.
 
+- Docs: testfly.dev Cloudflare Workers geçişi (2026-10-08), bkz. log.
 ## Linkler
 [[wiki/api-testing]] | [[MAP]] | [[rules/git-release-workflow]] | [[memories/log]]
