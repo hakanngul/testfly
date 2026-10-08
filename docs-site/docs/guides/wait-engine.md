@@ -74,7 +74,7 @@ WaitEngine.waitForUrlMatches(".*/orders/\\d+");      // regular expression
 ### DOM staleness
 
 ```java
-WebElement old = driver.findElement(By.id("row-1"));
+WebElement old = getDriver().findElement(By.id("row-1"));
 WaitEngine.waitForStaleness(old);  // wait for DOM replacement / AJAX reload
 ```
 
@@ -142,8 +142,8 @@ WaitEngine.waitForVisible(By.id("result"));
 
 ```java
 // ❌ raw WebDriverWait — bypasses framework timeout config
-new WebDriverWait(driver, Duration.ofSeconds(10))
-    .until(ExpectedConditions.visibilityOf(...));
+new WebDriverWait(getDriver(), Duration.ofSeconds(10))
+    .until(ExpectedConditions.visibilityOfElementLocated(By.id("result")));
 
 // ✅ use WaitEngine — reads timeout from config
 WaitEngine.waitForVisible(By.id("result"));

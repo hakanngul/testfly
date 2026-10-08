@@ -8,7 +8,7 @@ sidebar_position: 10
 # JUnit 5 Support
 
 :::note Published release and development
-The verified Maven Central release is `io.github.hakanngul:testfly:1.0.4`. The installation examples below use that release. This checkout is version `1.0.7`; new development features may not exist in the published artifact. To use the current source, run `mvn clean install -DskipTests -Dgpg.skip=true` from the TestFly repository root and set your consumer dependency version to `1.0.7`. Do not assume `1.0.7` is available on Central.
+The verified Maven Central release is `io.github.hakanngul:testfly:1.0.4`. The installation examples below use that release. This checkout is version `1.0.7`; new development features may not exist in the published artifact. To use the current source, run `mvn clean install -DskipTests` from the TestFly repository root and set your consumer dependency version to `1.0.7`. Do not assume `1.0.7` is available on Central.
 :::
 
 TestFly supports both **TestNG** (built-in) and **JUnit 5** (opt-in). Rather than a minimal runner, the JUnit 5 integration is a first-class citizen sharing core capabilities with TestNG `BaseTest`: framework-managed WebDriver lifecycle, ThreadLocal isolation, fluent locators, web-first and soft assertions, built-in REST API testing, multi-user sessions, HTML timeline reporting, AI failure analysis, and flakiness tracking.
@@ -106,9 +106,9 @@ class LoginTest extends BaseJUnit5Test {
 | **Fluent Locators** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
 | **Web-First Assertions** | `assertThat(By).isVisible()`, `assertThat(Locator).hasText(...)`, `assertThat(...).count(n)` |
 | **Soft Assertions** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)`, `softAssert().that(...)` |
-| **REST API Testing** | `apiClient()`, `apiGet(path)`, `apiPost(path, body)`, `apiPut()`, `apiPatch()`, `apiDelete()` |
+| **REST API Testing** | `apiClient()`, `apiGet(path)`, `apiPost(path)`, `apiPut(path)`, `apiPatch(path)`, `apiDelete(path)` (each returns an `ApiClient` builder; finish with `.send()`) |
 | **Multi-Session** | `session(name)`, `withSession(name, runnable)` for multi-user / chat / marketplace flows |
-| **Database Checks** | `db()`, `db("datasourceName")` for query execution and assertions |
+| **Database Checks** | `db()` (default datasource) and `db("datasourceName")` for SQL queries and row assertions such as `assertRowExists(table, conditions)` |
 | **Email Verification** | `mailbox()`, `to("user@example.com")` for OTP, link, and content checks |
 | **Accessibility (a11y)**| `accessibility().scan()`, `assertAccessibility()` using axe-core |
 | **Step Logging** | `step(name)`, `step(name, takeScreenshot)` for HTML timeline reporting |
@@ -174,21 +174,22 @@ import io.testfly.junit5.BaseJUnit5Test;
 import io.testfly.test.NoBrowser;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 class UserApiIntegrationTest extends BaseJUnit5Test {
 
     @Test
     @NoBrowser  // No browser is opened; executes purely via HTTP
     void verifyUserCreationViaApi() {
-        ApiResponse response = apiPost("/api/users", "{\"name\":\"John Doe\",\"email\":\"john@example.com\"}");
-        
-        response.assertThat()
-                .statusCode(201)
-                .bodyContains("John Doe");
+        ApiResponse response = apiPost("/api/users")
+                .body("{\"name\":\"John Doe\",\"email\":\"john@example.com\"}")
+                .send();
+
+        response.assertStatus(201)
+                .assertBodyContains("John Doe");
 
         // Verify record in database
-        db().table("users")
-            .where("email", "john@example.com")
-            .assertExists();
+        db().assertRowExists("users", Map.of("email", "john@example.com"));
     }
 }
 ```
@@ -213,8 +214,10 @@ class OrderHistoryTest extends BaseJUnit5Test {
     void userCanViewCreatedOrder() {
         // 1. Seed order data quickly via REST API (bypassing slow UI forms)
         step("Seed order data via API");
-        String orderId = apiPost("/api/orders", "{\"item\":\"Widget\",\"qty\":2}")
-                .jsonPath().getString("id");
+        String orderId = apiPost("/api/orders")
+                .body("{\"item\":\"Widget\",\"qty\":2}")
+                .send()
+                .json("$.id");
 
         // 2. Open browser to order history page
         step("Open order history in browser");

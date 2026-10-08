@@ -8,7 +8,7 @@ sidebar_position: 3
 # Gradle Build Support
 
 :::note Published release and development
-The verified Maven Central release is `io.github.hakanngul:testfly:1.0.4`. The installation examples below use that release. This checkout is version `1.0.7`; new development features may not exist in the published artifact. To use the current source, run `mvn clean install -DskipTests -Dgpg.skip=true` from the TestFly repository root and set your consumer dependency version to `1.0.7`. Do not assume `1.0.7` is available on Central.
+The verified Maven Central release is `io.github.hakanngul:testfly:1.0.4`. The installation examples below use that release. This checkout is version `1.0.7`; new development features may not exist in the published artifact. To use the current source, run `mvn clean install -DskipTests` from the TestFly repository root and set your consumer dependency version to `1.0.7`. Do not assume `1.0.7` is available on Central.
 :::
 
 TestFly works with Gradle out of the box — the JAR on Maven Central is build-tool-agnostic. This page covers the recommended setup for both Groovy DSL (`build.gradle`) and Kotlin DSL (`build.gradle.kts`).
@@ -161,6 +161,10 @@ browser:
   name: chrome
   headless: true
 
+timeouts:
+  explicit: 10
+  pageLoad: 30
+
 retry:
   enabled: true
   maxAttempts: 2
@@ -247,8 +251,8 @@ These are `compileOnly` / optional in the TestFly JAR — add them only if you u
 
 | Feature | Dependency |
 |---|---|
-| Excel `@TestData` | `testImplementation 'org.apache.poi:poi-ooxml:5.2.5'` |
-| Email verification (IMAP) | `testImplementation 'com.sun.mail:jakarta.mail:2.0.1'` |
+| Excel `@TestData` | `testImplementation 'org.apache.poi:poi-ooxml:5.4.0'` |
+| Email verification (IMAP) | `testImplementation 'com.sun.mail:jakarta.mail:2.0.2'` |
 | Cucumber | `testImplementation 'io.cucumber:cucumber-java:7.20.1'` + `testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.20.1'` |
 
 ---

@@ -120,6 +120,7 @@ execution:
   parallel: none                    # none | methods | classes | tests | instances
   threadCount: 1                    # parallel etkin olduğunda eşzamanlı çalışan iş parçacığı sayısı
   maxActiveSessions: 5              # eşzamanlı aktif tarayıcı sayısını sınırlayan semafor
+  sessionWaitSeconds: 300           # testin boş tarayıcı yuvası için bekleyeceği süre, sn (0 = beklemeden hata ver)
 
   # ── CI Sharding (Parçalama)
   sharding:
@@ -497,12 +498,15 @@ Test dağıtımı, temel adresler, eşzamanlılık ve bulut ızgara (grid) sağl
 | `gridUrl` | `string` | `null` | Uzak Selenium Grid adresi (`mode: remote` iken zorunludur). Örnek: `http://localhost:4444`. |
 | `parallel` | `string` | `none` | TestNG paralel dağıtım modu: `none`, `methods`, `classes`, `tests`, `instances`. |
 | `threadCount` | `int` | `1` | Paralel mod aktifken çalışacak iş parçacığı (worker thread) sayısı. |
-| `maxActiveSessions` | `int` | `5` | Eşzamanlı aktif tarayıcı oturumlarını sınırlayan semafor. Ekstra testler yuva boşalana kadar 30 saniyeye kadar bekler. |
+| `maxActiveSessions` | `int` | `5` | Eşzamanlı aktif tarayıcı oturumlarını sınırlayan semafor. Ekstra thread'ler yuva boşalana kadar kuyrukta bekler (bkz. `sessionWaitSeconds`). `MultiSessionManager` ile açılan adlandırılmış oturumlar da aynı sınıra sayılır. |
+| `sessionWaitSeconds` | `int` | `300` | Bir thread'in boş oturum yuvası için, zaman aşımı hatası vermeden önce bekleyeceği süre (saniye). `0` değeri, boş yuva yoksa beklemeden hata verir. `>= 0` olmalıdır. Önceki sürümlerde sabit 30 saniyeydi. |
 | `sharding.enabled` | `boolean` | `false` | CI ortamlarında testleri paralel worker'lar arasında bölüştürür. |
 | `sharding.total` | `int` | `1` | Toplam paralel CI worker (shard) sayısı. |
 | `sharding.index` | `int` | `0` | Bu worker'ın sıfır-tabanlı indeksi (`0` ile `total-1` arası). |
 | `sharding.strategy` | `string` | `lpt` | Bölüştürme stratejisi: `lpt` (en uzun test önce) veya `round-robin`. |
 | `sharding.metricsFile` | `string` | `target/testfly-metrics.json` | LPT stratejisi için geçmiş süre metriklerinin okunduğu dosya. |
+
+**Boyutlandırma kuralı:** `maxActiveSessions` değerini en az `threadCount` kadar yapın (bir test aynı anda ek adlandırılmış oturum açıyorsa her biri için bir yuva daha ekleyin). `parallel` değeri `none` değilse ve `threadCount`, `maxActiveSessions` değerinden büyükse TestFly başlangıçta uyarı yazar: fazla thread'ler yuva için kuyrukta bekler ve yuva `sessionWaitSeconds` içinde boşalmazsa zaman aşımı hatasıyla başarısız olur. Çalıştırma reddedilmez.
 
 #### Bulut Blokları: `browserstack` & `saucelabs`
 

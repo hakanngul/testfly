@@ -13,16 +13,21 @@ sidebar_position: 12
 
 ## Çözdüğü sorun
 
-`@PreCondition` olmadan:
+`@PreCondition` olmadan her test girişi kendisi tekrarlar:
 
 ```java
-@BeforeMethod
-public void login() {
+@Test
+public void viewDashboard() {
     open("/login");
     new LoginPage(getDriver()).login("admin", "secret");
-    // HER testten önce çalışır — yavaş ve kırılgan
+    // HER testte tekrarlanır — yavaş ve kırılgan
+    open("/dashboard");
 }
 ```
+
+:::caution Driver `@BeforeMethod` içinde mevcut değildir
+TestNG ile TestFly, WebDriver'ı `@Test` metodu başlamadan hemen önce oluşturur ve test biter bitmez kapatır. `@BeforeMethod` driver oluşturulmadan önce, `@AfterMethod` ise driver kapatıldıktan sonra çalışır. Orada `open()` veya `getDriver()` çağırmak `WebDriver not initialized for current thread` hatası verir. Giriş gibi tarayıcı kurulumlarını `@PreCondition` içine ya da `@Test` metodunun kendisine koyun.
+:::
 
 `@PreCondition` ile:
 

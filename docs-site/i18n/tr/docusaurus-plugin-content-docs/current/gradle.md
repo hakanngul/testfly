@@ -8,7 +8,7 @@ sidebar_position: 3
 # Gradle Derleme Desteği
 
 :::note Yayımlanmış sürüm ve development
-Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests -Dgpg.skip=true` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
+Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
 :::
 
 TestFly, kutudan çıktığı gibi Gradle ile çalışır — Maven Central'daki JAR, derleme aracından bağımsızdır. Bu sayfa, hem Groovy DSL (`build.gradle`) hem Kotlin DSL (`build.gradle.kts`) için önerilen kurulumu kapsar.
@@ -161,6 +161,10 @@ browser:
   name: chrome
   headless: true
 
+timeouts:
+  explicit: 10
+  pageLoad: 30
+
 retry:
   enabled: true
   maxAttempts: 2
@@ -247,9 +251,9 @@ Bunlar TestFly JAR'ında `compileOnly` / isteğe bağlıdır — yalnızca ilgil
 
 | Özellik | Bağımlılık |
 |---|---|
-| Excel `@TestData` | `testImplementation 'org.apache.poi:poi-ooxml:5.2.5'` |
-| E-posta doğrulama (IMAP) | `testImplementation 'com.sun.mail:jakarta.mail:2.0.1'` |
-| Cucumber | `testImplementation 'io.cucumber:cucumber-java:7.15.0'` + `testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.15.0'` |
+| Excel `@TestData` | `testImplementation 'org.apache.poi:poi-ooxml:5.4.0'` |
+| E-posta doğrulama (IMAP) | `testImplementation 'com.sun.mail:jakarta.mail:2.0.2'` |
+| Cucumber | `testImplementation 'io.cucumber:cucumber-java:7.20.1'` + `testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.20.1'` |
 
 ---
 

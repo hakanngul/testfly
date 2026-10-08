@@ -88,12 +88,12 @@ All notable changes to TestFly are documented here.
   - **Gatling Engine**: High-concurrency subprocess execution, automatic simulation generation, stdout/log parsing, and full interactive Gatling HTML report generation linked directly in TestFly reports.
   - **Lightweight Virtual Thread Engine**: Zero-dependency JDK virtual thread engine for developer machines and fast CI/CD feedback loops.
 - **Fluent Load Testing DSL**:
-  - Declarative scenario builder via `load(url).users(n).during(duration).rampUp(duration).run()` or `loadScenario("name").step(...).run()`.
-  - Seamlessly available in `BaseTest`, `BaseApiTest`, `BaseLoadTest`, and `BaseJUnit5Test`.
+  - Declarative scenario builder via `load(path).users(n).rampUp(duration).hold(duration).run()` or `loadScenario("name").step(...).run()`.
+  - Available in `BaseLoadTest` (the load-test base class; it starts no browser).
 - **Annotation-Driven Execution (`@LoadTest`)**:
-  - Configure load test parameters (`users`, `duration`, `rampUp`, `targetRps`, `engine`, `feeders`, `warmUp`) directly at test class or method level.
-- **Data Feeders (`Feeder`)**:
-  - Built-in CSV, JSON, Array, and custom Supplier feeders with `circular()`, `random()`, and `batch()` iteration strategies.
+  - Configure load test parameters (`users`, `rampUp`, `hold`, `cooldown`, `engine`, `baseUrl`) directly at test class or method level.
+- **Data Feeders (`LoadTestFeeder`)**:
+  - `LoadTestFeeder` factories `csv`, `json`, `random`, `uuid`, `sequence`, and `constant`, plus `feedCsv`/`feedJson` shortcuts on the scenario.
 - **SLA & Latency Assertions (`LoadTestAssert`)**:
   - Fluent assertions for percentiles (P50, P90, P95, P99), max response time, min throughput (RPS), error rate thresholds, and HTTP status distributions.
 - **Unified Multi-Channel Reporting**:
@@ -203,7 +203,7 @@ reporting:
 
 ### Changed
 - **Project rebrand to TestFly** — complete identity migration:
-  - Maven coordinates: `io.testfly:testfly:1.0.0`
+  - Maven coordinates: `io.testfly:testfly:1.0.0` *(historical entry: legacy group ID; the current coordinate is `io.github.hakanngul:testfly`)*
   - Java namespace: `io.testfly`
   - Config file: `testfly.yml`
   - Public API annotation: `@TestFlyApi`
@@ -268,7 +268,7 @@ getByTestId("checkout-btn").click();
 ## [0.19.0] — 2026-06-20
 
 ### Added
-- **Gradle build support** — `testImplementation 'io.testfly:testfly'` + `test { useTestNG() }`
+- **Gradle build support** — `testImplementation 'io.testfly:testfly'` + `test { useTestNG() }` *(historical entry: legacy group ID; the current coordinate is `io.github.hakanngul:testfly`)*
 - JUnit XML auto-detects Maven vs Gradle directory layout
 - `FrameworkVersion.get()` reads `MANIFEST.MF` (works with both build tools)
 

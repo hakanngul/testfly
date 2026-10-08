@@ -41,7 +41,7 @@ It summarizes the project's architecture, build/test workflows, code conventions
 **TestFly** is an opinionated, zero-boilerplate Java test-automation framework built on top of Selenium WebDriver.
 It is published to Maven Central as a single JAR that users add as a dependency.
 
-- **Group / Artifact:** `io.testfly:testfly`
+- **Group / Artifact:** `io.github.hakanngul:testfly`
 - **Current version:** `1.1.0`
 - **Java baseline:** 21 (compiled with `--release 21`)
 - **Build tool:** Maven 3.8+
@@ -71,16 +71,16 @@ Key selling points:
 |-------|------------|
 | Language | Java 21 |
 | Build | Maven |
-| Browser automation | Selenium Java 4.40.0 |
+| Browser automation | Selenium Java 4.48.0 |
 | Test framework | TestNG 7.9.0 |
 | YAML parsing | SnakeYAML 2.2 |
-| JSON processing | Jackson Databind 2.21.0 |
+| JSON processing | Jackson Databind 2.21.7 (via `jackson-bom`) |
 | Unit-test mocking | Mockito 5.11.0 |
 | Optional: Cucumber | `cucumber-java` + `cucumber-testng` 7.20.1 |
 | Optional: JUnit 5 | `junit-jupiter-api` + `junit-platform-launcher` 1.10.2 |
 | Optional: JSON Schema | `json-schema-validator` 1.4.3 |
-| Optional: IMAP email | `jakarta.mail` 2.0.1 |
-| Optional: Excel data | Apache POI 5.2.5 |
+| Optional: IMAP email | `jakarta.mail` 2.0.2 |
+| Optional: Excel data | Apache POI 5.4.0 |
 
 Docs site:
 
@@ -188,8 +188,8 @@ mvn test -Dtest=ConfigurationLoaderTest#testMethodName
 # Run with an environment profile (uses testfly-{profile}.yml)
 mvn test -Dtestfly.profile=staging
 
-# Skip GPG signing during local install
-mvn clean install -DskipTests -Dgpg.skip=true
+# GPG signing only runs with -Prelease, so no flag is needed locally
+mvn clean install -DskipTests
 ```
 
 Docs site:
@@ -283,7 +283,7 @@ mvn test
 
 ### Consumer integration tests
 
-A separate sample/consumer project exists at `github.com/testfly/testfly-test`.
+A separate sample/consumer project exists at `github.com/hakanngul/testfly-test`.
 To test framework changes end-to-end:
 
 ```bash
@@ -296,10 +296,10 @@ mvn clean install -DskipTests
 
 ### CI
 
-GitHub Actions (`.github/workflows/testfly.yml`):
+GitHub Actions (`.github/workflows/testfly-ci.yml`):
 
 1. `unit-tests` job — runs `mvn test`
-2. `integration-tests` job — installs the framework, checks out `testfly/testfly-test`, pins it to the current version, and runs API demo tests
+2. `integration-tests` job — installs the framework, checks out `<owner>/testfly-test`, pins it to the current version, and runs API demo tests
 
 Jenkins (`ci/Jenkinsfile`):
 
@@ -330,10 +330,10 @@ Important stable entry points:
 
 ## CI/CD and Publishing
 
-- Maven Central publishing uses `central-publishing-maven-plugin` + GPG signing.
-- Credentials live in `~/.m2/settings.xml`; they are **not** in this repository.
-- Publishing is currently a manual step: `mvn deploy`
-- The docs site deploys via GitHub Pages when `docs-site/**` changes on `master`.
+- Maven Central publishing uses `central-publishing-maven-plugin`; GPG signing lives in the `release` profile of `pom.xml` (`-Prelease`), so plain `mvn verify` needs no key.
+- Releases are published by `.github/workflows/release.yml` (tag `vX.Y.Z` reachable from `main`, or `workflow_dispatch` with a validated `version`), gated by the `release` GitHub environment. Credentials are repository/environment secrets; they are **not** in this repository.
+- For a local manual deploy: `mvn deploy -Prelease` (needs `~/.m2/settings.xml` credentials and a GPG key).
+- The docs site deploys via GitHub Pages when `docs-site/**` changes on `main`.
 
 ### Version-bump checklist
 
@@ -346,6 +346,13 @@ When changing the framework version, update **all** occurrences:
 - `docs-site/docs/junit5.md`
 - `docs-site/docs/changelog.md`
 - `docs-site/src/pages/index.js`
+- `docs-site/src/data/homeData.js`
+- `docs-site/docs/cucumber.md`, `docs-site/docs/gradle.md`
+- `docs-site/docs/loadtest/getting-started.md`
+- `docs-site/docs/migration/from-selenium-testng.md`
+- `docs-site/docs/cli.md`, `docs-site/docs/ai/testfly-mcp.md`
+- `.github/profile/README.md`
+- every Turkish mirror under `docs-site/i18n/tr/docusaurus-plugin-content-docs/current/`
 
 After release, also update `LATEST_VERSION` in the separate `testfly/website` repo.
 

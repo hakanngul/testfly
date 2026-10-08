@@ -8,7 +8,7 @@ sidebar_position: 10
 # JUnit 5 Desteği
 
 :::note Yayımlanmış sürüm ve development
-Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests -Dgpg.skip=true` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
+Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
 :::
 
 TestFly, hem **TestNG** (yerleşik) hem de **JUnit 5** (tercihe bağlı) test çatılarını birinci sınıf vatandaş olarak destekler. JUnit 5 entegrasyonu yalnızca basit bir çalıştırıcı (runner) sunmakla kalmaz; TestNG `BaseTest` ile temel yetenekleri paylaşır: framework tarafından yönetilen WebDriver yaşam döngüsü, ThreadLocal sürücü izolasyonu, akıcı locator'lar, web-öncelikli ve soft assertion'lar, yerleşik REST API testi, çoklu kullanıcı oturumları (multi-session), HTML zaman çizelgesi raporlaması, AI hata analizi ve flakiness takibi.
@@ -106,9 +106,9 @@ class LoginTest extends BaseJUnit5Test {
 | **Akıcı (Fluent) Locator'lar** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
 | **Web-Öncelikli Doğrulamalar** | `assertThat(By).isVisible()`, `assertThat(Locator).hasText(...)`, `assertThat(...).count(n)` |
 | **Soft Doğrulamalar (SoftAssert)** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)`, `softAssert().that(...)` |
-| **Yerleşik REST API Testi** | `apiClient()`, `apiGet(path)`, `apiPost(path, body)`, `apiPut()`, `apiPatch()`, `apiDelete()` |
+| **Yerleşik REST API Testi** | `apiClient()`, `apiGet(path)`, `apiPost(path)`, `apiPut(path)`, `apiPatch(path)`, `apiDelete(path)` (her biri bir `ApiClient` builder döndürür; `.send()` ile bitirin) |
 | **Çoklu Oturum (Multi-Session)** | `session(name)`, `withSession(name, runnable)` ile çoklu kullanıcı / chat / pazar yeri akışları |
-| **Veritabanı Doğrulama** | `db()`, `db("datasourceName")` ile SQL sorguları ve veri kontrolleri |
+| **Veritabanı Doğrulama** | `db()` (varsayılan veri kaynağı) ve `db("datasourceName")` ile SQL sorguları ve `assertRowExists(table, conditions)` gibi satır doğrulamaları |
 | **E-Posta Doğrulama** | `mailbox()`, `to("user@example.com")` ile gelen kutusundan OTP, link ve içerik kontrolleri |
 | **Erişilebilirlik (a11y)**| `accessibility().scan()`, `assertAccessibility()` ile axe-core taramaları |
 | **Adım Kaydı (Step Logging)** | `step(name)`, `step(name, takeScreenshot)` ile HTML raporunda zaman çizelgesi |
@@ -174,21 +174,22 @@ import io.testfly.junit5.BaseJUnit5Test;
 import io.testfly.test.NoBrowser;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 class UserApiIntegrationTest extends BaseJUnit5Test {
 
     @Test
     @NoBrowser  // Tarayıcı açılmaz; doğrudan HTTP üzerinden koşar
     void verifyUserCreationViaApi() {
-        ApiResponse response = apiPost("/api/users", "{\"name\":\"John Doe\",\"email\":\"john@example.com\"}");
-        
-        response.assertThat()
-                .statusCode(201)
-                .bodyContains("John Doe");
+        ApiResponse response = apiPost("/api/users")
+                .body("{\"name\":\"John Doe\",\"email\":\"john@example.com\"}")
+                .send();
+
+        response.assertStatus(201)
+                .assertBodyContains("John Doe");
 
         // Veritabanından kaydı doğrula
-        db().table("users")
-            .where("email", "john@example.com")
-            .assertExists();
+        db().assertRowExists("users", Map.of("email", "john@example.com"));
     }
 }
 ```
@@ -213,8 +214,10 @@ class OrderHistoryTest extends BaseJUnit5Test {
     void userCanViewCreatedOrder() {
         // 1. Sipariş verisini REST API ile anında oluşturun
         step("Sipariş verisi API ile oluşturulur");
-        String orderId = apiPost("/api/orders", "{\"item\":\"Widget\",\"qty\":2}")
-                .jsonPath().getString("id");
+        String orderId = apiPost("/api/orders")
+                .body("{\"item\":\"Widget\",\"qty\":2}")
+                .send()
+                .json("$.id");
 
         // 2. Sipariş geçmişi sayfasına doğrudan gidin
         step("Sipariş detay sayfası tarayıcıda açılır");

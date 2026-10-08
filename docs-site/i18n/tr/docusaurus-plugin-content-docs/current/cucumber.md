@@ -8,7 +8,7 @@ sidebar_position: 11
 # BDD / Cucumber Entegrasyonu
 
 :::note Yayımlanmış sürüm ve development
-Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests -Dgpg.skip=true` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
+Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
 :::
 
 TestFly, Cucumber 7 ile kutudan çıktığı gibi tam entegre çalışır. Framework tüm yaşam döngüsünü yönetir: her senaryo için bağımsız WebDriver sağlama, ThreadLocal sürücü izolasyonu, hata anında otomatik ekran görüntüsü, HTML raporunda adım zaman çizelgesi, adımlar içinde doğrudan REST API test desteği, dependency injection gerektirmeyen yerleşik `ScenarioContext` veri paylaşımı, karantina mekanizması ve yapay zeka (AI) destekli hata analizi.
@@ -118,6 +118,10 @@ execution:
 browser:
   name: chrome
   headless: true
+
+timeouts:
+  explicit: 10
+  pageLoad: 30
 ```
 
 Her senaryo kendi iş parçacığında (thread) `DriverManager` tarafından yönetilen tamamen izole bir `WebDriver` örneğine sahip olur.
@@ -172,7 +176,7 @@ public class LoginSteps extends BaseCucumberSteps {
 | **Akıcı Locator'lar** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
 | **Web-Öncelikli Doğrulamalar** | `assertThat(By)`, `assertThat(Locator)` otomatik beklemeli doğrulamalar |
 | **Soft Assertions** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)` |
-| **Yerleşik REST İstemcisi** | `apiClient()`, `apiGet(path)`, `apiPost(path, body)`, `apiPut()`, `apiDelete()` |
+| **Yerleşik REST İstemcisi** | `apiClient()`, `apiGet(path)`, `apiPost(path)`, `apiPut(path)`, `apiDelete(path)` (her biri bir `ApiClient` builder döndürür; `.send()` ile bitirin) |
 | **Adım Kaydı (Step Logging)**| `step(name)`, `step(name, takeScreenshot)` |
 | **Cucumber Bağlamı** | `getScenario()` ile mevcut `io.cucumber.java.Scenario` nesnesine erişim |
 
@@ -182,14 +186,13 @@ public class LoginSteps extends BaseCucumberSteps {
 
 Standart Cucumber'da farklı step sınıfları arasında veri aktarımı yapmak (örneğin giriş adımında alınan token'ı veya sipariş numarasını ödeme adımında kullanmak) için PicoContainer, Spring veya Guice gibi harici dependency injection araçları yapılandırmak gerekir.
 
-TestFly, thread-safe çalışan yerleşik **`ScenarioContext`** mekanizması ile bunu sıfır yapılandırmayla çözer:
+TestFly, thread-safe çalışan yerleşik **`ScenarioContext`** mekanizması ile bunu sıfır yapılandırmayla çözer; her step sınıfında `ctx()` olarak kullanılabilir:
 
 ```java title="src/test/java/com/sirketiniz/bdd/steps/OrderSteps.java"
 package com.sirketiniz.bdd.steps;
 
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
-import io.testfly.context.ScenarioContext;
 import io.testfly.cucumber.BaseCucumberSteps;
 import org.openqa.selenium.By;
 
@@ -201,13 +204,13 @@ public class OrderSteps extends BaseCucumberSteps {
         String orderNumber = find("#confirmation-num").getText();
 
         // Veriyi sonraki adımlar (veya farklı step sınıfları) için saklayın
-        ScenarioContext.put("orderId", orderNumber);
+        ctx().set("orderId", orderNumber);
     }
 
     @Then("sipariş durumu onaylandı olmalıdır")
     public void verifyOrderStatus() {
         // Saklanan veriyi başka bir adımda okuyun
-        String orderId = ScenarioContext.get("orderId", String.class);
+        String orderId = ctx().get("orderId", String.class);
         
         open("/orders/" + orderId);
         assertThat(By.id("order-status")).hasText("CONFIRMED");
@@ -224,17 +227,22 @@ public class OrderSteps extends BaseCucumberSteps {
 BDD senaryolarında kullanıcı veya ürün gibi önkoşul verilerini UI üzerinden tıklayarak oluşturmak testleri ciddi oranda yavaşlatır. `BaseCucumberSteps` içindeki yerleşik API metotlarını kullanarak önkoşulları saniyeler içinde hazırlayabilirsiniz:
 
 ```java
+import io.cucumber.java.en.Given;
+import io.testfly.cucumber.BaseCucumberSteps;
+
 public class UserSteps extends BaseCucumberSteps {
 
     @Given("sistemde e-postası {string} olan aktif bir müşteri bulunur")
     public void seedUserViaApi(String email) {
         // Kullanıcıyı REST API ile anında oluşturun
         String json = String.format("{\"email\":\"%s\",\"role\":\"CUSTOMER\"}", email);
-        String userId = apiPost("/api/users", json)
-                .assertThat().statusCode(201)
-                .jsonPath().getString("id");
+        String userId = apiPost("/api/users")
+                .body(json)
+                .send()
+                .assertStatus(201)
+                .json("$.id");
 
-        ScenarioContext.put("userId", userId);
+        ctx().set("userId", userId);
     }
 }
 ```

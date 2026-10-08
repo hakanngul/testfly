@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **Load-test detection is explicit (behavior change).** The four name-based `contains("loadtest")` heuristics (`DriverManager`, `TestExecutionListener`, `TestFlyExtension`, `CucumberHooks`) were replaced by a single `LoadTestDetector`. A test is now treated as a load test (no WebDriver) only when it extends `BaseLoadTest`, implements `LoadTestSupport`, is annotated with `@LoadTest` / `@NoBrowser`, or carries the exact Cucumber tag `@loadtest`. Classes such as `FileUploadTest`, `DownloadTest` or anything in a package like `com.acme.uploadtests` are no longer silently denied a WebDriver. A one-time WARN is logged for classes/tags that matched the old name heuristic but not the new rules.
+- `Locator` actions (`click`, `fill`, `text`, ...) now auto-wait up to `timeouts.explicit`, re-resolving the element on each poll (also recovers from stale references) and self-healing after the timeout. `isVisible()`, `isEnabled()` and `count()` stay non-waiting.
+
+### Fixed
+
+- `getByText()` returned the outermost ancestor (`html`/`body`/wrapper `div`) instead of the element holding the text; it now returns only the innermost match. `exact()` uses the same logic.
+- Load tests: HTTP status codes are now recorded in `statusCodes` (transport failures use the synthetic code `-1`), `LoadScenario.assertStatus(n)` now fails when any other status occurs, and `extract()` works for scenarios without a feeder.
+
+---
+
 ## [1.0.7] — 2026-09-29
 
 ### Added
@@ -84,12 +98,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - **Gatling Engine**: High-concurrency subprocess execution, automatic simulation generation, stdout/log parsing, and full interactive Gatling HTML report generation linked directly in TestFly reports.
   - **Lightweight Virtual Thread Engine**: Zero-dependency JDK virtual thread engine for developer machines and fast CI/CD feedback loops.
 - **Fluent Load Testing DSL**:
-  - Declarative scenario builder via `load(url).users(n).during(duration).rampUp(duration).run()` or `loadScenario("name").step(...).run()`.
-  - Seamlessly available in `BaseTest`, `BaseApiTest`, `BaseLoadTest`, and `BaseJUnit5Test`.
+  - Declarative scenario builder via `load(path).users(n).rampUp(duration).hold(duration).run()` or `loadScenario("name").step(...).run()`.
+  - Available in `BaseLoadTest` (the load-test base class; it starts no browser).
 - **Annotation-Driven Execution (`@LoadTest`)**:
-  - Configure load test parameters (`users`, `duration`, `rampUp`, `targetRps`, `engine`, `feeders`, `warmUp`) directly at test class or method level.
-- **Data Feeders (`Feeder`)**:
-  - Built-in CSV, JSON, Array, and custom Supplier feeders with `circular()`, `random()`, and `batch()` iteration strategies.
+  - Configure load test parameters (`users`, `rampUp`, `hold`, `cooldown`, `engine`, `baseUrl`) directly at test class or method level.
+- **Data Feeders (`LoadTestFeeder`)**:
+  - `LoadTestFeeder` factories `csv`, `json`, `random`, `uuid`, `sequence`, and `constant`, plus `feedCsv`/`feedJson` shortcuts on the scenario.
 - **SLA & Latency Assertions (`LoadTestAssert`)**:
   - Fluent assertions for percentiles (P50, P90, P95, P99), max response time, min throughput (RPS), error rate thresholds, and HTTP status distributions.
 - **Unified Multi-Channel Reporting**:
@@ -177,7 +191,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - **Project rebrand to TestFly** — complete identity migration:
-  - Maven coordinates: `io.testfly:testfly:1.0.0`
+  - Maven coordinates: `io.testfly:testfly:1.0.0` *(historical entry: legacy group ID; the current coordinate is `io.github.hakanngul:testfly`)*
   - Java namespace: `io.testfly`
   - Configuration file: `testfly.yml`
   - Public API annotation: `@TestFlyApi`
@@ -250,7 +264,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [0.19.0] — 2026-06-20
 
 ### Added
-- **Gradle build support** — `testImplementation 'io.testfly:testfly'`; JUnit XML auto-detects Maven vs Gradle
+- **Gradle build support** — `testImplementation 'io.testfly:testfly'`; JUnit XML auto-detects Maven vs Gradle *(historical entry: legacy group ID; the current coordinate is `io.github.hakanngul:testfly`)*
 - **`FrameworkVersion`** reads `MANIFEST.MF` for cross-build-tool version reporting
 
 ---

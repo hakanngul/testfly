@@ -8,7 +8,7 @@ sidebar_position: 2
 # Getting Started
 
 :::note Published release and development
-The verified Maven Central release is `io.github.hakanngul:testfly:1.0.4`. The installation examples below use that release. This checkout is version `1.0.7`; new development features may not exist in the published artifact. To use the current source, run `mvn clean install -DskipTests -Dgpg.skip=true` from the TestFly repository root and set your consumer dependency version to `1.0.7`. Do not assume `1.0.7` is available on Central.
+The verified Maven Central release is `io.github.hakanngul:testfly:1.0.4`. The installation examples below use that release. This checkout is version `1.0.7`; new development features may not exist in the published artifact. To use the current source, run `mvn clean install -DskipTests` from the TestFly repository root and set your consumer dependency version to `1.0.7`. Do not assume `1.0.7` is available on Central.
 :::
 
 Get your first TestFly test running in under 5 minutes.
@@ -99,12 +99,13 @@ See the full [Gradle Setup Guide](/docs/gradle) for parallel config, JUnit 5, op
 Create `testfly.yml` in your project root (next to `pom.xml` or `build.gradle`):
 
 ```yaml title="testfly.yml"
+execution:
+  mode: local
+  baseUrl: https://your-app.com
+
 browser:
   name: chrome
   headless: false
-
-execution:
-  baseUrl: https://your-app.com
 
 retry:
   enabled: true
@@ -114,6 +115,10 @@ timeouts:
   explicit: 10
   pageLoad: 30
 ```
+
+:::note Required keys
+`execution.mode`, `browser.name`, `timeouts.explicit`, and `timeouts.pageLoad` are mandatory. If any of them is missing, TestFly stops at startup with a configuration error. Everything else has a sensible default.
+:::
 
 ---
 

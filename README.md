@@ -686,6 +686,10 @@ execution:
 browser:
   name: chrome
   headless: true
+
+timeouts:
+  explicit: 10
+  pageLoad: 30
 ```
 
 No code changes required — just config.

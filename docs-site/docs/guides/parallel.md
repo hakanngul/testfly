@@ -31,7 +31,7 @@ timeouts:
 
 `parallel`, `threadCount` and `maxActiveSessions` all live under `execution:` — see the [Configuration Reference](/docs/configuration#execution). `timeouts.explicit` and `timeouts.pageLoad` are required by every `testfly.yml`, parallel or not.
 
-`maxActiveSessions` acts as a hard ceiling on concurrent browsers. If `threadCount` is 4 but `maxActiveSessions` is 2, at most 2 browsers will run at the same time.
+`maxActiveSessions` acts as a hard ceiling on concurrent browsers. If `threadCount` is 4 but `maxActiveSessions` is 2, at most 2 browsers will run at the same time and TestFly logs a startup warning. The other threads wait for a free slot for up to `execution.sessionWaitSeconds` (default 300), so set `maxActiveSessions` to at least `threadCount`.
 
 ---
 

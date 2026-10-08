@@ -84,6 +84,7 @@ execution:
 | `parallel` | TestNG parallel mode: `none`, `methods`, `classes`, `tests`, or `instances`. |
 | `threadCount` | Number of threads when parallel execution is enabled. |
 | `maxActiveSessions` | Maximum concurrent browser instances. Extra tests wait for a free slot instead of failing. |
+| `sessionWaitSeconds` | Seconds a test waits for a free slot before timing out (default `300`, `0` = fail immediately). |
 
 ```yaml
 api:

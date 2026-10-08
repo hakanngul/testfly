@@ -139,6 +139,7 @@ execution:
   parallel: none                    # none | methods | classes | tests | instances
   threadCount: 1                    # worker thread count when parallel is active
   maxActiveSessions: 5              # concurrency semaphore limiting active browsers
+  sessionWaitSeconds: 300           # seconds a test waits for a free browser slot (0 = fail fast)
 
   # ── CI Sharding
   sharding:
@@ -516,12 +517,15 @@ Governs test execution topology, base URLs, concurrency, and cloud grid provider
 | `gridUrl` | `string` | `null` | Hub endpoint for remote Selenium Grid (used when `mode: remote`). Example: `http://localhost:4444`. |
 | `parallel` | `string` | `none` | Parallel test distribution mode: `none`, `methods`, `classes`, `tests`, `instances`. Validated against TestNG `ParallelMode`. |
 | `threadCount` | `int` | `1` | Concurrency worker count when `parallel` is enabled. |
-| `maxActiveSessions` | `int` | `5` | Semaphore limiting concurrent WebDriver sessions. Extra threads queue and wait up to 30 seconds for a slot. |
+| `maxActiveSessions` | `int` | `5` | Semaphore limiting concurrent WebDriver sessions. Extra threads queue until a slot is free (see `sessionWaitSeconds`). Named sessions from `MultiSessionManager` count against the same limit. |
+| `sessionWaitSeconds` | `int` | `300` | How long a thread waits for a free session slot before failing with a timeout error. `0` fails immediately when no slot is free. Must be `>= 0`. Earlier versions used a fixed 30 seconds. |
 | `sharding.enabled` | `boolean` | `false` | Distribute tests across parallel CI worker machines (shards). |
 | `sharding.total` | `int` | `1` | Total number of parallel CI workers. |
 | `sharding.index` | `int` | `0` | Zero-based index of this worker (`0` to `total-1`). |
 | `sharding.strategy` | `string` | `lpt` | Partitioning strategy: `lpt` (longest processing time first) or `round-robin`. |
 | `sharding.metricsFile` | `string` | `target/testfly-metrics.json` | Path to execution duration metrics used by LPT partitioning. |
+
+**Sizing rule:** set `maxActiveSessions` to at least `threadCount` (plus one slot per additional named session a test opens at the same time). When `parallel` is not `none` and `threadCount` is greater than `maxActiveSessions`, TestFly logs a warning at startup: the surplus threads queue for a slot and fail with a timeout if it does not free up within `sessionWaitSeconds`. The run is not rejected.
 
 #### Cloud Sub-Blocks: `browserstack` & `saucelabs`
 

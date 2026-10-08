@@ -31,7 +31,7 @@ load("/api/v1/feed")
 When an assertion fails, TestFly produces detailed diagnostic failure messages:
 
 ```
-java.lang.AssertionError: [LoadTest] P95 latency assertion failed: expected <= 200 ms, but was 348 ms (P50: 120ms, P90: 280ms, P99: 512ms)
+java.lang.AssertionError: [LoadTest] /api/v1/feed: p95 latency 348ms is not below 250ms
 ```
 
 ---
@@ -48,6 +48,10 @@ load("/api/orders")
     .assertErrorRateBelow(0.01)     // Error rate must stay below 1%
     .assertSuccessRateAbove(0.99);  // At least 99% requests must succeed
 ```
+
+:::caution What counts as an error
+With the JDK engine, a request is counted as failed only when it throws (connection refused, timeout, I/O error) or when one of its `check(...)` conditions fails. An HTTP 4xx or 5xx response without a `check(status().is(...))` is currently counted as a **successful** request, so it does not raise the error rate. Add `check(status().is(200))` to a step, or use `assertNoStatus(...)` (section 3), to catch error responses. Requests that never received a response are recorded under the status code `-1`.
+:::
 
 ---
 

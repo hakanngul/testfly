@@ -21,7 +21,7 @@ Takılma durumundaki Selenium testlerinin tek en büyük kaynağı **zamanlamad�
 
 ```java title="Yanlış yol"
 Thread.sleep(3000); // umarım sayfa hazırdır
-driver.findElement(By.id("submit")).click();
+getDriver().findElement(By.id("submit")).click();
 ```
 
 Sorunlar:
@@ -36,7 +36,7 @@ Sorunlar:
 ## Dağınık `WebDriverWait` ile ilgili sorun nedir
 
 ```java title="Biraz daha iyi, yine de dağınık"
-new WebDriverWait(driver, Duration.ofSeconds(10))
+new WebDriverWait(getDriver(), Duration.ofSeconds(10))
     .until(ExpectedConditions.elementToBeClickable(By.id("submit")))
     .click();
 ```

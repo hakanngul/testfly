@@ -84,6 +84,7 @@ execution:
 | `parallel` | TestNG paralel modu: `none`, `methods`, `classes`, `tests` veya `instances`. |
 | `threadCount` | Paralel çalıştırma etkinleştirildiğinde kullanılacak thread sayısı. |
 | `maxActiveSessions` | Maksimum eşzamanlı tarayıcı örneği. Fazladan testler başarısız olmak yerine boş bir slot bekler. |
+| `sessionWaitSeconds` | Bir testin zaman aşımına uğramadan önce boş slot için bekleyeceği süre, saniye (varsayılan `300`, `0` = beklemeden hata ver). |
 
 ```yaml
 api:

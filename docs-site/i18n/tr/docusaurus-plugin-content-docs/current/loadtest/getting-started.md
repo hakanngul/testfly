@@ -13,7 +13,7 @@ Java 21 ve TestNG yük testleri için `io.testfly.loadtest.BaseLoadTest` kullan�
 Yük testi modülü `1.0.5` sürümünde eklendi (bkz. changelog); bu nedenle Maven Central'da doğrulanan `io.github.hakanngul:testfly:1.0.4` sürümünde **bulunmaz**. Bu rehberler, henüz Maven Central'da olmayan güncel checkout sürümü `1.0.7`'yi hedefler. Örneklerden önce checkout’u yerel olarak kurun:
 
 ```bash
-mvn clean install -DskipTests -Dgpg.skip=true
+mvn clean install -DskipTests
 ```
 
 Yerel kurulan JAR için bağımlılık:

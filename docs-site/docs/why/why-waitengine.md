@@ -21,7 +21,7 @@ The single biggest source of flaky Selenium tests is **timing**. The page is not
 
 ```java title="The wrong way"
 Thread.sleep(3000); // hope the page is ready
-driver.findElement(By.id("submit")).click();
+getDriver().findElement(By.id("submit")).click();
 ```
 
 Problems:
@@ -36,7 +36,7 @@ Problems:
 ## What is wrong with scattered `WebDriverWait`
 
 ```java title="A little better, still messy"
-new WebDriverWait(driver, Duration.ofSeconds(10))
+new WebDriverWait(getDriver(), Duration.ofSeconds(10))
     .until(ExpectedConditions.elementToBeClickable(By.id("submit")))
     .click();
 ```

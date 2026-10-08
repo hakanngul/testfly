@@ -15,7 +15,7 @@ TestFly is engine-agnostic. It features a dual-engine architecture designed to d
 
 | Feature | Gatling Engine (`gatling`) | JDK Engine (`jdk`) |
 | :--- | :--- | :--- |
-| **Underlying Tech** | Gatling 3.10.x + Netty async IO | Java 21+ `HttpClient` + Virtual Threads |
+| **Underlying Tech** | Gatling 3.13.x + Netty async IO | Java 21+ `HttpClient` + Virtual Threads |
 | **Classpath Dependency** | Optional (`gatling-charts-highcharts`) | Built into Java standard library |
 | **Process Isolation** | Dedicated forked JVM subprocess | Runs in-process on test worker thread |
 | **Native Report** | Interactive Highcharts HTML report | Integrated TestFly HTML dashboard |

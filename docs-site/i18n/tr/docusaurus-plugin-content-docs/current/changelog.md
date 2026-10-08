@@ -88,12 +88,12 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
   - **Gatling Motoru**: Yüksek eşzamanlı alt süreç (subprocess) yürütme, otomatik simülasyon üretimi, konsol/log ayrıştırma ve TestFly raporlarına entegre etkileşimli Gatling HTML raporu.
   - **Hafif Sanal İş Parçacığı (Virtual Thread) Motoru**: Harici bağımlılık gerektirmeyen, geliştirici makineleri ve hızlı CI/CD döngüleri için optimize edilmiş saf Java sanal iş parçacığı motoru.
 - **Akıcı (Fluent) Yük Testi DSL'i**:
-  - `load(url).users(n).during(duration).rampUp(duration).run()` veya `loadScenario("name").step(...).run()` ile bildirimsel senaryolar.
-  - `BaseTest`, `BaseApiTest`, `BaseLoadTest` ve `BaseJUnit5Test` sınıflarında doğrudan kullanılabilir.
+  - `load(path).users(n).rampUp(duration).hold(duration).run()` veya `loadScenario("name").step(...).run()` ile bildirimsel senaryolar.
+  - `BaseLoadTest` (tarayıcı başlatmayan yük testi taban sınıfı) içinde kullanılabilir.
 - **Anotasyon Odaklı Yürütme (`@LoadTest`)**:
-  - Sınıf veya metot düzeyinde `@LoadTest` ile kullanıcı sayısı, süre, kademeli artış (rampUp), hedef RPS, motor ve besleyici ayarları.
-- **Veri Besleyiciler (`Feeder`)**:
-  - `circular()`, `random()` ve `batch()` stratejilerine sahip yerleşik CSV, JSON, Array ve özel Supplier besleyicileri.
+  - Sınıf veya metot düzeyinde `@LoadTest` ile `users`, `rampUp`, `hold`, `cooldown`, `engine` ve `baseUrl` ayarları.
+- **Veri Besleyiciler (`LoadTestFeeder`)**:
+  - `csv`, `json`, `random`, `uuid`, `sequence` ve `constant` `LoadTestFeeder` fabrikaları ile senaryo üzerinde `feedCsv`/`feedJson` kısayolları.
 - **SLA ve Gecikme Doğrulamaları (`LoadTestAssert`)**:
   - Yüzdelik dilimler (P50, P90, P95, P99), maksimum yanıt süresi, minimum RPS ve hata oranı limitleri için akıcı doğrulamalar.
 - **Birleşik Çok Kanallı Raporlama**:
@@ -155,7 +155,7 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 
 ### Changed
 - **Project rebrand to TestFly** — complete identity migration from Selenium Boot:
-  - Maven coordinates changed to `io.testfly:testfly:1.0.0`
+  - Maven coordinates changed to `io.testfly:testfly:1.0.0` *(historical entry: legacy group ID; the current coordinate is `io.github.hakanngul:testfly`)*
   - Java namespace changed to `io.testfly`
   - Configuration file renamed to `testfly.yml`
   - Public API annotation renamed to `@TestFlyApi`
@@ -239,7 +239,7 @@ testmanagement:
 ## [2.6.0] — 2026-06-20
 
 ### Added
-- **Gradle Build Support** — `testImplementation 'io.testfly:testfly:2.6.0'` + `test { useTestNG() }` is the complete Gradle setup; full docs cover Groovy DSL, Kotlin DSL, JUnit 5 bridge, parallel execution, optional dependencies, and `./gradlew test` equivalents for all `mvn` commands
+- **Gradle Build Support** — `testImplementation 'io.testfly:testfly:2.6.0'` + `test { useTestNG() }` is the complete Gradle setup; full docs cover Groovy DSL, Kotlin DSL, JUnit 5 bridge, parallel execution, optional dependencies, and `./gradlew test` equivalents for all `mvn` commands *(historical entry: legacy group ID; the current coordinate is `io.github.hakanngul:testfly`)*
 - **JUnit XML auto-detection** — `JUnitXmlReporter` now detects the active build tool at runtime: writes to `build/test-results/test/` (Gradle) when only a `build/` directory exists, or `target/surefire-reports/` (Maven) otherwise; override with `-Dtestfly.reports.dir=` system property
 - **Cross-build-tool version reporting** — `FrameworkVersion.get()` now reads `Implementation-Version` from the JAR's `MANIFEST.MF` as the primary source (works with both Maven and Gradle); falls back to `META-INF/maven/.../pom.properties` (Maven-only) and then `"0.0.0"`; `maven-jar-plugin` configured with `addDefaultImplementationEntries: true` to populate the manifest on every Maven build
 

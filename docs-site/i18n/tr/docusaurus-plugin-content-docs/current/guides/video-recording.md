@@ -107,9 +107,9 @@ public class WebUiRecordingExampleTest extends BaseTest {
     @Test(description = "Başarılı test: Video kaydı otomatik olarak silinir")
     public void successfulLoginTest() {
         open("https://www.saucedemo.com/");
-        $("#user-name").type("standard_user");
-        $("#password").type("secret_sauce");
-        $("#login-button").click();
+        find("#user-name").type("standard_user");
+        find("#password").type("secret_sauce");
+        find("#login-button").click();
         
         Assert.assertTrue(getDriver().getCurrentUrl().contains("inventory.html"),
                 "Kullanıcı envanter sayfasına yönlendirilmeli");
@@ -119,9 +119,9 @@ public class WebUiRecordingExampleTest extends BaseTest {
     @Test(description = "Hata alan test: Video kaydı MP4 olarak derlenir ve raporlara eklenir")
     public void failingCheckoutTest() {
         open("https://www.saucedemo.com/");
-        $("#user-name").type("standard_user");
-        $("#password").type("secret_sauce");
-        $("#login-button").click();
+        find("#user-name").type("standard_user");
+        find("#password").type("secret_sauce");
+        find("#login-button").click();
 
         // Kasıtlı hata:
         Assert.assertEquals(getDriver().getTitle(), "Beklenen Başlık Uyuşmazlığı",

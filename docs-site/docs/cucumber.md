@@ -8,7 +8,7 @@ sidebar_position: 11
 # BDD / Cucumber Integration
 
 :::note Published release and development
-The verified Maven Central release is `io.github.hakanngul:testfly:1.0.4`. The installation examples below use that release. This checkout is version `1.0.7`; new development features may not exist in the published artifact. To use the current source, run `mvn clean install -DskipTests -Dgpg.skip=true` from the TestFly repository root and set your consumer dependency version to `1.0.7`. Do not assume `1.0.7` is available on Central.
+The verified Maven Central release is `io.github.hakanngul:testfly:1.0.4`. The installation examples below use that release. This checkout is version `1.0.7`; new development features may not exist in the published artifact. To use the current source, run `mvn clean install -DskipTests` from the TestFly repository root and set your consumer dependency version to `1.0.7`. Do not assume `1.0.7` is available on Central.
 :::
 
 TestFly integrates with Cucumber 7 out of the box. The framework manages the entire lifecycle — WebDriver provisioning per scenario, ThreadLocal driver isolation, screenshots on failure, step timelines in the HTML report, built-in REST API testing inside steps, cross-step state sharing via `ScenarioContext` without DI boilerplate, quarantine handling, and AI root cause analysis.
@@ -118,6 +118,10 @@ execution:
 browser:
   name: chrome
   headless: true
+
+timeouts:
+  explicit: 10
+  pageLoad: 30
 ```
 
 Each scenario receives its own isolated `WebDriver` instance on its own thread, managed safely by `DriverManager`.
@@ -172,7 +176,7 @@ public class LoginSteps extends BaseCucumberSteps {
 | **Fluent Locators** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
 | **Web-First Assertions** | `assertThat(By)`, `assertThat(Locator)` with automatic waiting |
 | **Soft Assertions** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)` |
-| **Built-in REST Client** | `apiClient()`, `apiGet(path)`, `apiPost(path, body)`, `apiPut()`, `apiDelete()` |
+| **Built-in REST Client** | `apiClient()`, `apiGet(path)`, `apiPost(path)`, `apiPut(path)`, `apiDelete(path)` (each returns an `ApiClient` builder; finish with `.send()`) |
 | **Step Logging** | `step(name)`, `step(name, takeScreenshot)` |
 | **Cucumber Context** | `getScenario()` returning the current `io.cucumber.java.Scenario` |
 
@@ -182,14 +186,13 @@ public class LoginSteps extends BaseCucumberSteps {
 
 In standard Cucumber, passing state (such as an auth token, user ID, or generated order number) between different step definition classes requires configuring an external dependency injection container like PicoContainer or Spring.
 
-TestFly provides built-in, thread-safe scenario state sharing via **`ScenarioContext`**:
+TestFly provides built-in, thread-safe scenario state sharing via **`ScenarioContext`**, available as `ctx()` in every step class:
 
 ```java title="src/test/java/com/yourcompany/bdd/steps/OrderSteps.java"
 package com.yourcompany.bdd.steps;
 
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
-import io.testfly.context.ScenarioContext;
 import io.testfly.cucumber.BaseCucumberSteps;
 import org.openqa.selenium.By;
 
@@ -201,13 +204,13 @@ public class OrderSteps extends BaseCucumberSteps {
         String orderNumber = find("#confirmation-num").getText();
 
         // Store state for subsequent steps (even in other step classes!)
-        ScenarioContext.put("orderId", orderNumber);
+        ctx().set("orderId", orderNumber);
     }
 
     @Then("the order status should be confirmed")
     public void verifyOrderStatus() {
         // Retrieve state across steps
-        String orderId = ScenarioContext.get("orderId", String.class);
+        String orderId = ctx().get("orderId", String.class);
         
         open("/orders/" + orderId);
         assertThat(By.id("order-status")).hasText("CONFIRMED");
@@ -224,17 +227,22 @@ public class OrderSteps extends BaseCucumberSteps {
 BDD scenarios often require prerequisite test data. Instead of wasting time clicking through UI setup flows, use TestFly's built-in `ApiSupport` right inside your step definitions:
 
 ```java
+import io.cucumber.java.en.Given;
+import io.testfly.cucumber.BaseCucumberSteps;
+
 public class UserSteps extends BaseCucumberSteps {
 
     @Given("an active user exists with email {string}")
     public void seedUserViaApi(String email) {
         // Create user instantly via REST API
         String json = String.format("{\"email\":\"%s\",\"role\":\"CUSTOMER\"}", email);
-        String userId = apiPost("/api/users", json)
-                .assertThat().statusCode(201)
-                .jsonPath().getString("id");
+        String userId = apiPost("/api/users")
+                .body(json)
+                .send()
+                .assertStatus(201)
+                .json("$.id");
 
-        ScenarioContext.put("userId", userId);
+        ctx().set("userId", userId);
     }
 }
 ```

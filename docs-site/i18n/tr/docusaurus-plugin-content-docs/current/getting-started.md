@@ -8,7 +8,7 @@ sidebar_position: 2
 # Hızlı Başlangıç
 
 :::note Yayımlanmış sürüm ve development
-Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests -Dgpg.skip=true` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
+Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
 :::
 
 İlk TestFly testini 5 dakikadan kısa sürede çalıştırın.
@@ -99,12 +99,13 @@ Paralel yapılandırma, JUnit 5, isteğe bağlı bağımlılıklar ve rapor konu
 Proje köküne `testfly.yml` oluşturun (`pom.xml` veya `build.gradle` yanına):
 
 ```yaml title="testfly.yml"
+execution:
+  mode: local
+  baseUrl: https://your-app.com
+
 browser:
   name: chrome
   headless: false
-
-execution:
-  baseUrl: https://your-app.com
 
 retry:
   enabled: true
@@ -114,6 +115,10 @@ timeouts:
   explicit: 10
   pageLoad: 30
 ```
+
+:::note Zorunlu anahtarlar
+`execution.mode`, `browser.name`, `timeouts.explicit` ve `timeouts.pageLoad` zorunludur. Bunlardan biri eksikse TestFly başlangıçta yapılandırma hatasıyla durur. Diğer her şeyin makul bir varsayılanı vardır.
+:::
 
 ---
 

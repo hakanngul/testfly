@@ -18,7 +18,7 @@ Pratik yaklaşım, **kimlik doğrulamayı yetkilendirme testinden ayırmaktır**
 Uygulamanız bir erişim token'ını `localStorage`, bir çerez veya bir `Authorization` başlığında kabul ediyorsa, token uç noktasını doğrudan `ApiClient` ile çağırın ve sonucu enjekte edin:
 
 ```java title="OAuthLoginTest.java"
-import io.testfly.api.ApiResponse;
+import io.testfly.client.ApiResponse;
 import io.testfly.client.ApiClient;
 import io.testfly.test.BaseTest;
 import org.testng.annotations.Test;

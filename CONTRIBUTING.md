@@ -50,9 +50,10 @@ All unit tests must pass before submitting a PR.
 Never commit real API keys. The repo provides:
 
 - `.env.example` — copy to `.env` and fill in real values
-- `src/test/resources/testfly.yml.example` — copy to `src/test/resources/testfly.yml` if you need local config overrides
+- `testfly.yml` (repository root) — the framework config used for local runs; reference secrets as `${VAR}` placeholders instead of writing them in the file
+- `src/test/resources/testfly-<profile>.yml` — per-profile configuration, selected with `-Dtestfly.profile=<profile>`
 
-Both `.env` and `src/test/resources/testfly.yml` are ignored by Git.
+`.env` is ignored by Git; `testfly.yml` and the profile files are tracked, so never put real credentials in them.
 
 ### Running integration tests
 
@@ -73,7 +74,7 @@ Clone it alongside this repo and update its `pom.xml` to use your local snapshot
 
 ```xml
 <dependency>
-    <groupId>io.testfly</groupId>
+    <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
     <version>YOUR-SNAPSHOT-VERSION</version>
 </dependency>

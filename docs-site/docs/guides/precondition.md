@@ -13,16 +13,21 @@ sidebar_position: 12
 
 ## The problem it solves
 
-Without `@PreCondition`:
+Without `@PreCondition`, every test repeats the login itself:
 
 ```java
-@BeforeMethod
-public void login() {
+@Test
+public void viewDashboard() {
     open("/login");
     new LoginPage(getDriver()).login("admin", "secret");
-    // runs before EVERY test — slow and fragile
+    // repeated in EVERY test — slow and fragile
+    open("/dashboard");
 }
 ```
+
+:::caution The driver does not exist in `@BeforeMethod`
+With TestNG, TestFly creates the WebDriver just before the `@Test` method starts and quits it right after the test finishes. `@BeforeMethod` runs before the driver exists, and `@AfterMethod` runs after it is already closed. Calling `open()` or `getDriver()` there fails with `WebDriver not initialized for current thread`. Put browser setup such as logging in into a `@PreCondition`, or into the `@Test` itself.
+:::
 
 With `@PreCondition`:
 
