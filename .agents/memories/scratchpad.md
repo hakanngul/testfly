@@ -1,22 +1,19 @@
 # TestFly — Güncel Durum (Scratchpad)
 
-## Mevcut Durum
-- Maven: 1.0.7-SNAPSHOT; Java 21 ve JDK HTTP transport korunuyor.
-- development dalı; main commit/push yasak. Her git işleminden önce dal kontrolü zorunlu.
-- Interceptor/doc konu ayrımı önceki f77bd59 commit’inde; API geliştirmeleri ve kalan değişiklikler kullanıcı isteğiyle development commit’ine kaydedildi; release yok.
+## Aktif Odak
+- Dal: `chore/docs-cloudflare-workers`; `main` dalına commit/push yasak. PR #44 Anthropic başvuru sonucu gelene kadar merge edilmeyecek.
+- Docs-site mimari/API uyum denetimi tamamlandı; kullanıcı henüz düzeltme uygulaması istemedi, yalnız plan istedi.
 
-## API Geliştirmeleri — 2026-10-01
-- ApiMockRule: request/test kapsamı, ilk eşleşme, interceptor sonrası sentetik response. Snapshot, dış status retry, hook uyumu ve cleanup korunuyor.
-- SSL: PKCS12/JKS truststore, request override, opt-in trustAll. Hostname kontrolü JDK HTTPS identity ile korunur; eksik kimlik bağlamı fail-closed. JVM SSL ayarı değiştirilmez; özel profiller test kapanışında kapatılır.
-- Transport registry: default client paylaşımı, connectTimeoutSeconds=30; requestTimeout(Duration)/timeout(int) son seçim kazanır. maxConcurrentRequests=0 sınırsız, pozitif değer runtime fiziksel gönderimleri fair semaphore ile sınırlar; mock permit tüketmez. Aktif scope varken limit değiştirilemez.
-- Doğrulama: mvn test ve temiz verify (gpg.skip=true) başarılı; son temiz koşu 1360 test, 0 failure/error/skip. Yeni ApiFeaturesTest 11 test; çalıştırılabilir ApiMockExamplesTest 2 test ayrıca geçti. TR/EN npm run build başarılı.
+## Docs Denetimi — 2026-10-08
+- Docusaurus config doğrulaması ve EN/TR `npm run build` başarılı; derleme Java örneklerinin doğruluğunu denetlemiyor.
+- Önerilen UI standardı: semantik `Locator` (`getByRole/getByLabel/getByTestId`), sonra `find(String)`; `By` yalnız WaitEngine/frame/shadow/upload/SmartLocator/raw Selenium interop gibi sınır API'lerinde. Yeni örneklerde deprecated `$()` kullanılmamalı; framework-managed driver için varsayılan `BasePage()` tercih edilmeli.
+- Kritik stale/derlenmeyen docs: `guides/base-page`, `ai/prompt-recipes`, `ai/testfly-mcp`, `guides/video-recording`, `why/why-waitengine`, `migration/from-selenium-testng`, `extensibility/plugins`, TR `recipes/oauth-sso` ve loadtest sayfaları. Yanlış örnekler: `io.testfly.core/locators`, `RoleOptions`, `.fill/.val`, `getWait().waitFor*`, olmayan `@LoadEngine`, eski `@LoadTest` alanları ve feeder/load DSL metotları.
+- Maven koordinat/sürüm çelişkisi var: yürütülebilir `pom.xml` = `io.github.hakanngul:testfly:1.0.7`; docs içinde `io.testfly`, 1.0.0/1.0.4/1.0.7/1.1.0 ve TR Gradle'da 2.6.0 karışık. Düzeltmeden önce yayınlanmış koordinat/sürüm tek kaynak olarak netleştirilmeli.
+- EN sayfalarının 4 TR karşılığı eksik: `ci/bitbucket-pipelines`, `loadtest/distributed-docker-k8s`, `migration/from-restassured`, `reporting/allure`.
 
-## PR Yönetimi — 2026-10-01
-- #28/#29 kapatıldı. #27 development→main; API commitleri 5e12d2f ile push edildi, GitHub unit/integration kontrolleri başarılı.
-- Main ruleset 24296278 aktif: PR, strict GitHub Actions Unit Tests, conversation resolution, force-push/silme engeli; bypass yok, approval=0.
-- Açık P2 report write race düzeltildi: ReportAdapterRegistry.generateAll synchronized, adapter’lar snapshot kayıt sırasıyla caller thread’de çalışır; hata izolasyonu korunur. Regresyon testi shared-output write/read sırasını doğrular.
-- İlgili raporlama testleri ve tam mvn test başarılı. Düzeltme development commit/push kapsamında; review PRRT_kwDOUBZN7c6njS4- çözülüp yeni CI izlenecek. Sürüm/release yok.
+## Sonraki Açık Görevler
+- Kullanıcı onaylarsa P0 derleme hataları → P1 Locator/POM standardı → P2 EN/TR eşitleme → snippet compile/lint kapısı sırasıyla uygulanacak.
+- Her docs değişiminde çift dil korunacak, config değişirse validator; sonunda `npm run build` çalıştırılacak.
 
-- Docs: testfly.dev Cloudflare Workers geçişi (2026-10-08), bkz. log.
 ## Linkler
-[[wiki/api-testing]] | [[MAP]] | [[rules/git-release-workflow]] | [[memories/log]]
+[[wiki/webui-testing]] | [[wiki/architecture]] | [[rules/docusaurus-workflow]] | [[rules/git-release-workflow]] | [[memories/log]]
