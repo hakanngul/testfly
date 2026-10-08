@@ -123,4 +123,70 @@ public class ExecutionValidatorTest {
         assertTrue(message.contains("exceeds safe limit"), "was: " + message);
         assertTrue(message.contains(String.valueOf(overLimit)), "was: " + message);
     }
+
+    // ----------------------------------------------------------
+    // sessionWaitSeconds / threadCount vs maxActiveSessions
+    // ----------------------------------------------------------
+
+    private TestFlyConfig.Execution execution(String parallel, int threadCount, int maxActiveSessions) {
+        TestFlyConfig.Execution execution = execution(parallel, threadCount);
+        execution.setMaxActiveSessions(maxActiveSessions);
+        return execution;
+    }
+
+    @Test
+    public void sessionWaitSeconds_defaultIsAtLeastThePreviousFixed30() {
+        assertTrue(new TestFlyConfig.Execution().getSessionWaitSeconds() >= 30);
+    }
+
+    @Test
+    public void validate_negativeSessionWaitSeconds_isRejected() {
+        TestFlyConfig.Execution execution = execution("none", 1);
+        execution.setSessionWaitSeconds(-1);
+        String message = messageOf(execution);
+        assertTrue(message.contains("sessionWaitSeconds"), "was: " + message);
+    }
+
+    @Test
+    public void validate_zeroSessionWaitSeconds_isAccepted() {
+        TestFlyConfig.Execution execution = execution("none", 1);
+        execution.setSessionWaitSeconds(0);
+        ExecutionValidator.validate(execution);
+    }
+
+    @Test
+    public void crossCheck_threadCountAboveMaxActiveSessions_warnsWithBothValues() {
+        java.util.List<String> warnings =
+                ExecutionValidator.crossCheckWarnings(execution("methods", 4, 2));
+        assertEquals(warnings.size(), 1);
+        assertTrue(warnings.get(0).contains("threadCount (4)"), "was: " + warnings.get(0));
+        assertTrue(warnings.get(0).contains("maxActiveSessions (2)"), "was: " + warnings.get(0));
+    }
+
+    @Test
+    public void crossCheck_threadCountWithinMaxActiveSessions_doesNotWarn() {
+        assertTrue(ExecutionValidator.crossCheckWarnings(execution("methods", 2, 2)).isEmpty());
+        assertTrue(ExecutionValidator.crossCheckWarnings(execution("methods", 1, 5)).isEmpty());
+    }
+
+    @Test
+    public void crossCheck_sequentialRun_doesNotWarnEvenIfThreadCountIsHigh() {
+        assertTrue(ExecutionValidator.crossCheckWarnings(execution("none", 4, 2)).isEmpty());
+    }
+
+    /** A mismatch warns but must not fail the run — existing configs keep working. */
+    @Test
+    public void validate_threadCountAboveMaxActiveSessions_doesNotThrow() {
+        ExecutionValidator.validate(execution("methods", 2, 1));
+    }
+
+    @Test
+    public void sessionWaitSeconds_isReadFromYaml() {
+        String yaml = "execution:\n  mode: local\n  sessionWaitSeconds: 45\n  maxActiveSessions: 3\n";
+        TestFlyConfig config = new org.yaml.snakeyaml.Yaml(
+                new org.yaml.snakeyaml.constructor.Constructor(
+                        TestFlyConfig.class, new org.yaml.snakeyaml.LoaderOptions())).load(yaml);
+        assertEquals(config.getExecution().getSessionWaitSeconds(), 45);
+        assertEquals(config.getExecution().getMaxActiveSessions(), 3);
+    }
 }

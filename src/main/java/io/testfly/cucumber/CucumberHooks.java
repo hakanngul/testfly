@@ -10,6 +10,7 @@ import io.testfly.driver.DriverManager;
 import io.testfly.hooks.HookRegistry;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.lifecycle.FrameworkBootstrap;
+import io.testfly.loadtest.internal.LoadTestDetector;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.network.NetworkMock;
 import io.testfly.reporting.JUnitXmlReporter;
@@ -429,7 +430,7 @@ public class CucumberHooks {
         }
         return scenario.getSourceTagNames().stream().anyMatch(t -> {
             String lower = t.toLowerCase();
-            return lower.equals("@nobrowser") || lower.equals("@api") || lower.contains("loadtest");
+            return lower.equals("@nobrowser") || lower.equals("@api") || LoadTestDetector.isLoadTestTag(t);
         });
     }
 

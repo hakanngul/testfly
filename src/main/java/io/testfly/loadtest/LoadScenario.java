@@ -219,7 +219,14 @@ public final class LoadScenario {
      * Runs the scenario and asserts all responses returned the given status code.
      */
     public LoadTestAssert assertStatus(int expected) {
-        return run().assertStatus(expected);
+        LoadTestAssert result = run().assertStatus(expected);
+        // "All responses": no other status code (including -1 for transport failures) may occur.
+        for (Integer code : result.metrics().statusCodes().keySet()) {
+            if (code != expected) {
+                result.assertNoStatus(code);
+            }
+        }
+        return result;
     }
 
     /**

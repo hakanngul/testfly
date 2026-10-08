@@ -22,8 +22,7 @@ import io.testfly.tracing.TraceRecorder;
 import io.testfly.precondition.DependsOnApi;
 import io.testfly.precondition.PreConditionRunner;
 import io.testfly.recording.RecordingManager;
-import io.testfly.loadtest.BaseLoadTest;
-import io.testfly.loadtest.LoadTest;
+import io.testfly.loadtest.internal.LoadTestDetector;
 import io.testfly.reporting.ScreenshotManager;
 import io.testfly.email.MailboxClient;
 import io.testfly.clock.TestClock;
@@ -400,15 +399,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
     private boolean isLoadTest(ITestResult result) {
         Class<?> clazz = result.getTestClass().getRealClass();
         java.lang.reflect.Method m = result.getMethod().getConstructorOrMethod().getMethod();
-        if (BaseLoadTest.class.isAssignableFrom(clazz) ||
-                io.testfly.test.support.LoadTestSupport.class.isAssignableFrom(clazz) ||
-                clazz.isAnnotationPresent(LoadTest.class) ||
-                m.isAnnotationPresent(LoadTest.class)) {
-            return true;
-        }
-        String pkg = clazz.getPackageName().toLowerCase();
-        String simpleName = clazz.getSimpleName().toLowerCase();
-        return pkg.contains("loadtest") || simpleName.contains("loadtest");
+        return LoadTestDetector.isLoadTest(clazz, m);
     }
 
     /** Returns true for tests that must not create/use a WebDriver. */

@@ -16,6 +16,7 @@ import io.testfly.healing.HealLog;
 import io.testfly.hooks.HookRegistry;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.lifecycle.FrameworkBootstrap;
+import io.testfly.loadtest.internal.LoadTestDetector;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.network.NetworkMock;
 import io.testfly.recording.RecordingManager;
@@ -28,7 +29,6 @@ import io.testfly.listeners.Retryable;
 import io.testfly.email.MailboxClient;
 import io.testfly.precondition.PreConditionRegistry;
 import io.testfly.precondition.PreConditionRunner;
-import io.testfly.test.NoBrowser;
 import io.testfly.testmanagement.TestManagementReporter;
 import io.testfly.tracing.TraceRecorder;
 import io.testfly.assertion.SoftAssertionCollector;
@@ -511,15 +511,7 @@ public class TestFlyExtension
                 BaseJUnit5ApiTest.class.isAssignableFrom(clazz)) {
             return true;
         }
-        if (io.testfly.loadtest.BaseLoadTest.class.isAssignableFrom(clazz) ||
-                io.testfly.test.support.LoadTestSupport.class.isAssignableFrom(clazz) ||
-                clazz.isAnnotationPresent(io.testfly.loadtest.LoadTest.class) ||
-                m.isAnnotationPresent(io.testfly.loadtest.LoadTest.class) ||
-                clazz.getName().toLowerCase().contains("loadtest")) {
-            return true;
-        }
-        return m.isAnnotationPresent(NoBrowser.class) ||
-                clazz.isAnnotationPresent(NoBrowser.class);
+        return LoadTestDetector.skipsBrowser(clazz, m);
     }
 
     private void applyUseAuth(ExtensionContext context) {

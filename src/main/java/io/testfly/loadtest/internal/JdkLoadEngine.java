@@ -7,6 +7,7 @@ import io.testfly.loadtest.LoadTestConfig;
 import io.testfly.loadtest.LoadTestFeeder;
 import io.testfly.loadtest.LoadTestMetrics;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -15,6 +16,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +59,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * collections. The engine instance itself is stateless between executions.
  */
 public final class JdkLoadEngine implements LoadTestEngine {
+
+    /**
+     * Synthetic status code recorded in {@code statusCodes} for requests that never
+     * received an HTTP response (connection refused, timeout, I/O error).
+     */
+    public static final int TRANSPORT_ERROR_STATUS = -1;
 
     @Override
     public String name() {
@@ -142,17 +150,20 @@ public final class JdkLoadEngine implements LoadTestEngine {
                     activeUsers.incrementAndGet();
                     long userEndTime = System.currentTimeMillis() + (holdSeconds * 1000);
 
-                    // Feeder variables for this user iteration
-                    Map<String, Object> vars = feeder != null && feeder.hasNext()
+                    // Feeder row for this user (never mutated — each iteration works on a copy)
+                    Map<String, Object> feederRow = feeder != null && feeder.hasNext()
                             ? feeder.next()
                             : Collections.emptyMap();
 
                     // Hold phase — loop until hold duration expires
                     while (System.currentTimeMillis() < userEndTime) {
+                        // Per-iteration copy so extract() works without a feeder, with
+                        // immutable feeder rows, and never leaks values across iterations.
+                        Map<String, Object> vars = new HashMap<>(feederRow != null ? feederRow : Map.of());
                         for (LoadStep step : steps) {
                             long reqStart = System.nanoTime();
                             try {
-                                executeStep(httpClient, step, finalBaseUrl, vars, timeoutSeconds);
+                                executeStep(httpClient, step, finalBaseUrl, vars, timeoutSeconds, statusCounts);
                                 double latencyMs = (System.nanoTime() - reqStart) / 1_000_000.0;
 
                                 totalRequests.incrementAndGet();
@@ -177,7 +188,7 @@ public final class JdkLoadEngine implements LoadTestEngine {
 
                         // Refresh feeder variables each full iteration
                         if (feeder != null && feeder.hasNext()) {
-                            vars = feeder.next();
+                            feederRow = feeder.next();
                         }
                     }
 
@@ -265,7 +276,8 @@ public final class JdkLoadEngine implements LoadTestEngine {
     // ── Step execution ───────────────────────────────────────────────────
 
     private void executeStep(HttpClient client, LoadStep step, String baseUrl,
-            Map<String, Object> vars, int timeoutSeconds) throws Exception {
+            Map<String, Object> vars, int timeoutSeconds,
+            ConcurrentHashMap<Integer, AtomicLong> statusCounts) throws Exception {
 
         String path = VariableResolver.resolve(step.path(), vars);
         String url = buildUrl(baseUrl, path, step.queryParams(), vars);
@@ -304,13 +316,17 @@ public final class JdkLoadEngine implements LoadTestEngine {
             };
         }
 
-        HttpResponse<String> response = client.send(reqBuilder.build(),
-                HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response;
+        try {
+            response = client.send(reqBuilder.build(), HttpResponse.BodyHandlers.ofString());
+        } catch (IOException e) {
+            // No HTTP response at all (connect failure, timeout, ...)
+            recordStatus(statusCounts, TRANSPORT_ERROR_STATUS);
+            throw e;
+        }
 
-        // Record status code
-        // (statusCounts is captured in the outer scope via closure — we pass it
-        // differently)
-        // For simplicity, status code tracking is done at the caller level
+        // Record the status code before checks run, so failed checks are still counted
+        recordStatus(statusCounts, response.statusCode());
 
         // Run checks
         for (CheckCondition check : step.checks()) {
@@ -324,6 +340,10 @@ public final class JdkLoadEngine implements LoadTestEngine {
                 vars.put(ext.getKey(), extracted);
             }
         }
+    }
+
+    private static void recordStatus(ConcurrentHashMap<Integer, AtomicLong> statusCounts, int status) {
+        statusCounts.computeIfAbsent(status, k -> new AtomicLong()).incrementAndGet();
     }
 
     private void evaluateCheck(CheckCondition check, HttpResponse<String> response) {
