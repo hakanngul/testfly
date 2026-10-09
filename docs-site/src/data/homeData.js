@@ -263,34 +263,39 @@ node bin/testfly-mcp.js --help
 }
 
 export function getMoreFeatures(isTr) {
-  return [
+  return {
+    sdk: [
     {
       icon: '🎥',
-      title: isTr ? 'Native CDP Video Kaydı (MP4 / GIF)' : 'Native CDP Video Recording',
+      title: isTr ? 'Test Çalışması Video Kaydı' : 'Test Execution Video',
       short: isTr
-        ? 'Chromium CDP screencast ile harici yazılımsız ekran kaydı; retain-on-failure ile yalnızca hatalı testleri MP4/H.264 olarak saklar.'
-        : 'Chromium CDP screencasting without external binaries; retain-on-failure saves H.264 MP4 videos only when tests fail.',
+        ? 'Chromium’da CDP, diğer sürücülerde ekran görüntüleriyle kayıt; başarısız testler MP4 veya GIF olarak saklanabilir.'
+        : 'CDP on Chromium, screenshot fallback elsewhere; retain failed runs as MP4 or GIF.',
+      requirement: isTr ? 'YAML ile etkinleştirin' : 'Enable in YAML',
     },
     {
       icon: '📊',
       title: isTr ? 'ReportPortal & Allure Entegrasyonu' : 'ReportPortal & Allure Dashboards',
       short: isTr
-        ? 'Canlı lansman akışıyla ReportPortal ve Allure panellerine anında sonuç, log ve ekleri gönderin.'
-        : 'Sync execution status, attachments, and traces live to ReportPortal and Allure dashboards.',
+        ? 'Allure sonuç dosyaları üretin veya ReportPortal sunucusuna TestNG/JUnit/Cucumber agent ile raporlayın.'
+        : 'Write Allure results or send runs to ReportPortal with its framework agent and server.',
+      requirement: isTr ? 'İsteğe bağlı agent / servis' : 'Optional agent / service',
     },
     {
       icon: '🗄️',
       title: isTr ? 'Veritabanı Doğrulama (DbClient)' : 'Database Testing (DbClient)',
       short: isTr
-        ? 'PostgreSQL, MySQL, Oracle veya MSSQL için akıcı SQL sorguları ve otomatik kayıt doğrulamaları.'
-        : 'Execute fluent SQL queries and assert records across PostgreSQL, MySQL, Oracle, and MSSQL.',
+        ? 'JDBC üzerinden parametreli SQL sorguları ve satır doğrulamaları çalıştırın.'
+        : 'Run parameterized SQL queries and row assertions through JDBC.',
+      requirement: isTr ? 'JDBC sürücüsü + bağlantı' : 'JDBC driver + datasource',
     },
     {
       icon: '🎯',
       title: isTr ? 'TestRail & Jira Xray Senkronizasyonu' : 'TestRail & Jira Xray Sync',
       short: isTr
-        ? 'Test sonuçlarını, logları ve ekran görüntülerini TestRail veya Jira Xray test planlarına otomatik aktarır.'
-        : 'Automatically push run status, error logs, and screenshots directly into TestRail and Jira Xray.',
+        ? 'İşaretli testlerin sonucunu ve hata açıklamasını TestRail veya Xray’e aktarın; ekran görüntüsü aktarımı dahil değildir.'
+        : 'Send annotated test statuses and error comments to TestRail or Xray; screenshots are not uploaded.',
+      requirement: isTr ? 'Servis + erişim bilgisi' : 'Service + credentials',
     },
     {
       icon: '♿',
@@ -298,6 +303,7 @@ export function getMoreFeatures(isTr) {
       short: isTr
         ? 'Akışın gerekli noktalarında accessibility().run() ile axe-core WCAG taramaları ve ayrıntılı ihlal raporları çalıştırın.'
         : 'Run explicit axe-core WCAG scans with accessibility().run() at the points your flow requires.',
+      requirement: isTr ? 'JS destekli tarayıcı' : 'JS-capable browser',
     },
     {
       icon: '📈',
@@ -305,6 +311,7 @@ export function getMoreFeatures(isTr) {
       short: isTr
         ? 'Desteklendiği tarayıcılarda LCP, FCP, TTFB ve CLS metriklerini toplayıp performans eşiklerini doğrulayın.'
         : 'Collect LCP, FCP, TTFB, and CLS where the browser exposes them, then assert performance thresholds.',
+      requirement: isTr ? 'Tarayıcı desteğine bağlı' : 'Browser-dependent',
     },
     {
       icon: '📋',
@@ -312,62 +319,71 @@ export function getMoreFeatures(isTr) {
       short: isTr
         ? 'Excel (.xlsx), CSV, JSON veya veritabanı satırını yükleyin; getTestData() ya da tipli anahtar erişimiyle okuyun.'
         : 'Load an Excel, CSV, JSON, or database row and read it through getTestData() or typed key access.',
+      requirement: isTr ? 'Excel için Apache POI' : 'Apache POI for Excel',
     },
     {
       icon: '🌐',
       title: isTr ? 'CDP Ağ & API Taklidi' : 'CDP Network Interception',
       short: isTr
-        ? 'Chrome DevTools Protocol ile ağ isteklerini durdurun, mock yanıtlar dönün ve coğrafi konum taklit edin.'
-        : 'Mock API responses, stub network routes, and simulate geolocation via Chrome DevTools Protocol.',
+        ? 'Chromium üzerinde CDP ile ağ isteklerini yakalayın ve mock yanıt döndürün.'
+        : 'Intercept and mock network requests through Chromium CDP.',
+      requirement: isTr ? 'Chrome / Edge gerekli' : 'Chrome / Edge required',
     },
     {
       icon: '🔁',
       title: isTr ? 'Flakiness Radar & Karantina' : 'Flakiness Radar & Quarantine',
       short: isTr
-        ? 'Kararsız testleri puanlar ve testfly-quarantine.yml ile koda dokunmadan CI hattından izole eder.'
-        : 'Score stability across runs and isolate unstable tests via testfly-quarantine.yml without code edits.',
+        ? 'Önceki koşulara göre kararsızlığı puanlayın; testfly-quarantine.yml ile seçilen testleri atlayın.'
+        : 'Score failures across prior runs; skip selected tests with testfly-quarantine.yml.',
+      requirement: isTr ? 'Geçmiş koşu verisi' : 'Run history needed',
     },
     {
       icon: '🔐',
       title: isTr ? '@PreCondition Oturum Önbelleği' : '@PreCondition Session Cache',
       short: isTr
-        ? 'Giriş işlemini bir kez yapın, çerez ve oturumu tüm testlerde anında yeniden kullanın.'
-        : 'Run login once, cache browser cookies/storage, and restore authenticated state instantly for tests.',
+        ? 'Aynı iş parçacığında çerez ve localStorage durumunu saklayıp sonraki testlerde geri yükleyin.'
+        : 'Cache and restore cookies/localStorage for subsequent tests on the same thread.',
+      requirement: isTr ? 'Thread-local önbellek' : 'Thread-local cache',
     },
     {
       icon: '📧',
       title: isTr ? 'E-Posta & OTP Doğrulama' : 'Email & OTP Verification',
       short: isTr
-        ? 'Mailhog, Mailtrap, Graph API veya IMAP üzerinden gelen doğrulama kodlarını ve sihirli linkleri yakalayın.'
-        : 'Poll transactional mailboxes and extract OTPs/magic links via Mailhog, Mailtrap, or IMAP.',
+        ? 'Mailhog, Mailtrap, Outlook Graph veya IMAP posta kutularından OTP ve bağlantıları okuyun.'
+        : 'Read OTPs and links from Mailhog, Mailtrap, Outlook Graph, or IMAP mailboxes.',
+      requirement: isTr ? 'Posta servisi; IMAP için ek bağımlılık' : 'Mailbox; extra IMAP dependency',
     },
     {
       icon: '📸',
       title: isTr ? 'Görsel Regresyon Testleri' : 'Visual Regression Testing',
       short: isTr
-        ? 'Piksel bazlı ekran farkı doğrulaması, tolerans kontrolü ve 6 farklı mobil cihaz emülasyonu.'
-        : 'Pixel-diff screenshot comparison with tolerance thresholds and 6 mobile device emulator profiles.',
+        ? 'Önceden onaylanan ekran görüntüleriyle piksel farkını ve toleransı doğrulayın.'
+        : 'Compare screenshots with reviewed baselines and configurable pixel tolerance.',
+      requirement: isTr ? 'Baseline gerekir' : 'Reviewed baseline needed',
     },
     {
       icon: '🕐',
       title: isTr ? 'Zaman Taklidi (TestClock)' : 'Browser Clock Mocking',
       short: isTr
-        ? 'Tarayıcı saatini dondurarak token süresi, deneme periyodu ve geri sayım testlerini saniyeler içinde yapın.'
-        : 'Freeze or warp the browser clock to test token expiries, trial countdowns, and time-gated features.',
+        ? 'İstemci tarafındaki Date saatini taklit edin; navigasyonlar boyunca kalıcılık Chromium CDP’ye bağlıdır.'
+        : 'Mock the client-side Date clock; persistence across navigation depends on Chromium CDP.',
+      requirement: isTr ? 'Tarayıcıya bağlı' : 'Browser-dependent',
     },
     {
       icon: '🪜',
       title: isTr ? 'Adım Günlüğü (StepLogger)' : 'StepLogger Timeline',
       short: isTr
-        ? 'Ekran görüntülü isimlendirilmiş test adımları ve yürütme izleri doğrudan HTML rapora basılır.'
-        : 'Named execution steps with inline screenshots and self-contained timeline traces in the HTML report.',
+        ? 'Adımları kaydedin; isteğe bağlı ekran görüntülerini ve zaman çizelgesini raporda gösterin.'
+        : 'Log named steps with optional screenshots and show them in the report timeline.',
+      requirement: isTr ? 'Ekran görüntüsü isteğe bağlı' : 'Screenshots optional',
     },
     {
       icon: '☁️',
       title: isTr ? 'Bulut & Selenium Grid Desteği' : 'Cloud & Grid Execution',
       short: isTr
-        ? 'BrowserStack, Sauce Labs veya uzaktaki Selenium Grid tek satır config ile bağlanır.'
-        : 'Run seamlessly on BrowserStack, Sauce Labs, or remote Selenium Grid in one configuration line.',
+        ? 'Selenium Grid, BrowserStack veya Sauce Labs sürücüsüyle uzaktan test çalıştırın.'
+        : 'Run through Selenium Grid, BrowserStack, or Sauce Labs drivers.',
+      requirement: isTr ? 'Grid / bulut erişimi' : 'Grid / cloud access',
     },
     {
       icon: '🔌',
@@ -375,20 +391,17 @@ export function getMoreFeatures(isTr) {
       short: isTr
         ? 'Java ServiceLoader ile özel driver sağlayıcıları, yaşam döngüsü kancaları ve rapor adaptörleri ekleyin.'
         : 'Plug in custom driver providers, lifecycle hooks, and report adapters via standard Java SPI.',
+      requirement: isTr ? 'Özel adaptör isteğe bağlı' : 'Custom adapter optional',
     },
+    ],
+    companion: [
     {
       icon: '🎙️',
-      title: isTr ? 'MCP ile Java Kod Üretimi' : 'MCP Java Code Generation',
+      title: isTr ? 'MCP Köprüsü & Java Kod Üretimi' : 'MCP Bridge & Java Codegen',
       short: isTr
-        ? 'Ayrı Node köprüsü, sağladığınız tarayıcı adımlarını Java test koduna çevirir; canlı kaydedici içermez.'
-        : 'The separate Node bridge converts supplied browser actions into Java test code; it does not record live sessions.',
-    },
-    {
-      icon: '🤖',
-      title: isTr ? 'TestFly MCP Köprüsü (6 Araç)' : 'TestFly MCP Bridge (6 Tools)',
-      short: isTr
-        ? 'Proje oluşturma, kod üretimi, önbellek ve onarım yönetimi; canlı DOM incelemesi için ayrı Playwright MCP gerekir.'
-        : 'Scaffolding, codegen, cache and remediation tools; live DOM inspection requires separate Playwright MCP.',
+        ? 'Ayrı Node köprüsü altı araçla proje oluşturur ve verilen adımlardan Java kodu üretir; canlı tarayıcı için Playwright MCP gerekir.'
+        : 'The separate Node bridge provides six tools for scaffolding and Java from supplied actions; live browsing needs Playwright MCP.',
+      requirement: isTr ? 'Ayrı Node projesi' : 'Separate Node project',
     },
     {
       icon: '💻',
@@ -396,15 +409,18 @@ export function getMoreFeatures(isTr) {
       short: isTr
         ? 'Ayrı Node köprüsünde init, --version ve --help komutları bulunur; record ve studio henüz yoktur.'
         : 'The separate Node bridge supports init, --version and --help; record and studio are not available.',
+      requirement: isTr ? 'Ayrı Node projesi' : 'Separate Node project',
     },
     {
       icon: '🧩',
       title: isTr ? 'IDE Eklentileri (IntelliJ & VS Code)' : 'IDE Plugins (IntelliJ & VS Code)',
       short: isTr
-        ? 'JetBrains AI Assistant ve VS Code için tek tıkla yapılandırılan sıfır-konfigürasyon eklentileri.'
-        : 'Zero-config plugins for JetBrains AI Assistant and VS Code with status bar actions and diagnostics.',
+        ? 'IntelliJ ve VS Code için ayrı eklentiler; kurulum, MCP yapılandırması ve ortam doğrulaması gerektirir.'
+        : 'Separate IntelliJ and VS Code extensions requiring installation, MCP setup, and environment checks.',
+      requirement: isTr ? 'Ayrı IDE eklentileri' : 'Separate IDE extensions',
     },
-  ];
+    ],
+  };
 }
 
 // ─── Before / After Comparisons ───────────────────────────────────────────────
