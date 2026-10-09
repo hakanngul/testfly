@@ -798,67 +798,71 @@ export const mavenDependencySnippet = `<dependency>
 
 export function getQuickConfig(isTr) {
   return `browser:
-  name: chrome
-  headless: false
+  name: chrome                     # ${isTr ? 'Yerel Chrome sürücüsünü seçer' : 'Selects the local Chrome driver'}
+  headless: false                  # ${isTr ? 'Görünür pencere açar' : 'Opens a visible browser window'}
+  lifecycle: per-test              # ${isTr ? 'Her testten sonra tarayıcıyı kapatır' : 'Closes the browser after each test'}
   arguments:
-    - --start-maximized
-    - --disable-notifications
-    - --remote-allow-origins=*
+    - --start-maximized            # ${isTr ? 'Pencereyi büyütür (headless modda boyut belirler)' : 'Maximizes the window (sets size in headless mode)'}
+    - --disable-notifications      # ${isTr ? 'Chrome bildirimlerini kapatır' : 'Disables Chrome notifications'}
+    - --remote-allow-origins=*     # ${isTr ? 'Chrome başlatma argümanı olarak iletilir' : 'Passed through as a Chrome launch argument'}
   capabilities:
-    acceptInsecureCerts: true
-    pageLoadStrategy: normal
+    acceptInsecureCerts: true      # ${isTr ? 'Geçersiz TLS sertifikalarını kabul eder' : 'Accepts invalid TLS certificates'}
+    pageLoadStrategy: normal       # ${isTr ? 'Sayfa yüklenmesinin tamamlanmasını bekler' : 'Waits for full page load'}
 
 execution:
-  mode: local
-  baseUrl: https://www.saucedemo.com/
-  gridUrl: http://localhost:4444/wd/hub
-  parallel: methods
-  threadCount: 4
-  maxActiveSessions: 4
+  mode: local                      # ${isTr ? 'Yerel tarayıcı sürücüsünü kullanır' : 'Uses a local browser driver'}
+  baseUrl: https://www.saucedemo.com/ # ${isTr ? 'Göreli web adresleri için temel URL' : 'Base URL for relative web navigation'}
+  gridUrl: http://localhost:4444/wd/hub # ${isTr ? 'Yalnızca mode: remote iken kullanılır' : 'Used only when mode: remote'}
+  parallel: methods                # ${isTr ? 'TestNG metotlarını paralel çalıştırır' : 'Runs TestNG methods in parallel'}
+  threadCount: 4                   # ${isTr ? 'TestNG paralel thread sayısı' : 'Number of parallel TestNG threads'}
+  maxActiveSessions: 4             # ${isTr ? 'Eşzamanlı tarayıcı oturumu sınırı' : 'Limit on concurrent browser sessions'}
 
 locators:
-  selfHealing: true
+  selfHealing: true                # ${isTr ? 'Başarısız seçiciler için onarım dener' : 'Attempts recovery for failed locators'}
+  aiHealing: false                 # ${isTr ? 'AI seçici onarımı kapalı; anahtarla açılabilir' : 'AI locator healing off; enable with an API key'}
 
 ai:
-  failureAnalysis: false
-  provider: openai-compatible     # openai-compatible | claude | gemini | deepseek
-  baseUrl: https://api.deepseek.com
-  apiKey: "\${AI_API_KEY}"
-  model: deepseek-v4-flash
-  language: ${isTr ? 'tr' : 'en'}
-  timeoutSeconds: 20
+  failureAnalysis: false          # ${isTr ? 'Hata analizini kapatır' : 'Disables failure analysis'}
+  generatePatch: false            # ${isTr ? 'AI patch üretimini kapatır' : 'Disables AI patch generation'}
+  provider: openai-compatible     # ${isTr ? 'DeepSeek için OpenAI uyumlu sağlayıcı' : 'OpenAI-compatible provider for DeepSeek'}
+  baseUrl: https://api.deepseek.com # ${isTr ? 'AI istekleri için sağlayıcı adresi' : 'Provider URL for AI requests'}
+  apiKey: "\${AI_API_KEY}"           # ${isTr ? 'Anahtarı ortam değişkeninden çözer' : 'Resolves the key from an environment variable'}
+  model: deepseek-v4-flash         # ${isTr ? 'İsteklerde iletilecek model adı' : 'Model name sent with requests'}
+  language: ${isTr ? 'tr' : 'en'}                      # ${isTr ? 'Hata analizi yanıt dili' : 'Failure analysis response language'}
+  timeoutSeconds: 20              # ${isTr ? 'AI isteği için zaman aşımı (saniye)' : 'AI request timeout in seconds'}
 
 recording:
-  enabled: true                    ${isTr ? '# Video kaydını aktif eder (varsayılan: false)' : '# Enables test video recording'}
-  mode: retain-on-failure          # 'retain-on-failure' | 'on' | 'off'
-  format: mp4                      # 'mp4' (H.264 video) | 'gif'
-  fps: 5                           ${isTr ? '# Saniyedeki kare sayısı (2-10)' : '# Frames per second (2-10)'}
-  maxDurationSeconds: 60           ${isTr ? '# Bellek güvenliği için maksimum kayıt süresi' : '# Max duration safety limit'}
-  cdp: true                        ${isTr ? '# Chromium native CDP screencast kullanımı' : '# Native Chromium CDP screencast'}
+  enabled: true                   # ${isTr ? 'Tarayıcı testlerinde video kaydını açar' : 'Enables recording for browser tests'}
+  mode: retain-on-failure         # ${isTr ? 'Videoyu yalnızca hatada saklar' : 'Keeps video only on failure'}
+  format: mp4                     # ${isTr ? 'Videoyu MP4 olarak kaydeder (hata halinde GIF)' : 'Saves MP4 video (GIF fallback on error)'}
+  fps: 5                          # ${isTr ? 'Saniyede hedeflenen kare sayısı' : 'Target frames captured per second'}
+  maxDurationSeconds: 60          # ${isTr ? 'Saklanan kareleri fps × süre ile sınırlar' : 'Caps stored frames at fps × duration'}
+  cdp: true                       # ${isTr ? 'CDP tercih eder; JUnit 5 bu alanı okumaz' : 'Prefers CDP; JUnit 5 ignores this field'}
 
 reporting:
-  allureEnabled: true
+  allureEnabled: true             # ${isTr ? 'Allure rapor entegrasyonunu açar' : 'Enables Allure reporting integration'}
+  htmlReport: true                # ${isTr ? 'Yerel HTML test raporunu üretir' : 'Generates the local HTML test report'}
   reportPortal:
-    enabled: false
-    endpoint: "\${REPORTPORTAL_ENDPOINT:-https://reportportal.example.com}"
-    apiKey: "\${REPORTPORTAL_API_KEY}"
-    project: demo-web
-    launch: "Demo Web - Dev"
-    description: "Automated test execution powered by TestFly"
-    attributes: "env:dev"
-    type: auto
-    mode: default
+    enabled: false                # ${isTr ? 'ReportPortal aktarımını kapatır' : 'Disables ReportPortal publishing'}
+    endpoint: "\${REPORTPORTAL_ENDPOINT:-https://reportportal.example.com}" # ${isTr ? 'Sunucu adresi; değişken yoksa örnek adres' : 'Server URL; example fallback if unset'}
+    apiKey: "\${REPORTPORTAL_API_KEY}" # ${isTr ? 'Erişim anahtarını ortamdan çözer' : 'Resolves the access key from the environment'}
+    project: demo-web             # ${isTr ? 'ReportPortal proje adı' : 'ReportPortal project name'}
+    launch: "Demo Web - Dev"      # ${isTr ? 'Rapor çalıştırması adı' : 'Report launch name'}
+    description: "Automated test execution powered by TestFly" # ${isTr ? 'Çalıştırma açıklaması' : 'Launch description'}
+    attributes: "env:dev"         # ${isTr ? 'Çalıştırma etiketleri' : 'Launch attributes'}
+    type: auto                    # ${isTr ? 'API veya Web çalıştırma türünü belirler' : 'Detects API or Web run type'}
+    mode: default                 # ${isTr ? 'Kabul edilir; çalışma akışında kullanımı yok' : 'Accepted; not applied by the runtime'}
 
 api:
-  baseUrl: https://fakeapi.net
-  timeoutSeconds: 30
-  logBody: false
+  baseUrl: https://fakeapi.net    # ${isTr ? 'API istemcisinin varsayılan temel adresi' : 'Default base URL for the API client'}
+  timeoutSeconds: 30              # ${isTr ? 'API istekleri için zaman aşımı (saniye)' : 'API request timeout in seconds'}
+  logBody: false                  # ${isTr ? 'Yanıt gövdesini loglarda göstermez' : 'Omits response bodies from logs'}
 
 retry:
-  enabled: false
-  maxAttempts: 2
+  enabled: false                  # ${isTr ? 'Başarısız testlerin yeniden denenmesini kapatır' : 'Disables retries for failed tests'}
+  maxAttempts: 2                  # ${isTr ? 'Yalnızca retry açıkken kullanılır' : 'Only used when retries are enabled'}
 
 timeouts:
-  explicit: 10
-  pageLoad: 30`;
+  explicit: 10                     # ${isTr ? 'Öğe bekleme süresi (saniye)' : 'Element wait timeout in seconds'}
+  pageLoad: 30                    # ${isTr ? 'Sayfa yükleme süresi (saniye)' : 'Page load timeout in seconds'}`;
 }
