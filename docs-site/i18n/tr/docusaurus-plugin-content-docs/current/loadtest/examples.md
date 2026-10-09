@@ -6,7 +6,7 @@ sidebar_position: 9
 
 # Yük Testi Örnekleri
 
-Bu testler kendi erişilebilir backend’inizi ve [development derlemesini](./getting-started.md) gerektirir. Path, payload ve eşikleri uygulamanıza uyarlayın.
+Bu testler kendi erişilebilir backend’inizi ve TestFly `1.0.7` sürümünü ([kurulum](./getting-started.md)) gerektirir. Path, payload ve eşikleri uygulamanıza uyarlayın.
 
 ## Health smoke
 

@@ -7,7 +7,7 @@ sidebar_position: 13
 
 # Harici Test Verisi Kaynakları
 
-TestFly 2.2.0, `@TestData` özelliğini CSV dosyalarından, Excel çalışma kitaplarından ve canlı veritabanı sorgularından satırları doğrudan yükleyecek şekilde genişletir — ekstra kalıp kod gerekmez.
+TestFly 1.0.0, `@TestData` özelliğini CSV dosyalarından, Excel çalışma kitaplarından ve canlı veritabanı sorgularından satırları doğrudan yükleyecek şekilde genişletir — ekstra kalıp kod gerekmez.
 
 ---
 

@@ -6,7 +6,7 @@ sidebar_position: 9
 
 # Load Testing Examples
 
-These tests require your own reachable backend and the [development build](./getting-started.md). Adapt paths, payloads and thresholds to your application.
+These tests require your own reachable backend and TestFly `1.0.7` ([setup](./getting-started.md)). Adapt paths, payloads and thresholds to your application.
 
 ## Health smoke
 

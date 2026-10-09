@@ -13,8 +13,9 @@
 - D-01 sürüm/koordinat + Central kök neden; D-02 retry; D-03 config katmanlama; D-04 yük testi 4xx/5xx/targetRps; D-06 lazy driver; T1.13 quitAllSuiteDrivers daraltma.
 - T1.3 öncesi: release.yml fork kuru koşusu + GitHub `release` environment.
 
-## Sonraki Adım
-- Kullanıcı onayıyla development'a commit (GPG terminal sorunu olursa yalnız komutta commit.gpgsign=false); release/tag yok.
+## v1.0.7 Hazırlık — 2026-10-09
+- Faz 1 + sürüm hazırlığı development'a push edildi (4702096). CHANGELOG/README/AGENTS/profile sürümleri 1.0.7. Rapor: `.agents/tasks/release-v1.0.7-prep.md` (commit'lenmedi).
+- Kalan: development→main PR, v1.0.7 tag (main merge commit'i), release env onayı, fork kuru koşusu. Sonra docs 1.0.4 pin'lerini çevir, `since="1.1.0"` (50 satır/21 dosya) kararı.
 
 ## Linkler
 [[MAP]] | [[wiki/api-testing]] | [[memories/log]] | [[skills/testfly-test-authoring/SKILL]]

@@ -7,10 +7,6 @@ sidebar_position: 2
 
 # Hızlı Başlangıç
 
-:::note Yayımlanmış sürüm ve development
-Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
-:::
-
 İlk TestFly testini 5 dakikadan kısa sürede çalıştırın.
 
 ---
@@ -53,7 +49,7 @@ TestFly'ı mevcut bir projeye ekliyorsanız aşağıdaki adımları izleyin:
 <dependency>
     <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 
@@ -62,7 +58,7 @@ TestFly'ı mevcut bir projeye ekliyorsanız aşağıdaki adımları izleyin:
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.github.hakanngul:testfly:1.0.4'
+    testImplementation 'io.github.hakanngul:testfly:1.0.7'
 }
 
 test {
@@ -76,7 +72,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.github.hakanngul:testfly:1.0.4")
+    testImplementation("io.github.hakanngul:testfly:1.0.7")
 }
 
 tasks.test {

@@ -337,22 +337,22 @@ Important stable entry points:
 
 ### Version-bump checklist
 
-When changing the framework version, update **all** occurrences:
+Docs present the version being released as the current Maven Central release, so the install pins move with every release. When changing the framework version, update **all** occurrences:
 
 - `pom.xml` `<version>`
-- `README.md` dependency snippet and "Current release" line
+- `AGENTS.md` "Current version" line (Project Overview)
+- `README.md` dependency snippets and "Current release" line
 - `CHANGELOG.md` new release entry
-- `docs-site/docs/getting-started.md`
-- `docs-site/docs/junit5.md`
+- `.github/profile/README.md` dependency snippet
 - `docs-site/docs/changelog.md`
-- `docs-site/src/pages/index.js`
-- `docs-site/src/data/homeData.js`
-- `docs-site/docs/cucumber.md`, `docs-site/docs/gradle.md`
-- `docs-site/docs/loadtest/getting-started.md`
-- `docs-site/docs/migration/from-selenium-testng.md`
-- `docs-site/docs/cli.md`, `docs-site/docs/ai/testfly-mcp.md`
-- `.github/profile/README.md`
-- every Turkish mirror under `docs-site/i18n/tr/docusaurus-plugin-content-docs/current/`
+- Install pins (Maven `<version>`, Gradle `io.github.hakanngul:testfly:X.Y.Z`) in `docs-site/docs/getting-started.md`, `junit5.md`, `cucumber.md`, `gradle.md`, `loadtest/getting-started.md`, `migration/from-selenium-testng.md`
+- Version prose in `docs-site/docs/migration/from-selenium-testng.md` (Java version note), `loadtest/getting-started.md` and `loadtest/examples.md` (Availability / current release wording), `guides/api-schema-validation.md`
+- `docs-site/src/pages/index.js` (Maven Central badge) and `docs-site/src/data/homeData.js` (stats value and install snippet)
+- `docs-site/docusaurus.config.js` has no version text now (the announcement bar was removed); keep it that way
+- every Turkish mirror of the docs above under `docs-site/i18n/tr/docusaurus-plugin-content-docs/current/`
+- Do not bump `@testfly/mcp` references in `docs-site/docs/cli.md` / `ai/*` (separate npm package) or `@TestFlyApi(since = ...)` annotations (they record when an API was introduced)
+
+Verify with `git grep -nE '<old-version>' -- . ':!CHANGELOG.md' ':!docs-site/docs/changelog.md' ':!docs-site/i18n/tr/docusaurus-plugin-content-docs/current/changelog.md' ':!docs-site/package-lock.json'` and `cd docs-site && npm run build`.
 
 After release, also update `LATEST_VERSION` in the separate `testfly/website` repo.
 

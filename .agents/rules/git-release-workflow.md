@@ -75,6 +75,7 @@ Kullanıcı "commit at" veya "sürüm hazırla" dediğinde ajan şu adımları s
    * `pom.xml`: `<version>X.Y.Z</version>`
    * `CHANGELOG.md`: Yeni sürüm başlığı ve değişiklik özeti
    * `README.md` & `docs-site/src/data/homeData.js`: Versiyon referansları
+   * Dokümantasyon kurulum pin'leri, `docs-site/src/pages/index.js` rozeti ve TR yansıları: tam liste için `AGENTS.md` içindeki "Version-bump checklist"
 5. **Test ve Derleme Doğrulaması:**
    * `mvn test` (sıfır hata)
    * `npm run build` (`docs-site` için, dokümantasyon değiştiyse)

@@ -22,15 +22,11 @@ TestFly hâlâ Selenium'dur. `WebDriver`, `By`, `WebElement` ve mevcut page-obje
 
 Önce TestFly bağımlılığını ekleyin. Selenium/WebDriverManager kullanan son sınıfı taşıdıktan sonra tekrar eden bağımlılıkları kaldırın:
 
-:::note Yayımlanmış sürüm ve development
-Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
-:::
-
 ```xml title="pom.xml"
 <dependency>
     <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 
@@ -41,7 +37,7 @@ Ardından küçük bir [`testfly.yml`](/docs/configuration) oluşturun — aşa�
 ---
 
 :::info Java sürümü ve kademeli geçiş
-Central sürümü `1.0.4` Java 17+ gerektirir; `1.0.6` ve sonrası (yerel `1.0.7` build dahil) Java 21 gerektirir. Maven/Gradle, IDE ve CI JDK sürümlerini birlikte güncelleyin. Bağımlılık koordinatı `io.github.hakanngul:testfly:1.0.4` şeklindedir. Önce bir test sınıfını taşıyın; eski altyapıyı son kullanıcı sınıf taşınmadan silmeyin. Özel Allure/ExtentReports entegrasyonunu kullanmaya devam ediyorsanız bağımlılığını koruyun.
+`1.0.4` ve öncesi Java 17+ gerektirir; `1.0.6` ve sonrası (güncel `1.0.7` dahil) Java 21 gerektirir. Maven/Gradle, IDE ve CI JDK sürümlerini birlikte güncelleyin. Bağımlılık koordinatı `io.github.hakanngul:testfly:1.0.7` şeklindedir. Önce bir test sınıfını taşıyın; eski altyapıyı son kullanıcı sınıf taşınmadan silmeyin. Özel Allure/ExtentReports entegrasyonunu kullanmaya devam ediyorsanız bağımlılığını koruyun.
 :::
 
 ## 1. Driver kurulumu

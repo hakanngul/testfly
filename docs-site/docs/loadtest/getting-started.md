@@ -10,13 +10,7 @@ Use Java 21 and `io.testfly.loadtest.BaseLoadTest` for TestNG load tests. This b
 
 ## Availability
 
-The load testing module was added in `1.0.5` (see the changelog), so it is **not** included in the verified Maven Central release `io.github.hakanngul:testfly:1.0.4`. These guides target the current checkout version `1.0.7`, which is not on Maven Central yet. Build and install this checkout locally before following the examples:
-
-```bash
-mvn clean install -DskipTests
-```
-
-Use this dependency for that locally installed JAR:
+The load testing module was added in `1.0.5` (see the changelog) and is included in the current release `1.0.7`. Add this dependency from Maven Central:
 
 ```xml
 <dependency>

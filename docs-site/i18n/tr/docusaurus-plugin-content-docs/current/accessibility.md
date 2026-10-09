@@ -8,7 +8,7 @@ sidebar_position: 17
 
 # Erişilebilirlik Doğrulamaları (axe-core)
 
-TestFly 2.5.0, [axe-core](https://github.com/dequelabs/axe-core) 4.10.2'yi doğrudan JAR içinde paketler. Sıfır ek bağımlılıkla bir WCAG taraması çalıştırmak için `open()` işleminden sonra `accessibility()` çağırın.
+TestFly 1.0.0, [axe-core](https://github.com/dequelabs/axe-core) 4.10.2'yi doğrudan JAR içinde paketler. Sıfır ek bağımlılıkla bir WCAG taraması çalıştırmak için `open()` işleminden sonra `accessibility()` çağırın.
 
 ---
 

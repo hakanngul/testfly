@@ -37,9 +37,9 @@ Requires `com.networknt:json-schema-validator` in your `pom.xml`:
 </dependency>
 ```
 
-## OpenAPI response validation (development)
+## OpenAPI response validation
 
-Signature: `ApiResponse assertOpenApi(String specPath)` on `ApiResponse`, annotated `@TestFlyApi(since = "1.2.0")`. The annotation is not proof of a published release; install the current source artifact locally (`mvn clean install -DskipTests`) to use the feature. It returns the same `ApiResponse`, so it chains with other assertions.
+Signature: `ApiResponse assertOpenApi(String specPath)` on `ApiResponse`, annotated `@TestFlyApi(since = "1.2.0")`. The feature is available in the current release `1.0.7`. It returns the same `ApiResponse`, so it chains with other assertions.
 
 Add the optional validator dependency (TestFly declares it `<optional>`, so it is not pulled in transitively):
 

@@ -298,3 +298,6 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
 - Worktree development @ d6ca2ff, hiçbir şey commit edilmedi. `mvn clean verify -Dgpg.skip=true`: 1444 test, 0 fail/error/skip (taban 1362→1405→1444), target/jacoco.exec üretildi. docs-site `npm run build` EN+TR başarılı.
 - 5 mutasyon (/tmp yama dosyalarıyla) uygulanıp geri alındı: Locator innermost XPath, Locator.resolve auto-wait, ExecutionValidator negatif sessionWaitSeconds, LoadScenario.assertStatus karışık kodlar, HtmlReportGenerator `<` kaçışı. Hepsi ilgili testlerde kırmızı; `git diff` SHA ve izlenmeyen dosya hash'leri geri yüklemeden sonra birebir aynı.
 - Ana checkout temiz (yalnız target/audit-scratch kullanıldı). Sır/@TestFlyApi imza değişikliği yok. Özet: testfly/target/audit-scratch/phase1-summary.md. Bekleyen: D-01/02/03/04/06, T1.13.
+## 2026-10-09 — v1.0.7 sürüm hazırlığı
+- main..development farkı (7 commit/160 dosya) için sürüm referansları 1.0.7'ye eşitlendi, CHANGELOG (EN/TR) yeniden yazıldı. mvn clean verify 1444 test 0 hata, docs EN+TR build OK, review APPROVED.
+- 4702096 `chore(release): prepare v1.0.7` development'a push edildi. PR/tag/release yapılmadı; kullanıcı onayı bekleniyor.

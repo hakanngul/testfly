@@ -22,15 +22,11 @@ TestFly is still Selenium. `WebDriver`, `By`, `WebElement`, and your existing pa
 
 Add TestFly first. Remove duplicate Selenium/WebDriverManager dependencies once their remaining usages are migrated:
 
-:::note Published release and development
-The verified Maven Central release is `io.github.hakanngul:testfly:1.0.4`. The installation examples below use that release. This checkout is version `1.0.7`; new development features may not exist in the published artifact. To use the current source, run `mvn clean install -DskipTests` from the TestFly repository root and set your consumer dependency version to `1.0.7`. Do not assume `1.0.7` is available on Central.
-:::
-
 ```xml title="pom.xml"
 <dependency>
     <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 
@@ -41,7 +37,7 @@ Then create a small [`testfly.yml`](/docs/configuration) — see [config mapping
 ---
 
 :::info Java version and incremental migration
-The Central release `1.0.4` requires Java 17+; versions from `1.0.6` on (including the local `1.0.7` build) require Java 21. Update the build tool, IDE and CI JDK together. The dependency coordinates are `io.github.hakanngul:testfly:1.0.4`. Migrate one class first; remove old infrastructure only after its last consumer has migrated. Keep Allure/ExtentReports dependencies if you still use their custom integrations.
+Releases up to `1.0.4` require Java 17+; versions from `1.0.6` on (including the current `1.0.7`) require Java 21. Update the build tool, IDE and CI JDK together. The dependency coordinates are `io.github.hakanngul:testfly:1.0.7`. Migrate one class first; remove old infrastructure only after its last consumer has migrated. Keep Allure/ExtentReports dependencies if you still use their custom integrations.
 :::
 
 ## 1. Driver setup

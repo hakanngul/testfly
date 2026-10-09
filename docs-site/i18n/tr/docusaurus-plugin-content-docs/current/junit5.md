@@ -7,10 +7,6 @@ sidebar_position: 10
 
 # JUnit 5 Desteği
 
-:::note Yayımlanmış sürüm ve development
-Maven Central'da doğrulanan sürüm `io.github.hakanngul:testfly:1.0.4`'tür. Aşağıdaki kurulum örnekleri bu sürümü kullanır. Bu checkout'un sürümü `1.0.7`; yeni development özellikleri yayımlanmış artifact'te mevcut olmayabilir. Güncel kaynakla çalışmak için TestFly kökünde `mvn clean install -DskipTests` çalıştırın ve kendi projenizde dependency sürümünü `1.0.7` yapın. Central'da `1.0.7` bulunduğunu varsaymayın.
-:::
-
 TestFly, hem **TestNG** (yerleşik) hem de **JUnit 5** (tercihe bağlı) test çatılarını birinci sınıf vatandaş olarak destekler. JUnit 5 entegrasyonu yalnızca basit bir çalıştırıcı (runner) sunmakla kalmaz; TestNG `BaseTest` ile temel yetenekleri paylaşır: framework tarafından yönetilen WebDriver yaşam döngüsü, ThreadLocal sürücü izolasyonu, akıcı locator'lar, web-öncelikli ve soft assertion'lar, yerleşik REST API testi, çoklu kullanıcı oturumları (multi-session), HTML zaman çizelgesi raporlaması, AI hata analizi ve flakiness takibi.
 
 ---
@@ -27,7 +23,7 @@ Projenizin `pom.xml` dosyasına TestFly'ın yanına JUnit 5 bağımlılıkların
     <dependency>
         <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
-        <version>1.0.4</version>
+        <version>1.0.7</version>
     </dependency>
 
     <!-- JUnit 5 Jupiter ve Platform Launcher -->
@@ -52,7 +48,7 @@ Maven Surefire 3.x, ek bir eklenti yapılandırmasına ihtiyaç duymadan JUnit 5
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.github.hakanngul:testfly:1.0.4'
+    testImplementation 'io.github.hakanngul:testfly:1.0.7'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
 }
