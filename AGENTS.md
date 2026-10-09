@@ -13,7 +13,8 @@ TestFly is a Java 21/Maven SDK for multi-domain test automation. Selenium is one
 ## Shared workflows
 
 - Activate `testfly-change` for SDK architecture reviews and Java runtime, public API, configuration, lifecycle, integration, or SPI changes.
-- Activate `testfly-test-authoring` to add or revise TestNG, JUnit 5, Cucumber, browser, API/mock, or load/performance tests and examples.
+- Activate `testfly-api-write` for consumer-facing API automation, reusable API clients, authentication, validation, negative scenarios, and migrations using TestFly APIs.
+- Activate `testfly-test-authoring` to add or revise framework coverage and executable examples outside consumer-facing API authoring.
 - Activate `testfly-triage` for failing, flaky, hanging, or environment-dependent tests and builds.
 - Activate `testfly-docs` for documentation audits and changes in `README.md`, `docs/`, `docs-site/`, or release text.
 - Activate `testfly-verify` for implementation handoff, API/SPI/consumer validation, or release-readiness checks.

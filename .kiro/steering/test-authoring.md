@@ -1,7 +1,7 @@
 ---
 inclusion: auto
 name: testfly-test-authoring
-description: Use to create or revise TestFly tests and executable examples across TestNG, JUnit 5, Cucumber, browser, API/mock, and load/performance domains.
+description: Use to create or revise TestFly framework tests and executable examples; use testfly-api-write for consumer-facing API automation.
 ---
 
 # Test authoring

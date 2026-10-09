@@ -1,6 +1,6 @@
 ---
 name: testfly-test-authoring
-description: Create or revise TestFly tests and executable examples across TestNG, JUnit 5, Cucumber, browser, API/mock, and load/performance domains. Use when asked to add coverage, reproduce a confirmed bug with a test, or write consumer-facing automation; not for SDK implementation or failure diagnosis alone.
+description: Create or revise TestFly framework tests and executable examples across TestNG, JUnit 5, Cucumber, browser, API/mock, and load/performance domains. Use for SDK coverage or confirmed-bug reproduction; use testfly-api-write for consumer-facing API automation, and do not use for SDK implementation or failure diagnosis alone.
 ---
 
 # TestFly test authoring
