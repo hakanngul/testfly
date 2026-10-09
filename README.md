@@ -7,7 +7,7 @@
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Good first issues](https://img.shields.io/github/issues/hakanngul/testfly/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/hakanngul/testfly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
-**[Documentation](https://hakanngul.github.io/testfly) · [Sample Project](https://github.com/hakanngul/testfly-test) · [TestFly MCP](https://github.com/hakanngul/testfly-mcp) · [Feature Roadmap](docs/features/README.md)**
+**[Documentation](https://testfly.dev) · [Sample Project](https://github.com/hakanngul/testfly-test) · [TestFly MCP](https://github.com/hakanngul/testfly-mcp) · [Feature Roadmap](docs/features/README.md)**
 
 ---
 
@@ -106,7 +106,7 @@ Next: [the full Getting Started walkthrough](#getting-started) adds page objects
 >
 > Supported `ai.provider` values: `claude`, `anthropic`, `gemini`, `openai-compatible`, `openai`. DeepSeek, Qwen (Alibaba Cloud), Groq and Ollama work through `openai-compatible` with their own `baseUrl`.
 >
-> 📖 [Full Agentic Testing Documentation](https://hakanngul.github.io/testfly/docs/ai/agentic-testing)
+> 📖 [Full Agentic Testing Documentation](https://testfly.dev/docs/ai/agentic-testing)
 
 ---
 
@@ -822,7 +822,7 @@ See the comprehensive comparison table and milestone roadmap at **[docs/features
 
 ## Documentation
 
-Full documentation at **[hakanngul.github.io/testfly](https://hakanngul.github.io/testfly)**
+Full documentation at **[testfly.dev](https://testfly.dev)**
 
 ---
 

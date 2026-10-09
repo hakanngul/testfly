@@ -261,3 +261,15 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
 
 ## 2026-10-01 — #27 report adapter race fix
 - generateAll synchronized ve serial kayıt sırası; List.copyOf snapshot, hata sonrası devam korunuyor. Shared HTML writer/reader regresyon testi eklendi. İlgili raporlama testleri ve tam mvn test BUILD SUCCESS. Kullanıcı düzeltme yetkisi kapsamında development commit/push ve ilgili review resolution yapılacak; sürüm artışı yok.
+## 2026-10-08 — Docs Cloudflare Workers (testfly.dev) geçişi
+- wrangler.jsonc eklendi (assets docs-site/build, 404-page); docusaurus url=https://testfly.dev, baseUrl=/; GoatCounter prefix kaldırıldı; robots.txt sitemap güncellendi; deploy-docs.yml (GitHub Pages) silindi.
+- Eski hakanngul.github.io linkleri README/ROADMAP/pom url/ISSUE_TEMPLATE/profile README/testfly.yml/AGENTS.md içinde testfly.dev yapıldı; güvenlik e-postası founder@testfly.dev oldu.
+- Deploy Cloudflare GitHub entegrasyonuyla yapılacak; CLI deploy yok. Sürüm/tag yok. Hostinger MX/SPF/DKIM/DMARC DNS kayıtları korunmalı.
+## 2026-10-08 — PR #44 BEKLEMEDE (Anthropic Claude Startups başvurusu)
+- PR #44 (chore/docs-cloudflare-workers → main) MERGE EDİLMEYECEK; başvuru sonuçlanana kadar (~72 saat) beklenecek. Eski site https://hakanngul.github.io/testfly/ korunacak: Pages ayarları ve yayınlanmış dosyalar değişmez, Pages kapatılmaz, yönlendirme eklenmez.
+- testfly.dev henüz Cloudflare'de canlı değil (A kaydı Hostinger IP'sinde). Merge öncesi: testfly.dev doğrulanmalı (README/pom linkleri ölü kalmasın) veya doküman linkleri geçici github.io'da bırakılmalı. DNS'te Hostinger MX/SPF/DKIM/DMARC korunmalı.
+
+## 2026-10-08 — Docs-site mimari/API uyum denetimi
+- Ürün/docs değişikliği yapılmadan EN/TR dokümantasyon gerçek kaynak API'leriyle karşılaştırıldı. Docusaurus config validator ve iki dilli production build başarılı.
+- Semantik doğrulamadan kaçan kritik sapmalar bulundu: By-merkezli POM örnekleri, deprecated `$()`, yanlış paket/metotlar, WaitEngine kullanım hataları, hayalî/eski load-test API'si, Maven koordinat/sürüm çelişkileri ve 4 eksik TR sayfası.
+- Düzeltme sırası P0 derlenebilirlik ve koordinatlar, P1 Locator-first örnek standardı, P2 i18n eşliği, ardından otomatik snippet compile/lint kapısı olarak planlandı. Ayrıntılı aktif bağlam `[[memories/scratchpad]]` içinde.

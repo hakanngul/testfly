@@ -1,5 +1,5 @@
 # TestFly Configuration
-# Documentation: https://testfly.io/docs/configuration
+# Documentation: https://testfly.dev/docs/configuration
 
 execution:
   mode: local

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://hakanngul.github.io/TestFly/sitemap.xml
+Sitemap: https://testfly.dev/sitemap.xml
