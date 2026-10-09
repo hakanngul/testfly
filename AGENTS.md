@@ -12,9 +12,11 @@ TestFly is a Java 21/Maven SDK for multi-domain test automation. Selenium is one
 
 ## Shared workflows
 
-- Activate `testfly-change` for Java runtime, public API, configuration, lifecycle, integration, or SPI changes.
-- Activate `testfly-verify` when code, build behavior, public contracts, SPI, or consumer compatibility may change.
-- Activate `testfly-docs` for `README.md`, `docs/`, or `docs-site/` changes.
+- Activate `testfly-change` for SDK architecture reviews and Java runtime, public API, configuration, lifecycle, integration, or SPI changes.
+- Activate `testfly-test-authoring` to add or revise TestNG, JUnit 5, Cucumber, browser, API/mock, or load/performance tests and examples.
+- Activate `testfly-triage` for failing, flaky, hanging, or environment-dependent tests and builds.
+- Activate `testfly-docs` for documentation audits and changes in `README.md`, `docs/`, `docs-site/`, or release text.
+- Activate `testfly-verify` for implementation handoff, API/SPI/consumer validation, or release-readiness checks.
 - Skills live in `.agents/skills/` and load on demand. Kiro adapters live in `.kiro/`.
 
 ## Invariants
@@ -32,7 +34,9 @@ TestFly is a Java 21/Maven SDK for multi-domain test automation. Selenium is one
 - Java changes: `scripts/agent/verify.sh code`
 - Public API changes: `scripts/agent/verify.sh api [baseline-ref]`
 - SPI changes: `scripts/agent/verify.sh spi`
+- Consumer compatibility: `scripts/agent/verify.sh consumer [checkout]`
 - Documentation: `scripts/agent/verify.sh docs`
+- Release readiness: `scripts/agent/verify.sh release [baseline-ref] [consumer-checkout]`
 - Full local gate: `scripts/agent/verify.sh full`
 
 Run the smallest relevant gate first. State which checks ran, failed, or were unavailable. Never claim consumer, Kiro, network, or release verification without executing it.

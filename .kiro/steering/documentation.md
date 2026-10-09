@@ -1,6 +1,7 @@
 ---
-inclusion: fileMatch
-fileMatchPattern: ["README.md", "CONTRIBUTING.md", "docs/**/*.md", "docs-site/**/*"]
+inclusion: auto
+name: testfly-documentation
+description: Use to audit or change TestFly README, docs, docs-site, examples, changelog, release text, or configuration documentation.
 ---
 
 # Documentation changes

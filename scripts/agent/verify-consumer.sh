@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 consumer_source="${1:-${TESTFLY_CONSUMER_DIR:-}}"
+consumer_tests="${TESTFLY_CONSUMER_TESTS:-ApiDemoTest,ApiSchemaDemoTest}"
 
 if [[ -z "$consumer_source" && -f "$repo_root/../testfly-test/pom.xml" ]]; then
   consumer_source="$repo_root/../testfly-test"
@@ -38,6 +39,6 @@ mvn -B -ntp versions:use-dep-version \
   -DforceVersion=true \
   -DgenerateBackupPoms=false
 mvn -B -ntp -DskipTests compile
-mvn -B -ntp -Dtest=ApiDemoTest,ApiSchemaDemoTest -DskipITs test
+mvn -B -ntp -Dtest="$consumer_tests" -DskipITs test
 
-echo "consumer check: PASS with TestFly $version"
+echo "consumer check: PASS with TestFly $version (tests: $consumer_tests)"

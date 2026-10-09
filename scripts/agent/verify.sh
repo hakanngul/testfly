@@ -24,7 +24,7 @@ run_docs() {
 }
 
 usage() {
-  echo "usage: scripts/agent/verify.sh {agent|code|api|spi|consumer|docs|full} [argument]" >&2
+  echo "usage: scripts/agent/verify.sh {agent|code|api|spi|consumer|docs|release|full} [baseline-or-checkout] [consumer-checkout]" >&2
   exit 2
 }
 
@@ -48,6 +48,14 @@ case "$mode" in
     ;;
   docs)
     run_docs
+    ;;
+  release)
+    scripts/agent/validate.sh
+    scripts/agent/check-release.sh
+    mvn -B -ntp verify
+    scripts/agent/check-public-api.sh "${1:-}"
+    run_docs
+    scripts/agent/verify-consumer.sh "${2:-}"
     ;;
   full)
     scripts/agent/validate.sh

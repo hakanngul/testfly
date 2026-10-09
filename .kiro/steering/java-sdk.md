@@ -1,6 +1,7 @@
 ---
-inclusion: fileMatch
-fileMatchPattern: ["src/**/*.java", "pom.xml", "testfly.yml"]
+inclusion: auto
+name: testfly-sdk-change
+description: Use for TestFly SDK architecture reviews and Java runtime, public API, configuration, lifecycle, engine-adapter, or extension-point changes.
 ---
 
 # Java SDK changes
