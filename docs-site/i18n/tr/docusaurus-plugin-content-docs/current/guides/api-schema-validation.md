@@ -39,7 +39,7 @@ ApiClient.get("/api/users/1")
 
 ## OpenAPI yanıt doğrulaması
 
-İmza: `ApiResponse` üzerinde `ApiResponse assertOpenApi(String specPath)`, `@TestFlyApi(since = "1.2.0")` ile işaretli. Özellik güncel `1.0.7` sürümünde kullanılabilir. Aynı `ApiResponse` nesnesini döndürdüğü için diğer assertion'larla zincirlenebilir.
+İmza: `ApiResponse` üzerinde `ApiResponse assertOpenApi(String specPath)`. Metot `1.0.7` kaynak kodunda bulunsa da `@TestFlyApi(since = "1.2.0")` işareti kaynak sürümüyle çelişir. Buna bağımlı olmadan önce yayımlanmış paketi ve API sözleşmesini doğrulayın. Aynı `ApiResponse` nesnesini döndürdüğü için diğer assertion'larla zincirlenebilir.
 
 İsteğe bağlı validator dependency'sini ekleyin (TestFly bunu `<optional>` olarak tanımlar, transitif olarak gelmez):
 

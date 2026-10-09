@@ -42,6 +42,8 @@ If adding TestFly to an existing project, follow the steps below:
 
 ### Step 1 — Add the dependency
 
+The examples below use the `1.0.7` source version. Before the release is published, check Maven Central for availability or use the latest published version instead.
+
 <Tabs>
 <TabItem value="maven" label="Maven (pom.xml)">
 

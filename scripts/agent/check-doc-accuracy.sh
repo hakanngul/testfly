@@ -41,6 +41,9 @@ reject 'network().route(' docs-site/src/data/homeData.js
 reject 'api().auth(' docs-site/src/data/homeData.js
 reject 'Zero-flakiness' docs-site/src/data/homeData.js
 reject '100% feature parity' docs-site/src/data/homeData.js
+reject '88 protocol-native MCP tools' docs-site/src/pages/index.js
+reject '88 live tools' docs-site/src/data/homeData.js
+reject 'testfly record https://' docs-site/src/data/homeData.js docs-site/src/pages/index.js
 
 reject 'K6 / Gatling Engine' docs-site/static/diagrams/testfly-k6-dataflow.json
 reject 'JDK 21, K6, Gatling' docs-site/static/diagrams/testfly-architecture.json

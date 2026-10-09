@@ -10,7 +10,7 @@ sidebar_position: 9
 
 TestFly provides native, zero-dependency **Web UI video recording** modeled after Playwright's `video: 'retain-on-failure'` capability.
 
-When enabled, TestFly records the live browser interaction during test execution. If the test passes, the buffered frames are discarded immediately from memory without writing to disk. If the test fails, TestFly compiles the captured frames into a standard **H.264 MP4 video** (or animated GIF) and embeds it directly into the interactive HTML report, Allure results, and test traces.
+When enabled, TestFly captures browser frames during test execution. In `retain-on-failure` mode, passing tests discard the frames. Failed tests save **H.264 MP4** (or GIF if selected or MP4 encoding fails), available to the HTML report and traces, and to Allure when its adapter is enabled. This is execution video, not a live click-to-Java recorder.
 
 ---
 
@@ -20,7 +20,7 @@ When enabled, TestFly records the live browser interaction during test execution
 - **Chrome DevTools Protocol (CDP v152) Screencast**: On Chromium browsers (Chrome and Edge), frames are captured asynchronously via CDP `Page.startScreencast` without blocking or slowing down WebDriver interactions.
 - **Smart Retention (`retain-on-failure`)**: Only failed tests retain their recording files. Successful tests discard buffered frames instantly, saving runner memory and CI disk storage.
 - **Interactive HTML5 Video Player**: Embedded directly into the standalone `target/testfly-report.html` as a Base64 data URI (`data:video/mp4;base64,...`). Features play/pause, time scrubbing, looping, and a full-screen lightbox modal.
-- **Native Allure Integration**: Automatically attached as `video/mp4` MIME type, rendering in Allure's native video player with no extra configuration.
+- **Optional Allure Integration**: When the Allure adapter is enabled, the recording is attached as `video/mp4` or `image/gif`, according to its actual output format.
 - **Headless Viewport Optimization**: When `--start-maximized` is configured, TestFly automatically configures `--window-size=1920,1080` in headless mode so recordings capture full desktop layouts rather than Chromium's default 800x600.
 - **Universal Multi-Framework Support**: Works seamlessly across **TestNG** (`BaseTest`), **JUnit 5** (`BaseJUnit5Test`), and **Cucumber 7 BDD** (`@TestFlySession`).
 
@@ -62,14 +62,14 @@ Test Begins  ──►  RecordingSession starts
                         │
          ┌──────────────┴──────────────┐
          ▼                             ▼
-    Test Passes                   Test Fails
+     Test Passes                   Test Fails
          │                             │
-Buffered frames discarded       Frames compiled to MP4
-(0 bytes disk usage)            (target/recordings/*.mp4)
+Buffered frames discarded       Frames compiled to MP4/GIF
+ (0 bytes disk usage)            (target/recordings/)
                                        │
                                Attached to:
                                • target/testfly-report.html (<video> tag)
-                               • target/allure-results/ (video/mp4)
+                                • target/allure-results/ (if enabled)
                                • target/traces/{TestName}-trace.html
 ```
 
@@ -83,10 +83,10 @@ Buffered frames discarded       Frames compiled to MP4
 
 ### 3. Test Fails
 - The recording session captures the final state and stops frame streaming.
-- Frames are encoded into `target/recordings/{package_ClassName_methodName}.mp4` using JCodec H.264.
+- Frames are saved under `target/recordings/` as MP4 (or GIF if configured or if MP4 encoding fails).
 - The video is automatically attached to:
   1. `target/testfly-report.html` (embedded as Base64 HTML5 video player in the test details drawer, Flakiness Radar, and Fullscreen Lightbox).
-  2. `target/allure-results/` (as an `Execution Video` attachment with MIME type `video/mp4`).
+  2. `target/allure-results/` when Allure is enabled (as `video/mp4` or `image/gif`).
   3. `target/traces/{ClassName}/{methodName}-trace.html` (trace player).
 
 ---

@@ -145,20 +145,17 @@ public class PaymentApiTest extends BaseApiTest {
   },
   {
     id: 'recorder',
-    label: '🎥 Live Recorder',
-    filename: 'testfly record https://app.com',
+    label: '🔌 MCP Bridge',
+    filename: 'node bin/testfly-mcp.js --help',
     language: 'bash',
-    code: `# 1. Launch interactive Chrome companion & web studio (:8765)
-$ testfly record https://www.saucedemo.com
+    code: `# Install the separate Node MCP bridge from its source checkout
+$ node bin/testfly-mcp.js --help
 
-# 2. Injected companion captures clicks, debounced typing & visual assertions
-# 3. TestFly synthesizes & saves multi-file Java tests with compiler guards:
-#    ✔ src/test/java/com/example/pages/InventoryPage.java  (BasePage)
-#    ✔ src/test/java/com/example/tests/CheckoutTest.java   (BaseTest)
-#    ✔ src/test/resources/features/checkout.feature       (Cucumber BDD)
-
-# 4. Connect AI coding assistants (Claude, Cursor, Copilot) to 88 tools
-$ testfly mcp`,
+# Start it as an MCP server from a compatible assistant:
+# node /absolute/path/testfly-mcp/bin/testfly-mcp.js
+# Pair with Playwright MCP for browser inspection.
+# Supply observed actions to generate_testfly_code and review the Java output.
+# Live recording and 'testfly record' are not part of the current bridge.`,
   },
 ];
 
@@ -254,15 +251,13 @@ assertThatPage()
           <path d="m15 9-6 6" />
         </svg>
       ),
-      title: isTr ? 'Model Context Protocol & Canlı Web Kaydedici' : 'Model Context Protocol & Live Recorder',
+      title: isTr ? 'Ayrı MCP Köprüsü & Kod Üretimi' : 'Separate MCP Bridge & Codegen',
       description: isTr
-        ? 'Claude Code, Cursor, Copilot ve JetBrains AI için 88 tarayıcı otomasyon aracı sunan yerleşik MCP sunucusu. testfly record komutuyla canlı Chrome oturumunu dinleyip derleme korumalı Page Object ve BDD testleri üretir.'
-        : 'Native MCP server exposing 88 browser automation tools to Claude Code, Cursor, Copilot, and JetBrains AI. Includes an interactive Chrome companion (testfly record) for zero-boilerplate Page Object and BDD codegen.',
-      code: `# 1. Live web recording with Chrome companion
-testfly record https://www.saucedemo.com
-
-# 2. Run MCP server for IDE coding assistants
-testfly mcp`,
+        ? 'Java SDK’dan ayrı Node.js köprüsü altı MCP aracı sunar. Canlı tarayıcı denetimi için Playwright MCP kullanın; gözlemlenen adımları Java test koduna dönüştürüp çıktıyı doğrulayın. Canlı kayıt henüz yok.'
+        : 'The separate Node.js bridge exposes six MCP tools. Use Playwright MCP for live browser inspection, then generate and review Java from observed actions. Live recording is not shipped.',
+      code: `# From the separate testfly-mcp checkout
+node bin/testfly-mcp.js --help
+# Configure the script as an MCP server; see the CLI guide.`,
     },
   ];
 }
@@ -383,24 +378,24 @@ export function getMoreFeatures(isTr) {
     },
     {
       icon: '🎙️',
-      title: isTr ? 'İnteraktif Web Kaydedici (testfly record)' : 'Interactive Web Recorder (testfly record)',
+      title: isTr ? 'MCP ile Java Kod Üretimi' : 'MCP Java Code Generation',
       short: isTr
-        ? 'Canlı Chrome oturumunda gezinirken tıklama, yazım ve doğrulamaları yakalar; Page Object ve BDD üretir.'
-        : 'Stream live Chrome clicks, debounced typing, and toolbar assertions to generate Page Objects and BDD.',
+        ? 'Ayrı Node köprüsü, sağladığınız tarayıcı adımlarını Java test koduna çevirir; canlı kaydedici içermez.'
+        : 'The separate Node bridge converts supplied browser actions into Java test code; it does not record live sessions.',
     },
     {
       icon: '🤖',
-      title: isTr ? 'TestFly MCP Sunucusu (88 Araç)' : 'TestFly MCP Server (88 Tools)',
+      title: isTr ? 'TestFly MCP Köprüsü (6 Araç)' : 'TestFly MCP Bridge (6 Tools)',
       short: isTr
-        ? 'Claude Code, Cursor ve Copilot için 88 tarayıcı otomasyon aracıyla canlı DOM denetimi ve test üretimi.'
-        : 'Protocol-native MCP server giving Claude, Cursor, and Copilot 88 live tools for verified test generation.',
+        ? 'Proje oluşturma, kod üretimi, önbellek ve onarım yönetimi; canlı DOM incelemesi için ayrı Playwright MCP gerekir.'
+        : 'Scaffolding, codegen, cache and remediation tools; live DOM inspection requires separate Playwright MCP.',
     },
     {
       icon: '💻',
       title: isTr ? 'TestFly CLI Geliştirici Deneyimi' : 'TestFly CLI Toolkit',
       short: isTr
-        ? 'testfly record, testfly mcp, testfly ui ve testfly doctor komutlarıyla eksiksiz terminal araç kiti.'
-        : 'Unified terminal suite featuring testfly record, testfly mcp, testfly ui, and testfly doctor.',
+        ? 'Ayrı Node köprüsünde init, --version ve --help komutları bulunur; record ve studio henüz yoktur.'
+        : 'The separate Node bridge supports init, --version and --help; record and studio are not available.',
     },
     {
       icon: '🧩',
@@ -553,10 +548,10 @@ public class UserDashboardTest extends BaseTest {
   },
   {
     id: 'recorder',
-    labelEn: '🎥 Live Studio & Codegen',
-    labelTr: '🎥 Canlı Stüdyo & Kod Üretimi',
-    taglineEn: 'Tedious Chrome DevTools element inspection vs. interactive web companion with instant Java codegen',
-    taglineTr: 'Saatler süren manuel DevTools element incelemesi ve şablon sınıflar yerine tarayıcıda gezinerek anında Java testi üretimi',
+    labelEn: '🔌 Browser MCP & Codegen',
+    labelTr: '🔌 Tarayıcı MCP & Kod Üretimi',
+    taglineEn: 'Inspect with Playwright MCP; hand-write Page Objects or review generated TestNG code',
+    taglineTr: 'Playwright MCP ile inceleyin; Page Object yazın veya üretilen TestNG kodunu doğrulayın',
     filename: 'CartPage.java',
     beforeEn: `// Plain Selenium: Inspecting elements one-by-one in Chrome DevTools
 // Manually typing 50+ lines of brittle XPath and Page Object boilerplate:
@@ -584,9 +579,8 @@ public class CartPage {
         driver.findElement(checkoutBtn).click();
     }
 } // En ufak arayüz güncellemesinde kırılgan XPath'ler çöker...`,
-    afterEn: `// TestFly Interactive Recorder ($ testfly record https://app.com):
-// Injected Chrome companion streams clicks, typing & toolbar assertions live.
-// Real-time Page Object Model synthesis with compiler safeguards:
+    afterEn: `// Illustrative hand-written Page Object; not emitted by the current bridge.
+// Playwright MCP inspects the browser; TestFly MCP accepts supplied actions.
 public class CartPage extends BasePage {
     private final Locator checkoutBtn = getByTestId("checkout");
     private final Locator firstName = getByTestId("firstName");
@@ -597,10 +591,9 @@ public class CartPage extends BasePage {
         return this;
     }
 }
-// Saved directly to src/test/java/.../CartPage.java with 1-click!`,
-    afterTr: `// TestFly Interactive Recorder ($ testfly record https://app.com):
-// Chrome eşlikçisi tıklamaları, yazımları ve doğrulamaları anında dinler.
-// Java derleyici güvenceleriyle anlık Page Object Model sentezi:
+// Save reviewed code in your project; no live recorder is shipped.`,
+    afterTr: `// Örnek elle yazılmış Page Object; güncel köprü tarafından üretilmez.
+// Playwright MCP tarayıcıyı inceler; TestFly MCP verilen adımları işler.
 public class CartPage extends BasePage {
     private final Locator checkoutBtn = getByTestId("checkout");
     private final Locator firstName = getByTestId("firstName");
@@ -611,11 +604,11 @@ public class CartPage extends BasePage {
         return this;
     }
 }
-// Tek tıkla doğrudan src/test/java/.../CartPage.java dizinine kaydedilir!`,
-    badgeBeforeEn: 'DevTools inspection · 45m per page',
-    badgeBeforeTr: 'Manuel DevTools · Sayfa başına 45dk',
-    badgeAfterEn: '1 command · Live POM & BDD codegen',
-    badgeAfterTr: 'Tek komut · Canlı POM ve BDD üretimi',
+// İncelenen kodu projeye kaydedin; canlı kaydedici henüz yok.`,
+    badgeBeforeEn: 'Manual locator inspection',
+    badgeBeforeTr: 'Elle seçici incelemesi',
+    badgeAfterEn: 'Observed actions → reviewed Java',
+    badgeAfterTr: 'Gözlemlenen adımlar → incelenen Java',
   },
 ];
 
@@ -713,15 +706,15 @@ export function getFaqs(isTr) {
 
 export const stats = [
   { value: '1', label: 'Single Maven Dependency', labelTr: 'Tek Maven Bağımlılığı' },
-  { value: '1.0.7', label: 'Latest Stable Release', labelTr: 'Güncel Kararlı Sürüm' },
+  { value: '1.0.7', label: 'SDK Source Version', labelTr: 'SDK Kaynak Sürümü' },
   { value: '0', label: 'LLM Calls on Cache Hit', labelTr: 'Önbellek İsabetinde LLM Çağrısı' },
-  { value: '88', label: 'Built-in MCP Tools', labelTr: 'Yerleşik MCP Aracı' },
+  { value: '6', label: 'Separate Bridge Tools', labelTr: 'Ayrı Köprü Aracı' },
 ];
 
 export const recorderTabs = [
   {
     id: 'pom',
-    label: '📄 Page Object (BasePage)',
+    label: '📄 Page Object (illustrative)',
     filename: 'com/example/pages/InventoryPage.java',
     language: 'java',
     code: `package com.example.pages;
@@ -732,7 +725,7 @@ import org.openqa.selenium.WebDriver;
 
 public class InventoryPage extends BasePage {
 
-    // Accessibility-first locators captured from live Chrome DOM
+    // Illustrative locators: verify these against the actual page before use
     private final Locator backpackBtn = getByTestId("add-to-cart-sauce-labs-backpack");
     private final Locator cartBadge = getByTestId("shopping-cart-badge");
     private final Locator checkoutBtn = getByTestId("checkout");
@@ -754,7 +747,7 @@ public class InventoryPage extends BasePage {
   },
   {
     id: 'test',
-    label: '🧪 POM Test (BaseTest)',
+    label: '🧪 POM Test (illustrative)',
     filename: 'com/example/tests/InventoryTest.java',
     language: 'java',
     code: `package com.example.tests;
@@ -773,7 +766,7 @@ public class InventoryTest extends BaseTest {
         page.addBackpackToCart()
             .proceedToCheckout();
 
-        // 👁️ Visual assertion captured live from Studio toolbar
+        // Add assertions after inspecting the actual page
         assertThat(getByTestId("title"))
             .isVisible()
             .hasText("Checkout: Your Information");
@@ -782,10 +775,11 @@ public class InventoryTest extends BaseTest {
   },
   {
     id: 'bdd',
-    label: '🥒 Cucumber BDD',
+    label: '🥒 Hand-written Cucumber BDD',
     filename: 'src/test/resources/features/inventory.feature',
     language: 'gherkin',
-    code: `Feature: Live Recorded E-Commerce Journey
+    code: `# Illustrative feature file; the current bridge does not generate BDD
+Feature: E-Commerce Journey
   Background:
     Given the user opens "https://www.saucedemo.com/inventory.html"
 
@@ -798,19 +792,17 @@ public class InventoryTest extends BaseTest {
   },
   {
     id: 'terminal',
-    label: '💻 CLI & MCP ($ testfly record)',
-    filename: 'Terminal ($ testfly record)',
+    label: '💻 CLI & MCP bridge',
+    filename: 'Terminal (testfly-mcp source checkout)',
     language: 'bash',
-    code: `# 1. Start zero-setup Chrome companion and Web Studio (:8765)
-$ testfly record https://www.saucedemo.com
+    code: `# Separate Node bridge; run from its source checkout
+$ node bin/testfly-mcp.js --help
+$ node bin/testfly-mcp.js init ../my-test-suite
 
-# 2. Injected Chrome companion streams clicks, debounced typing & assertions
-# 3. Live Smart Locator Tester reports: "getByTestId('checkout') -> 1 match"
-# 4. Click 'Save to Project' (saved with Java reserved keyword safeguards):
-#    ✔ src/test/java/com/example/pages/InventoryPage.java
-#    ✔ src/test/java/com/example/tests/InventoryTest.java
-# 5. Connect AI coding assistants (Claude, Cursor, Copilot) to 88 live tools
-$ testfly mcp`,
+# Configure node /absolute/path/testfly-mcp/bin/testfly-mcp.js
+# as an MCP server, plus Playwright MCP for browser inspection.
+# Supply observed actions to generate_testfly_code; review and compile Java.
+# Live recording ('testfly record') is not available.`,
   },
 ];
 

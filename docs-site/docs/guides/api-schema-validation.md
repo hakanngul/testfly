@@ -39,7 +39,7 @@ Requires `com.networknt:json-schema-validator` in your `pom.xml`:
 
 ## OpenAPI response validation
 
-Signature: `ApiResponse assertOpenApi(String specPath)` on `ApiResponse`, annotated `@TestFlyApi(since = "1.2.0")`. The feature is available in the current release `1.0.7`. It returns the same `ApiResponse`, so it chains with other assertions.
+Signature: `ApiResponse assertOpenApi(String specPath)` on `ApiResponse`; the `1.0.7` source contains this method, but its `@TestFlyApi(since = "1.2.0")` annotation conflicts with the source version. Confirm the published artifact and API contract before depending on it. It returns the same `ApiResponse`, so it chains with other assertions.
 
 Add the optional validator dependency (TestFly declares it `<optional>`, so it is not pulled in transitively):
 

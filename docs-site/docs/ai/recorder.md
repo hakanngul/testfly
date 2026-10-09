@@ -1,9 +1,9 @@
 ---
 id: recorder
-title: Interactive Recorder & Chrome Companion
-sidebar_label: Interactive Recorder
+title: Historical Interactive Recorder Design
+sidebar_label: Recorder (Historical)
 sidebar_position: 3
-description: Record live web interactions in Google Chrome and automatically generate clean, production-ready TestFly Java tests and Page Objects.
+description: Historical Python/Selenium recorder design; the current Node.js MCP bridge does not provide live recording.
 ---
 
 :::info Historical implementation — superseded (2026-10-04)
