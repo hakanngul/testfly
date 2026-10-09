@@ -1,90 +1,27 @@
 ---
 name: testfly-test-authoring
-description: >
-  TestFly framework'ünde test yazma (test authoring) rehberi ve stili.
-  Tüketici (consumer) projelerinde TestNG, JUnit 5, Cucumber runner'larını kullanarak
-  yeni WebUI, API ve load test (yük testi) yazarken, Page Object Model (POM), locator,
-  bekleme (wait) kurallarına ve framework yeteneklerine (API test, LoadScenario) erişim
-  için bu kuralları uygula.
+description: Create or revise TestFly framework tests and executable examples across TestNG, JUnit 5, Cucumber, browser, API/mock, and load/performance domains. Use for SDK coverage or confirmed-bug reproduction; use testfly-api-write for consumer-facing API automation, and do not use for SDK implementation or failure diagnosis alone.
 ---
 
-# TestFly ile Test Yazma (Consumer-Side Test Authoring)
+# TestFly test authoring
 
-Bu doküman, TestFly framework'ünü kullanan bir tüketici (consumer) projesinde **test yazarken** uyulması gereken kuralları, locator stratejilerini ve bekleme kurallarını tanımlar.
-Framework mimarisi veya dahili geliştirme standartları için `[[testfly]]` skill'ine bakınız.
+## Choose the test boundary
 
-## 1. Karar Ağacı: Hangi Base Sınıf / Runner Kullanılmalı?
+1. State the behavior and failure signal before choosing a framework or fixture.
+2. Prefer the lowest-cost boundary that proves it: unit → registry/engine integration → domain integration → external/consumer.
+3. Match the affected adapter: TestNG listener, JUnit 5 bridge, Cucumber bridge, browser lifecycle, API/mock, or load/performance. Do not express every scenario as a Selenium test.
+4. Reuse nearby fixtures and patterns; use `src/test/java/io/testfly/examples/` only for intentionally consumer-facing examples.
 
-TestFly'da testlerinizin ihtiyacına göre doğru taban sınıfı seçmelisiniz:
+## Author deterministic tests
 
-- **Web UI Testleri (TestNG):** `BaseTest` (Tarayıcı otomatik başlar, kapatılır).
-- **Sadece API Testleri (TestNG):** `BaseApiTest` (Tarayıcı açılmaz).
-- **Yük/Performans Testleri (TestNG):** `BaseLoadTest` (Gatling/JDK engine çalıştırır, UI tetiklemez).
-- **JUnit 5 Testleri:** `BaseJUnit5Test` / `BaseJUnit5ApiTest` (TestNG yerine JUnit 5 kullanılıyorsa).
-- **Cucumber (BDD):** `BaseCucumberTest` runner sınıfı ve `BaseCucumberSteps` adım sınıfları.
+- Use Arrange/Act/Assert and assert observable behavior, not internal call order unless order is the contract.
+- Give each test independent state and cleanup. Never share mutable driver, server, port, output directory, or execution context across parallel tests.
+- Use TestFly waits and lifecycle hooks for browser state; do not add fixed sleeps or retry a deterministic assertion.
+- For API tests, use local mock servers/fixtures where possible and assert status, schema/body, headers, and diagnostics without exposing secrets.
+- For SPI tests, cover ServiceLoader discovery, programmatic registration, duplicate/invalid providers, lifecycle, and absence of optional dependencies as applicable.
+- For configuration tests, cover precedence, default, missing/blank, malformed, substitution, and compatibility behavior.
+- Separate external, browser, real-backend, load, and intentionally failing demonstrations behind existing profiles/tags so the default suite remains deterministic.
 
-## 2. Evrensel Kurallar (Universal Rules)
+## Verify and document
 
-- **Statik State Yasaktır:** Hiçbir zaman `static WebDriver` veya statik test verisi tutmayın. Çoklu iş parçacığında (parallel execution) testler patlar.
-- **Konfigürasyon:** Uygulama URL'i, timeout'lar ve ortam değişkenleri (sırlar dahil) `testfly.yml` içinde tutulur. Şifreler `${DB_PASS}` gibi environment placeholder'ları ile yönetilir.
-- **Bir Test = Bir Davranış:** Mümkün olduğunca AAA (Arrange-Act-Assert) pattern'ine uygun, bağımsız testler yazın. Bir test diğerinin bıraktığı dataya güvenmemelidir.
-- **Doğrulamalar Testte, Aksiyonlar Sayfada:** Page Object sınıfları (BasePage) içinde `assert` **asla yazılmaz**. Assertion sadece test metodunda olur.
-
-## 3. Locator Önceliği ve Seçimi (Accessibility First)
-
-Aşağıdaki sıraya göre locator seçilmelidir. İç içe (nested) veya DOM hiyerarşisine çok bağımlı CSS/XPath son çaredir.
-
-1. **`getByRole(Role.BUTTON).withName("Submit")`:** En iyi yöntem (Erişilebilirlik odaklı).
-2. **`getByLabel("Email Address")`:** Form elemanları için.
-3. **`getByPlaceholder("Search...")`** veya **`getByText("Log in")`:** Görsel metne dayalı.
-4. **`getByTestId("submit-btn")`:** `data-testid` gibi test attributeları varsa.
-5. **CSS Sınıfları/ID:** `find(By.cssSelector(".btn-primary"))`.
-6. **XPath:** Sadece yukarıdakilerle çözülemiyorsa (örneğin ebeveyn bulmak gerekiyorsa). Gerekçeli kullanılmalıdır.
-
-## 4. Bekleme (Wait) Kuralları
-
-- **`Thread.sleep()` KESİNLİKLE YASAKTIR.**
-- **Auto-wait:** `click()`, `type()` gibi aksiyonlar otomatik olarak görünür ve tıklanabilir olmayı bekler. Ekstra bekleme yazmanıza gerek yoktur.
-- **Açık Bekleme (Explicit):** DOM'da asenkron bir değişimi beklemeniz gerekiyorsa, `WaitEngine` kullanın (ör. `getWait().waitForVisible(locator)` veya `getWait().waitForInvisible(locator)`).
-- **Web-First Assertions:** Durumu doğrulamak için (Polling).
-  - `assertThat(buttonLocator).isVisible()` DOM'da görünene kadar bekler.
-  - `assertTrue(driver.findElement(By.id("msg")).isDisplayed())` KULLANMAYIN (anlık (flaky) kontroldür).
-
-## 5. İsimlendirme ve Tüketici Proje Dizilimi
-
-- **Dizin Yapısı:**
-  ```
-  src/test/java/com/acme/
-  ├── pages/        # Sayfa Nesneleri (extends BasePage)
-  ├── tests/        # Test Senaryoları (extends BaseTest / BaseApiTest vb.)
-  ├── data/         # Test veri modelleri, POJO'lar
-  └── config/       # Projeye özel sabitler
-  ```
-- **İsimlendirme:** Test metotları neyin test edildiğini açıkça belirtmelidir (örneğin `shouldLoginWithValidCredentials`).
-
-## 6. Anti-Pattern Tablosu
-
-| Kötü (Anti-Pattern) | İyi (Best Practice) | Neden? |
-|----------------------|----------------------|---------|
-| `Thread.sleep(5000)` | `assertThat(loc).isVisible()` | Testi gereksiz uzatır, flaky (kırılgan) yapar. |
-| Test içinde `new ChromeDriver()` | `extends BaseTest` | Framework'ün lifecycle (video, rapor) kancalarını bozar. |
-| XPath: `//div/div/ul/li[2]/a` | `getByRole(Role.LINK).withName("Login")` | DOM değiştiğinde kırılır. |
-| `assertEquals(text, "OK")` UI'da | `assertThat(loc).hasText("OK")` | İlki anlık çeker, ikincisi DOM'u bekler. |
-| Page class'ında `Assert.assertTrue` | Metot boolean veya data döner, testte assert edilir | Sorumluluk ayrımı (Separation of Concerns). |
-
-## 7. PR Öncesi Kontrol Listesi (Checklist)
-
-- [ ] Hiçbir yerde `Thread.sleep` kullanılmamış.
-- [ ] UI testleri `BaseTest` (veya varyantlarından), API testleri `BaseApiTest`'ten türüyor.
-- [ ] Locatörler olabildiğince erişilebilirlik (role/label) tabanlı yazılmış.
-- [ ] Ortam sırları koda gömülmemiş, `testfly.yml` içindeki `env` değişkenleriyle yönetilmiş.
-- [ ] Testler birbirine bağımlı değil.
-
-## Referanslar
-
-- [[.agents/skills/testfly-test-authoring/references/webui.md|WebUI Testleri (POM, Locator, Assertion)]]
-- [[.agents/skills/testfly-test-authoring/references/api.md|API Testleri (ApiClient, ApiResponse)]]
-- [[.agents/skills/testfly-test-authoring/references/testng.md|TestNG Kullanımı (Retry, Data, Suite)]]
-- [[.agents/skills/testfly-test-authoring/references/junit5.md|JUnit 5 Kullanımı]]
-- [[.agents/skills/testfly-test-authoring/references/cucumber.md|Cucumber (BDD) Kullanımı]]
-- [[.agents/skills/testfly-test-authoring/references/loadtest.md|Yük Testleri (LoadTest)]]
+Run the new test alone, then the narrowest relevant `testfly-verify` mode. If it is a public example, keep Java 21 compatibility and update its English/Turkish explanation through `testfly-docs`. Record any environment or profile required to execute it.

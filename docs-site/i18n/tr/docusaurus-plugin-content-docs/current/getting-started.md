@@ -42,6 +42,8 @@ TestFly'ı mevcut bir projeye ekliyorsanız aşağıdaki adımları izleyin:
 
 ### Adım 1 — Bağımlılığı Ekle
 
+Aşağıdaki örnekler `1.0.7` kaynak sürümünü kullanır. Yayın tamamlanmadan önce Maven Central erişimini doğrulayın veya yayımlanmış son sürümü tercih edin.
+
 <Tabs>
 <TabItem value="maven" label="Maven (pom.xml)">
 

@@ -252,8 +252,8 @@ export default function Home() {
 
               <p className={styles.heroSubtitle}>
                 {isTr
-                  ? "Modern mühendislik ekipleri için geliştirilmiş, sıfır ek yüklü Java test otomasyon SDK'sı. TestFly; Selenium 4 altyapısını otonom Agentic AI, kendi kendini onaran seçiciler, interaktif Chrome web kaydedicisi ve 88 yerleşik MCP aracıyla tek bir konfigürasyonsuz mimaride birleştirir."
-                  : 'An opinionated, zero-overhead Java test automation SDK engineered for modern teams. TestFly unifies convention-over-configuration Selenium 4 with autonomous Agentic AI, self-healing locators, an interactive Chrome web recorder, and 88 protocol-native MCP tools.'}
+                  ? "Modern mühendislik ekipleri için Java test otomasyon SDK'sı. TestFly tarayıcı oturumları, API testleri, raporlama ve isteğe bağlı AI araçlarını birleştirir. Ayrı Node.js MCP köprüsü kod üretimi ve proje oluşturma araçları sunar."
+                  : 'A Java test automation SDK for modern teams. TestFly combines browser sessions, API testing, reporting, and optional AI tools. A separate Node.js MCP bridge offers code generation and project scaffolding.'}
               </p>
 
               <div className={styles.heroBottom}>
@@ -261,8 +261,8 @@ export default function Home() {
                   <Link className={styles.buttonPrimary} to="/docs/getting-started">
                     {isTr ? 'Hemen Başlayın' : 'Get Started'}
                   </Link>
-                  <Link className={styles.buttonSecondary} to="/docs/ai/recorder">
-                    {isTr ? '🎥 Canlı Web Kaydedici' : '🎥 Live Web Recorder'}
+                  <Link className={styles.buttonSecondary} to="/docs/guides/video-recording">
+                    {isTr ? '🎥 Test Video Kaydı' : '🎥 Test Video Recording'}
                   </Link>
                   <Link className={styles.buttonSecondary} to="/docs/ai/overview">
                     {isTr ? '🤖 AI & MCP Rehberi' : '🤖 AI & MCP Guide'}
@@ -435,11 +435,11 @@ export default function Home() {
               ))}
             </div>
 
-            {/* ── Maven Central Dependency Banner ──────────────────────────────── */}
+            {/* ── SDK Dependency Banner ────────────────────────────────────────── */}
             <div className={styles.installBanner} data-reveal>
               <div className={styles.installText}>
                 <span className={styles.sectionEyebrow}>
-                  {isTr ? 'Maven Central · Sıfır Konfigürasyon' : 'Maven Central · Zero Boilerplate'}
+                  {isTr ? 'SDK Kaynak Sürümü · 1.0.7' : 'SDK Source Version · 1.0.7'}
                 </span>
                 <h3 className={styles.installTitle}>
                   {isTr ? 'Tek Bir Bağımlılıkla Tüm Gücü Açın' : 'One Dependency to Power Your Entire Stack'}
@@ -456,7 +456,7 @@ export default function Home() {
                   </span>
                   <span className={styles.installBadge}>
                     <span className={styles.installBadgeDot} />
-                    Maven Central v1.0.7
+                    {isTr ? 'Yayın doğrulaması bekleniyor' : 'Release verification pending'}
                   </span>
                   <span className={styles.installBadge}>
                     <span className={styles.installBadgeDot} />
@@ -508,46 +508,50 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Interactive Recorder & MCP Section ───────────────────────────── */}
+        {/* ── Separate MCP bridge & SDK video recording ───────────────────── */}
         <section className={styles.recorderSection}>
           <div className="container">
             <div className={styles.recorderInner}>
               <div className={styles.recorderText} data-reveal>
                 <span className={styles.sectionEyebrow}>
-                  {isTr ? 'Canlı Tarayıcı Eşlikçisi & Model Context Protocol' : 'Live Browser Companion & Model Context Protocol'}
+                  {isTr ? 'Java SDK & Ayrı MCP Köprüsü' : 'Java SDK & Separate MCP Bridge'}
                 </span>
                 <h2 className={styles.recorderTitle}>
                   {isTr ? (
                     <>
-                      Chrome'da gezinirken kaydedin,
+                      Testleri videoya kaydedin,
                       <br />
-                      <span className={styles.recorderTitleAccent}>üretime hazır Java testleri üretin</span>
+                      <span className={styles.recorderTitleAccent}>gözlemlenen adımlardan Java üretin</span>
                     </>
                   ) : (
                     <>
-                      Record in Chrome,
+                      Record test execution,
                       <br />
-                      <span className={styles.recorderTitleAccent}>compile to production Java</span>
+                      <span className={styles.recorderTitleAccent}>generate Java from observed actions</span>
                     </>
                   )}
                 </h2>
                 <p className={styles.recorderSubtitle}>
                   {isTr
-                    ? 'TestFly etkileşimli kayıt stüdyosu; tıklamalarınızı, form girişlerinizi ve görsel web doğrulamalarınızı gerçek zamanlı SSE ile dinler. Java derleyici güvenceleriyle (örn. continueElement) temiz Page Object ve Cucumber BDD testlerini doğrudan projenize yazar.'
-                    : "TestFly's interactive companion studio streams your clicks, typing, and visual assertions over real-time SSE. Emits clean Page Object Model and Cucumber BDD tests with compiler safeguards, saved directly to your repository in seconds."}
+                    ? 'Java SDK, test çalışırken isteğe bağlı video kaydı alır. Ayrı Node.js MCP köprüsü, sağladığınız tarayıcı adımlarını Java test koduna çevirebilir; tarayıcı incelemesi için Playwright MCP kullanılır. Canlı etkileşim kaydedicisi henüz sunulmaz.'
+                    : 'The Java SDK optionally captures execution video. The separate Node.js MCP bridge can turn supplied browser actions into Java test code; browser inspection uses Playwright MCP. A live interaction recorder is not currently shipped.'}
                 </p>
+
+                <div className={styles.recorderCode}>
+                  <RecorderCodeShowcase />
+                </div>
 
                 <div className={styles.recorderPills}>
                   <div className={styles.recorderPill}>
                     <span className={styles.recorderPillIcon}>🎥</span>
                     <div>
                       <strong>
-                        {isTr ? 'Sıfır Kurulumlu Chrome Eşlikçisi (testfly record)' : 'Zero-Setup Chrome Companion (testfly record)'}
+                        {isTr ? 'Test Çalışması Video Kaydı' : 'Test Execution Video'}
                       </strong>
                       <span>
                         {isTr
-                          ? 'Otomatik CDP script enjeksiyonlu izole Chrome penceresi ve port çakışmasız canlı stüdyo (:8765)'
-                          : 'Isolated Chrome launch with automated CDP script injection and dynamic port fallback (:8765)'}
+                          ? 'Chromium için CDP, diğer sürücüler için ekran görüntüsü yedeği; retain-on-failure modu'
+                          : 'CDP on Chromium, screenshot fallback for other drivers; retain-on-failure mode'}
                       </span>
                     </div>
                   </div>
@@ -556,12 +560,12 @@ export default function Home() {
                     <span className={styles.recorderPillIcon}>👁️</span>
                     <div>
                       <strong>
-                        {isTr ? 'Görsel Web Doğrulama Araç Çubuğu' : 'Visual Web Assertion Toolbar'}
+                        {isTr ? 'Tarayıcı Denetimi' : 'Browser Inspection'}
                       </strong>
                       <span>
                         {isTr
-                          ? 'Tek tıkla isVisible(), isEnabled() ve hasText() doğrulamaları (tam ve içeren metin modlarıyla)'
-                          : 'One-click isVisible(), isEnabled(), and hasText() assertions with exact/contains match modals'}
+                          ? 'Ayrı Playwright MCP ile canlı sayfayı inceleyin ve gerçek seçicileri doğrulayın'
+                          : 'Inspect the live page with separate Playwright MCP and verify real selectors'}
                       </span>
                     </div>
                   </div>
@@ -570,12 +574,12 @@ export default function Home() {
                     <span className={styles.recorderPillIcon}>🏗️</span>
                     <div>
                       <strong>
-                        {isTr ? "4'ü 1 Arada Çoklu Mimari Kod Sentezi" : '4-in-1 Multi-Framework Java Codegen'}
+                        {isTr ? 'Sağlanan Adımlardan Kod Üretimi' : 'Codegen From Supplied Actions'}
                       </strong>
                       <span>
                         {isTr
-                          ? 'Page Object Model (BasePage), bağımsız TestNG (BaseTest), JUnit 5 ve Cucumber BDD desteği'
-                          : 'Real-time synthesis across Page Object Model (BasePage), standalone TestNG, JUnit 5, and Cucumber BDD'}
+                          ? 'Köprü TestNG Java kodu üretir; çıktıyı projeye eklemeden önce inceleyip derleyin'
+                          : 'The bridge emits TestNG Java code; review and compile it before adding it to your project'}
                       </span>
                     </div>
                   </div>
@@ -584,20 +588,20 @@ export default function Home() {
                     <span className={styles.recorderPillIcon}>🤖</span>
                     <div>
                       <strong>
-                        {isTr ? '88 Yerleşik MCP Aracı & IDE Eklentileri' : '88 Native MCP Protocol Tools & IDE Plugins'}
+                        {isTr ? 'Altı MCP Aracı' : 'Six MCP Tools'}
                       </strong>
                       <span>
                         {isTr
-                          ? "Claude Code, Cursor, Copilot ve JetBrains AI'ı canlı DOM'a bağlayan protokol ve IDE eklentileri"
-                          : 'Standard Model Context Protocol connecting Claude, Cursor, Copilot, and JetBrains AI to live DOMs'}
+                          ? 'Ayrı köprü: proje oluşturma, kod üretimi, eylem önbelleği ve onarım araçları'
+                          : 'Separate bridge: scaffolding, code generation, action cache, and remediation tools'}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className={styles.recorderActions}>
-                  <Link className={styles.buttonPrimary} to="/docs/ai/recorder">
-                    {isTr ? '🎥 Canlı Kaydedici Rehberi' : '🎥 Explore Interactive Recorder'}
+                  <Link className={styles.buttonPrimary} to="/docs/guides/video-recording">
+                    {isTr ? '🎥 Video Kaydı Rehberi' : '🎥 Video Recording Guide'}
                   </Link>
                   <Link className={styles.buttonSecondary} to="/docs/ai/overview">
                     {isTr ? '🤖 AI & MCP Mimarisi' : '🤖 AI & MCP Architecture'}
@@ -606,10 +610,6 @@ export default function Home() {
                     {isTr ? '💻 CLI Kılavuzu' : '💻 CLI Reference'}
                   </Link>
                 </div>
-              </div>
-
-              <div className={styles.recorderCode} data-reveal style={{ '--i': 1 }}>
-                <RecorderCodeShowcase />
               </div>
             </div>
           </div>
@@ -640,8 +640,8 @@ export default function Home() {
                 </h2>
                 <p className={styles.quickSubtitle}>
                   {isTr
-                    ? 'Yüzlerce satırlık kırılgan driver fabrikaları ve dağınık setup script’leri yazmaya son. ThreadLocal paralel thread yönetimi, native Chromium CDP MP4 video kaydı, Allure ve ReportPortal senkronizasyonu, DeepSeek/OpenAI kök neden tespiti ve kendi kendini onaran seçicileri tek bir standart YAML ile canlı yönetin.'
-                    : 'Stop writing fragile framework plumbing. Configure ThreadLocal driver isolation, native Chromium CDP MP4 recordings, live Allure & ReportPortal sync, DeepSeek/OpenAI failure diagnosis, and self-healing locators—all driven by a single, type-safe configuration.'}
+                    ? 'Yüzlerce satırlık driver fabrikaları ve dağınık setup script’leri yazmaya son. Tek YAML ile paralel testleri, tarayıcı oturum sınırını, CDP tercihli MP4 kaydını ve seçici onarımını yapılandırın. Allure açıktır; DeepSeek/OpenAI analizi ve ReportPortal için gerçek erişim bilgilerinizi ekleyip ilgili anahtarları açabilirsiniz.'
+                    : 'Stop writing fragile framework plumbing. Configure parallel tests, browser session limits, CDP-preferred MP4 recording, and locator recovery in one YAML file. Allure is enabled; add real credentials and enable the switches for DeepSeek/OpenAI analysis and ReportPortal.'}
                 </p>
 
                 <div className={styles.quickPills}>
@@ -662,8 +662,8 @@ export default function Home() {
                       <strong>{isTr ? 'Native Chromium CDP MP4 Screencast' : 'Native CDP MP4 Screencast'}</strong>
                       <span>
                         {isTr
-                          ? 'Yalnızca hata anında saklanan sıfır ek yükte video kaydı'
-                          : 'Zero-overhead video, retained only on test failure'}
+                          ? 'Test boyunca kaydedilir, yalnızca hata anında saklanır'
+                          : 'Captured during tests, retained only on failure'}
                       </span>
                     </div>
                   </div>
@@ -673,8 +673,8 @@ export default function Home() {
                       <strong>{isTr ? 'DeepSeek & OpenAI AI Analiz Motoru' : 'DeepSeek & OpenAI AI Engine'}</strong>
                       <span>
                         {isTr
-                          ? 'Hata kök-neden tespiti ve otomatik git patch üretimi'
-                          : 'Plain-English root-cause triage and auto-PR patches'}
+                          ? 'Erişim anahtarıyla açılabilen hata analizi ve patch üretimi'
+                          : 'Optional failure analysis and patch generation with an API key'}
                       </span>
                     </div>
                   </div>
@@ -684,8 +684,8 @@ export default function Home() {
                       <strong>{isTr ? 'Allure & ReportPortal Entegrasyonu' : 'Unified Enterprise Reporting'}</strong>
                       <span>
                         {isTr
-                          ? 'HTML zaman çizelgesi, JUnit XML ve canlı dashboard akışı'
-                          : 'Interactive HTML timeline, JUnit XML, and live dashboard sync'}
+                          ? 'Yerel HTML ve Allure açık; ReportPortal erişim bilgisiyle açılır'
+                          : 'Local HTML and Allure on; ReportPortal needs credentials to enable'}
                       </span>
                     </div>
                   </div>
@@ -722,8 +722,8 @@ export default function Home() {
               </h2>
               <p className={styles.sectionSubtitle}>
                 {isTr
-                  ? 'Mühendislik ekiplerinin ve QA liderlerinin TestFly hakkında en çok merak ettikleri.'
-                  : 'The key architectural questions engineering teams ask before adopting TestFly.'}
+                  ? 'İlk kurulumdan test çalıştırmaya, isteğe bağlı AI ve entegrasyonlara kadar kısa yanıtlar.'
+                  : 'Straight answers on setup, running tests, optional AI features, and integrations.'}
               </p>
             </div>
 

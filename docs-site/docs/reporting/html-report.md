@@ -134,8 +134,6 @@ Configure reporting behaviour in your [`testfly.yml`](../guides/testfly-yml-guid
 
 ```yaml
 reporting:
-  htmlReport: true                  # generate target/testfly-report.html (default: true)
-  screenshotOnFailure: true         # embed Base64 screenshot on failure (default: true)
   mergeRuns: false                  # set true or pass -Dtestfly.merge=true to merge sequential test runs
   historyRuns: 10                   # max historical run reports to keep in run switcher (default: 10)
   allure:
@@ -143,3 +141,5 @@ reporting:
   reportPortal:
     enabled: false                  # stream real-time logs and launches to ReportPortal
 ```
+
+`reporting.htmlReport` and `reporting.screenshotOnFailure` are accepted by the current configuration model for compatibility, but the report lifecycle does not read them. The built-in HTML report is generated, and a failure screenshot is attempted whenever a browser is active. Do not use either property as an enable/disable switch.

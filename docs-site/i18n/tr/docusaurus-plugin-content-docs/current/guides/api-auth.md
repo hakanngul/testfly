@@ -1,11 +1,11 @@
 ---
-description: "Selenium API testleri için API kimlik doğrulama: Bearer token, Basic auth ve OAuth2 client credentials kutu dışında desteklenir."
+description: "TestFly API testleri için Bearer, Basic, API anahtarı, HMAC, OAuth2 client credentials ve OAuth2 password kimlik doğrulama fabrikaları."
 sidebar_position: 14
 ---
 
 # API Kimlik Doğrulama
 
-TestFly, kutu dışında üç kimlik doğrulama stratejisini destekler: Bearer token, Basic auth ve OAuth2 client credentials.
+Aşağıdaki örnekler en yaygın üç stratejiyle başlar: Bearer token, Basic auth ve OAuth2 client credentials. `ApiAuth` ayrıca header/query API anahtarı, HMAC, OAuth2 password ve sınırlı bir digest yer tutucusu sağlar.
 
 ---
 
@@ -42,6 +42,19 @@ ApiClient.setGlobalAuth(ApiAuth.oauth2(
 ```
 
 Framework, `grant_type=client_credentials` ile bir `POST` gönderir ve dönen `access_token` değerini son kullanma süresine kadar (yanıttaki `expires_in` alanını kullanarak) önbelleğe alır.
+
+---
+
+## Ek `ApiAuth` Fabrikaları
+
+```java
+ApiAuth.apiKey("X-Api-Key", System.getenv("API_KEY"));
+ApiAuth.apiKeyQuery("api_key", System.getenv("API_KEY"));
+ApiAuth.hmac(System.getenv("API_KEY"), System.getenv("API_SECRET"), "HmacSHA256");
+ApiAuth.oauth2Password(tokenUrl, clientId, clientSecret, username, password);
+```
+
+`ApiAuth.digest(username, password)` yalnızca `Digest` önekiyle Basic benzeri bir payload gönderir; RFC challenge/response akışını uygulamaz. Tam Digest kimlik doğrulaması için özel interceptor kullanın. HMAC fabrikası API anahtarı değerini imzalayıp `X-Api-Key` ve `X-Signature` ekler; genel amaçlı istek-gövdesi imzalama mekanizması değildir.
 
 ---
 

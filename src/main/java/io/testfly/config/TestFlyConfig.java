@@ -1,9 +1,12 @@
 package io.testfly.config;
 
+import io.testfly.api.TestFlyApi;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+@TestFlyApi(since = "0.1.0")
 public final class TestFlyConfig {
 
     private Browser browser;

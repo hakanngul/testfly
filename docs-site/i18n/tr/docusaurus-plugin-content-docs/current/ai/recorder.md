@@ -1,9 +1,9 @@
 ---
 id: recorder
-title: İnteraktif Kaydedici & Chrome Companion
-sidebar_label: İnteraktif Kaydedici
+title: Tarihsel İnteraktif Kaydedici Tasarımı
+sidebar_label: Kaydedici (Tarihsel)
 sidebar_position: 3
-description: Google Chrome üzerinde canlı kullanıcı etkileşimlerini kaydedin; temiz, üretime hazır TestFly Java testleri ve Page Object sınıfları üretin.
+description: Tarihsel Python/Selenium kaydedici tasarımı; güncel Node.js MCP köprüsünde canlı kayıt bulunmaz.
 ---
 
 :::info Tarihsel uygulama — güncel mimari tarafından değiştirildi (2026-10-04)

@@ -1,5 +1,7 @@
 package io.testfly.visual;
 
+import io.testfly.api.TestFlyApi;
+
 /**
  * Pixel-difference tolerance for {@link VisualAssert}.
  *
@@ -8,6 +10,7 @@ package io.testfly.visual;
  * assertScreenshot("home", VisualTolerance.exact()); // 0% — must be identical
  * </pre>
  */
+@TestFlyApi(since = "0.6.0")
 public final class VisualTolerance {
 
     private final double percent;

@@ -4,14 +4,13 @@ target/
 !**/src/test/**/target/
 .kotlin
 .agent
-.kiro
 .mcp.json
 reportportal.lock
 reportportal.sync
 .playwright-*
 review
 docs-agent
-
+graphify-out
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml

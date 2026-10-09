@@ -41,7 +41,7 @@
     { "id": "cloud_grid", "type": "cloud", "label": "Cloud Grid", "sublabel": "BrowserStack / Sauce", "pos": [450, 120], "size": [140, 60] },
     
     { "id": "api_client", "type": "backend", "label": "API & DB Client", "sublabel": "REST, Auth, Postgres", "pos": [450, 420], "size": [140, 60] },
-    { "id": "load_engine", "type": "backend", "label": "Load Engine", "sublabel": "JDK 21, K6, Gatling", "pos": [660, 420], "size": [140, 60] },
+    { "id": "load_engine", "type": "backend", "label": "Load Engine", "sublabel": "JDK 21 / Gatling", "pos": [660, 420], "size": [140, 60] },
     
     { "id": "browser", "type": "external", "label": "Browser Session", "sublabel": "Chrome / Firefox / Edge", "pos": [870, 270], "size": [140, 60], "tag": "Local Headless" }
   ],

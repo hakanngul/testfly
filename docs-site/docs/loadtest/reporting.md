@@ -13,7 +13,7 @@ TestFly automatically collects, correlates, and presents performance metrics acr
 
 ## 1. TestFly HTML Report Dashboard
 
-When load tests run, the HTML report (`target/reports/testfly-report.html`) automatically displays a dedicated **⚡ Load Testing & Performance Analysis** tab.
+When load tests run, the HTML report (`target/testfly-report.html`) automatically displays a dedicated **⚡ Load Testing & Performance Analysis** tab.
 
 ### Visual Components:
 - **KPI Summary Header:** Global requests, aggregate throughput (req/s), overall P95 latency, and system error rate.
@@ -25,7 +25,7 @@ When load tests run, the HTML report (`target/reports/testfly-report.html`) auto
 - **Direct Gatling Report Link:** Clickable button (`📊 Open Gatling Report →`) opening the full native Gatling report.
 
 ### Standalone Load Report
-If `loadtest.reportEnabled: true` is configured, TestFly also generates a focused `target/reports/loadtest-report.html` highlighting only performance tests.
+If `loadtest.reportEnabled: true` is configured, TestFly also generates a focused `target/loadtest-report.html` highlighting only performance tests.
 
 ---
 
@@ -59,10 +59,10 @@ When connected to ReportPortal, TestFly emits load testing data while the test i
 ## 4. Subprocess & CI Logging
 
 To ensure clean CI outputs without console clutter:
-- Gatling's high-frequency terminal redraw output is redirected to `target/reports/loadtest/<run-id>/gatling-subprocess.log`.
+- Gatling's high-frequency terminal redraw output is redirected to `target/loadtest/<run-id>/gatling-subprocess.log` by default (`loadtest.resultsDir` controls the parent directory).
 - High-level progress is logged to standard output:
   ```
   [LoadTest] Starting Gatling engine (simulation: ..., results: ...)
-  [LoadTest] Gatling results parsed from target/reports/loadtest/...
+  [LoadTest] Gatling results parsed from target/loadtest/...
   ```
 - If a simulation fails or crashes, the last 25 lines of the subprocess log are automatically dumped to `System.err`.

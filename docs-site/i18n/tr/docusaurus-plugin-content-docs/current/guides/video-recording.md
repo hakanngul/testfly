@@ -10,7 +10,7 @@ sidebar_position: 9
 
 TestFly, Playwright'ın `video: 'retain-on-failure'` özelliğinden esinlenen **sıfır harici bağımlılıklı Web UI video kaydı** yeteneği sunar.
 
-Özellik aktif edildiğinde, TestFly test çalışırken tarayıcı etkileşimlerini canlı olarak kaydeder. Test başarılı olursa hafızadaki tüm kareler anında temizlenir ve diske hiçbir dosya yazılmaz. Test hata aldığında ise yakalanan kareler otomatik olarak standart **H.264 MP4 videosuna** (veya GIF'e) dönüştürülür; etkileşimli HTML raporuna, Allure sonuçlarına ve izleme (trace) dosyalarına doğrudan eklenir.
+Özellik aktif edildiğinde TestFly test çalışırken tarayıcı görüntüsünü kaydeder. `retain-on-failure` modunda test başarılı olursa kareler atılır. Hata halinde kareler **H.264 MP4** biçimine (GIF seçilmişse veya MP4 kodlama başarısızsa GIF'e) dönüştürülür; HTML raporu ve izleme dosyalarında kullanılabilir, Allure adaptörü etkinse ona da eklenir. Bu özellik canlı tıklamalardan Java kodu üreten bir kaydedici değildir.
 
 ---
 
@@ -20,7 +20,7 @@ TestFly, Playwright'ın `video: 'retain-on-failure'` özelliğinden esinlenen **
 - **Chrome DevTools Protocol (CDP v152) Screencast**: Chromium tabanlı tarayıcılarda (Chrome ve Edge), kareler CDP `Page.startScreencast` protokolüyle asenkron ve bloklamayan akışla yakalanır; WebDriver komutlarını yavaşlatmaz.
 - **Akıllı Saklama (`retain-on-failure`)**: Yalnızca başarısız olan testler video dosyasını saklar. Başarılı testlerde video diskte yer kaplamaz, CI depolama maliyetini ve koşum süresini korur.
 - **Etkileşimli HTML5 Video Oynatıcı**: `target/testfly-report.html` raporu içine Base64 veri URI (`data:video/mp4;base64,...`) olarak gömülür. Oynat/duraklat, zaman çubuğu, döngü (loop) ve tam ekran lightbox penceresi sunar.
-- **Doğrudan Allure Entegrasyonu**: `video/mp4` MIME türüyle Allure eklerine eklenir, Allure'un kendi yerel video oynatıcısında sorunsuz izlenir.
+- **İsteğe Bağlı Allure Entegrasyonu**: Allure adaptörü etkinse gerçek çıktı biçimine göre `video/mp4` veya `image/gif` olarak eklenir.
 - **Headless Çözünürlük Optimizasyonu**: `--start-maximized` ayarlandığında, TestFly headless modda otomatik olarak `--window-size=1920,1080` uygulayarak Chromium'un varsayılan 800x600 çözünürlüğe düşmesini engeller ve tam masaüstü görünümünde kayıt alır.
 - **Tüm Test Çatılarıyla Uyumlu**: **TestNG** (`BaseTest`), **JUnit 5** (`BaseJUnit5Test`) ve **Cucumber 7 BDD** (`@TestFlySession`) ile doğrudan çalışır.
 
@@ -64,12 +64,12 @@ Test Başlar  ──►  RecordingSession başlar
          ▼                               ▼
     Test Başarılı                   Test Başarısız
          │                               │
-Bellekteki kareler silinir        Kareler MP4'e kodlanır
-(0 bayt disk kullanımı)           (target/recordings/*.mp4)
+ Bellekteki kareler silinir        Kareler MP4/GIF'e kodlanır
+ (0 bayt disk kullanımı)           (target/recordings/)
                                          │
                                  Otomatik Eklenir:
                                  • target/testfly-report.html (<video>)
-                                 • target/allure-results/ (video/mp4)
+                                  • target/allure-results/ (etkinse)
                                  • target/traces/{TestAdı}-trace.html
 ```
 
@@ -83,10 +83,10 @@ Bellekteki kareler silinir        Kareler MP4'e kodlanır
 
 ### 3. Test Hata Aldığında
 - Kayıt oturumu son durumu yakalar ve akışı durdurur.
-- Yakalanan kareler JCodec H.264 ile `target/recordings/{paket_SinifAdi_metotAdi}.mp4` dosyasına dönüştürülür.
+- Yakalanan kareler `target/recordings/` altında MP4 olarak (GIF seçilmişse veya MP4 kodlama başarısızsa GIF olarak) saklanır.
 - Video otomatik olarak şu raporlara eklenir:
   1. `target/testfly-report.html` (test detay çekmecesinde, Hata Radarı'nda ve Tam Ekran Lightbox'ta Base64 HTML5 video oynatıcı).
-  2. `target/allure-results/` (`video/mp4` MIME türünde `Execution Video` eki).
+  2. Allure etkinse `target/allure-results/` (`video/mp4` veya `image/gif` türünde `Execution Video` eki).
   3. `target/traces/{SinifAdi}/{metotAdi}-trace.html` (trace oynatıcı).
 
 ---

@@ -12,7 +12,7 @@ Geleneksel Page Object Model (POM) yaklaşımları, QA mühendislerinin onlarca 
 
 **TestFly Auto-POM**, bu iki dünyanın en iyi yönlerini birleştirir: Test koşumu sırasında web sayfalarındaki elementleri, aralarındaki hiyerarşik ilişkileri ve etkileşim kalıplarını otonom olarak öğrenir ve kalıcı bir Sayfa Bilgi Tabanına (`.testfly/page-knowledge.json`) kaydeder.
 
-Sonraki test koşumlarında — testler tamamen farklı senaryolarda veya farklı cümlelerle yazılmış olsa dahi — TestFly doğal dil hedeflerini **yerel olarak, 0 ms AI gecikmesi ve 0 token maliyetiyle** çözer.
+Sonraki test koşumlarında — farklı senaryo veya ifadelerde dahi — bir bilgi tabanı isabeti doğal dil hedefini **yeni bir LLM isteği ve token kullanımı olmadan yerel olarak** çözebilir. Yerel arama ve tarayıcı yürütmesi yine zaman alır.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -30,7 +30,7 @@ Sonraki test koşumlarında — testler tamamen farklı senaryolarda veya farkl�
             ▼                                                ▼
 ┌───────────────────────┐                        ┌───────────────────────────┐
 │ Deterministik Replay  │                        │ 2. Auto-POM Bilgi İsabeti?│
-│       < 10ms          │                        │ (LocalIntentResolver)     │
+│  Önbellekten Oynatma  │                        │ (LocalIntentResolver)     │
 └───────────────────────┘                        └─────────────┬─────────────┘
                                                    Evet (Hit)  │    Hayır (Miss)
                                        ┌───────────────────────┴─────────────┐
@@ -39,7 +39,7 @@ Sonraki test koşumlarında — testler tamamen farklı senaryolarda veya farkl�
                            │ Yerel Auto-POM Planı  │             │ 3. AI Sağlayıcı (LLM) │
                            │ Hover #profile-nav    │             │   DeepSeek ile Derle  │
                            │ Click a[href*='...']  │             └───────────┬───────────┘
-                           │ 0 ms / 0 Token Maliyet│                         │
+                           │ LLM Yok / 0 Token     │                         │
                            └───────────────────────┘                         ▼
                                                                  ┌───────────────────────┐
                                                                  │   KnowledgeLearner    │

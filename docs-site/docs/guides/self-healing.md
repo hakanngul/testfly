@@ -42,9 +42,12 @@ derives an ordered list of fallback locators, and returns the first element that
 is found **and visible**. If none match, the original exception is re-thrown —
 self-healing never hides a genuinely missing element.
 
-Because it lives in `WaitEngine`, healing applies automatically to anything built
-on the framework's waits — `BasePage` actions, semantic locators, and direct
-`WaitEngine` calls. You don't call a special API.
+Healing is attempted for a plain `find(By...)` or `find("...")` locator only when
+it has no chain filters. Semantic locators (`getByRole`, `getByText`, and the other
+`getBy*` methods) and locators refined with `filter`, `withText`, `within`, `nth`,
+`withName`, or `last` are not eligible because healing replaces the complete base
+selector. Eligible `BasePage` actions and direct `WaitEngine` calls do not require
+a separate healing API.
 
 ### Fallback strategies
 
@@ -68,15 +71,15 @@ wrapper rename won't break the test as long as the `id` still exists.
 
 Before escalating to external LLM calls, TestFly automatically invokes the local **FuzzyHealingEngine**:
 - Extracts locator clues (ID tokens, attribute names, CSS class fragments).
-- Executes ultra-fast, zero-token Levenshtein distance similarity matching against candidate DOM elements.
-- Resolves minor selector drift, renamed classes, or subtle DOM restructuring in under 5ms without incurring any external AI token costs.
+- Executes local, zero-token Levenshtein distance similarity matching against candidate DOM elements.
+- Resolves minor selector drift and renamed classes without an external AI call. Runtime depends on DOM size and is not guaranteed.
 
 ### Level 2: AI-Driven Self-Healing (`aiHealing: true`)
 
 If all static and fuzzy strategies fail and `locators.aiHealing: true` is configured, TestFly activates the **AiHealingEngine**:
 - Uses `DomPruner` to compress the DOM below `locators.maxDomTokens` (default 8,000) while keeping semantic attributes intact.
 - Queries the configured LLM to synthesize a new locator matching the intent of the failed selector.
-- Caches the newly discovered selector into `.testfly/healed-locators.json` so subsequent runs resolve instantly without AI latency.
+- Caches the newly discovered selector into `.testfly/healed-locators.json` so subsequent runs can avoid another AI call; normal locator resolution still takes time.
 
 ---
 

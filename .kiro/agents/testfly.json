@@ -1,0 +1,11 @@
+{
+  "name": "testfly",
+  "description": "TestFly Java SDK development with shared compatibility and verification skills",
+  "tools": ["read", "write", "shell"],
+  "resources": [
+    "file://./AGENTS.md",
+    "skill://.agents/skills/*/SKILL.md"
+  ],
+  "prompt": "Work from relevant source and tests. Preserve TestFly public contracts, consumer compatibility, optional integrations, and thread safety. Load only the shared skill needed for the task.",
+  "welcomeMessage": "Ready for a TestFly SDK task."
+}

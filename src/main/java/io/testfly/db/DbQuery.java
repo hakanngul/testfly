@@ -1,5 +1,7 @@
 package io.testfly.db;
 
+import io.testfly.api.TestFlyApi;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,6 +17,7 @@ import java.util.Objects;
  *     .assertValue("name", "Alice");
  * </pre>
  */
+@TestFlyApi(since = "0.11.0")
 public final class DbQuery {
 
     private final String datasourceName;

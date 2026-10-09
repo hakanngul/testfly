@@ -1161,9 +1161,9 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
   align-items: center;
-  gap: clamp(2.5rem, 5vw, 4.5rem);
+  gap: clamp(1.5rem, 3vw, 3rem);
 }
 
 .quickText {
@@ -1302,14 +1302,11 @@
 .recorderInner {
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  align-items: center;
-  gap: clamp(2.5rem, 5vw, 4.5rem);
 }
 
 .recorderText {
   min-width: 0;
+  text-align: center;
 }
 
 .recorderTitle {
@@ -1328,18 +1325,19 @@
 }
 
 .recorderSubtitle {
-  max-width: 540px;
-  margin: 0 0 1.75rem;
+  max-width: 760px;
+  margin: 0 auto 2rem;
   color: var(--tf-text-secondary);
   font-size: 0.98rem;
   line-height: 1.68;
 }
 
 .recorderPills {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  margin: 0 0 2rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  max-width: 1100px;
+  margin: 0 auto 2rem;
 }
 
 .recorderPill {
@@ -1395,11 +1393,14 @@
   flex-wrap: wrap;
   gap: 0.85rem;
   align-items: center;
+  justify-content: center;
 }
 
 .recorderCode {
   width: 100%;
+  max-width: 1100px;
   min-width: 0;
+  margin: 0 auto 2rem;
 }
 
 .recorderCode .codeWindow {
@@ -1640,43 +1641,41 @@
     justify-content: flex-start;
   }
 
-  .quickInner,
-  .recorderInner {
+  .quickInner {
     grid-template-columns: 1fr;
     gap: 2.5rem;
   }
 
-  .quickText,
-  .recorderText {
+  .quickText {
     text-align: center;
   }
 
-  .quickSubtitle,
-  .recorderSubtitle {
+  .quickSubtitle {
     margin-left: auto;
     margin-right: auto;
   }
 
-  .quickPills,
-  .recorderPills {
+  .quickPills {
     max-width: 540px;
     margin-left: auto;
     margin-right: auto;
   }
 
-  .quickActions,
-  .recorderActions {
+  .quickActions {
     justify-content: center;
   }
 
-  .quickCode,
-  .recorderCode {
+  .quickCode {
     width: min(100%, 720px);
     margin: 0 auto;
   }
 }
 
 @media (max-width: 768px) {
+  .recorderPills {
+    grid-template-columns: 1fr;
+  }
+
   .hero {
     padding: 4rem 0 4.5rem;
   }

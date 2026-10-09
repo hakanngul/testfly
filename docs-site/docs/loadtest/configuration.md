@@ -17,7 +17,7 @@ Add the optional `loadtest:` section to your `testfly.yml`:
 
 ```yaml
 loadtest:
-  enabled: false          # enable load testing (can also be toggled via features.loadtest)
+  enabled: false          # reserved flag; explicit runner calls are not currently gated
   baseUrl: https://api.example.com
   engine: auto            # auto (prefers Gatling if present, else JDK) | gatling | jdk
   users: 10               # default concurrent virtual users
@@ -36,8 +36,8 @@ loadtest:
 
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `enabled` | `boolean` | `false` | Enables or disables load testing execution (can be overridden via `features.loadtest`). |
-| `baseUrl` | `string` | `null` | Target base URL for load tests (falls back to test-defined endpoint or `execution.baseUrl`). |
+| `enabled` | `boolean` | `false` | Reserved effective flag (overridable via `features.loadtest`); the current `LoadTestRunner.run()` path does not enforce it. |
+| `baseUrl` | `string` | `null` | Target URL after scenario/annotation overrides. Gatling falls back to `execution.baseUrl`; the JDK engine requires this value or a scenario/annotation URL. |
 | `engine` | `string` | `auto` | Execution engine: `auto` (prefers Gatling if present, falls back to JDK), `gatling` (strictly Gatling), or `jdk` (native virtual threads). |
 | `users` | `int` | `10` | Default number of concurrent virtual users if not specified in code. |
 | `rampUp` | `string` | `10s` | Linear ramp-up period to reach peak virtual users (e.g. `10s`, `1m`). |

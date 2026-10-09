@@ -1,5 +1,6 @@
 package io.testfly.extension;
 
+import io.testfly.api.TestFlyApi;
 import io.testfly.config.TestFlyConfig;
 
 import java.util.Collections;
@@ -15,6 +16,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * added via {@link #register(TestFlyPlugin, TestFlyConfig)} before
  * {@link #loadAll(TestFlyConfig)} is called.
  */
+@TestFlyApi(since = "0.1.0")
 public final class PluginRegistry {
 
     private static final List<TestFlyPlugin> plugins = new CopyOnWriteArrayList<>();

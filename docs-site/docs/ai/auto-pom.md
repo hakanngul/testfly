@@ -12,7 +12,7 @@ Traditional Page Object Models (POM) require QA engineers to manually maintain d
 
 **TestFly Auto-POM** bridges this gap: it autonomously discovers and learns web page elements, relationships, and interaction patterns during test execution, saving them into a persistent, self-building Page Knowledge Base (`.testfly/page-knowledge.json`). 
 
-On subsequent runs—even across completely different test scenarios or written in different words—TestFly resolves natural language goals **locally with 0 ms AI latency and 0 token cost**.
+On subsequent runs—even across different scenarios or wording—a knowledge hit can resolve a natural-language goal **locally without a new LLM request or token use**. Local lookup and browser execution still take time.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -30,7 +30,7 @@ On subsequent runs—even across completely different test scenarios or written 
             ▼                                                ▼
 ┌───────────────────────┐                        ┌───────────────────────────┐
 │ Deterministic Replay  │                        │ 2. Auto-POM Knowledge Hit?│
-│       < 10ms          │                        │ (LocalIntentResolver)     │
+│     Cached Replay     │                        │ (LocalIntentResolver)     │
 └───────────────────────┘                        └─────────────┬─────────────┘
                                                    Hit (Yes)   │    Miss (No)
                                        ┌───────────────────────┴─────────────┐
@@ -39,7 +39,7 @@ On subsequent runs—even across completely different test scenarios or written 
                            │ Local Auto-POM Plan   │             │ 3. AI Provider (LLM)  │
                            │ Hover #profile-nav    │             │   Compile via DeepSeek│
                            │ Click a[href*='...']  │             └───────────┬───────────┘
-                           │ 0 ms / 0 Token Cost   │                         │
+                           │ No LLM / 0 Tokens     │                         │
                            └───────────────────────┘                         ▼
                                                                  ┌───────────────────────┐
                                                                  │   KnowledgeLearner    │

@@ -99,7 +99,7 @@ class LoginTest extends BaseJUnit5Test {
 |---|---|
 | **Gezinme (Navigation)** | `open()`, `open(path)`, `getDriver()`, `getWait()` |
 | **Anlamsal (Semantic) Locator'lar** | `getByRole(Role, name)`, `getByText()`, `getByLabel()`, `getByPlaceholder()`, `getByTestId()`, `getByAltText()`, `getByTitle()` |
-| **Akıcı (Fluent) Locator'lar** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
+| **Akıcı (Fluent) Locator'lar** | `find(css)`, `find(By)`; tüm eşleşmeler için `find(css).elements()` kullanın (`$`, kullanımdan kaldırılacak tek-locator takma adıdır) |
 | **Web-Öncelikli Doğrulamalar** | `assertThat(By).isVisible()`, `assertThat(Locator).hasText(...)`, `assertThat(...).count(n)` |
 | **Soft Doğrulamalar (SoftAssert)** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)`, `softAssert().that(...)` |
 | **Yerleşik REST API Testi** | `apiClient()`, `apiGet(path)`, `apiPost(path)`, `apiPut(path)`, `apiPatch(path)`, `apiDelete(path)` (her biri bir `ApiClient` builder döndürür; `.send()` ile bitirin) |
