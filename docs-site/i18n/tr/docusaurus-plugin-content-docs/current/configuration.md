@@ -78,7 +78,7 @@ Aşağıdaki açıklamalı şablon, framework'ün desteklediği tüm yapılandı
 # ── Özellik Panosu (Feature Switchboard) ─────────────────────────────────────
 # Her modülün kendi ayarlarının ÜZERİNDE duran ana aç/kapa paneli.
 # Bir anahtarı hiç yazmazsanız o modülün kendi ayarları geçerli olur;
-# true/false yazarsanız onun üzerine yazılır. Aşağıdaki değerler framework varsayılanlarıdır.
+# true/false yazarsanız onun üzerine yazılır. Aşağıdaki değerler çalışan, önerilen bir profildir; tamamı alan varsayılanı değildir.
 features:
   ai: true                          # tüm AI/agentic yüzeyler: act(), aiAssert(), hata analizi, AI healing
   recording: false                  # tarayıcı çalışmasının MP4/GIF video kaydı
@@ -92,7 +92,7 @@ features:
   testManagement: false             # TestRail / Xray sonuç gönderimi
   notifications: true               # Slack / Teams çalıştırma bildirimleri
   consoleErrors: false              # tarayıcı konsol (JS) hatalarının toplanması
-  loadtest: false                   # Gatling / sanal iş parçacığı yük testi çalıştırması
+  loadtest: false                   # loadtest.enabled değerine işlenir; açık çağrılar henüz bu bayrakla engellenmez
 
 # ── Browser (Tarayıcı) ────────────────────────────────────────────────────────
 browser:
@@ -243,7 +243,7 @@ sessions:
 
 # ── Performans (Core Web Vitals) ─────────────────────────────────────────────
 performance:
-  captureOnEveryTest: false         # sayfa açılışlarında Core Web Vitals metriklerini otomatik topla
+  captureOnEveryTest: false         # geçen her tarayıcı testinden sonra metrikleri topla
   lcpWarnMs: 2500                   # Largest Contentful Paint uyarı eşiği (ms, 0 = devre dışı)
   fcpWarnMs: 1800                   # First Contentful Paint uyarı eşiği (ms)
   ttfbWarnMs: 800                   # Time to First Byte uyarı eşiği (ms)
@@ -372,7 +372,7 @@ testmanagement:
 
 # ── Yük Testi (Load Testing) ──────────────────────────────────────────────────
 loadtest:
-  enabled: false                    # yük testini etkinleştir (features.loadtest ile de yönetilebilir)
+  enabled: false                    # ayrılmış bayrak; açık LoadTestRunner.run() çağrılarını engellemez
   baseUrl: https://api.example.com  # yük testi hedef temel adresi
   engine: auto                      # auto (varsa Gatling, yoksa JDK) | gatling | jdk
   users: 10                         # eşzamanlı sanal kullanıcı sayısı
@@ -426,7 +426,7 @@ Her anahtar **üç durumlu**dur:
 | `testManagement` | `testManagement.testrail.enabled` ve `testManagement.xray.enabled` | `false` |
 | `notifications` | *modül bayrağı yok* — kapatılmadığı sürece Slack/Teams adapter'ları kaydolur | `true` |
 | `consoleErrors` | `browser.captureConsoleErrors` | `false` |
-| `loadtest` | `loadtest.enabled` — Gatling ve sanal iş parçacığı yük testi koşturmalarını yönetir | `false` |
+| `loadtest` | Ayrıştırılan `loadtest.enabled` değerini geçersiz kılar; açık `LoadTestRunner.run()` çağrıları henüz bu değeri okumaz | `false` |
 
 ### Bir test özelliği açıkça istediğinde "kapalı" ne demek?
 
@@ -474,7 +474,7 @@ Tarayıcı sağlama, çalıştırma modu, yetenekler ve süreç argümanlarını
 
 | Özellik | Tip | Varsayılan | Açıklama |
 |---|---|---|---|
-| `name` | `string` | `chrome` | Başlatılacak tarayıcı. Geçerli değerler: `chrome`, `firefox`, `edge`, `safari`. |
+| `name` | `string` | **zorunlu** | Başlatılacak tarayıcı. Geçerli değerler: `chrome`, `firefox`, `edge`, `safari`. Yalnızca `browser.matrix` boş değilse atlanabilir. |
 | `headless` | `boolean` | `false` | Tarayıcıyı görsel bir pencere olmadan arka planda çalıştırır. CI ortamında otomatik `true` yapılır. |
 | `lifecycle` | `string` | `per-test` | WebDriver yaşam döngüsü: `per-test` (her testten sonra kapatır) veya `per-suite` (thread başına oturumu testler boyunca açık tutar). |
 | `downloadDir` | `string` | `./target/downloads` | İndirilen dosyaların kaydedileceği yerel dizin. |
@@ -493,7 +493,7 @@ Test dağıtımı, temel adresler, eşzamanlılık ve bulut ızgara (grid) sağl
 
 | Özellik | Tip | Varsayılan | Açıklama |
 |---|---|---|---|
-| `mode` | `string` | `local` | Çalıştırma ortamı: `local`, `remote`, `browserstack` veya `saucelabs`. |
+| `mode` | `string` | **zorunlu** | Çalıştırma ortamı: `local`, `remote`, `browserstack` veya `saucelabs`. |
 | `baseUrl` | `string` | `null` | Web testleri için temel URL. `open("/home")` çağrıldığında bu adresin ardına eklenir. |
 | `gridUrl` | `string` | `null` | Uzak Selenium Grid adresi (`mode: remote` iken zorunludur). Örnek: `http://localhost:4444`. |
 | `parallel` | `string` | `none` | TestNG paralel dağıtım modu: `none`, `methods`, `classes`, `tests`, `instances`. |
@@ -533,8 +533,8 @@ Saniye cinsinden merkezi bekleme süreleri.
 
 | Özellik | Tip | Varsayılan | Açıklama |
 |---|---|---|---|
-| `explicit` | `int` | `10` | `WaitEngine`, `Locator` ve `assertThat()` DOM sorgularında kullanılan zaman aşımı (saniye). |
-| `pageLoad` | `int` | `30` | `WebDriver.Timeouts.pageLoadTimeout()` süresi (saniye). |
+| `explicit` | `int` | **zorunlu, > 0** | `WaitEngine`, `Locator` ve `assertThat()` DOM sorgularında kullanılan zaman aşımı (saniye). |
+| `pageLoad` | `int` | **zorunlu, > 0** | `WebDriver.Timeouts.pageLoadTimeout()` süresi (saniye). |
 
 ---
 
@@ -575,7 +575,7 @@ Yapay zeka destekli hata sınıflandırma ve öneri motoru.
 | `enabled` | `boolean` | `true` | **Tüm** AI yüzeyleri için ana anahtar: `act()`, `aiAssert()`, hata analizi, patch üretimi ve AI locator healing. Aşağıdaki ayrıntılı anahtarlar *hangilerinin* çalışacağını seçer; bu `false` iken hiçbiri çalışamaz. [`features.ai`](#features) üzerinden de ayarlanabilir. |
 | `failureAnalysis` | `boolean` | `false` | `true` ise test çöktüğünde hata yığını, adım günlüğü ve DOM durumunu LLM modeline gönderir. |
 | `generatePatch` | `boolean` | `false` | `true` ise test başarısız olduğunda `target/remediations/` dizininde otomatik Git diff `.patch` dosyası üretir. |
-| `actionCache` | `boolean` | `true` | `true` ise `act()` derlenmiş eylem planlarını `.testfly/action-cache.json` dosyasında önbelleğe alarak 0 ms deterministik tekrar koşturur. |
+| `actionCache` | `boolean` | `true` | `true` ise derlenmiş `act()` planlarını `.testfly/action-cache.json` dosyasında saklar; önbellek isabeti yeni bir LLM isteğini önler, ancak önbellek okuma ve tarayıcı yürütme süresi devam eder. |
 | `provider` | `string` | `claude` | AI arka ucu: `gemini`, `claude` veya `openai-compatible`. |
 | `apiKey` | `string` | `null` | Seçilen sağlayıcı için yetkilendirme anahtarı. |
 | `model` | `string` | `null` | Hedef model adı. Boş bırakıldığında Gemini için `gemini-2.5-flash`, Claude için `claude-haiku-4-5-20251001` varsayılandır. |
@@ -651,6 +651,7 @@ Yerleşik REST istemcisi (`ApiClient` & `BaseApiTest`) yapılandırması.
 | Özellik | Tip | Varsayılan | Açıklama |
 |---|---|---|---|
 | `baseUrl` | `string` | `null` | API testleri için varsayılan HTTP adresi (tanımsızsa `execution.baseUrl` kullanılır). |
+| `baseUrls` | `map<string,string>` | `{}` | `ApiClient.toService(name)` / `apiToService(name)` için adlandırılmış servis adresleri. Eksik servis `api.baseUrl` değerine düşer; ikisi de yoksa çağrı başarısız olur. |
 | `timeoutSeconds` | `int` | `30` | İstek zaman aşımı (saniye). |
 | `logBody` | `boolean` | `false` | İstek ve yanıt gövdelerini HTML adım raporuna ekle. |
 | `logContext` | `boolean` | `true` | Başlıkları, sorgu parametrelerini ve HTTP metotlarını günlüğe yaz. |
@@ -748,7 +749,7 @@ Web testlerinde Google Core Web Vitals metriklerini otomatik toplama ve doğrula
 
 | Özellik | Tip | Varsayılan | Açıklama |
 |---|---|---|---|
-| `captureOnEveryTest` | `boolean` | `false` | Her `open()` çağrısında CWV metriklerini topla. |
+| `captureOnEveryTest` | `boolean` | `false` | Geçen her tarayıcı testinden sonra performans metriklerini bir kez topla. Bir `open()`/navigasyon hook'u değildir. |
 | `lcpWarnMs` | `double` | `0` | Largest Contentful Paint uyarı eşiği (ms, 0 = devre dışı). |
 | `fcpWarnMs` | `double` | `0` | First Contentful Paint uyarı eşiği (ms). |
 | `ttfbWarnMs` | `double` | `0` | Time to First Byte uyarı eşiği (ms). |
@@ -766,6 +767,7 @@ Piksel tabanlı ekran görüntüsü karşılaştırması ve referans görsel yö
 | `diffDir` | `string` | `target/visual-diffs` | Fark tespit edilen görsellerin yazılacağı dizin. |
 | `defaultTolerance` | `double` | `0` | İzin verilen piksel fark tolerans oranı (örn: %2 için `0.02`). |
 | `updateBaselines` | `boolean` | `false` | Test koşumundaki güncel ekran görüntülerini referans görsel olarak kaydet. |
+| `failOnNewBaseline` | `boolean` | `false` | Referans görsel yoksa yeni referans oluşturmak yerine testi başarısız yap. |
 
 ---
 
@@ -850,8 +852,8 @@ Gatling ve Java Sanal İş Parçacığı (Virtual Threads) tabanlı eşzamanlı 
 
 | Özellik | Tip | Varsayılan | Açıklama |
 |---|---|---|---|
-| `enabled` | `boolean` | `false` | Yük testi modülünü etkinleştirir ([`features.loadtest`](#features) ile de geçersiz kılınabilir). |
-| `baseUrl` | `string` | `null` | Yük testinde kullanılacak temel HTTP adresi (tanımsızsa test içindeki adres veya `execution.baseUrl` kullanılır). |
+| `enabled` | `boolean` | `false` | Ayrılmış etkin bayrak (`features.loadtest` ile geçersiz kılınabilir); mevcut `LoadTestRunner.run()` yolu bu değeri uygulamaz. |
+| `baseUrl` | `string` | `null` | Senaryo/annotation önceliğinden sonra kullanılan yük testi adresi. Gatling `execution.baseUrl` değerine düşer; JDK motoru açık bir load/senaryo/annotation adresi gerektirir. |
 | `engine` | `string` | `auto` | Çalıştırma motoru: `auto` (varsa Gatling, yoksa JDK), `gatling` (kesinlikle Gatling gerektirir), `jdk` (yerel sanal iş parçacıkları / virtual threads). |
 | `users` | `int` | `10` | Kodda belirtilmediğinde kullanılacak varsayılan eşzamanlı kullanıcı sayısı. |
 | `rampUp` | `string` | `10s` | Zirve kullanıcı sayısına ulaşırken geçecek kademeli artış süresi (örn: `10s`, `1m`). |
@@ -866,10 +868,9 @@ Gatling ve Java Sanal İş Parçacığı (Virtual Threads) tabanlı eşzamanlı 
 
 ## Doğrulama ve Başlatma Tanılaması
 
-TestFly, başlatma sırasında katı bir şema doğrulaması uygular. Geçersiz bir paralel çalıştırma modu, eksik bir bulut kimlik bilgisi veya hatalı bir URL tespit edilirse; hiçbir tarayıcı ayağa kaldırılmadan çalışma anında durdurulur ve kaynak israfı engellenir:
+Yapılandırma doğrulaması toplu değil, aşamalı ve ilk hatada duran bir süreçtir:
 
-```text
-[TestFly] Configuration validation failed:
-- execution.parallel: 'gecersiz_mod' geçerli bir mod değil. İzin verilenler: [none, methods, classes, tests, instances]
-- execution.baseUrl: Geçerli ve mutlak bir HTTP/HTTPS adresi olmalıdır
-```
+- SnakeYAML, eşleşen bir property bulunmayan anahtarları stderr'e yazar ve yok sayar.
+- `ConfigurationLoader`, tarayıcı adı (veya matrix), execution modu ve pozitif explicit/page-load timeout değerleri ister.
+- Ardından `ExecutionValidator` paralel modu, thread/session sınırlarını ve ilgili execution kısıtlarını doğrular.
+- Bulut kimlik bilgileri gibi sağlayıcıya özel gereksinimler sağlayıcı oluşturulurken kontrol edilir. Loader bu hataları toplamaz ve daha önce gösterilen biçimde `execution.baseUrl` doğrulaması yapmaz.

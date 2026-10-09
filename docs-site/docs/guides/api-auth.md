@@ -1,11 +1,11 @@
 ---
-description: "API authentication for Selenium API tests: Bearer token, Basic auth, and OAuth2 client credentials supported out of the box."
+description: "API authentication for TestFly API tests: Bearer, Basic, API key, HMAC, OAuth2 client credentials, and OAuth2 password factories."
 sidebar_position: 14
 ---
 
 # API Authentication
 
-TestFly supports three auth strategies out of the box: Bearer token, Basic auth, and OAuth2 client credentials.
+The examples below start with the three most common strategies: Bearer token, Basic auth, and OAuth2 client credentials. `ApiAuth` also provides API-key header/query, HMAC, OAuth2 password, and a limited digest placeholder.
 
 ---
 
@@ -42,6 +42,19 @@ ApiClient.setGlobalAuth(ApiAuth.oauth2(
 ```
 
 The framework sends a `POST` with `grant_type=client_credentials` and caches the returned `access_token` until it expires (using the `expires_in` field from the response).
+
+---
+
+## Additional `ApiAuth` Factories
+
+```java
+ApiAuth.apiKey("X-Api-Key", System.getenv("API_KEY"));
+ApiAuth.apiKeyQuery("api_key", System.getenv("API_KEY"));
+ApiAuth.hmac(System.getenv("API_KEY"), System.getenv("API_SECRET"), "HmacSHA256");
+ApiAuth.oauth2Password(tokenUrl, clientId, clientSecret, username, password);
+```
+
+`ApiAuth.digest(username, password)` only emits a Basic-like payload with a `Digest` prefix; it does not implement the RFC challenge/response flow. Use a custom interceptor when full Digest authentication is required. The HMAC factory signs the API-key value and adds `X-Api-Key` and `X-Signature`; it is not a general request-body signing scheme.
 
 ---
 

@@ -19,7 +19,7 @@ slug: /
 
 TestFly, her Java test otomasyon projesinde tekrar tekrar yazılan altyapı kodlarını ortadan kaldırır — WebDriver kurulumu ve kapatılması, bekleme yardımcıları, retry mekanizması, ekran görüntüsü yakalama, raporlama ve paralel çalıştırma — böylece test sınıflarınızda yalnızca test senaryonuzun gerçek niyeti kalır.
 
-**Spring Boot felsefesinden** esinlenilmiştir: Akıllı varsayılanlar, yapılandırma yerine uzlaşı (convention over configuration) ve yaygın senaryolar için sıfır ön hazırlık.
+**Spring Boot felsefesinden** esinlenilmiştir: Akıllı varsayılanlar ve yapılandırma yerine uzlaşı (convention over configuration). Başlatma için bir `testfly.yml` dosyası zorunludur; belirtilmeyen isteğe bağlı ayarlar kendi varsayılanlarını kullanır.
 
 ```java
 public class LoginTest extends BaseTest {
@@ -42,7 +42,7 @@ public class LoginTest extends BaseTest {
 
 TestFly; kuralcı bir çatı mı, genişletilebilir bir araç seti mi, yoksa Selenium üzerine kurulu modern bir verimlilik katmanı mı? Cevap: **Java test otomasyonunun Spring Boot'u** — akıllı varsayılanlarla başlar, ihtiyaç duyduğunuzda derinlemesine özelleştirilebilir:
 
-1. **Akıllı ve Kuralcı Çekirdek (Convention over Configuration).** Sıfır altyapı kodu. Tek bir bağımlılık ekleyin, `BaseTest`, `BaseJUnit5Test` veya `BaseCucumberSteps` extend edin; framework sizin adınıza en iyi mimari kararları otomatik olarak uygular. `testfly.yml` isteğe bağlıdır — hiçbir şey yazmasanız bile `TestFlyDefaults` devreye girer.
+1. **Akıllı ve Kuralcı Çekirdek (Convention over Configuration).** Test kodunda az altyapı kodu. Tek bağımlılığı ekleyin, zorunlu `testfly.yml` dosyasını sağlayın ve `BaseTest`, `BaseJUnit5Test` veya `BaseCucumberSteps` sınıfını genişletin. `TestFlyDefaults`, paylaşılan test-base kitaplıklarının YAML yüklendikten sonra belirli yedek değerleri kaydetmesini sağlar; yapılandırma dosyasının yerini almaz.
 2. **Selenium'u Asla Gizlemez (Esneklik).** TestFly ham `WebDriver` erişimini asla kısıtlamaz. İhtiyaç duyduğunuz anda `getDriver()` ile doğrudan `WebDriver` / `By` / `WebElement` seviyesine inebilirsiniz. Standartları belirler ama sizi bir kafese hapsetmez.
 3. **Genişletilebilir Ekosistem (SPI Desteği).** Java SPI tabanlı registry mimarisi (`DriverProviderRegistry`, `PluginRegistry`, `ReportAdapterRegistry`) ile özel driver'lar, rapor adaptörleri ve yaşam döngüsü hook'ları ekleyebilirsiniz.
 
@@ -55,7 +55,7 @@ Playwright'ın akıcı ergonomisini kullanmak için mevcut Selenium ekosistemini
 | Erişilebilirlik odaklı seçiciler | `getByRole`, `getByLabel`, `getByText`, `getByPlaceholder`, `getByTestId` — DOM refactor'lerine dirençli |
 | Otomatik bekleme (Auto-waiting) | `WaitEngine` destekli aksiyonlar — `Thread.sleep()` tamamen tarih olur |
 | Web-öncelikli doğrulamalar | Koşul sağlanana kadar otomatik yeniden deneyen `assertThat(...)` |
-| Sıfır kurulum / Akıllı varsayılanlar | Sıfır-boilerplate defaults, isteğe bağlı `testfly.yml` |
+| Convention over configuration | Zorunlu `testfly.yml`; isteğe bağlı ayarlar için varsayılanlar |
 
 …tüm bunlar **ham Selenium'u gizlemeden**, mevcut Selenium / Java / TestNG / JUnit 5 stack'inizi, ekip yeteneklerinizi ve test altyapınızı koruyarak çalışır.
 
@@ -102,7 +102,7 @@ TestFly **bu tekerleği yeniden icat etme derdini bitirir** — endüstri standa
 | **Kendi test runner'ınızı getirin** | `BaseJUnit5Test` veya `@ExtendWith(TestFlyExtension.class)` ile tam JUnit 5 parity |
 | **Ürün ekibinin okuyabileceği spec yazın** | BDD / Cucumber — `BaseCucumberSteps`, `CucumberHooks`, raporda senaryo başı adımlar |
 | **UI ve API'yi aynı suite'te test edin** | `BaseApiTest`, fluent `ApiClient`, JSONPath, schema validation, hibrit UI+API |
-| **Elementi akıcıca sabitleyin** | `find("selector").filter().nth().withText()` — Playwright tarzı zincirlenebilir locator'lar |
+| **Elementi akıcıca sabitleyin** | `find(".row").filter(".active").nth(0).withText("Save")` — açık argümanlı zincirlenebilir locator'lar |
 | **Test'ler CSS/DOM refactor'lerinden sağ çıksın** | Erişilebilirlik-öncelikli locator'lar — `getByRole(Role.BUTTON).withName("Submit")`, `getByText`, `getByLabel`, `getByPlaceholder`, `getByTestId` |
 | **Assertion'lar timing yüzünden flake olmasın** | Web-öncelikli `assertThat(By.id("x")).isVisible()` — timeout'a kadar otomatik retry |
 | **Bir testte admin ve kullanıcı akışlarını test edin** | `withSession("admin", () -> { ... })` — bir testte iki browser |

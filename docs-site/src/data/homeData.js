@@ -60,13 +60,24 @@ export const heroTabs = [
     label: '⚡ Self-Healing',
     filename: 'InventoryPage.java',
     language: 'java',
-    code: `public class InventoryPage extends BasePage {
+    code: `import io.testfly.test.BasePage;
+import java.util.Map;
+
+public class InventoryPage extends BasePage {
+
+  // DOM contract: each button has data-testid="add-to-cart-{product-id}".
+  private static final Map<String, String> PRODUCT_IDS = Map.of(
+      "Sauce Labs Backpack", "sauce-labs-backpack",
+      "Sauce Labs Bike Light", "sauce-labs-bike-light");
 
   public InventoryPage addToCart(String itemName) {
-    // Playwright-style accessibility locator with auto-waiting
-    getByRole(Role.BUTTON, "Add to cart")
-        .filter(hasText(itemName))
-        .click(); // Level-1 (static) & Level-2 (LLM) self-healing if markup drifted
+    String productId = PRODUCT_IDS.get(itemName);
+    if (productId == null) {
+      throw new IllegalArgumentException("Unknown inventory item: " + itemName);
+    }
+
+    // Plain, unfiltered CSS locators are eligible for configured self-healing.
+    find("[data-testid='add-to-cart-" + productId + "']").click();
     return this;
   }
 
@@ -79,25 +90,39 @@ export const heroTabs = [
   },
   {
     id: 'api',
-    label: '🌐 API & CDP',
+    label: '🌐 API & Mocking',
     filename: 'PaymentApiTest.java',
     language: 'java',
-    code: `public class PaymentApiTest extends BaseApiTest {
+    code: `import io.testfly.client.ApiAuth;
+import io.testfly.client.ApiMockRule;
+import io.testfly.client.ApiResponse;
+import io.testfly.test.BaseApiTest;
+import org.testng.annotations.Test;
+
+public class PaymentApiTest extends BaseApiTest {
 
   @Test
-  public void checkoutWithMockedCdpPayment() {
-    // Intercept payment gateway over Chrome DevTools Protocol
-    network().route("**/api/payment", r -> r.fulfill(200, "{\\"status\\":\\"PAID\\"}"));
+  public void checkoutWithClientSideMock() {
+    ApiMockRule orderMock = ApiMockRule.builder()
+        .match(request -> request.method().equals("POST")
+            && request.uri().getPath().equals("/orders"))
+        .respond(request -> ApiResponse.builder()
+            .request(request)
+            .status(201)
+            .header("Content-Type", "application/json")
+            .body("{\\"orderId\\":\\"order-123\\"}")
+            .durationMs(12)
+            .build())
+        .build();
 
-    // Fluent REST assertions
-    api().auth(bearer("\${AUTH_TOKEN}"))
-         .post("/orders")
-         .body(new OrderRequest("item-42", 1))
+    apiPost("https://api.example.test/orders")
+         .auth(ApiAuth.bearerToken(System.getenv("AUTH_TOKEN")))
+         .mockRule(orderMock)
+         .body(java.util.Map.of("itemId", "item-42", "quantity", 1))
          .send()
-         .assertThat()
-         .status(201)
-         .jsonPath("$.orderId").exists()
-         .durationLessThan(500);
+         .assertStatus(201)
+         .assertJsonExists("$.orderId")
+         .assertDurationLessThan(500);
   }
 }`,
   },
@@ -172,8 +197,8 @@ export function getFlagshipFeatures(isTr) {
       ),
       title: isTr ? 'Agentic Testing & Compile & Freeze' : 'Agentic Testing & Compile & Freeze',
       description: isTr
-        ? 'act("...") ile doğal dil hedeflerini çalıştırın. İlk koşuda somut Selenium adımlarına derlenir, .testfly/action-cache.json dosyasına dondurulur ve sonraki tüm koşularda <50ms deterministik hızla çalışır.'
-        : 'Execute high-level natural language goals via act("..."). Compiles into concrete Selenium steps on run 1, freezes to .testfly/action-cache.json, and replays under 50ms with zero AI latency.',
+        ? 'act("...") ile doğal dil hedeflerini çalıştırın. İlk koşuda somut Selenium adımlarına derlenir, .testfly/action-cache.json dosyasına dondurulur ve önbellek isabetlerinde yeni bir LLM isteği olmadan yeniden oynatılır.'
+        : 'Execute high-level natural language goals via act("..."). The first run compiles concrete Selenium steps into .testfly/action-cache.json; cache hits replay without a new LLM request.',
       code: `// First run compiles; subsequent runs replay frozen cache
 act("Delete the first item in the cart and checkout");
 
@@ -201,8 +226,8 @@ byIntent("Proceed to payment").click();`,
       ),
       title: isTr ? 'Semantik Doğrulamalar (satisfiesAi & violatesAi)' : 'Semantic AI Assertions',
       description: isTr
-        ? 'Kırılgan metin eşleşmeleri yerine LLM muhakemesiyle sayfa veya element durumunu doğrulayın. 500ms polling gecikmesi olmadan anti-throttle korumalı tek seferlik akıllı kontrol.'
-        : 'Verify complex visual or logical state using zero-shot LLM reasoning against the live DOM. Single-shot anti-throttle protection ensures zero rate-limit waste.',
+        ? 'Kırılgan metin eşleşmeleri yerine LLM muhakemesiyle sayfa veya element durumunu doğrulayın. Her doğrulama DOM üzerinde tek bir AI değerlendirmesi yapar; sağlayıcı kota sınırları yine geçerlidir.'
+        : 'Verify complex visual or logical state using LLM reasoning against the live DOM. Each assertion performs one AI evaluation; provider rate limits still apply.',
       code: `assertThatPage()
     .satisfiesAi("Order confirmation summary shows valid total");
 assertThatPage()
@@ -276,22 +301,22 @@ export function getMoreFeatures(isTr) {
       icon: '♿',
       title: isTr ? 'axe-core ile Erişilebilirlik (a11y)' : 'Accessibility Auditing (axe-core)',
       short: isTr
-        ? 'Sayfalar arası geçişlerde WCAG 2.1 AA uyumluluk denetimleri ve otomatik ihlal raporlaması.'
-        : 'Automated WCAG 2.1 AA audits on every navigation with zero-boilerplate violation reports.',
+        ? 'Akışın gerekli noktalarında accessibility().run() ile axe-core WCAG taramaları ve ayrıntılı ihlal raporları çalıştırın.'
+        : 'Run explicit axe-core WCAG scans with accessibility().run() at the points your flow requires.',
     },
     {
       icon: '📈',
       title: isTr ? 'Core Web Vitals & Performans' : 'Core Web Vitals Performance',
       short: isTr
-        ? 'LCP, CLS ve FID değerlerini canlı tarayıcıdan toplayıp SLA eşik değer kontrolleri uygulayın.'
-        : 'Capture real-user LCP, CLS, and FID metrics directly from Chromium and assert performance SLAs.',
+        ? 'Desteklendiği tarayıcılarda LCP, FCP, TTFB ve CLS metriklerini toplayıp performans eşiklerini doğrulayın.'
+        : 'Collect LCP, FCP, TTFB, and CLS where the browser exposes them, then assert performance thresholds.',
     },
     {
       icon: '📋',
       title: isTr ? '@TestData Veri Sürücüsü (Excel/CSV)' : 'Data-Driven Testing (@TestData)',
       short: isTr
-        ? 'Excel (.xlsx), CSV ve JSON dosyalarını otomatik TestNG DataProvider parametrelerine dönüştürün.'
-        : 'Load Excel (.xlsx), CSV, and JSON data sources directly into strongly typed test method parameters.',
+        ? 'Excel (.xlsx), CSV, JSON veya veritabanı satırını yükleyin; getTestData() ya da tipli anahtar erişimiyle okuyun.'
+        : 'Load an Excel, CSV, JSON, or database row and read it through getTestData() or typed key access.',
     },
     {
       icon: '🌐',
@@ -441,8 +466,8 @@ assertThat(getByRole(Role.STATUS))
     .hasText("Confirmed");`,
     badgeBeforeEn: '14 lines · 2 explicit waits · StaleElement prone',
     badgeBeforeTr: '14 satır · 2 explicit wait · StaleElement riski',
-    badgeAfterEn: '2 lines · Zero-flakiness auto-waiting',
-    badgeAfterTr: '2 satır · Sıfır kırılganlıkta akıllı bekleme',
+    badgeAfterEn: '2 lines · Built-in auto-waiting',
+    badgeAfterTr: '2 satır · Yerleşik akıllı bekleme',
   },
   {
     id: 'healing',
@@ -600,12 +625,12 @@ export function getFaqs(isTr) {
   if (isTr) {
     return [
       {
-        q: 'Compile & Freeze mimarisi CI ortamında determinizmi nasıl garanti eder?',
-        a: "act(...) metodunu ilk kez çalıştırdığınızda TestFly doğal dil hedefini somut Selenium adımlarına derler ve .testfly/action-cache.json dosyasına dondurur. Sonraki CI koşularında LLM'e hiç gitmeden standart Selenium WaitEngine ile 50 ms'nin altında ve sıfır AI gecikmesiyle çalışır. Arayüz değişip bir adım aksarsa önbellek otomatik düşürülür ve plan yeniden derlenerek test kurtarılır.",
+        q: 'Compile & Freeze mimarisi CI ortamında yinelenen AI kullanımını nasıl azaltır?',
+        a: "act(...) metodunu ilk kez çalıştırdığınızda TestFly doğal dil hedefini somut Selenium adımlarına derler ve .testfly/action-cache.json dosyasına kaydeder. Sonraki CI koşularında önbellek isabeti yeni bir LLM isteğini önler; tarayıcı eylemleri, beklemeler ve önbellek okuması yine zaman alır. Arayüz değişip bir adım aksarsa önbellek girdisi düşürülür ve plan güncel DOM'a göre yeniden derlenir.",
       },
       {
         q: 'Seviye 2 AI Self-Healing klasik iyileştirme araçlarından nasıl ayrışır?',
-        a: "Geliştiriciler ID veya class adlarını değiştirdiğinde, DomPruner 8K token bütçesinde canlı DOM'u analiz eder ve doğru elementi semantik olarak bulur. Onarılan seçici .testfly/healed-locators.json dosyasına kaydedilerek sonraki koşularda 0 ms sürede işletilir ve HTML raporda ⚠ healed etiketiyle işaretlenir.",
+        a: "Geliştiriciler ID veya class adlarını değiştirdiğinde, DomPruner 8K token bütçesinde canlı DOM'u analiz eder ve doğru elementi semantik olarak bulur. Onarılan seçici .testfly/healed-locators.json dosyasına kaydedilir; sonraki koşulardaki önbellek isabetleri yeni bir AI isteğini önler ve HTML raporda ⚠ healed etiketiyle işaretlenir.",
       },
       {
         q: 'Yapay zekanın ürettiği hata düzeltmelerini doğrudan koduma uygulayabilir miyim?',
@@ -632,12 +657,12 @@ export function getFaqs(isTr) {
 
   return [
     {
-      q: 'How does Agentic Testing with Compile & Freeze guarantee zero flakiness in CI?',
-      a: 'When you run act(...), TestFly compiles the high-level intent into concrete Selenium steps and freezes them into .testfly/action-cache.json. In subsequent CI runs, the cached plan replays directly via Selenium WaitEngine with zero AI latency (under 50ms) and 100% deterministic repeatability. If the UI changes and a step fails, TestFly automatically invalidates the cache, recompiles against the fresh DOM, and self-heals.',
+      q: 'How does Agentic Testing with Compile & Freeze reduce repeated AI work in CI?',
+      a: 'When you run act(...), TestFly compiles the high-level intent into concrete Selenium steps and saves them in .testfly/action-cache.json. On later CI runs, a cache hit avoids a new LLM request; browser actions, waits, and cache reads still take time. If the UI changes and a cached step fails, TestFly invalidates that entry and recompiles against the current DOM.',
     },
     {
       q: 'How does Level-2 AI Self-Healing prevent false build failures?',
-      a: 'When selectors break due to front-end refactoring (renamed IDs, altered classes, or DOM restructuring), TestFly prunes the live DOM to under 8,000 tokens and prompts the configured LLM to synthesize a replacement selector. The healed selector is saved to .testfly/healed-locators.json and reused in future runs at 0 ms latency.',
+      a: 'When selectors break due to front-end refactoring (renamed IDs, altered classes, or DOM restructuring), TestFly prunes the live DOM to under 8,000 tokens and prompts the configured LLM to synthesize a replacement selector. The healed selector is saved to .testfly/healed-locators.json; later cache hits avoid another AI request, while normal locator resolution still takes time.',
     },
     {
       q: 'Can I apply AI-generated fixes directly to my source code?',
@@ -645,7 +670,7 @@ export function getFaqs(isTr) {
     },
     {
       q: 'Does TestFly lock my team into a specific test runner or vendor cloud?',
-      a: 'Never. TestFly provides 100% feature parity across TestNG, JUnit 5, and Cucumber BDD. It executes locally on Chrome, Firefox, Edge, and Safari, or remotely on Selenium Grid, BrowserStack, and Sauce Labs with a single config line.',
+      a: 'TestFly provides adapters for TestNG, JUnit 5, and Cucumber BDD, though lifecycle and feature surfaces can differ by adapter. It supports the documented local browsers and remote providers when their required configuration, drivers, and credentials are available.',
     },
     {
       q: 'How does the TestFly MCP server integrate with AI coding tools?',
@@ -665,7 +690,7 @@ export function getFaqs(isTr) {
 export const stats = [
   { value: '1', label: 'Single Maven Dependency', labelTr: 'Tek Maven Bağımlılığı' },
   { value: '1.0.7', label: 'Latest Stable Release', labelTr: 'Güncel Kararlı Sürüm' },
-  { value: '<50ms', label: 'Frozen AI Action Replay', labelTr: 'Dondurulmuş AI Oynatma Hızı' },
+  { value: '0', label: 'LLM Calls on Cache Hit', labelTr: 'Önbellek İsabetinde LLM Çağrısı' },
   { value: '88', label: 'Built-in MCP Tools', labelTr: 'Yerleşik MCP Aracı' },
 ];
 

@@ -54,7 +54,7 @@ getByRole(Role.BUTTON).withName("Submit").click();
 
 ## `getByRole`
 
-`Role` covers 38 WAI-ARIA roles. Each matches both the native HTML elements that
+`Role` covers 36 WAI-ARIA roles. Each matches both the native HTML elements that
 carry the role implicitly and any element with an explicit `role` attribute —
 e.g. `Role.BUTTON` matches `<button>`, `<input type="submit">`, `<summary>`, and
 `[role="button"]`.

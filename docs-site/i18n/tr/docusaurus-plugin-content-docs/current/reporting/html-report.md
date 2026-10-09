@@ -134,8 +134,6 @@ Raporlama davranışını [`testfly.yml`](../guides/testfly-yml-guide.md) dosyas
 
 ```yaml
 reporting:
-  htmlReport: true                  # target/testfly-report.html üretimini kontrol eder (varsayılan: true)
-  screenshotOnFailure: true         # hata anında Base64 ekran görüntüsü gömer (varsayılan: true)
   mergeRuns: false                  # ardışık testleri kümülatif birleştirmek için true yapın veya -Dtestfly.merge=true geçin
   historyRuns: 10                   # koşum seçicide saklanacak maksimum geçmiş rapor sayısı (varsayılan: 10)
   allure:
@@ -143,3 +141,5 @@ reporting:
   reportPortal:
     enabled: false                  # ReportPortal'a gerçek zamanlı log ve launch gönder
 ```
+
+`reporting.htmlReport` ve `reporting.screenshotOnFailure` mevcut yapılandırma modeli tarafından uyumluluk için kabul edilir, ancak rapor yaşam döngüsü bu alanları okumaz. Yerleşik HTML raporu üretilir ve tarayıcı etkinken hata ekran görüntüsü alınmaya çalışılır. Bu alanları açma/kapatma anahtarı olarak kullanmayın.

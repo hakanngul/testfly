@@ -16,6 +16,7 @@ run_spi() {
 }
 
 run_docs() {
+  scripts/agent/check-doc-accuracy.sh
   scripts/agent/check-localization.sh
   if [[ ! -x docs-site/node_modules/.bin/docusaurus ]]; then
     npm --prefix docs-site ci --no-audit --no-fund

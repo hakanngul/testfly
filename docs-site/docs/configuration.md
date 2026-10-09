@@ -97,7 +97,7 @@ The following commented template demonstrates every supported configuration bloc
 # ── Feature Switchboard ──────────────────────────────────────────────────────
 # Master on/off panel that sits ABOVE each module's own settings.
 # Omit a key to let that module's own config decide; set true/false to override it.
-# Values shown below are the framework defaults.
+# Values below form a runnable recommended profile; they are not all field defaults.
 features:
   ai: true                          # every AI/agentic surface: act(), aiAssert(), failure analysis, AI healing
   recording: false                  # MP4/GIF video capture of browser execution
@@ -111,7 +111,7 @@ features:
   testManagement: false             # TestRail / Xray result push
   notifications: true               # Slack / Teams run notifications
   consoleErrors: false              # browser console (JS) error collection
-  loadtest: false                   # Gatling / virtual-thread load test execution
+  loadtest: false                   # parsed into loadtest.enabled; explicit runs are not currently gated
 
 # ── Browser ──────────────────────────────────────────────────────────────────
 browser:
@@ -262,7 +262,7 @@ sessions:
 
 # ── Performance (Core Web Vitals) ────────────────────────────────────────────
 performance:
-  captureOnEveryTest: false         # collect CWV metrics on navigation
+  captureOnEveryTest: false         # collect metrics after each passing browser test
   lcpWarnMs: 2500                   # Largest Contentful Paint threshold (ms, 0 = disabled)
   fcpWarnMs: 1800                   # First Contentful Paint threshold (ms)
   ttfbWarnMs: 800                   # Time to First Byte threshold (ms)
@@ -391,7 +391,7 @@ testmanagement:
 
 # ── Load Testing ─────────────────────────────────────────────────────────────
 loadtest:
-  enabled: false                    # enable load testing (can also be toggled via features.loadtest)
+  enabled: false                    # reserved flag; explicit LoadTestRunner.run() calls are not gated
   baseUrl: https://api.example.com  # target base URL for load tests
   engine: auto                      # auto (prefers Gatling if present, else JDK) | gatling | jdk
   users: 10                         # default concurrent virtual users
@@ -445,7 +445,7 @@ Each key is **tri-state**:
 | `testManagement` | `testManagement.testrail.enabled` and `testManagement.xray.enabled` | `false` |
 | `notifications` | *no module flag* — Slack/Teams adapters register unless switched off | `true` |
 | `consoleErrors` | `browser.captureConsoleErrors` | `false` |
-| `loadtest` | `loadtest.enabled` — gates Gatling and virtual-thread load test runs | `false` |
+| `loadtest` | Overrides the parsed `loadtest.enabled` value; explicit `LoadTestRunner.run()` calls currently do not consult it | `false` |
 
 ### What "off" means when a test asks for the feature
 
@@ -493,7 +493,7 @@ Controls WebDriver browser provisioning, execution mode, capabilities, and proce
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `name` | `string` | `chrome` | Target browser executable. Valid values: `chrome`, `firefox`, `edge`, `safari`. |
+| `name` | `string` | **required** | Target browser executable. Valid values: `chrome`, `firefox`, `edge`, `safari`. May be omitted only when `browser.matrix` is non-empty. |
 | `headless` | `boolean` | `false` | Run without a visible GUI window. Automatically forced to `true` when CI environment variables are detected. |
 | `lifecycle` | `string` | `per-test` | Lifecycle scope for WebDriver instances: `per-test` (closes browser after each test method) or `per-suite` (retains browser per thread across tests). |
 | `downloadDir` | `string` | `./target/downloads` | Path where downloaded files are saved. Auto-configured in browser options. |
@@ -512,7 +512,7 @@ Governs test execution topology, base URLs, concurrency, and cloud grid provider
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `mode` | `string` | `local` | Execution environment: `local`, `remote`, `browserstack`, or `saucelabs`. |
+| `mode` | `string` | **required** | Execution environment: `local`, `remote`, `browserstack`, or `saucelabs`. |
 | `baseUrl` | `string` | `null` | Default web URL. When calling `open("/home")`, TestFly prefixes it with this URL. |
 | `gridUrl` | `string` | `null` | Hub endpoint for remote Selenium Grid (used when `mode: remote`). Example: `http://localhost:4444`. |
 | `parallel` | `string` | `none` | Parallel test distribution mode: `none`, `methods`, `classes`, `tests`, `instances`. Validated against TestNG `ParallelMode`. |
@@ -552,8 +552,8 @@ Centralized explicit and implicit wait durations in seconds.
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `explicit` | `int` | `10` | Timeout in seconds for all `WaitEngine`, `Locator`, and `assertThat()` DOM polling operations. |
-| `pageLoad` | `int` | `30` | Browser document load timeout passed to `WebDriver.Timeouts.pageLoadTimeout()`. |
+| `explicit` | `int` | **required, > 0** | Timeout in seconds for all `WaitEngine`, `Locator`, and `assertThat()` DOM polling operations. |
+| `pageLoad` | `int` | **required, > 0** | Browser document load timeout passed to `WebDriver.Timeouts.pageLoadTimeout()`. |
 
 ---
 
@@ -594,7 +594,7 @@ AI-driven test triage, automated root-cause suggestion, and agentic execution en
 | `enabled` | `boolean` | `true` | Master switch for **every** AI surface: `act()`, `aiAssert()`, failure analysis, patch generation and AI locator healing. The granular flags below choose *which* surfaces run; none of them can run while this is `false`. Also settable from the umbrella via [`features.ai`](#features). |
 | `failureAnalysis` | `boolean` | `false` | When `true`, automatically sends failure stack traces, step logs, and DOM state to the LLM upon test failure. |
 | `generatePatch` | `boolean` | `false` | When `true`, automatically generates a unified git diff `.patch` file in `target/remediations/` on test failure. |
-| `actionCache` | `boolean` | `true` | When `true`, freezes compiled action plans for `act()` into `.testfly/action-cache.json` for deterministic 0 ms replay. |
+| `actionCache` | `boolean` | `true` | When `true`, stores compiled `act()` plans in `.testfly/action-cache.json`; a cache hit avoids a new LLM request, while normal cache lookup and browser execution time remain. |
 | `provider` | `string` | `claude` | AI backend provider: `gemini`, `claude`, or `openai-compatible`. |
 | `apiKey` | `string` | `null` | API authorization key for the chosen provider. |
 | `model` | `string` | `null` | Target model. Defaults automatically to `gemini-2.5-flash` for Gemini or `claude-haiku-4-5-20251001` for Claude if omitted. |
@@ -670,6 +670,7 @@ Configuration for the built-in fluent REST client (`ApiClient` & `BaseApiTest`).
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `baseUrl` | `string` | `null` | Default HTTP endpoint for API tests (falls back to `execution.baseUrl` if unset). |
+| `baseUrls` | `map<string,string>` | `{}` | Named service endpoints used by `ApiClient.toService(name)` / `apiToService(name)`. A missing service falls back to `api.baseUrl`; if neither is set, the call fails. |
 | `timeoutSeconds` | `int` | `30` | HTTP request timeout in seconds. |
 | `logBody` | `boolean` | `false` | Log request and response payloads into the step timeline report. |
 | `logContext` | `boolean` | `true` | Log headers, query parameters, and HTTP methods. |
@@ -767,7 +768,7 @@ Automated capture and validation of Google Core Web Vitals during web tests.
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `captureOnEveryTest` | `boolean` | `false` | Automatically extract CWV metrics on every `open()` call. |
+| `captureOnEveryTest` | `boolean` | `false` | Collect performance metrics once after each passing browser test. It is not an `open()`/navigation hook. |
 | `lcpWarnMs` | `double` | `0` | Largest Contentful Paint warning threshold (ms). `0` = disabled. |
 | `fcpWarnMs` | `double` | `0` | First Contentful Paint warning threshold (ms). |
 | `ttfbWarnMs` | `double` | `0` | Time to First Byte warning threshold (ms). |
@@ -785,6 +786,7 @@ Pixel-based screenshot comparison and visual baseline management.
 | `diffDir` | `string` | `target/visual-diffs` | Directory where mismatch diff images are written. |
 | `defaultTolerance` | `double` | `0` | Percentage pixel mismatch tolerance (e.g. `0.02` for 2%). |
 | `updateBaselines` | `boolean` | `false` | Overwrite baseline golden images with current run screenshots. |
+| `failOnNewBaseline` | `boolean` | `false` | Fail when no baseline exists instead of creating a new baseline. |
 
 ---
 
@@ -869,8 +871,8 @@ Configuration for concurrent load testing powered by Gatling or Java Virtual Thr
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | `boolean` | `false` | Enables load testing execution (can be overridden via [`features.loadtest`](#features)). |
-| `baseUrl` | `string` | `null` | Base URL used for load test HTTP calls (falls back to test-defined endpoint or `execution.baseUrl`). |
+| `enabled` | `boolean` | `false` | Reserved effective flag (overridable via [`features.loadtest`](#features)); the current `LoadTestRunner.run()` path does not enforce it. |
+| `baseUrl` | `string` | `null` | Base URL used for load HTTP calls after scenario/annotation overrides. Gatling falls back to `execution.baseUrl`; the JDK engine requires an explicit load/scenario/annotation URL. |
 | `engine` | `string` | `auto` | Execution engine: `auto` (Gatling if present, else JDK), `gatling` (strictly Gatling), or `jdk` (native virtual threads). |
 | `users` | `int` | `10` | Default number of concurrent virtual users if not specified in test code. |
 | `rampUp` | `string` | `10s` | Linear ramp-up duration to reach peak virtual users (e.g. `10s`, `1m`). |
@@ -885,10 +887,9 @@ Configuration for concurrent load testing powered by Gatling or Java Virtual Thr
 
 ## Validation & Startup Diagnostics
 
-TestFly performs strict schema validation upon bootstrap. If an invalid or unknown configuration value is detected (such as an illegal parallel mode or missing mandatory cloud credentials), the run terminates immediately before any browser session is spawned, preventing wasted compute resources:
+Configuration validation is staged and fail-fast rather than aggregated:
 
-```text
-[TestFly] Configuration validation failed:
-- execution.parallel: 'invalid_mode' is not valid. Allowed: [none, methods, classes, tests, instances]
-- execution.baseUrl: Must be a valid absolute HTTP/HTTPS URL
-```
+- SnakeYAML keys without a matching property are reported on stderr and ignored.
+- `ConfigurationLoader` requires a browser name (or matrix), an execution mode, and positive explicit/page-load timeouts.
+- `ExecutionValidator` then validates parallel mode, thread/session limits, and related execution constraints.
+- Provider-specific requirements, such as cloud credentials, are checked when that provider is created. The loader does not aggregate these failures or validate `execution.baseUrl` as illustrated previously.

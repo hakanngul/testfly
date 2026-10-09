@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.17.0-dev.1">
-  <title>TestFly K6 Load Test Data Flow Diagram</title>
+  <title>TestFly Load Test Data Flow Diagram</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -5081,7 +5081,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
            data-preset-badge-blueprint="BLUEPRINT / REV 01"
            data-preset-badge-editorial="EDITORIAL / FIELD NOTE">
         <div class="pulse-dot"></div>
-        <h1>TestFly K6 Load Test Data Flow</h1>
+        <h1>TestFly Load Test Data Flow</h1>
       </div>
       <p class="subtitle">High-throughput workload generation, latency analysis, and quality gates</p>
     </div>
@@ -5132,7 +5132,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / PLATE 04">
       <svg viewBox="0 0 1080 520" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
-        <title id="archify-diagram-title">TestFly K6 Load Test Data Flow</title>
+        <title id="archify-diagram-title">TestFly Load Test Data Flow</title>
         <desc id="archify-diagram-description">High-throughput workload generation, latency analysis, and quality gates</desc>
         <!-- Definitions -->
         <defs>
@@ -5224,20 +5224,20 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="315" y="289" class="t-security" font-size="7" text-anchor="middle">workload</text>
         </g>
 
-        <g id="node-load_engine" data-node-id="load_engine" data-node-label="K6 / Gatling Engine" tabindex="0" role="button" aria-label="Focus K6 / Gatling Engine, concurrent runners, 03 / Execute" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="concurrent runners" data-node-tag="traffic generator" data-node-context="03 / Execute">
-          <title>K6 / Gatling Engine · concurrent runners · 03 / Execute · traffic generator</title>
+        <g id="node-load_engine" data-node-id="load_engine" data-node-label="JDK / Gatling Engine" tabindex="0" role="button" aria-label="Focus JDK / Gatling Engine, concurrent runners, 03 / Execute" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="concurrent runners" data-node-tag="traffic generator" data-node-context="03 / Execute">
+          <title>JDK / Gatling Engine · concurrent runners · 03 / Execute · traffic generator</title>
           <rect x="474" y="242" width="112" height="58" rx="6" class="c-mask"/>
           <rect x="474" y="242" width="112" height="58" rx="6" class="c-cloud" data-animate="node" style="--step:3" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(480 248) scale(0.6875)">
             <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="530" y="263" class="t-primary" font-size="9.1" font-weight="600" text-anchor="middle">K6 / Gatling Engine</text>
+          <text data-node-label="" data-detail-anchor="" x="530" y="263" class="t-primary" font-size="9.1" font-weight="600" text-anchor="middle">JDK / Gatling Engine</text>
           <text data-detail="context" x="530" y="279" class="t-muted" font-size="7" text-anchor="middle">concurrent runners</text>
         <text data-detail="fine" x="530" y="289" class="t-cloud" font-size="7" text-anchor="middle">traffic generator</text>
         </g>
 
-        <g id="node-target_sut" data-node-id="target_sut" data-node-label="Target SUT" tabindex="0" role="button" aria-label="Focus Target SUT, https://test.k6.io, 04 / Measure" aria-pressed="false" data-node-kind="external" data-node-sublabel="https://test.k6.io" data-node-tag="HTTPS" data-node-context="04 / Measure">
-          <title>Target SUT · https://test.k6.io · 04 / Measure · HTTPS</title>
+        <g id="node-target_sut" data-node-id="target_sut" data-node-label="Target SUT" tabindex="0" role="button" aria-label="Focus Target SUT, https://api.example.com, 04 / Measure" aria-pressed="false" data-node-kind="external" data-node-sublabel="https://api.example.com" data-node-tag="HTTPS" data-node-context="04 / Measure">
+          <title>Target SUT · https://api.example.com · 04 / Measure · HTTPS</title>
           <rect x="689" y="128" width="112" height="58" rx="6" class="c-mask"/>
           <rect x="689" y="128" width="112" height="58" rx="6" class="c-external" data-animate="node" style="--step:4" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(695 134) scale(0.6875)">
@@ -5245,7 +5245,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="745" y="149" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Target SUT</text>
-          <text data-detail="context" x="745" y="165" class="t-muted" font-size="7" text-anchor="middle">https://test.k6.io</text>
+          <text data-detail="context" x="745" y="165" class="t-muted" font-size="7" text-anchor="middle">https://api.example.com</text>
         <text data-detail="fine" x="745" y="175" class="t-external" font-size="7" text-anchor="middle">HTTPS</text>
         </g>
 
@@ -5553,7 +5553,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>High-Throughput Execution</h3>
         </div>
         <ul>
-          <li>&bull; Concurrent load engines flood the target endpoints (e.g. test.k6.io)</li>
+          <li>&bull; JDK virtual threads or Gatling send concurrent HTTP traffic to target endpoints</li>
           <li>&bull; Zero browser overhead during load execution for maximum RPS</li>
           <li>&bull; High-precision millisecond timing captured for every individual request</li>
         </ul>

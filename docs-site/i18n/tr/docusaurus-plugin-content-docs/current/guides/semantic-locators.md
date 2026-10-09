@@ -49,7 +49,7 @@ getByRole(Role.BUTTON).withName("Submit").click();
 
 ## `getByRole`
 
-`Role`, 38 WAI-ARIA rolünü kapsar. Her biri hem rolü örtük olarak taşıyan yerel HTML öğeleriyle hem de açık bir `role` niteliği taşıyan herhangi bir öğeyle eşleşir — örn. `Role.BUTTON`, `<button>`, `<input type="submit">`, `<summary>` ve `[role="button"]` ile eşleşir.
+`Role`, 36 WAI-ARIA rolünü kapsar. Her biri hem rolü örtük olarak taşıyan yerel HTML öğeleriyle hem de açık bir `role` niteliği taşıyan herhangi bir öğeyle eşleşir — örn. `Role.BUTTON`, `<button>`, `<input type="submit">`, `<summary>` ve `[role="button"]` ile eşleşir.
 
 ```java
 getByRole(Role.BUTTON).withName("Save").click();   // erişilebilir ad eşleşmesi

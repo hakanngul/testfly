@@ -26,7 +26,7 @@ Traditional test automation requires test engineers to imperatively script every
             ▼                                                ▼
 ┌───────────────────────┐                        ┌───────────────────────┐
 │ Deterministic Replay  │                        │       DomPruner       │
-│   under 50ms          │                        │ (Strip Noise, <8k Tok)│
+│    Cached Replay      │                        │ (Strip Noise, <8k Tok)│
 └───────────┬───────────┘                        └───────────┬───────────┘
             │                                                │
             │  ┌─────────────────────────────────────────────┘
@@ -56,7 +56,7 @@ Traditional test automation requires test engineers to imperatively script every
             ▼                                ▼
 ┌───────────────────────┐        ┌───────────────────────┐
 │ .testfly/healed-      │        │ target/remediations/  │
-│ locators.json (0 ms)  │        │ *.patch (git apply)   │
+│ locators.json (cache) │        │ *.patch (git apply)   │
 └───────────────────────┘        └───────────────────────┘
 ```
 
@@ -71,7 +71,7 @@ When a selector breaks due to front-end refactorings, TestFly first attempts fas
 2. **AI Locator Synthesis:**  
    Asks the configured LLM to find the element based on its semantic intent, test context, and pruned DOM.
 3. **Persistent Caching:**  
-   Successfully healed locators are stored in `.testfly/healed-locators.json`. Future runs resolve the healed locator instantly with **0 ms AI latency**.
+   Successfully healed locators are stored in `.testfly/healed-locators.json`. A future cache hit avoids another AI request; cache lookup and locator resolution still take time.
 
 ### Configuration
 
@@ -112,7 +112,7 @@ assertThat(find("#status-pill")).violatesAi("Expired or cancelled subscription t
 ```
 
 ### Anti-Throttle Protection
-Unlike traditional element polling (which checks every 500ms), `satisfiesAi` evaluates the DOM once, ensuring you never encounter API rate limits or excessive LLM costs. It also fully integrates with TestFly's Soft Assertions system:
+Unlike traditional element polling, `satisfiesAi` evaluates the DOM once per assertion. This reduces repeated LLM calls and cost, but configured providers can still impose rate limits. It also integrates with TestFly's Soft Assertions system:
 
 ```java
 softAssertThatPage().satisfiesAi("User greeting is displayed");
@@ -161,7 +161,7 @@ Autonomous agents are often criticized for being slow and non-deterministic. Tes
 
 - **Run 1 (Compile):** The agent inspects the pruned DOM, synthesizes an ordered list of concrete Selenium actions (`CLICK`, `TYPE`, `WAIT_VISIBLE`), and executes them.
 - **Freeze:** The compiled action plan is saved into `.testfly/action-cache.json`.
-- **Run 2+ (Freeze Replay):** Subsequent test runs replay the cached plan directly via standard Selenium `WaitEngine` with **zero LLM latency (under 50ms)**.
+- **Run 2+ (Freeze Replay):** Subsequent test runs replay a cached plan through the standard Selenium `WaitEngine` without a new LLM request. Cache lookup, waits, and browser actions still take time.
 - **Self-Recovery:** If the UI changes and a cached action fails, TestFly automatically invalidates the cache entry, recompiles the plan against the new DOM, and executes the fresh steps.
 
 ```json
@@ -182,7 +182,7 @@ Autonomous agents are often criticized for being slow and non-deterministic. Tes
 ```
 
 :::tip Auto-POM: Learned Page Model
-Beyond exact goal caching, TestFly also features **[Auto-POM (Learned Page Model)](auto-pom.md)**. Auto-POM autonomously builds a persistent page object graph (`.testfly/page-knowledge.json`) during runs, resolving semantically related goals across different tests with **0 ms AI latency and 0 token cost**.
+Beyond exact goal caching, TestFly also features **[Auto-POM (Learned Page Model)](auto-pom.md)**. Auto-POM builds a persistent page object graph (`.testfly/page-knowledge.json`) during runs; knowledge hits can resolve related goals without a new LLM request or token use, while local processing and browser execution still take time.
 :::
 
 ---
