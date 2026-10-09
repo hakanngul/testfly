@@ -625,64 +625,88 @@ export function getFaqs(isTr) {
   if (isTr) {
     return [
       {
-        q: 'Compile & Freeze mimarisi CI ortamında yinelenen AI kullanımını nasıl azaltır?',
-        a: "act(...) metodunu ilk kez çalıştırdığınızda TestFly doğal dil hedefini somut Selenium adımlarına derler ve .testfly/action-cache.json dosyasına kaydeder. Sonraki CI koşularında önbellek isabeti yeni bir LLM isteğini önler; tarayıcı eylemleri, beklemeler ve önbellek okuması yine zaman alır. Arayüz değişip bir adım aksarsa önbellek girdisi düşürülür ve plan güncel DOM'a göre yeniden derlenir.",
+        q: 'TestFly nedir; yalnızca tarayıcı testleri için mi kullanılır?',
+        a: 'TestFly, Java 21 için çok alanlı bir test otomasyon SDK’sıdır. Selenium tabanlı web testlerinin yanında API, yük ve diğer test alanları için de araçlar sunar; tarayıcı sürücüsü framework’ün tamamı değil, bir adaptörüdür.',
       },
       {
-        q: 'Seviye 2 AI Self-Healing klasik iyileştirme araçlarından nasıl ayrışır?',
-        a: "Geliştiriciler ID veya class adlarını değiştirdiğinde, DomPruner 8K token bütçesinde canlı DOM'u analiz eder ve doğru elementi semantik olarak bulur. Onarılan seçici .testfly/healed-locators.json dosyasına kaydedilir; sonraki koşulardaki önbellek isabetleri yeni bir AI isteğini önler ve HTML raporda ⚠ healed etiketiyle işaretlenir.",
+        q: 'İlk testime nasıl başlarım?',
+        a: 'Java 21 ve Maven ile TestFly bağımlılığını ekleyin, src/test/resources/testfly.yml içinde tarayıcı, çalışma modu ve zaman aşımı ayarlarını tanımlayın. Web testi için BaseTest, API testi için BaseApiTest kullanabilirsiniz. İlk örnek için Başlangıç rehberini izleyin.',
       },
       {
-        q: 'Yapay zekanın ürettiği hata düzeltmelerini doğrudan koduma uygulayabilir miyim?',
-        a: "Evet! ai.generatePatch: true ayarlandığında, başarısız olan locator veya assertion için target/remediations/TestClass.patch Unified Git Diff dosyası üretilir. Geliştiriciler veya CI botları 'git apply target/remediations/...' ile tek komutta kaynak kodu güncelleyebilir.",
+        q: 'testfly.yml zorunlu mu ve nasıl bulunur?',
+        a: 'Standart başlatma akışı yapılandırma dosyası arar. Önce -Dtestfly.config ile verilen dosyaya, ardından classpath üzerindeki testfly.yml dosyasına, son olarak çalışma dizinine bakar; testfly.profile verilirse profil dosyasını arar. Hiçbiri bulunmazsa hata verir. Her özelliği YAML’a yazmanız gerekmez.',
       },
       {
-        q: 'TestFly bizi belirli bir test aracına veya bulut sağlayıcısına mahkum eder mi?',
-        a: "Asla. TestNG, JUnit 5 ve Cucumber BDD ile %100 özellik denkliğine sahiptir. Yerel Chrome/Firefox/Edge'den Selenium Grid'e, BrowserStack'ten Sauce Labs'e kadar tek bir config satırıyla her yerde çalışır.",
+        q: 'Hangi test çalıştırıcıları ve tarayıcı ortamları desteklenir?',
+        a: 'TestNG, JUnit 5 ve Cucumber BDD adaptörleri bulunur; yaşam döngüsü ve bazı özellikler adaptöre göre değişebilir. Yerel tarayıcılar ve uzak sağlayıcılar, gereken sürücü, yapılandırma ve erişim bilgileri sağlandığında kullanılabilir.',
       },
       {
-        q: 'TestFly MCP sunucusu IDE asistanlarıyla (Claude Code, IntelliJ, Copilot) nasıl entegre olur?',
-        a: "TestFly, 88 adet tarayıcı otomasyon aracı sunan yerleşik bir Model Context Protocol (MCP) sunucusuna sahiptir. AI asistanınız kör kod yazmak yerine canlı tarayıcıyı inceler, erişilebilirlik ağacından doğru elementleri seçer ve hatasız TestFly Java kodları üretir.",
+        q: 'Paralel çalışma ve raporlama nasıl ayarlanır?',
+        a: 'TestNG için execution.parallel ve execution.threadCount paralelliği belirler; execution.maxActiveSessions eşzamanlı tarayıcı oturumlarını sınırlar. Yerel HTML raporu ayrı bir ayardır; Allure ve ReportPortal isteğe bağlı entegrasyonlardır. ReportPortal için ayrıca geçerli sunucu ve erişim bilgileri gerekir.',
       },
       {
-        q: 'testfly record komutu ve Interactive Recorder stüdyosu nasıl çalışır?',
-        a: "testfly record <url> komutunu çalıştırdığınızda TestFly izole bir Google Chrome penceresi açar ve CDP aracılığıyla injected_recorder.js betiğini otomatik enjekte eder. Tarayıcıdaki tıklamalar, tuş vuruşları (debounced typing) ve görsel doğrulamalar (isVisible, hasText) SSE üzerinden yerel stüdyoya (:8765) iletilir. Stüdyo anlık olarak Page Object Model, TestNG, JUnit 5 veya Cucumber BDD kodları derler. 'Save to Project' butonuna bastığınızda dosyalar Java anahtar kelime güvenceleriyle (örn. continueElement) doğrudan src/test/java/ projenize yazılır.",
+        q: 'Seçici onarımı ve AI hata analizi varsayılan olarak çalışır mı?',
+        a: 'Hayır. locators.selfHealing yerel onarma stratejilerini, locators.aiHealing AI destekli seçici onarımını açar. Hata analizi için ai.failureAnalysis ve uygun sağlayıcı/anahtar gerekir. Başarılı onarma veya analiz garanti edilmez.',
       },
       {
-        q: 'Ham Selenium WebDriver ve CDP API\'larına doğrudan erişebilir miyim?',
-        a: "Her zaman. getDriver() ile canlı WebDriver daima elinizin altındadır. Tüm Playwright-tarzı Locator nesneleri .toBy() ile standart Selenium By verir. CDP üzerinden ağ trafiği durdurma, API taklit etme, konum taklidi ve çerez yönetimi yerel olarak desteklenir.",
+        q: 'AI ile patch üretimi kodumu otomatik değiştirir mi?',
+        a: 'Hayır. ai.generatePatch etkinse, AI erişimi varsa, hataya ait kaynak kod bulunursa ve geçerli bir diff üretilebilirse target/remediations/ altında incelenebilecek bir .patch dosyası yazılır. Uygulama kararı size aittir.',
+      },
+      {
+        q: 'Compile & Freeze tekrar eden AI çağrılarını nasıl azaltır?',
+        a: 'act(...) ile oluşturulan eylem planı .testfly/action-cache.json içinde saklanabilir. Aynı hedefte önbellek isabeti yeni bir LLM isteğini önler; tarayıcı eylemleri ve beklemeler yine çalışır. Önbellek özelliği ve AI sağlayıcısı kendi ayarlarına bağlıdır.',
+      },
+      {
+        q: 'MCP köprüsü ve tarayıcı kaydedici aynı ürün mü?',
+        a: 'Hayır. Java SDK’dan ayrı Node.js MCP köprüsü proje oluşturma ve kod üretme araçları sunar; canlı tarayıcı incelemesi için Playwright MCP kullanılır. Mevcut Node köprüsünde testfly record komutu bulunmaz; bu komut tarihsel Python kaydedicisine aittir. Ayrıntılar için CLI rehberine bakın.',
+      },
+      {
+        q: 'Selenium WebDriver’a doğrudan erişebilir miyim?',
+        a: 'Evet. Web testlerinde getDriver() canlı WebDriver oturumunu verir; TestFly Locator nesneleri toBy() ile Selenium By değerine dönüştürülebilir. CDP özellikleri kullanılan tarayıcı ve sürücünün desteğine bağlıdır.',
       },
     ];
   }
 
   return [
     {
-      q: 'How does Agentic Testing with Compile & Freeze reduce repeated AI work in CI?',
-      a: 'When you run act(...), TestFly compiles the high-level intent into concrete Selenium steps and saves them in .testfly/action-cache.json. On later CI runs, a cache hit avoids a new LLM request; browser actions, waits, and cache reads still take time. If the UI changes and a cached step fails, TestFly invalidates that entry and recompiles against the current DOM.',
+      q: 'What is TestFly? Is it only for browser testing?',
+      a: 'TestFly is a multi-domain test automation SDK for Java 21. Alongside Selenium-based web tests, it offers tools for API, load, and other test domains. The browser driver is an adapter, not the entire framework.',
     },
     {
-      q: 'How does Level-2 AI Self-Healing prevent false build failures?',
-      a: 'When selectors break due to front-end refactoring (renamed IDs, altered classes, or DOM restructuring), TestFly prunes the live DOM to under 8,000 tokens and prompts the configured LLM to synthesize a replacement selector. The healed selector is saved to .testfly/healed-locators.json; later cache hits avoid another AI request, while normal locator resolution still takes time.',
+      q: 'How do I get started with my first test?',
+      a: 'With Java 21 and Maven, add the TestFly dependency and define browser, execution mode, and timeouts in src/test/resources/testfly.yml. Use BaseTest for a web test or BaseApiTest for an API test. Follow the Getting Started guide for a complete example.',
     },
     {
-      q: 'Can I apply AI-generated fixes directly to my source code?',
-      a: 'Yes! With ai.generatePatch: true, whenever an assertion or locator fails permanently, TestFly generates a standard Unified Git Diff (target/remediations/TestClass.patch). Developers or CI bots can review and apply the fix in one command with git apply target/remediations/...',
+      q: 'Is testfly.yml required, and where does TestFly look for it?',
+      a: 'The standard bootstrap looks for a configuration file: first the path set with -Dtestfly.config, then testfly.yml on the classpath, then in the working directory. Set testfly.profile to select a profile-specific filename. Missing files cause an error; you do not need to list every optional feature in YAML.',
     },
     {
-      q: 'Does TestFly lock my team into a specific test runner or vendor cloud?',
-      a: 'TestFly provides adapters for TestNG, JUnit 5, and Cucumber BDD, though lifecycle and feature surfaces can differ by adapter. It supports the documented local browsers and remote providers when their required configuration, drivers, and credentials are available.',
+      q: 'Which test runners and browser environments are supported?',
+      a: 'TestFly has adapters for TestNG, JUnit 5, and Cucumber BDD; lifecycle and some features can differ by adapter. Local browsers and remote providers work when their required drivers, configuration, and credentials are available.',
     },
     {
-      q: 'How does the TestFly MCP server integrate with AI coding tools?',
-      a: 'TestFly provides a built-in Model Context Protocol (MCP) server exposing 88 browser automation tools. AI assistants like Claude Code, JetBrains AI Assistant, GitHub Copilot, and Google Antigravity can inspect live browsers, query the accessibility tree, and generate reliable, production-grade TestFly Java code rather than hallucinating selectors.',
+      q: 'How do parallel execution and reporting work?',
+      a: 'For TestNG, execution.parallel and execution.threadCount control parallelism; execution.maxActiveSessions limits concurrent browser sessions. Local HTML reporting is a separate setting, while Allure and ReportPortal are optional integrations. ReportPortal also requires a valid endpoint and credentials.',
     },
     {
-      q: 'How does testfly record and the Interactive Recorder studio work?',
-      a: "Running testfly record <url> launches an isolated Google Chrome instance with automated CDP script injection. User clicks, coalesced keystrokes, and toolbar assertions (isVisible, hasText) are streamed via SSE to the local web studio (:8765). The studio synthesizes production-ready Page Object Model, TestNG, JUnit 5, or Cucumber BDD code in real time. Clicking 'Save to Project' writes clean, compiler-safe classes directly into your project's src/test/java/ directory.",
+      q: 'Are locator recovery and AI failure analysis enabled by default?',
+      a: 'No. locators.selfHealing enables local locator recovery; locators.aiHealing enables AI-assisted recovery. Failure analysis requires ai.failureAnalysis and a configured provider and API key. Neither recovery nor analysis guarantees a successful result.',
     },
     {
-      q: 'Can I still drop down to the raw Selenium WebDriver and CDP APIs?',
-      a: 'Always. getDriver() returns the live WebDriver instance, and every fluent locator exposes .toBy(). Furthermore, native CDP integration lets you intercept network traffic, mock REST responses, manipulate browser cookies, and emulate geo-locations without third-party proxies.',
+      q: 'Does AI patch generation automatically change my code?',
+      a: 'No. When ai.generatePatch is enabled, AI access is configured, a source snippet can be found, and a valid diff is returned, TestFly can write a reviewable .patch file under target/remediations/. You decide whether to apply it.',
+    },
+    {
+      q: 'How does Compile & Freeze reduce repeated AI calls?',
+      a: 'An action plan created with act(...) can be stored in .testfly/action-cache.json. A cache hit for the same goal avoids a new LLM request; browser actions and waits still run. Caching and AI-provider use depend on their configuration.',
+    },
+    {
+      q: 'Are the MCP bridge and browser recorder the same product?',
+      a: 'No. The Node.js MCP bridge is separate from the Java SDK and provides project scaffolding and code-generation tools; live browser inspection uses Playwright MCP. The current Node bridge has no testfly record command: that command belongs to the historical Python recorder. See the CLI guide for details.',
+    },
+    {
+      q: 'Can I access Selenium WebDriver directly?',
+      a: 'Yes. In web tests, getDriver() returns the live WebDriver session, and TestFly Locator objects can be converted to Selenium By with toBy(). CDP features depend on browser and driver support.',
     },
   ];
 }

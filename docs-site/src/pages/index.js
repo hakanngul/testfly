@@ -722,8 +722,8 @@ export default function Home() {
               </h2>
               <p className={styles.sectionSubtitle}>
                 {isTr
-                  ? 'Mühendislik ekiplerinin ve QA liderlerinin TestFly hakkında en çok merak ettikleri.'
-                  : 'The key architectural questions engineering teams ask before adopting TestFly.'}
+                  ? 'İlk kurulumdan test çalıştırmaya, isteğe bağlı AI ve entegrasyonlara kadar kısa yanıtlar.'
+                  : 'Straight answers on setup, running tests, optional AI features, and integrations.'}
               </p>
             </div>
 
