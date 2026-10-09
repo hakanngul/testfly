@@ -142,4 +142,6 @@ public class CheckoutTest extends BaseTest {
 | A testinden B testine veri iletmek | `suiteCtx()` — `SuiteContext` |
 | Oluşturulan bir kaynak kimliğini suite genelinde paylaşmak | `suiteCtx()` |
 | Yalnızca tek bir test için token saklamak | `ctx()` |
-| Suite genelinde bir kimlik doğrulama tokenı saklamak | `ApiClient.setGlobalAuth()` |
+| Suite genelinde bir kimlik doğrulama tokenı saklamak | `suiteCtx()`; her testte `ApiClient.setGlobalAuth()` ile uygula |
+
+`ApiClient.setGlobalAuth()` thread-local test kapsamındadır ve test sonunda temizlenir. Suite içinde token saklamak auth ayarını diğer testlere otomatik taşımaz.

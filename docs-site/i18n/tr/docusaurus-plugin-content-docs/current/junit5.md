@@ -1,5 +1,5 @@
 ---
-description: "TestFly'ı JUnit 5 ile çalıştırın: BaseJUnit5Test, @EnableTestFly veya @ExtendWith(TestFlyExtension) ile UI, API, veritabanı ve erişilebilirlik dahil TestNG ile %100 özellik eşitliği."
+description: "TestFly'ı JUnit 5 ile çalıştırın: BaseJUnit5Test, @EnableTestFly veya @ExtendWith(TestFlyExtension) ile UI, API, veritabanı ve erişilebilirlik dahil TestNG BaseTest yeteneklerinin çoğu; retry ve yaşam döngüsü farkları belgelenmiştir."
 id: junit5
 title: JUnit 5 Desteği
 sidebar_position: 10
@@ -7,7 +7,7 @@ sidebar_position: 10
 
 # JUnit 5 Desteği
 
-TestFly, hem **TestNG** (yerleşik) hem de **JUnit 5** (tercihe bağlı) test çatılarını birinci sınıf vatandaş olarak destekler. JUnit 5 entegrasyonu yalnızca basit bir çalıştırıcı (runner) sunmakla kalmaz; TestNG `BaseTest` ile **%100 özellik eşitliği** sağlar: framework tarafından yönetilen WebDriver yaşam döngüsü, ThreadLocal sürücü izolasyonu, akıcı locator'lar, web-öncelikli ve soft assertion'lar, yerleşik REST API testi, çoklu kullanıcı oturumları (multi-session), HTML zaman çizelgesi raporlaması, AI hata analizi ve flakiness takibi.
+TestFly, hem **TestNG** (yerleşik) hem de **JUnit 5** (tercihe bağlı) test çatılarını birinci sınıf vatandaş olarak destekler. JUnit 5 entegrasyonu yalnızca basit bir çalıştırıcı (runner) sunmakla kalmaz; TestNG `BaseTest` ile temel yetenekleri paylaşır: framework tarafından yönetilen WebDriver yaşam döngüsü, ThreadLocal sürücü izolasyonu, akıcı locator'lar, web-öncelikli ve soft assertion'lar, yerleşik REST API testi, çoklu kullanıcı oturumları (multi-session), HTML zaman çizelgesi raporlaması, AI hata analizi ve flakiness takibi.
 
 ---
 
@@ -21,7 +21,7 @@ Projenizin `pom.xml` dosyasına TestFly'ın yanına JUnit 5 bağımlılıkların
 <dependencies>
     <!-- TestFly Çekirdeği -->
     <dependency>
-        <groupId>io.testfly</groupId>
+        <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
         <version>1.0.7</version>
     </dependency>
@@ -48,7 +48,7 @@ Maven Surefire 3.x, ek bir eklenti yapılandırmasına ihtiyaç duymadan JUnit 5
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.0'
+    testImplementation 'io.github.hakanngul:testfly:1.0.7'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
 }
@@ -102,9 +102,9 @@ class LoginTest extends BaseJUnit5Test {
 | **Akıcı (Fluent) Locator'lar** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
 | **Web-Öncelikli Doğrulamalar** | `assertThat(By).isVisible()`, `assertThat(Locator).hasText(...)`, `assertThat(...).count(n)` |
 | **Soft Doğrulamalar (SoftAssert)** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)`, `softAssert().that(...)` |
-| **Yerleşik REST API Testi** | `apiClient()`, `apiGet(path)`, `apiPost(path, body)`, `apiPut()`, `apiPatch()`, `apiDelete()` |
+| **Yerleşik REST API Testi** | `apiClient()`, `apiGet(path)`, `apiPost(path)`, `apiPut(path)`, `apiPatch(path)`, `apiDelete(path)` (her biri bir `ApiClient` builder döndürür; `.send()` ile bitirin) |
 | **Çoklu Oturum (Multi-Session)** | `session(name)`, `withSession(name, runnable)` ile çoklu kullanıcı / chat / pazar yeri akışları |
-| **Veritabanı Doğrulama** | `db()`, `db("datasourceName")` ile SQL sorguları ve veri kontrolleri |
+| **Veritabanı Doğrulama** | `db()` (varsayılan veri kaynağı) ve `db("datasourceName")` ile SQL sorguları ve `assertRowExists(table, conditions)` gibi satır doğrulamaları |
 | **E-Posta Doğrulama** | `mailbox()`, `to("user@example.com")` ile gelen kutusundan OTP, link ve içerik kontrolleri |
 | **Erişilebilirlik (a11y)**| `accessibility().scan()`, `assertAccessibility()` ile axe-core taramaları |
 | **Adım Kaydı (Step Logging)** | `step(name)`, `step(name, takeScreenshot)` ile HTML raporunda zaman çizelgesi |
@@ -170,21 +170,22 @@ import io.testfly.junit5.BaseJUnit5Test;
 import io.testfly.test.NoBrowser;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 class UserApiIntegrationTest extends BaseJUnit5Test {
 
     @Test
     @NoBrowser  // Tarayıcı açılmaz; doğrudan HTTP üzerinden koşar
     void verifyUserCreationViaApi() {
-        ApiResponse response = apiPost("/api/users", "{\"name\":\"John Doe\",\"email\":\"john@example.com\"}");
-        
-        response.assertThat()
-                .statusCode(201)
-                .bodyContains("John Doe");
+        ApiResponse response = apiPost("/api/users")
+                .body("{\"name\":\"John Doe\",\"email\":\"john@example.com\"}")
+                .send();
+
+        response.assertStatus(201)
+                .assertBodyContains("John Doe");
 
         // Veritabanından kaydı doğrula
-        db().table("users")
-            .where("email", "john@example.com")
-            .assertExists();
+        db().assertRowExists("users", Map.of("email", "john@example.com"));
     }
 }
 ```
@@ -209,8 +210,10 @@ class OrderHistoryTest extends BaseJUnit5Test {
     void userCanViewCreatedOrder() {
         // 1. Sipariş verisini REST API ile anında oluşturun
         step("Sipariş verisi API ile oluşturulur");
-        String orderId = apiPost("/api/orders", "{\"item\":\"Widget\",\"qty\":2}")
-                .jsonPath().getString("id");
+        String orderId = apiPost("/api/orders")
+                .body("{\"item\":\"Widget\",\"qty\":2}")
+                .send()
+                .json("$.id");
 
         // 2. Sipariş geçmişi sayfasına doğrudan gidin
         step("Sipariş detay sayfası tarayıcıda açılır");
@@ -305,15 +308,16 @@ class DashboardTest extends BaseJUnit5Test {
 ```java
 import io.testfly.precondition.BaseConditions;
 import io.testfly.precondition.ConditionProvider;
+import org.openqa.selenium.By;
 
 public class AppConditions extends BaseConditions {
 
     @ConditionProvider("loginAsAdmin")
     public void loginAsAdmin() {
         open("/login");
-        find("#username").type("admin");
-        find("#password").type("secret");
-        find("#login-btn").click();
+        type(By.id("username"), "admin");
+        type(By.id("password"), "secret");
+        click(By.id("login-btn"));
     }
 }
 ```
@@ -361,6 +365,15 @@ retry:
 
 Yeniden denenmiş testler HTML test raporunda **↻ Nx** rozeti ile işaretlenir.
 
+:::caution TestNG'den retry farkları
+JUnit 5 retry'ları testi yeniden planlayarak değil, `TestFlyExtension.interceptTestMethod` içinde uygulanır:
+
+- Yalnızca test metodunun gövdesi yeniden çağrılır. Kendi `@BeforeEach` / `@AfterEach` metotlarınız ve TestFly'ın `beforeEach` hazırlığı (test verisi yükleme, `@UseAuth`, kayıt başlatma, console-error shim) denemeler arasında **tekrarlanmaz**. Sürücü yeniden oluşturulur ve `@PreCondition` yeniden çalıştırılır.
+- JUnit tek bir test sonucu raporlar (son deneme). Önceki başarısız denemeler ayrı JUnit kayıtları olarak görünmez; yalnızca TestFly raporundaki retry sayısında görülür.
+- `maxAttempts` **ek** deneme sayısıdır (`maxAttempts = 2` → en fazla 3 çalıştırma).
+- Retry sırasında yalnızca `WebDriver` metot parametreleri yeni sürücüyle değiştirilir; diğer enjekte edilen parametreler ilk değerlerini korur.
+:::
+
 ---
 
 ## Tarayıcı Yaşam Döngüsü: Per-Test ve Per-Suite
@@ -374,7 +387,7 @@ browser:
 ```
 
 - **`per-test` (Varsayılan):** Her test metodundan önce temiz bir tarayıcı açılır (`beforeEach`) ve test biter bitmez kapatılır (`afterEach`). Maksimum test izolasyonu sağlar.
-- **`per-suite`:** Test sınıfı içindeki tüm testler boyunca tek bir tarayıcı açık tutulur. `TestFlyExtension.afterAll()` sınıfın son testi bittiğinde süitteki tüm sürücüleri otomatik olarak sonlandırır.
+- **`per-suite`:** Daha hızlı çalışma için tek bir tarayıcı testler arasında yeniden kullanılır. JUnit 5'te `TestFlyExtension.afterAll()` her test sınıfı bittiğinde tüm süit sürücülerini kapatır; bu nedenle yeniden kullanım TestNG'deki gibi tüm koşu boyunca değil, fiilen **test sınıfı başına** olur.
 
 ---
 
@@ -427,11 +440,14 @@ Karantinaya alınan testler henüz tarayıcı ayağa kaldırılmadan güvenle at
 
 ---
 
-## Özellik Eşitliği: TestNG vs. JUnit 5
+## Özellik Karşılaştırması: TestNG vs. JUnit 5
+
+`BaseTest` yeteneklerinin çoğu JUnit 5'te mevcuttur. ⚠️ işareti, yukarıda açıklanan farklarla çalışan özellikleri gösterir.
 
 | Özellik | TestNG | JUnit 5 |
 |---|:---:|:---:|
 | Otomatik WebDriver Yaşam Döngüsü | ✅ | ✅ |
+| `per-suite` Tarayıcı Yeniden Kullanımı | ✅ | ⚠️ test sınıfı başına |
 | ThreadLocal Sürücü İzolasyonu | ✅ | ✅ |
 | Akıcı Locator'lar (`$()`, `find()`) | ✅ | ✅ |
 | Anlamsal Locator'lar (`getByRole`, `getByText` vb.) | ✅ | ✅ |
@@ -449,6 +465,6 @@ Karantinaya alınan testler henüz tarayıcı ayağa kaldırılmadan güvenle at
 | Yürütme İzi (Trace) ve Ekran Kaydı (Video) | ✅ | ✅ |
 | JavaScript Konsol Hataları Denetimi | ✅ | ✅ |
 | `@PreCondition` Oturum Önbellekleme | ✅ | ✅ |
-| `@Retryable` Akıllı Yeniden Deneme Mekanizması | ✅ | ✅ |
+| `@Retryable` Akıllı Yeniden Deneme Mekanizması | ✅ | ⚠️ yalnızca metot gövdesi |
 | `testfly-quarantine.yml` Karantina Desteği | ✅ | ✅ |
 | ReportPortal, TestRail ve Xray Entegrasyonu | ✅ | ✅ |

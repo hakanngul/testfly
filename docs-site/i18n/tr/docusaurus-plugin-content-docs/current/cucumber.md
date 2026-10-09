@@ -19,9 +19,9 @@ Projenizin `pom.xml` dosyasına TestFly'ın yanına Cucumber bağımlılıkları
 <dependencies>
     <!-- TestFly Çekirdeği -->
     <dependency>
-        <groupId>io.testfly</groupId>
+        <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.7</version>
     </dependency>
 
     <!-- Cucumber Java ve TestNG -->
@@ -114,6 +114,10 @@ execution:
 browser:
   name: chrome
   headless: true
+
+timeouts:
+  explicit: 10
+  pageLoad: 30
 ```
 
 Her senaryo kendi iş parçacığında (thread) `DriverManager` tarafından yönetilen tamamen izole bir `WebDriver` örneğine sahip olur.
@@ -168,7 +172,7 @@ public class LoginSteps extends BaseCucumberSteps {
 | **Akıcı Locator'lar** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
 | **Web-Öncelikli Doğrulamalar** | `assertThat(By)`, `assertThat(Locator)` otomatik beklemeli doğrulamalar |
 | **Soft Assertions** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)` |
-| **Yerleşik REST İstemcisi** | `apiClient()`, `apiGet(path)`, `apiPost(path, body)`, `apiPut()`, `apiDelete()` |
+| **Yerleşik REST İstemcisi** | `apiClient()`, `apiGet(path)`, `apiPost(path)`, `apiPut(path)`, `apiDelete(path)` (her biri bir `ApiClient` builder döndürür; `.send()` ile bitirin) |
 | **Adım Kaydı (Step Logging)**| `step(name)`, `step(name, takeScreenshot)` |
 | **Cucumber Bağlamı** | `getScenario()` ile mevcut `io.cucumber.java.Scenario` nesnesine erişim |
 
@@ -178,14 +182,13 @@ public class LoginSteps extends BaseCucumberSteps {
 
 Standart Cucumber'da farklı step sınıfları arasında veri aktarımı yapmak (örneğin giriş adımında alınan token'ı veya sipariş numarasını ödeme adımında kullanmak) için PicoContainer, Spring veya Guice gibi harici dependency injection araçları yapılandırmak gerekir.
 
-TestFly, thread-safe çalışan yerleşik **`ScenarioContext`** mekanizması ile bunu sıfır yapılandırmayla çözer:
+TestFly, thread-safe çalışan yerleşik **`ScenarioContext`** mekanizması ile bunu sıfır yapılandırmayla çözer; her step sınıfında `ctx()` olarak kullanılabilir:
 
 ```java title="src/test/java/com/sirketiniz/bdd/steps/OrderSteps.java"
 package com.sirketiniz.bdd.steps;
 
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
-import io.testfly.context.ScenarioContext;
 import io.testfly.cucumber.BaseCucumberSteps;
 import org.openqa.selenium.By;
 
@@ -197,13 +200,13 @@ public class OrderSteps extends BaseCucumberSteps {
         String orderNumber = find("#confirmation-num").getText();
 
         // Veriyi sonraki adımlar (veya farklı step sınıfları) için saklayın
-        ScenarioContext.put("orderId", orderNumber);
+        ctx().set("orderId", orderNumber);
     }
 
     @Then("sipariş durumu onaylandı olmalıdır")
     public void verifyOrderStatus() {
         // Saklanan veriyi başka bir adımda okuyun
-        String orderId = ScenarioContext.get("orderId", String.class);
+        String orderId = ctx().get("orderId", String.class);
         
         open("/orders/" + orderId);
         assertThat(By.id("order-status")).hasText("CONFIRMED");
@@ -220,17 +223,22 @@ public class OrderSteps extends BaseCucumberSteps {
 BDD senaryolarında kullanıcı veya ürün gibi önkoşul verilerini UI üzerinden tıklayarak oluşturmak testleri ciddi oranda yavaşlatır. `BaseCucumberSteps` içindeki yerleşik API metotlarını kullanarak önkoşulları saniyeler içinde hazırlayabilirsiniz:
 
 ```java
+import io.cucumber.java.en.Given;
+import io.testfly.cucumber.BaseCucumberSteps;
+
 public class UserSteps extends BaseCucumberSteps {
 
     @Given("sistemde e-postası {string} olan aktif bir müşteri bulunur")
     public void seedUserViaApi(String email) {
         // Kullanıcıyı REST API ile anında oluşturun
         String json = String.format("{\"email\":\"%s\",\"role\":\"CUSTOMER\"}", email);
-        String userId = apiPost("/api/users", json)
-                .assertThat().statusCode(201)
-                .jsonPath().getString("id");
+        String userId = apiPost("/api/users")
+                .body(json)
+                .send()
+                .assertStatus(201)
+                .json("$.id");
 
-        ScenarioContext.put("userId", userId);
+        ctx().set("userId", userId);
     }
 }
 ```

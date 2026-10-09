@@ -24,8 +24,8 @@ Geleneksel assertion'lar (TestNG `Assert.assertTrue(el.isDisplayed())` veya JUni
 
 TestFly'ın `assertThat()` mekanizması:
 1. `testfly.yml` dosyasındaki `timeouts.explicit` (varsayılan 10s) süresince **otomatik yeniden dener**.
-2. Her doğrulama adımını otomatik olarak [`StepLogger`](file:///src/main/java/io/testfly/steps/StepLogger.java)'a kaydeder ve HTML raporda görselleştirir.
-3. Hem Selenium [`By`](file:///src/main/java/io/testfly/assertion/SeleniumAssert.java#L35) hem de akıcı [`Locator`](file:///src/main/java/io/testfly/assertion/SeleniumAssert.java#L43) (`$()`, `getByRole()` vb.) nesneleriyle tam uyumlu çalışır.
+2. Her doğrulama adımını otomatik olarak [`StepLogger`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/steps/StepLogger.java)'a kaydeder ve HTML raporda görselleştirir.
+3. Hem Selenium [`By`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/assertion/SeleniumAssert.java) hem de akıcı [`Locator`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/locator/Locator.java) (`$()`, `getByRole()` vb.) nesneleriyle tam uyumlu çalışır.
 
 ---
 

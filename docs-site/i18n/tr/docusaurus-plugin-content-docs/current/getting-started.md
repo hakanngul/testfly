@@ -47,7 +47,7 @@ TestFly'ı mevcut bir projeye ekliyorsanız aşağıdaki adımları izleyin:
 
 ```xml title="pom.xml"
 <dependency>
-    <groupId>io.testfly</groupId>
+    <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
     <version>1.0.7</version>
 </dependency>
@@ -58,7 +58,7 @@ TestFly'ı mevcut bir projeye ekliyorsanız aşağıdaki adımları izleyin:
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.7'
+    testImplementation 'io.github.hakanngul:testfly:1.0.7'
 }
 
 test {
@@ -72,7 +72,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.testfly:testfly:1.0.7")
+    testImplementation("io.github.hakanngul:testfly:1.0.7")
 }
 
 tasks.test {
@@ -95,12 +95,13 @@ Paralel yapılandırma, JUnit 5, isteğe bağlı bağımlılıklar ve rapor konu
 Proje köküne `testfly.yml` oluşturun (`pom.xml` veya `build.gradle` yanına):
 
 ```yaml title="testfly.yml"
+execution:
+  mode: local
+  baseUrl: https://your-app.com
+
 browser:
   name: chrome
   headless: false
-
-execution:
-  baseUrl: https://your-app.com
 
 retry:
   enabled: true
@@ -110,6 +111,10 @@ timeouts:
   explicit: 10
   pageLoad: 30
 ```
+
+:::note Zorunlu anahtarlar
+`execution.mode`, `browser.name`, `timeouts.explicit` ve `timeouts.pageLoad` zorunludur. Bunlardan biri eksikse TestFly başlangıçta yapılandırma hatasıyla durur. Diğer her şeyin makul bir varsayılanı vardır.
+:::
 
 ---
 

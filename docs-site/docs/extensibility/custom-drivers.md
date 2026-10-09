@@ -15,6 +15,8 @@ You do not need a custom provider for Edge or Safari. Set `browser.name: edge` o
 
 ---
 
+Appium examples require your own compatible Appium Java client dependency and a running Appium server. TestFly does not bundle that client.
+
 ## Create a custom driver provider
 
 ```java
@@ -79,6 +81,12 @@ DriverProviderRegistry.register(new AndroidProvider());
 ## BrowserStack example
 
 ```java
+import io.testfly.driver.NamedDriverProvider;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import java.util.HashMap;
+
 public class BrowserStackProvider implements NamedDriverProvider {
 
     @Override
@@ -94,9 +102,12 @@ public class BrowserStackProvider implements NamedDriverProvider {
         bstackOptions.put("browserVersion", "latest");
         options.setCapability("bstack:options", bstackOptions);
 
-        return new RemoteWebDriver(
-            new URL("https://hub-cloud.browserstack.com/wd/hub"), options
-        );
+        try {
+            return new RemoteWebDriver(
+                java.net.URI.create("https://hub-cloud.browserstack.com/wd/hub").toURL(), options);
+        } catch (java.net.MalformedURLException e) {
+            throw new IllegalStateException("Invalid BrowserStack endpoint", e);
+        }
     }
 }
 ```
@@ -122,7 +133,11 @@ public class AndroidAppProvider implements NamedDriverProvider {
             .setDeviceName("emulator-5554")
             .setApp("/path/to/app.apk");
 
-        return new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+        try {
+            return new AndroidDriver(java.net.URI.create("http://127.0.0.1:4723").toURL(), options);
+        } catch (java.net.MalformedURLException e) {
+            throw new IllegalStateException("Invalid Appium endpoint", e);
+        }
     }
 }
 ```
@@ -131,7 +146,7 @@ public class AndroidAppProvider implements NamedDriverProvider {
 
 ## Provider selection order
 
-1. **Remote mode** (`browser.mode: remote`) → always uses `RemoteDriverProvider`
+1. **Remote mode** (`execution.mode: remote`) → always uses `RemoteDriverProvider`
 2. **Custom provider** registered via SPI or programmatically → used if `browser.name` matches `browserName()`
 3. **Built-in Chrome** → used if `browser.name: chrome`
 4. **Built-in Firefox** → used if `browser.name: firefox`

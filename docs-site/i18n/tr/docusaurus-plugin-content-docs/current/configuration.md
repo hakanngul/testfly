@@ -16,8 +16,8 @@ TestFly framework'ünün tüm çalışma davranışı `testfly.yml` dosyası ile
 TestFly test paketi başlatılırken yapılandırma dosyasını şu öncelik sırasına göre arar:
 
 1. **Sistem Özelliği (System Property)** — `-Dtestfly.config=/path/to/custom.yml` (en yüksek öncelik)
-2. **Çalışma Dizini (Working Directory)** — `./testfly.yml` (`pom.xml` veya `build.gradle` dosyanızın bulunduğu proje kök dizini)
-3. **Classpath Kaynağı** — `src/test/resources/testfly.yml` (yedek konum)
+2. **Classpath Kaynağı** — `src/test/resources/testfly.yml`
+3. **Çalışma Dizini (Working Directory)** — `./testfly.yml` (yedek konum)
 
 Bu konumlardan hiçbirinde geçerli bir yapılandırma dosyası bulunamazsa, test paketi başlatması açıklayıcı bir `IllegalStateException` ile derhal durdurulur.
 
@@ -27,15 +27,14 @@ Bu konumlardan hiçbirinde geçerli bir yapılandırma dosyası bulunamazsa, tes
 
 ### Yer Tutucu Sözdizimi (`${VAR_NAME}`)
 
-`testfly.yml` içindeki tüm skaler değerler ortam değişkenlerine veya Java sistem özelliklerine başvurabilir:
+`testfly.yml` içindeki tüm **metin (string)** değerler (metin liste öğeleri ve map değerleri dahil) ortam değişkenlerine veya Java sistem özelliklerine başvurabilir:
 
 ```yaml
 execution:
   baseUrl: ${BASE_URL}
-
-browserstack:
-  username: ${BS_USER}
-  accessKey: ${BS_KEY}
+  browserstack:
+    username: ${BS_USER}
+    accessKey: ${BS_KEY}
 
 api:
   auth:
@@ -44,9 +43,9 @@ api:
       token: ${API_TOKEN}
 ```
 
-* Belirtilen ortam değişkeni mevcutsa, çalışma zamanında `${VAR_NAME}` yerine değeri yerleştirilir.
-* Değişken tanımlı değilse, TestFly Java sistem özelliklerini kontrol eder (`System.getProperty("VAR_NAME")`).
-* İkisi de yoksa `${VAR_NAME}` değişmeden kalır veya bağlama göre boş string olarak değerlendirilir.
+Çözümleme sırası: proje kökündeki `.env`, shell ortam değişkeni, Java sistem özelliği (`-DVAR_NAME=value`) ve `${VAR_NAME:-default}` varsayılanıdır. Kaynak bulunamazsa yer tutucu korunur; gerekli değerleri çalıştırmadan önce sağlayın.
+
+Yer tutucular YAML ayrıştırıldıktan sonra çözüldüğü için boolean ve sayısal alanlar (örneğin `browser.headless`, `execution.threadCount`) bunları kullanamaz — `headless: ${HEADLESS:-true}` açılışta `ConstructorException` ile başarısız olur. Bu değerler için bir profil dosyası (`-Dtestfly.profile=ci`) kullanın.
 
 ### Ortam Profilleri (`-Dtestfly.profile`)
 
@@ -65,8 +64,8 @@ Bir profili Maven veya Gradle ile etkinleştirebilirsiniz:
 mvn test -Dtestfly.profile=staging
 ```
 
-:::tip Derin Birleştirme (Deep Merge)
-Profil dosyalarında **yalnızca değiştirmek istediğiniz alanları tanımlamanız yeterlidir**. TestFly, profil dosyasını ana `testfly.yml` dosyasının üzerine birleştirir; belirtilmeyen tüm temel ayarlar korunur.
+:::note Profil seçimi
+Her profil dosyası tam bir yapılandırmadır. TestFly seçilen dosyayı `testfly.yml` ile birleştirmeden yükler. Belirtilmeyen isteğe bağlı alanlar framework varsayılanlarını kullanır; zorunlu ayarlar profil dosyasında bulunmalıdır.
 :::
 
 ---
@@ -121,6 +120,7 @@ execution:
   parallel: none                    # none | methods | classes | tests | instances
   threadCount: 1                    # parallel etkin olduğunda eşzamanlı çalışan iş parçacığı sayısı
   maxActiveSessions: 5              # eşzamanlı aktif tarayıcı sayısını sınırlayan semafor
+  sessionWaitSeconds: 300           # testin boş tarayıcı yuvası için bekleyeceği süre, sn (0 = beklemeden hata ver)
 
   # ── CI Sharding (Parçalama)
   sharding:
@@ -313,7 +313,15 @@ database:
 # ── API Testi (API Testing) ──────────────────────────────────────────────────
 api:
   baseUrl: https://api.example.com  # ApiClient için varsayılan HTTP adresi
-  timeoutSeconds: 30
+  timeoutSeconds: 30                # istek başına zaman aşımı (saniye)
+  connectTimeoutSeconds: 30         # TCP/TLS bağlantı zaman aşımı; > 0 olmalı
+  maxConcurrentRequests: 0          # eşzamanlı gerçek HTTP gönderim tavanı; 0 = sınırsız
+  ssl:
+    trustAll: false                 # tüm sertifika zincirlerine güven (hostname yine doğrulanır)
+    # trustStore:                   # özel güven deposu — trustAll ile birlikte kullanılamaz
+    #   path: certs/truststore.p12  # trustStore bloğu yazıldığında zorunludur
+    #   type: PKCS12                # PKCS12 (varsayılan) veya JKS
+    #   password: ${TESTFLY_TRUSTSTORE_PASSWORD}
   logBody: false                    # istek ve yanıt gövdelerini HTML adım günlüğüne ekle
   logContext: true                  # sorgu parametrelerini ve başlıkları günlüğe kaydet
   prettyLog: false                  # JSON yanıtlarını biçimlendirilmiş (girintili) yaz
@@ -490,12 +498,15 @@ Test dağıtımı, temel adresler, eşzamanlılık ve bulut ızgara (grid) sağl
 | `gridUrl` | `string` | `null` | Uzak Selenium Grid adresi (`mode: remote` iken zorunludur). Örnek: `http://localhost:4444`. |
 | `parallel` | `string` | `none` | TestNG paralel dağıtım modu: `none`, `methods`, `classes`, `tests`, `instances`. |
 | `threadCount` | `int` | `1` | Paralel mod aktifken çalışacak iş parçacığı (worker thread) sayısı. |
-| `maxActiveSessions` | `int` | `5` | Eşzamanlı aktif tarayıcı oturumlarını sınırlayan semafor. Ekstra testler yuva boşalana kadar 30 saniyeye kadar bekler. |
+| `maxActiveSessions` | `int` | `5` | Eşzamanlı aktif tarayıcı oturumlarını sınırlayan semafor. Ekstra thread'ler yuva boşalana kadar kuyrukta bekler (bkz. `sessionWaitSeconds`). `MultiSessionManager` ile açılan adlandırılmış oturumlar da aynı sınıra sayılır. |
+| `sessionWaitSeconds` | `int` | `300` | Bir thread'in boş oturum yuvası için, zaman aşımı hatası vermeden önce bekleyeceği süre (saniye). `0` değeri, boş yuva yoksa beklemeden hata verir. `>= 0` olmalıdır. Önceki sürümlerde sabit 30 saniyeydi. |
 | `sharding.enabled` | `boolean` | `false` | CI ortamlarında testleri paralel worker'lar arasında bölüştürür. |
 | `sharding.total` | `int` | `1` | Toplam paralel CI worker (shard) sayısı. |
 | `sharding.index` | `int` | `0` | Bu worker'ın sıfır-tabanlı indeksi (`0` ile `total-1` arası). |
 | `sharding.strategy` | `string` | `lpt` | Bölüştürme stratejisi: `lpt` (en uzun test önce) veya `round-robin`. |
 | `sharding.metricsFile` | `string` | `target/testfly-metrics.json` | LPT stratejisi için geçmiş süre metriklerinin okunduğu dosya. |
+
+**Boyutlandırma kuralı:** `maxActiveSessions` değerini en az `threadCount` kadar yapın (bir test aynı anda ek adlandırılmış oturum açıyorsa her biri için bir yuva daha ekleyin). `parallel` değeri `none` değilse ve `threadCount`, `maxActiveSessions` değerinden büyükse TestFly başlangıçta uyarı yazar: fazla thread'ler yuva için kuyrukta bekler ve yuva `sessionWaitSeconds` içinde boşalmazsa zaman aşımı hatasıyla başarısız olur. Çalıştırma reddedilmez.
 
 #### Bulut Blokları: `browserstack` & `saucelabs`
 
@@ -647,6 +658,21 @@ Yerleşik REST istemcisi (`ApiClient` & `BaseApiTest`) yapılandırması.
 | `logCurl` | `boolean` | `false` | Başarısız isteklerde eşdeğer `curl` komutunu yazdır. |
 | `truncationLimit` | `int` | `300` | Yanıt gövdelerinin günlüğe yazılacağı maksimum karakter sayısı. |
 | `maskedHeaders` | `list<string>` | `["Authorization", "Cookie", "X-Api-Key"]` | Günlüklerde maskelenecek başlıklar. |
+
+### SSL ve transport ayarları
+
+| Alan | Tip | Varsayılan | Anlamı |
+|---|---|---|---|
+| `api.connectTimeoutSeconds` | `int` | `30` | Alttaki JDK `HttpClient` bağlantı zaman aşımı. `> 0` olmalıdır; aksi halde ilk istek `IllegalArgumentException` ile başarısız olur. |
+| `api.maxConcurrentRequests` | `int` | `0` | Runtime genelinde eşzamanlı gerçek HTTP gönderim tavanı (adil semafor); `0` sınırsızdır, negatif değerler reddedilir. Mock yanıtlar permit tüketmez. Test kapsamları aktifken değer değiştirilemez. |
+| `api.ssl.trustAll` | `boolean` | `false` | Her sertifika zincirine güvenir, HTTPS hostname doğrulamasını korur; kapsam başına bir kez `WARN` adımı loglar. |
+| `api.ssl.trustStore.path` | `string` | — | Özel güven deposunun dosya yolu; bu profil için varsayılan JDK deposunun yerini alır. `trustStore` bloğu yazıldığında zorunludur. |
+| `api.ssl.trustStore.type` | `string` | `PKCS12` | `PKCS12` veya `JKS`; başka değerler reddedilir. |
+| `api.ssl.trustStore.password` | `string` | `null` | Parolayı `${TESTFLY_TRUSTSTORE_PASSWORD}` ile sağlayın; asla commit'lemeyin. |
+
+`trustAll: true` ile birlikte bir `trustStore` bloğu tanımlamak `Conflicting SSL selection` hatası verir. İstek üzerindeki `.trustStore(...)` veya `.trustAllCerts()` o istek için YAML SSL seçiminin tamamını geçersiz kılar. `.requestTimeout(Duration)` veya mevcut `.timeout(int)` istek başına zaman aşımını değiştirir; son çağrı kazanır. Bu bir socket read-idle timeout değildir. Batch limiti mantıksal çağrıları, global limit gerçek gönderimleri sınırlar.
+
+[SSL yapılandırması](guides/api-ssl.md) ve [Timeouts & Performance](guides/api-performance.md) sayfalarına bakın.
 
 #### `api.retry`
 

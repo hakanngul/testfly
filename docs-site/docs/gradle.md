@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.0'
+    testImplementation 'io.github.hakanngul:testfly:1.0.7'
 }
 ```
 
@@ -46,7 +46,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation("io.testfly:testfly:1.0.0")
+    testImplementation("io.github.hakanngul:testfly:1.0.7")
 }
 ```
 
@@ -112,7 +112,7 @@ If you're using `BaseJUnit5Test` or `@EnableTestFly`:
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.0'
+    testImplementation 'io.github.hakanngul:testfly:1.0.7'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
 }
@@ -128,7 +128,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.testfly:testfly:1.0.0")
+    testImplementation("io.github.hakanngul:testfly:1.0.7")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
 }
@@ -156,6 +156,10 @@ execution:
 browser:
   name: chrome
   headless: true
+
+timeouts:
+  explicit: 10
+  pageLoad: 30
 
 retry:
   enabled: true
@@ -243,8 +247,8 @@ These are `compileOnly` / optional in the TestFly JAR — add them only if you u
 
 | Feature | Dependency |
 |---|---|
-| Excel `@TestData` | `testImplementation 'org.apache.poi:poi-ooxml:5.2.5'` |
-| Email verification (IMAP) | `testImplementation 'com.sun.mail:jakarta.mail:2.0.1'` |
+| Excel `@TestData` | `testImplementation 'org.apache.poi:poi-ooxml:5.4.0'` |
+| Email verification (IMAP) | `testImplementation 'com.sun.mail:jakarta.mail:2.0.2'` |
 | Cucumber | `testImplementation 'io.cucumber:cucumber-java:7.20.1'` + `testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.20.1'` |
 
 ---
@@ -274,7 +278,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.0'
+    testImplementation 'io.github.hakanngul:testfly:1.0.7'
 }
 
 test {

@@ -128,7 +128,7 @@ find("#email").type("a@b.com");
 
 1. **Replace dependency**
    - Remove `com.codeborne:selenide`
-   - Add `io.testfly:testfly`
+   - Add `io.github.hakanngul:testfly`
 
 2. **Move configuration to `testfly.yml`**
    - `Configuration.browser` → `browser.name`

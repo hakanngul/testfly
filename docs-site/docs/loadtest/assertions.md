@@ -31,7 +31,7 @@ load("/api/v1/feed")
 When an assertion fails, TestFly produces detailed diagnostic failure messages:
 
 ```
-java.lang.AssertionError: [LoadTest] P95 latency assertion failed: expected <= 200 ms, but was 348 ms (P50: 120ms, P90: 280ms, P99: 512ms)
+java.lang.AssertionError: [LoadTest] /api/v1/feed: p95 latency 348ms is not below 250ms
 ```
 
 ---
@@ -49,6 +49,10 @@ load("/api/orders")
     .assertSuccessRateAbove(0.99);  // At least 99% requests must succeed
 ```
 
+:::caution What counts as an error
+With the JDK engine, a request is counted as failed only when it throws (connection refused, timeout, I/O error) or when one of its `check(...)` conditions fails. An HTTP 4xx or 5xx response without a `check(status().is(...))` is currently counted as a **successful** request, so it does not raise the error rate. Add `check(status().is(200))` to a step, or use `assertNoStatus(...)` (section 3), to catch error responses. Requests that never received a response are recorded under the status code `-1`.
+:::
+
 ---
 
 ## 3. HTTP Status Code Assertions
@@ -64,7 +68,7 @@ load("/api/payments")
     .assertNoStatus(503)                 // No Service Unavailable
     .assertNoStatus(504)                 // No Gateway Timeout
     .assertNoStatus(429)                 // No Too Many Requests
-    .assertStatusCodeCount(200, 1000);   // Exactly 1,000 OK responses
+    .assertStatusCodeCount(200, 1000);   // At least 1,000 OK responses
 ```
 
 ---
@@ -73,18 +77,33 @@ load("/api/payments")
 
 In multi-step scenarios, you can assert against individual steps by name:
 
-```java
-LoadScenario flow = LoadScenario.named("Checkout Flow")
-    .step("Login", req -> req.post("/api/login").body("..."))
-    .step("Process Payment", req -> req.post("/api/pay").body("..."));
 
-load(flow)
-    .users(15)
-    .run()
-    .assertStepP95Below("Login", 150)
-    .assertStepP95Below("Process Payment", 800)
-    .assertStepErrorRateBelow("Process Payment", 0.0);
+```java
+import io.testfly.loadtest.BaseLoadTest;
+import io.testfly.loadtest.LoadTestFeeder;
+import org.testng.annotations.Test;
+import java.time.Duration;
+import java.util.Map;
+
+public class CheckoutLoadTest extends BaseLoadTest {
+    @Test
+    public void checkout() {
+        loadScenario("Checkout")
+            .engine("jdk").users(15).hold(Duration.ofSeconds(10))
+            .feed(LoadTestFeeder.csv("testdata/users.csv"))
+            .step("Login").post("/login")
+                .body(Map.of("username", "${username}", "password", "${password}"))
+                .check(status().is(200)).extract("token", "$.accessToken").and()
+            .step("Payment").post("/payment")
+                .header("Authorization", "Bearer ${token}")
+                .body(Map.of("amount", 10)).check(status().is(200)).and()
+            .run().assertStepP95Below("Login", 300)
+                .assertStepP95Below("Payment", 800)
+                .assertStepErrorRateBelow("Payment", 0.01);
+    }
+}
 ```
+
 
 ---
 

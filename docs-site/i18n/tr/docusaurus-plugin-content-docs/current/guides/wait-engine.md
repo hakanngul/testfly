@@ -1,5 +1,5 @@
 ---
-description: "Thread.sleep() olmadan Selenium'da açık beklemeler (explicit wait): WaitEngine, testfly.yml süreniz tarafından yönlendirilen akıcı ve otomatik yapılandırılmış beklemeler sağlar."
+description: "Thread.sleep() olmadan Selenium'da açık bekleme (explicit wait): WaitEngine, testfly.yml süreniz tarafından yönlendirilen akıcı ve otomatik yapılandırılmış beklemeler sağlar."
 id: wait-engine
 title: Selenium Beklemeleri (WaitEngine)
 sidebar_label: WaitEngine
@@ -8,7 +8,11 @@ sidebar_position: 3
 
 # WaitEngine
 
-`WaitEngine`, akıcı açık beklemeler (explicit wait) sağlar. `testfly.yml` içindeki süre (`timeouts.explicit`) ile önceden yapılandırılmıştır ve her `BasePage` içinde `getWait()` aracılığıyla kullanılabilir.
+`WaitEngine`, `WaitEngine.waitForXxx(...)` çağrılarıyla kullanılan statik bir yardımcı sınıftır. `testfly.yml` içindeki süre (`timeouts.explicit`) ile önceden yapılandırılmıştır.
+
+```java
+import io.testfly.wait.WaitEngine;
+```
 
 ---
 
@@ -17,74 +21,74 @@ sidebar_position: 3
 ### Öğe görünürlüğü
 
 ```java
-getWait().waitForVisible(By.id("modal"));
-getWait().waitForInvisible(By.cssSelector(".spinner"));  // wait for loaders to disappear
+WaitEngine.waitForVisible(By.id("modal"));
+WaitEngine.waitForInvisible(By.cssSelector(".spinner"));  // yükleme göstergelerinin kaybolmasını bekler
 ```
 
 ### Tıklanabilirlik
 
 ```java
-getWait().waitForClickable(By.id("submit"));
+WaitEngine.waitForClickable(By.id("submit"));
 ```
 
 ### Etkin / devre dışı
 
 ```java
-getWait().waitForEnabled(By.id("submit"));   // ready to interact
-getWait().waitForDisabled(By.id("submit"));  // button is greyed out
+WaitEngine.waitForEnabled(By.id("submit"));   // etkileşime hazır
+WaitEngine.waitForDisabled(By.id("submit"));  // buton pasif (gri)
 ```
 
 ### Seçili
 
 ```java
-getWait().waitForSelected(By.id("terms"));   // checkbox or radio is checked
+WaitEngine.waitForSelected(By.id("terms"));   // checkbox veya radio seçili
 ```
 
 ### Metin içeriği
 
 ```java
-getWait().waitForText(By.cssSelector("h1"), "Welcome back");
+WaitEngine.waitForText(By.cssSelector("h1"), "Welcome back");
 ```
 
 ### Öznitelik değeri
 
 ```java
-getWait().waitForAttributeContains(By.id("status"), "class", "active");  // substring
-getWait().waitForAttribute(By.id("status"), "aria-expanded", "true");    // exact match
+WaitEngine.waitForAttributeContains(By.id("status"), "class", "active");  // alt dize
+WaitEngine.waitForAttribute(By.id("status"), "aria-expanded", "true");    // tam eşleşme
 ```
 
 ### Metin eşleşmesi (regex)
 
 ```java
-// Wait until the element's visible text matches a regular expression
-getWait().waitForTextMatches(By.cssSelector(".total"), "\\$\\d+\\.\\d{2}");
+// Öğenin görünen metni bir düzenli ifadeyle eşleşene kadar bekler
+WaitEngine.waitForTextMatches(By.cssSelector(".total"), "\\$\\d+\\.\\d{2}");
 ```
 
 ### URL eşleşmesi (regex)
 
 ```java
-getWait().waitForUrlContains("/orders");            // substring
-getWait().waitForUrlMatches(".*/orders/\\d+");      // regular expression
+WaitEngine.waitForUrlContains("/orders");            // alt dize
+WaitEngine.waitForUrlMatches(".*/orders/\\d+");      // düzenli ifade
 ```
 
 ### DOM eskiliği (stale)
 
 ```java
-WebElement old = driver.findElement(By.id("row-1"));
-getWait().waitForStaleness(old);  // wait for DOM replacement / AJAX reload
+WebElement old = getDriver().findElement(By.id("row-1"));
+WaitEngine.waitForStaleness(old);  // DOM değişimini / AJAX yenilemesini bekler
 ```
 
 ### Sayfa yükleme
 
 ```java
-getWait().waitForPageLoad();  // waits until document.readyState === "complete"
+WaitEngine.waitForPageLoad();  // document.readyState === "complete" olana kadar bekler
 ```
 
 ### Pencereler ve çerçeveler (frame)
 
 ```java
-getWait().waitForNumberOfWindowsToBe(2);   // new tab opened
-getWait().waitForFrameAvailableAndSwitchToIt(By.id("payment-iframe"));
+WaitEngine.waitForNumberOfWindowsToBe(2);   // yeni sekme açıldı
+WaitEngine.waitForFrameAvailableAndSwitchToIt(By.id("payment-iframe"));
 ```
 
 ### Minimum öğe sayısı
@@ -92,24 +96,26 @@ getWait().waitForFrameAvailableAndSwitchToIt(By.id("payment-iframe"));
 Zaman uyumsuz olarak büyüyen listeler ve sonsuz kaydırmalı (infinite-scroll) akışlar için kullanışlıdır:
 
 ```java
-getWait().waitForMinimumElementCount(By.cssSelector(".product-card"), 10);
+WaitEngine.waitForMinimumElementCount(By.cssSelector(".product-card"), 10);
 ```
 
 ### Özel koşul
 
 ```java
-// Escape hatch — pass any ExpectedCondition
-getWait().wait(ExpectedConditions.numberOfWindowsToBe(2));
+// Kaçış yolu — herhangi bir ExpectedCondition verin
+WaitEngine.wait(ExpectedConditions.numberOfWindowsToBe(2));
 ```
 
 ---
 
-## Süre (timeout) geçersiz kılma
+## Özel süre (timeout)
 
-Global yapılandırmayı değiştirmeden tek bir bekleme için özel bir süre kullanın:
+`WaitEngine` her zaman `testfly.yml` içindeki global süreyi kullanır. Tek seferlik özel bir süreye ihtiyacınız varsa doğrudan bir `WebDriverWait` oluşturun:
 
 ```java
-getWait(30).waitForVisible(By.id("slow-element"));  // 30-second timeout
+// Özel süre — doğrudan bir WebDriverWait oluşturun
+new WebDriverWait(getDriver(), Duration.ofSeconds(30))
+    .until(ExpectedConditions.visibilityOfElementLocated(By.id("slow-element")));
 ```
 
 ---
@@ -118,8 +124,8 @@ getWait(30).waitForVisible(By.id("slow-element"));  // 30-second timeout
 
 ```yaml title="testfly.yml"
 timeouts:
-  explicit: 10   # seconds — default for all WaitEngine calls
-  pageLoad: 30   # seconds — browser page load timeout
+  explicit: 10   # saniye — tüm WaitEngine çağrıları için varsayılan
+  pageLoad: 30   # saniye — tarayıcı sayfa yükleme süresi
 ```
 
 ---
@@ -127,18 +133,18 @@ timeouts:
 ## Kaçınılması gereken anti-pattern'ler
 
 ```java
-// ❌ never do this
+// ❌ asla böyle yapmayın
 Thread.sleep(3000);
 
-// ✅ do this instead
-getWait().waitForVisible(By.id("result"));
+// ✅ bunun yerine şunu yapın
+WaitEngine.waitForVisible(By.id("result"));
 ```
 
 ```java
-// ❌ raw WebDriverWait — bypasses framework timeout config
-new WebDriverWait(driver, Duration.ofSeconds(10))
-    .until(ExpectedConditions.visibilityOf(...));
+// ❌ ham WebDriverWait — framework süre yapılandırmasını atlar
+new WebDriverWait(getDriver(), Duration.ofSeconds(10))
+    .until(ExpectedConditions.visibilityOfElementLocated(By.id("result")));
 
-// ✅ use getWait() — reads timeout from config
-getWait().waitForVisible(By.id("result"));
+// ✅ WaitEngine kullanın — süreyi yapılandırmadan okur
+WaitEngine.waitForVisible(By.id("result"));
 ```

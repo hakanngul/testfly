@@ -66,12 +66,14 @@ browser:
   headless: false
 
 execution:
+  mode: local
   baseUrl: https://your-app.com
   parallel: methods
   threadCount: 4
 
 timeouts:
   explicit: 10
+  pageLoad: 30
 
 retry:
   enabled: true
@@ -121,7 +123,7 @@ Kuruluşunuz Serenity'nin öyküsel canlı-dokümantasyon raporlarına bağıml�
 
 1. **Bağımlılıkları değiştirin**
    - `net.serenity-bdd:*` mekanizmalarını kaldırın
-   - `io.testfly:testfly` ekleyin
+   - `io.github.hakanngul:testfly` ekleyin
 
 2. **Yapılandırmayı taşıyın**
    - `serenity.conf` / `serenity.properties` dosyasını `testfly.yml` dosyasına dönüştürün

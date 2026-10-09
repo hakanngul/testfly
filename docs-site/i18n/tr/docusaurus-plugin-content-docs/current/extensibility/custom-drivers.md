@@ -15,6 +15,8 @@ Edge veya Safari için özel bir sağlayıcıya ihtiyacınız yok. `testfly.yml`
 
 ---
 
+Appium örnekleri, uyumlu Appium Java client bağımlılığını ve çalışan bir Appium sunucusunu sizin eklemenizi gerektirir. TestFly bu client bağımlılığını içermez.
+
 ## Özel bir driver sağlayıcısı oluşturun
 
 ```java
@@ -79,6 +81,12 @@ DriverProviderRegistry.register(new AndroidProvider());
 ## BrowserStack örneği
 
 ```java
+import io.testfly.driver.NamedDriverProvider;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import java.util.HashMap;
+
 public class BrowserStackProvider implements NamedDriverProvider {
 
     @Override
@@ -94,9 +102,12 @@ public class BrowserStackProvider implements NamedDriverProvider {
         bstackOptions.put("browserVersion", "latest");
         options.setCapability("bstack:options", bstackOptions);
 
-        return new RemoteWebDriver(
-            new URL("https://hub-cloud.browserstack.com/wd/hub"), options
-        );
+        try {
+            return new RemoteWebDriver(
+                java.net.URI.create("https://hub-cloud.browserstack.com/wd/hub").toURL(), options);
+        } catch (java.net.MalformedURLException e) {
+            throw new IllegalStateException("Invalid BrowserStack endpoint", e);
+        }
     }
 }
 ```
@@ -122,7 +133,11 @@ public class AndroidAppProvider implements NamedDriverProvider {
             .setDeviceName("emulator-5554")
             .setApp("/path/to/app.apk");
 
-        return new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+        try {
+            return new AndroidDriver(java.net.URI.create("http://127.0.0.1:4723").toURL(), options);
+        } catch (java.net.MalformedURLException e) {
+            throw new IllegalStateException("Invalid Appium endpoint", e);
+        }
     }
 }
 ```
@@ -131,7 +146,7 @@ public class AndroidAppProvider implements NamedDriverProvider {
 
 ## Sağlayıcı seçim sırası
 
-1. **Uzak mod** (`browser.mode: remote`) → her zaman `RemoteDriverProvider` kullanır
+1. **Uzak mod** (`execution.mode: remote`) → her zaman `RemoteDriverProvider` kullanır
 2. **Özel sağlayıcı** SPI veya programatik olarak kaydedilir → `browser.name` değeri `browserName()` ile eşleşiyorsa kullanılır
 3. **Yerleşik Chrome** → `browser.name: chrome` ise kullanılır
 4. **Yerleşik Firefox** → `browser.name: firefox` ise kullanılır

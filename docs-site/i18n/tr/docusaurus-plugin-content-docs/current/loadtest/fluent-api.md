@@ -1,116 +1,64 @@
 ---
 id: fluent-api
 title: Akıcı (Fluent) Yük Testi API'si
-description: "Tekil uç noktalardan çok adımlı kullanıcı yolculuklarına kadar TestFly akıcı API'si ile esnek yük senaryoları tasarlayın."
 sidebar_position: 3
 ---
 
-# Akıcı (Fluent) Yük Testi API'si
+# Fluent Yük Testi API’si
 
-TestFly Yük Testi API'si, mevcut UI ve API test kalıplarıyla kusursuz bir uyum yakalamak üzere tasarlanmıştır. `load(url)` çağrısıyla başlayarak eşzamanlılık ayarlarını, başlıkları (headers), gövdeleri (payloads) ve çok adımlı eylemleri kolayca zincirleyebilirsiniz.
+Tek GET adımı için `load(path)` kullanın. Header, body, kontrol ve çoklu adım için `loadScenario(name)` ile başlayın. `step(name)`, `LoadStep` döndürür; `and()` üst `LoadScenario` nesnesine döner.
 
----
+## POST isteği
 
-## 1. Tekil Uç Nokta Yük Testi
+Aşağıdaki parça `BaseLoadTest` test metodunun içinde kullanılır; `java.util.Map` import edilmelidir:
 
-Mikroservis sağlık kontrolleri veya tekil REST metotları için `load(...)` metodunu doğrudan çağırın:
 
 ```java
-load("https://api.example.com/items")
-    .get()                                    // varsayılan GET'tir
-    .header("Accept", "application/json")
-    .queryParam("category", "electronics")
-    .users(25)
-    .rampUp(Duration.ofSeconds(5))
-    .hold(Duration.ofSeconds(20))
-    .run();
+loadScenario("Create order").users(10)
+    .step("Create").post("/orders")
+        .header("Content-Type", "application/json")
+        .body(Map.of("sku", "PROD-998", "quantity", 1))
+        .check(status().is(201)).and()
+    .run().assertErrorRateBelow(0.01);
 ```
 
-### JSON Gövdesi ile POST İsteği
+
+## Çok adımlı akış
+
 
 ```java
-String jsonGovde = """
-    {
-      "sku": "PROD-998",
-      "quantity": 1
-    }
-""";
-
-load("/api/cart/add")
-    .post(jsonGovde)
-    .header("Content-Type", "application/json")
-    .users(15)
-    .run();
-```
-
-Desteklenen HTTP metotları: `.get()`, `.post(body)`, `.put(body)`, `.delete()`, `.patch(body)`.
-
----
-
-## 2. Çok Adımlı Kullanıcı Yolculukları (User Journeys)
-
-Gerçek kullanıcılar sadece tek bir adresi sorgulamaz; gezinir, sepete ekler ve ödeme yapar. TestFly bu akışları `step(name, request)` ile modeller:
-
-```java
-import io.testfly.loadtest.LoadScenario;
-import io.testfly.test.BaseTest;
+import io.testfly.loadtest.BaseLoadTest;
+import io.testfly.loadtest.LoadTestFeeder;
 import org.testng.annotations.Test;
 import java.time.Duration;
+import java.util.Map;
 
-public class SiparisAkisiYukTesti extends BaseTest {
-
+public class CheckoutLoadTest extends BaseLoadTest {
     @Test
-    public void kullaniciAlisverisAkisi() {
-        LoadScenario scenario = LoadScenario.named("E-Ticaret Kullanıcı Yolculuğu")
-            .step("Katalog Listeleme", req -> req.get("/api/products?page=1"))
-            .step("Ürün Detayı", req -> req.get("/api/products/42"))
-            .step("Sepete Ekle", req -> req.post("/api/cart")
-                                          .header("Content-Type", "application/json")
-                                          .body("{\"productId\": 42, \"quantity\": 1}"))
-            .step("Ödeme Yap", req -> req.post("/api/checkout")
-                                       .header("Authorization", "Bearer mock-token"));
-
-        load(scenario)
-            .users(30)
-            .rampUp(Duration.ofSeconds(10))
-            .hold(Duration.ofSeconds(30))
-            .run()
-            .assertThroughputAbove(20.0)
-            .assertStepP95Below("Ödeme Yap", 500)
-            .assertErrorRateBelow(0.02);
+    public void checkout() {
+        loadScenario("Checkout")
+            .engine("jdk").users(15).hold(Duration.ofSeconds(10))
+            .feed(LoadTestFeeder.csv("testdata/users.csv"))
+            .step("Login").post("/login")
+                .body(Map.of("username", "${username}", "password", "${password}"))
+                .check(status().is(200)).extract("token", "$.accessToken").and()
+            .step("Payment").post("/payment")
+                .header("Authorization", "Bearer ${token}")
+                .body(Map.of("amount", 10)).check(status().is(200)).and()
+            .run().assertStepP95Below("Login", 300)
+                .assertStepP95Below("Payment", 800)
+                .assertStepErrorRateBelow("Payment", 0.01);
     }
 }
 ```
 
----
 
-## 3. Eşzamanlılık Profili Ayarları
+## Metot referansı
 
-Kullanıcı geliş hızlarını ve artış eğrilerini özelleştirin:
+| Nesne | Metotlar |
+| --- | --- |
+| `BaseLoadTest` | `load(String path)`, `loadScenario(String name)`, `lastLoadMetrics()`, `status()`, `jsonPath(String)` |
+| `LoadScenario` | `users`, `rampUp`, `hold`, `cooldown`, `engine`, `baseUrl`, `feed`, `feedCsv`, `feedJson`, `thinkTime`, `step`, `run` |
+| `LoadStep` | `get(path)`, `post(path)`, `put(path)`, `patch(path)`, `delete(path)`, `header`, `queryParam`, `formParam`, `body`, `check`, `extract`, `and`, `run` |
 
-```java
-load("/api/search")
-    .users(100)                     // Ulaşılacak zirve sanal kullanıcı sayısı
-    .rampUp(Duration.ofSeconds(15)) // 1'den 100 kullanıcıya doğrusal çıkış süresi
-    .hold(Duration.ofSeconds(45))   // Zirve yükün korunacağı süre
-    .targetRps(250)                 // İsteğe bağlı üst limit: saniyede max 250 istek
-    .run();
-```
-
----
-
-## 4. Metot Özeti
-
-| Metot | Açıklama |
-| :--- | :--- |
-| `load(String url)` | Tek bir URL için yük testi başlatır. |
-| `load(LoadScenario scenario)` | Çok adımlı kullanıcı senaryosu için yük testi başlatır. |
-| `users(int count)` | Eşzamanlı sanal kullanıcı sayısını belirler. |
-| `rampUp(Duration duration)` | Doğrusal artış süresini ayarlar. |
-| `hold(Duration duration)` | Zirve kullanıcı sayısının korunacağı süreyi ayarlar. |
-| `targetRps(int rps)` | Saniyedeki istek hızını sınırlar. |
-| `header(String name, String value)` | HTTP başlığı ekler. |
-| `queryParam(String name, String value)` | URL sonuna sorgu parametresi ekler. |
-| `feed(LoadTestFeeder feeder)` | Senaryoya dinamik veri besleyici bağlar. |
-| `engine(String engine)` | Motor seçimini geçersiz kılar (`"auto"`, `"gatling"`, `"jdk"`). |
-| `run()` | Testi çalıştırır ve geriye `LoadTestAssert` döndürür. |
+`thinkTime(Duration)` sabit, `thinkTime(minMs, maxMs)` rastgele istekler arası bekleme belirler. `extract`, yanıt değerini aynı sanal kullanıcının sonraki adımlarına aktarır. `load(LoadScenario)` overload’u veya `targetRps()` throttling API’si yoktur. Yük ayarlarını senaryoya, istek ayarlarını adımlarına uygulayın.

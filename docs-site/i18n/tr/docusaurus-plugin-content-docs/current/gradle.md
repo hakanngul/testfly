@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.testfly:testfly:2.6.0'
+    testImplementation 'io.github.hakanngul:testfly:1.0.7'
 }
 ```
 
@@ -46,7 +46,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation("io.testfly:testfly:2.6.0")
+    testImplementation("io.github.hakanngul:testfly:1.0.7")
 }
 ```
 
@@ -112,7 +112,7 @@ tasks.test {
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:2.6.0'
+    testImplementation 'io.github.hakanngul:testfly:1.0.7'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
 }
@@ -128,7 +128,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.testfly:testfly:2.6.0")
+    testImplementation("io.github.hakanngul:testfly:1.0.7")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
 }
@@ -156,6 +156,10 @@ execution:
 browser:
   name: chrome
   headless: true
+
+timeouts:
+  explicit: 10
+  pageLoad: 30
 
 retry:
   enabled: true
@@ -243,9 +247,9 @@ Bunlar TestFly JAR'ında `compileOnly` / isteğe bağlıdır — yalnızca ilgil
 
 | Özellik | Bağımlılık |
 |---|---|
-| Excel `@TestData` | `testImplementation 'org.apache.poi:poi-ooxml:5.2.5'` |
-| E-posta doğrulama (IMAP) | `testImplementation 'com.sun.mail:jakarta.mail:2.0.1'` |
-| Cucumber | `testImplementation 'io.cucumber:cucumber-java:7.15.0'` + `testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.15.0'` |
+| Excel `@TestData` | `testImplementation 'org.apache.poi:poi-ooxml:5.4.0'` |
+| E-posta doğrulama (IMAP) | `testImplementation 'com.sun.mail:jakarta.mail:2.0.2'` |
+| Cucumber | `testImplementation 'io.cucumber:cucumber-java:7.20.1'` + `testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.20.1'` |
 
 ---
 
@@ -274,7 +278,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.testfly:testfly:2.6.0'
+    testImplementation 'io.github.hakanngul:testfly:1.0.7'
 }
 
 test {

@@ -31,7 +31,7 @@ timeouts:
 
 `parallel`, `threadCount` ve `maxActiveSessions` değerlerinin tümü `execution:` altında yer alır — bkz. [Yapılandırma Referansı](/docs/configuration#execution). `timeouts.explicit` ve `timeouts.pageLoad`, paralel olsun olmasın her `testfly.yml` için zorunludur.
 
-`maxActiveSessions`, eşzamanlı tarayıcıların üzerinde katı bir tavan görevi görür. `threadCount` 4 ancak `maxActiveSessions` 2 ise, aynı anda en fazla 2 tarayıcı çalışır.
+`maxActiveSessions`, eşzamanlı tarayıcıların üzerinde katı bir tavan görevi görür. `threadCount` 4 ancak `maxActiveSessions` 2 ise, aynı anda en fazla 2 tarayıcı çalışır ve TestFly başlangıçta uyarı yazar. Diğer thread'ler `execution.sessionWaitSeconds` (varsayılan 300) süresine kadar boş yuva bekler; bu yüzden `maxActiveSessions` değerini en az `threadCount` kadar yapın.
 
 ---
 

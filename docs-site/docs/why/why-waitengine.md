@@ -21,7 +21,7 @@ The single biggest source of flaky Selenium tests is **timing**. The page is not
 
 ```java title="The wrong way"
 Thread.sleep(3000); // hope the page is ready
-driver.findElement(By.id("submit")).click();
+getDriver().findElement(By.id("submit")).click();
 ```
 
 Problems:
@@ -36,7 +36,7 @@ Problems:
 ## What is wrong with scattered `WebDriverWait`
 
 ```java title="A little better, still messy"
-new WebDriverWait(driver, Duration.ofSeconds(10))
+new WebDriverWait(getDriver(), Duration.ofSeconds(10))
     .until(ExpectedConditions.elementToBeClickable(By.id("submit")))
     .click();
 ```
@@ -53,7 +53,7 @@ This is correct in isolation, but when every page object invents its own timeout
 ## How WaitEngine fixes it
 
 ```java title="The TestFly way"
-getWait().waitForClickable(By.id("submit"));
+io.testfly.wait.WaitEngine.waitForClickable(By.id("submit"));
 ```
 
 One line:
@@ -61,10 +61,31 @@ One line:
 - Reads the timeout from `testfly.yml` (`timeouts.explicit`)
 - Polls the condition until it is true
 - Fails with a clear message if the condition never becomes true
-- Triggers self-healing fallback if the locator fails
+- Triggers self-healing fallback if the locator fails (when `locators.selfHealing: true`)
 - Is available everywhere `BasePage` and `BaseTest` reach
 
 ---
+
+## Where the wait methods live
+
+- **`WaitEngine`** (`io.testfly.wait.WaitEngine`) is a utility class of **static** methods. They use the framework-managed driver for the current thread and the `timeouts.explicit` value, so you can call them from any page object, test, or helper.
+- **`BasePage` and `BaseTest`** add a few instance shortcuts that delegate to `WaitEngine`: `waitForPageLoad()`, `waitForUrlContains(String)`, `waitForUrlMatches(String)`, `waitForTitle(String)`, and `waitForTitleContains(String)`.
+- **`getWait()`** (on `BasePage` and `BaseTest`) returns a plain Selenium `WebDriverWait` built from `timeouts.explicit`. It has no `waitFor...` methods; use `.until(...)` for custom conditions.
+
+```java title="LoginPage.java"
+import io.testfly.test.BasePage;
+import io.testfly.wait.WaitEngine;
+import org.openqa.selenium.By;
+
+public class LoginPage extends BasePage {
+
+    public void submit() {
+        WaitEngine.waitForClickable(By.id("submit")).click();
+        WaitEngine.waitForInvisible(By.cssSelector(".spinner"));
+        waitForUrlContains("/dashboard");   // BasePage shortcut → WaitEngine.waitForUrlContains
+    }
+}
+```
 
 ## Conditions you do not have to write yourself
 
@@ -74,20 +95,23 @@ One line:
 |---|---|
 | `waitForVisible(By)` | Element appears |
 | `waitForInvisible(By)` | Loader/spinner disappears |
-| `waitForClickable(By)` | Element is enabled and not obscured |
-| `waitForText(By, String)` | Exact text appears |
+| `waitForClickable(By)` | Element is visible and enabled |
+| `waitForText(By, String)` | Element text equals the given string exactly |
 | `waitForTextMatches(By, String)` | Text matches a regex |
 | `waitForAttribute(By, String, String)` | Attribute equals a value |
 | `waitForAttributeContains(...)` | Attribute contains a substring |
 | `waitForUrlContains(String)` / `waitForUrlMatches(String)` | Navigation completed |
 | `waitForPageLoad()` | `document.readyState === "complete"` |
 | `waitForStaleness(WebElement)` | Old DOM node replaced by AJAX |
+| `waitForNumberOfWindowsToBe(int)` | A new tab or window opened |
 | `waitForAlert()` | JavaScript alert present |
 
-Need something custom? The escape hatch is always there:
+Need something custom? The escape hatch accepts any Selenium `ExpectedCondition` and still uses the configured timeout:
 
 ```java
-getWait().wait(ExpectedConditions.numberOfWindowsToBe(2));
+WaitEngine.wait(ExpectedConditions.numberOfElementsToBe(By.cssSelector(".row"), 5));
+// or, equivalently, with the raw WebDriverWait:
+getWait().until(ExpectedConditions.numberOfElementsToBe(By.cssSelector(".row"), 5));
 ```
 
 ---
@@ -104,7 +128,8 @@ Change one number, and the entire suite's wait behavior changes. No page-object 
 For a single slow operation, override without touching config:
 
 ```java
-getWait(30).waitForVisible(By.id("heavy-report"));
+new WebDriverWait(getDriver(), Duration.ofSeconds(30))
+    .until(ExpectedConditions.visibilityOfElementLocated(By.id("heavy-report")));
 ```
 
 ---

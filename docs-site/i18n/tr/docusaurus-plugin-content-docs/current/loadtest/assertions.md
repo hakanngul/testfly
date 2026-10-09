@@ -31,7 +31,7 @@ load("/api/v1/feed")
 Doğrulama başarısız olduğunda TestFly ayrıntılı hata mesajı üretir:
 
 ```
-java.lang.AssertionError: [LoadTest] P95 latency assertion failed: expected <= 200 ms, but was 348 ms (P50: 120ms, P90: 280ms, P99: 512ms)
+java.lang.AssertionError: [LoadTest] /api/v1/feed: p95 latency 348ms is not below 250ms
 ```
 
 ---
@@ -49,6 +49,10 @@ load("/api/orders")
     .assertSuccessRateAbove(0.99);  // İsteklerin en az %99'u başarılı olmalı
 ```
 
+:::caution Neyin hata sayıldığı
+JDK motorunda bir istek yalnızca exception fırlattığında (bağlantı reddi, zaman aşımı, I/O hatası) veya `check(...)` koşullarından biri başarısız olduğunda hatalı sayılır. `check(status().is(...))` olmayan bir adımda HTTP 4xx veya 5xx yanıtı şu anda **başarılı** istek olarak sayılır ve hata oranını yükseltmez. Hata yanıtlarını yakalamak için adıma `check(status().is(200))` ekleyin veya `assertNoStatus(...)` kullanın (bölüm 3). Hiç yanıt alamayan istekler `-1` durum koduyla kaydedilir.
+:::
+
 ---
 
 ## 3. HTTP Durum Kodu Doğrulamaları
@@ -64,7 +68,7 @@ load("/api/payments")
     .assertNoStatus(503)                 // Service Unavailable olmamalı
     .assertNoStatus(504)                 // Gateway Timeout olmamalı
     .assertNoStatus(429)                 // Too Many Requests olmamalı
-    .assertStatusCodeCount(200, 1000);   // Tam olarak 1.000 adet 200 OK yanıtı
+    .assertStatusCodeCount(200, 1000);   // En az 1.000 adet 200 OK yanıtı
 ```
 
 ---
@@ -74,16 +78,29 @@ load("/api/payments")
 Çok adımlı senaryolarda adımlara özel performans eşikleri belirleyebilirsiniz:
 
 ```java
-LoadScenario akis = LoadScenario.named("Ödeme Akışı")
-    .step("Giriş", req -> req.post("/api/login").body("..."))
-    .step("Ödeme", req -> req.post("/api/pay").body("..."));
+import io.testfly.loadtest.BaseLoadTest;
+import io.testfly.loadtest.LoadTestFeeder;
+import org.testng.annotations.Test;
+import java.time.Duration;
+import java.util.Map;
 
-load(akis)
-    .users(15)
-    .run()
-    .assertStepP95Below("Giriş", 150)
-    .assertStepP95Below("Ödeme", 800)
-    .assertStepErrorRateBelow("Ödeme", 0.0);
+public class CheckoutLoadTest extends BaseLoadTest {
+    @Test
+    public void checkout() {
+        loadScenario("Checkout")
+            .engine("jdk").users(15).hold(Duration.ofSeconds(10))
+            .feed(LoadTestFeeder.csv("testdata/users.csv"))
+            .step("Login").post("/login")
+                .body(Map.of("username", "${username}", "password", "${password}"))
+                .check(status().is(200)).extract("token", "$.accessToken").and()
+            .step("Payment").post("/payment")
+                .header("Authorization", "Bearer ${token}")
+                .body(Map.of("amount", 10)).check(status().is(200)).and()
+            .run().assertStepP95Below("Login", 300)
+                .assertStepP95Below("Payment", 800)
+                .assertStepErrorRateBelow("Payment", 0.01);
+    }
+}
 ```
 
 ---

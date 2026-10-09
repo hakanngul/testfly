@@ -216,6 +216,7 @@ public final class TestFlyConfig {
         private String parallel = "none";
         private int threadCount = 1;
         private int maxActiveSessions = 5;
+        private int sessionWaitSeconds = 300;
 
         public String getMode() {
             return mode;
@@ -264,6 +265,18 @@ public final class TestFlyConfig {
 
         public void setMaxActiveSessions(int maxActiveSessions) {
             this.maxActiveSessions = maxActiveSessions;
+        }
+
+        /**
+         * Seconds a test waits for a free browser slot when {@code maxActiveSessions}
+         * are all in use. {@code 0} means do not wait. Default {@code 300}.
+         */
+        public int getSessionWaitSeconds() {
+            return sessionWaitSeconds;
+        }
+
+        public void setSessionWaitSeconds(int sessionWaitSeconds) {
+            this.sessionWaitSeconds = sessionWaitSeconds;
         }
 
         private BrowserStack browserstack = new BrowserStack();

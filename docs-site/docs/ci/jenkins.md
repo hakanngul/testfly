@@ -18,7 +18,7 @@ pipeline {
     agent any
 
     tools {
-        jdk 'JDK17'
+        jdk 'JDK21'
         maven 'Maven3'
     }
 
@@ -72,14 +72,7 @@ browser:
   headless: true
 ```
 
-If Chrome is not in the `PATH` on your agent, set the binary path:
-
-```yaml
-browser:
-  name: chrome
-  headless: true
-  binaryPath: /usr/bin/google-chrome
-```
+Install Chrome in a standard location discoverable by Selenium Manager. `browser.binaryPath` is not a supported TestFly configuration field.
 
 ---
 
@@ -92,12 +85,16 @@ stage('Test') {
     parallel {
         stage('Chrome') {
             steps {
-                sh 'mvn test -B -Dbrowser.name=chrome'
+                withEnv(["TESTFLY_BROWSER=chrome"]) {
+                    sh 'mvn test -B'
+                }
             }
         }
         stage('Firefox') {
             steps {
-                sh 'mvn test -B -Dbrowser.name=firefox'
+                withEnv(["TESTFLY_BROWSER=firefox"]) {
+                    sh 'mvn test -B'
+                }
             }
         }
     }
@@ -117,7 +114,7 @@ environment {
 
 stage('Test') {
     steps {
-        sh "mvn test -B -DbaseUrl=${env.BASE_URL}"
+        sh 'mvn test -B'
     }
 }
 ```
@@ -133,3 +130,17 @@ triggers {
 ```
 
 Or use a GitHub webhook to trigger the pipeline on push.
+
+
+### Connect environment values to YAML
+
+The parallel browser stages and `BASE_URL` example require these placeholders in the selected complete configuration. No automatic `-Dbrowser.name` or `-DbaseUrl` override is applied. Install both browsers on their agents and use separate workspaces for parallel Maven runs to avoid competing writes to `target`.
+
+```yaml title="testfly.yml"
+execution:
+  mode: local
+  baseUrl: ${BASE_URL:-https://example.com}
+browser:
+  name: ${TESTFLY_BROWSER:-chrome}
+  headless: true
+```

@@ -94,7 +94,7 @@ public class DashboardPage extends BasePage {
     }
 
     public boolean isLoaded() {
-        getWait().waitForInvisible(By.cssSelector(".spinner"));
+        WaitEngine.waitForInvisible(By.cssSelector(".spinner"));
         return isDisplayed(By.id("dashboard-content"));
     }
 }
@@ -119,7 +119,7 @@ public class CheckoutPage extends BasePage {
 
     public void pay() {
         click(PAY_BTN);
-        getWait().waitForVisible(SUCCESS);
+        WaitEngine.waitForVisible(SUCCESS);
     }
 
     public String getConfirmationMessage() {

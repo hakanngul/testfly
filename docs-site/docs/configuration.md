@@ -16,8 +16,8 @@ All TestFly behaviour is controlled by `testfly.yml`. This document is the exhau
 When TestFly bootstraps at suite execution start, it searches for the configuration file using the following priority order:
 
 1. **System Property** — `-Dtestfly.config=/path/to/custom.yml` (highest priority)
-2. **Working Directory** — `./testfly.yml` (at the root of your project, next to `pom.xml` or `build.gradle`)
-3. **Classpath Resource** — `src/test/resources/testfly.yml` (fallback)
+2. **Classpath Resource** — `src/test/resources/testfly.yml`
+3. **Working Directory** — `./testfly.yml` (fallback)
 
 If no file is found at any of these locations, suite initialization fails immediately with a descriptive `IllegalStateException`.
 
@@ -27,15 +27,14 @@ If no file is found at any of these locations, suite initialization fails immedi
 
 ### Placeholder Syntax
 
-Any scalar value in `testfly.yml` can reference environment variables or Java system properties using `${VAR_NAME}` syntax:
+Any **string** value in `testfly.yml` (including string list items and map values) can reference environment variables or Java system properties using `${VAR_NAME}` syntax:
 
 ```yaml
 execution:
   baseUrl: ${BASE_URL}
-
-browserstack:
-  username: ${BS_USER}
-  accessKey: ${BS_KEY}
+  browserstack:
+    username: ${BS_USER}
+    accessKey: ${BS_KEY}
 
 api:
   auth:
@@ -50,6 +49,8 @@ TestFly resolves `${VAR_NAME}` placeholders using the following priority (highes
 2. **Shell environment variable** — `System.getenv("VAR_NAME")`
 3. **System property** — `-DVAR_NAME=value` or `System.getProperty("VAR_NAME")`
 4. **Default fallback** — `${VAR_NAME:-default}` syntax provides a fallback when no source defines the variable.
+
+Placeholders are resolved after YAML parsing, so boolean and numeric fields (for example `browser.headless`, `execution.threadCount`) cannot use them — `headless: ${HEADLESS:-true}` fails at startup with a `ConstructorException`. Use a profile file (`-Dtestfly.profile=ci`) for those values.
 
 Supported `.env` syntax:
 
@@ -71,9 +72,9 @@ You can create environment-specific override files by naming them `testfly-<prof
 
 ```text
 testfly.yml            # Base configuration (shared defaults)
-testfly-staging.yml    # Staging overrides
-testfly-prod.yml       # Production overrides
-testfly-ci.yml         # CI pipeline overrides
+testfly-staging.yml    # Complete staging configuration
+testfly-prod.yml       # Complete production configuration
+testfly-ci.yml         # Complete CI configuration
 ```
 
 Activate a profile via Maven or Gradle:
@@ -82,8 +83,8 @@ Activate a profile via Maven or Gradle:
 mvn test -Dtestfly.profile=staging
 ```
 
-:::tip Deep Merge Behavior
-Profile files **only need to declare the properties they wish to override**. TestFly merges the profile file on top of `testfly.yml`, retaining all base settings that are not explicitly overridden.
+:::note Profile selection
+Each profile file is a complete configuration. TestFly loads the selected file without merging it with `testfly.yml`. Omitted optional properties use framework defaults; required settings must be present in the profile.
 :::
 
 ---
@@ -138,6 +139,7 @@ execution:
   parallel: none                    # none | methods | classes | tests | instances
   threadCount: 1                    # worker thread count when parallel is active
   maxActiveSessions: 5              # concurrency semaphore limiting active browsers
+  sessionWaitSeconds: 300           # seconds a test waits for a free browser slot (0 = fail fast)
 
   # ── CI Sharding
   sharding:
@@ -330,7 +332,15 @@ database:
 # ── API Testing ──────────────────────────────────────────────────────────────
 api:
   baseUrl: https://api.example.com  # default base URL for ApiClient
-  timeoutSeconds: 30
+  timeoutSeconds: 30                # per-request timeout (seconds)
+  connectTimeoutSeconds: 30         # TCP/TLS connect timeout; must be > 0
+  maxConcurrentRequests: 0          # global cap on in-flight real HTTP sends; 0 = unlimited
+  ssl:
+    trustAll: false                 # trust any certificate chain (hostname still verified)
+    # trustStore:                   # custom truststore — mutually exclusive with trustAll
+    #   path: certs/truststore.p12  # required once the trustStore block is present
+    #   type: PKCS12                # PKCS12 (default) or JKS
+    #   password: ${TESTFLY_TRUSTSTORE_PASSWORD}
   logBody: false                    # attach request/response bodies to HTML step log
   logContext: true                  # log query parameters and headers
   prettyLog: false                  # format JSON bodies with indentation
@@ -507,12 +517,15 @@ Governs test execution topology, base URLs, concurrency, and cloud grid provider
 | `gridUrl` | `string` | `null` | Hub endpoint for remote Selenium Grid (used when `mode: remote`). Example: `http://localhost:4444`. |
 | `parallel` | `string` | `none` | Parallel test distribution mode: `none`, `methods`, `classes`, `tests`, `instances`. Validated against TestNG `ParallelMode`. |
 | `threadCount` | `int` | `1` | Concurrency worker count when `parallel` is enabled. |
-| `maxActiveSessions` | `int` | `5` | Semaphore limiting concurrent WebDriver sessions. Extra threads queue and wait up to 30 seconds for a slot. |
+| `maxActiveSessions` | `int` | `5` | Semaphore limiting concurrent WebDriver sessions. Extra threads queue until a slot is free (see `sessionWaitSeconds`). Named sessions from `MultiSessionManager` count against the same limit. |
+| `sessionWaitSeconds` | `int` | `300` | How long a thread waits for a free session slot before failing with a timeout error. `0` fails immediately when no slot is free. Must be `>= 0`. Earlier versions used a fixed 30 seconds. |
 | `sharding.enabled` | `boolean` | `false` | Distribute tests across parallel CI worker machines (shards). |
 | `sharding.total` | `int` | `1` | Total number of parallel CI workers. |
 | `sharding.index` | `int` | `0` | Zero-based index of this worker (`0` to `total-1`). |
 | `sharding.strategy` | `string` | `lpt` | Partitioning strategy: `lpt` (longest processing time first) or `round-robin`. |
 | `sharding.metricsFile` | `string` | `target/testfly-metrics.json` | Path to execution duration metrics used by LPT partitioning. |
+
+**Sizing rule:** set `maxActiveSessions` to at least `threadCount` (plus one slot per additional named session a test opens at the same time). When `parallel` is not `none` and `threadCount` is greater than `maxActiveSessions`, TestFly logs a warning at startup: the surplus threads queue for a slot and fail with a timeout if it does not free up within `sessionWaitSeconds`. The run is not rejected.
 
 #### Cloud Sub-Blocks: `browserstack` & `saucelabs`
 
@@ -664,6 +677,21 @@ Configuration for the built-in fluent REST client (`ApiClient` & `BaseApiTest`).
 | `logCurl` | `boolean` | `false` | Generate and log equivalent `curl` commands for troubleshooting. |
 | `truncationLimit` | `int` | `300` | Max characters logged per response body to avoid bloating reports. |
 | `maskedHeaders` | `list<string>` | `["Authorization", "Cookie", "X-Api-Key"]` | Headers redacted in test logs. |
+
+### SSL and transport settings
+
+| Property | Type | Default | Meaning |
+|---|---|---|---|
+| `api.connectTimeoutSeconds` | `int` | `30` | Connect timeout of the underlying JDK `HttpClient`. Must be `> 0`, otherwise the first request fails with `IllegalArgumentException`. |
+| `api.maxConcurrentRequests` | `int` | `0` | Runtime-wide cap on in-flight real HTTP sends (fair semaphore); `0` is unlimited, negative values are rejected. Mocked responses consume no permit. The value cannot change while test scopes are active. |
+| `api.ssl.trustAll` | `boolean` | `false` | Trusts any certificate chain while keeping HTTPS hostname verification; logs a one-time `WARN` step per scope. |
+| `api.ssl.trustStore.path` | `string` | — | Path to a custom truststore; replaces the default JDK truststore for this profile. Required whenever the `trustStore` block is present. |
+| `api.ssl.trustStore.type` | `string` | `PKCS12` | `PKCS12` or `JKS`; any other value is rejected. |
+| `api.ssl.trustStore.password` | `string` | `null` | Supply via `${TESTFLY_TRUSTSTORE_PASSWORD}`; never commit it. |
+
+Setting `trustAll: true` together with a `trustStore` block fails with `Conflicting SSL selection`. Request-level `.trustStore(...)` or `.trustAllCerts()` replaces the entire YAML SSL selection for that request. `.requestTimeout(Duration)` and the existing `.timeout(int)` set the per-request timeout; the last call wins. This is not a socket read-idle timeout. The batch limit controls logical calls; the global transport limit controls real sends.
+
+See [SSL Configuration](guides/api-ssl.md) and [Timeouts & Performance](guides/api-performance.md).
 
 #### `api.retry`
 

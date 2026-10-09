@@ -21,9 +21,13 @@ on:
     branches: [main, master]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -49,11 +53,15 @@ jobs:
           path: target/testfly-report.html
 ```
 
+`permissions: contents: read` keeps the workflow token least-privileged, and `timeout-minutes` stops a hung browser session from consuming runner minutes for the default six hours.
+
 ---
 
 ## Headless Chrome
 
-Chrome on CI runners must run headless. Configure this in `testfly.yml`:
+CI runners have no display, so browsers must run headless. TestFly detects CI automatically (GitHub Actions sets `GITHUB_ACTIONS=true` and `CI=true`) and forces `browser.headless=true` at startup — the log shows `[TestFly] CI override: browser.headless=true`. No extra environment variable is needed.
+
+You can still set it explicitly in `testfly.yml`:
 
 ```yaml title="testfly.yml"
 browser:
@@ -61,20 +69,33 @@ browser:
   headless: true
 ```
 
-Or set it only in CI using an environment variable override (if supported by your config loading):
+:::note Environment overrides
+TestFly does not read ad-hoc variables such as `SELENIUM_HEADLESS` or `-Dbrowser.name`. Environment values reach the config only through `${VAR}` / `${VAR:-default}` placeholders in `testfly.yml`, and placeholders are resolved for **string** fields only (for example `browser.name`, `execution.baseUrl`). Boolean and numeric fields such as `headless` or `threadCount` must be literal values — use a profile file (`-Dtestfly.profile=ci` → `testfly-ci.yml`) when they must differ per environment.
+:::
 
-```yaml
-      - name: Run tests
-        run: mvn test -B
-        env:
-          SELENIUM_HEADLESS: true
+```yaml title="testfly.yml"
+browser:
+  name: ${TESTFLY_BROWSER:-chrome}
 ```
 
 ---
 
 ## Publish JUnit XML test results
 
+Publishing a check run needs `checks: write`. Grant it at job level so other jobs keep the read-only default:
+
 ```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: write
+
+    steps:
+      # ... checkout, setup-java, run tests ...
+
       - name: Publish test results
         uses: dorny/test-reporter@v1
         if: always()
@@ -85,17 +106,21 @@ Or set it only in CI using an environment variable override (if supported by you
           fail-on-empty: false
 ```
 
-This renders pass/fail counts directly in the GitHub Actions summary and PR checks.
+This renders pass/fail counts directly in the GitHub Actions summary and PR checks. For pull requests from forks the token is read-only regardless of `permissions`, so the publish step cannot create a check there.
 
 ---
 
 ## Matrix — multiple browsers
 
+Use the `${TESTFLY_BROWSER:-chrome}` placeholder shown above; environment variables do not override browser fields unless referenced in YAML.
+
 ```yaml
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
         browser: [chrome, firefox]
 
@@ -118,7 +143,9 @@ jobs:
         uses: browser-actions/setup-firefox@v1
 
       - name: Run tests
-        run: mvn test -B -Dbrowser.name=${{ matrix.browser }}
+        run: mvn test -B
+        env:
+          TESTFLY_BROWSER: ${{ matrix.browser }}
 
       - name: Upload report
         if: always()
@@ -138,9 +165,12 @@ The `cache: maven` option in `setup-java` caches `~/.m2/repository` automaticall
 
 ## Full example with parallel tests
 
-```yaml
-      - name: Run tests
-        run: mvn test -B -Dparallel=methods -DthreadCount=4
+```yaml title="testfly.yml"
+execution:
+  mode: local
+  baseUrl: https://example.com
+  parallel: methods
+  threadCount: 4
 ```
 
-Or define parallel settings in `testfly.yml` and commit it — the CI runner picks them up automatically.
+Commit these parallel settings in `testfly.yml` — the CI runner picks them up automatically. If you leave `threadCount` at its default of `1` (and `parallel` is not `none`), TestFly sizes it from the runner's CPU cores when CI is detected.

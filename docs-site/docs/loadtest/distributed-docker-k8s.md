@@ -3,23 +3,64 @@ id: distributed-docker-k8s
 title: Distributed Load Testing (Docker & Kubernetes)
 sidebar_label: Docker & Kubernetes
 sidebar_position: 10
-description: "Scale TestFly load and performance tests to 100,000+ RPS using Docker containers and distributed Kubernetes deployments."
+description: "Scale TestFly load and performance tests horizontally by running multiple Docker containers or Kubernetes pods as independent load generators."
 ---
 
 # Distributed Load Testing with Docker & Kubernetes
 
-While running load tests on a single developer machine is great for smoke and regression testing, enterprise peak simulations (e.g. 50,000–100,000+ RPS) require **distributed workload generators**.
+A single machine is often enough for smoke and regression load tests. When one generator can no longer produce the load you need, you can scale **horizontally**: package the load suite in a container and run several copies in parallel with **Docker Compose** or as a **Kubernetes** Job.
 
-TestFly's load testing module natively supports containerized execution via **Docker** and multi-pod scaling on **Kubernetes**.
+Each container is an independent TestFly run. Achievable concurrency and throughput depend on hardware, the target service and the scenario. There is no fixed capacity guarantee, so measure your own load (see [Execution Engines](./engines.md)).
 
 ---
 
-## 1. Containerizing TestFly Load Tests
+## 1. Passing Settings via Environment Variables
+
+TestFly resolves `${VAR}` and `${VAR:-default}` placeholders in **string** values of `testfly.yml` (shell environment, `.env` or `-D` system property). Numeric and boolean keys such as `loadtest.users` or `reporting.reportportal.enabled` are not resolved from placeholders. Set them as literals, or read the variable in test code.
+
+```yaml title="testfly.yml"
+execution:
+  mode: local
+  baseUrl: ${TESTFLY_API_BASEURL:-https://staging.example.com}
+
+loadtest:
+  baseUrl: ${TESTFLY_API_BASEURL:-https://staging.example.com}
+  engine: auto
+  maxUsers: 5000          # upper bound per container; users above this are clamped
+  resultsDir: target/loadtest
+```
+
+Read the per-container user count in the test and assert your SLOs with the fluent load assertions:
+
+```java title="CheckoutLoadTest.java"
+import io.testfly.loadtest.BaseLoadTest;
+import org.testng.annotations.Test;
+
+public class CheckoutLoadTest extends BaseLoadTest {
+
+    private static final int USERS =
+            Integer.parseInt(System.getenv().getOrDefault("TESTFLY_LOAD_VUSERS", "100"));
+
+    @Test
+    public void checkoutUnderLoad() {
+        load("/api/checkout")
+            .users(USERS)
+            .run()
+            .assertErrorRateBelow(0.001)   // 0.0–1.0 → 0.1%
+            .assertP99Below(800)           // ms
+            .assertP95Below(500);
+    }
+}
+```
+
+---
+
+## 2. Containerizing TestFly Load Tests
 
 Build a minimal, headless Docker container running your performance suite:
 
 ```dockerfile title="Dockerfile.loadtest"
-FROM maven:3.9.6-eclipse-temurin-21 AS builder
+FROM maven:3.9.6-eclipse-temurin-21
 
 WORKDIR /app
 COPY pom.xml .
@@ -40,13 +81,11 @@ docker build -t testfly-load-runner:latest -f Dockerfile.loadtest .
 
 ---
 
-## 2. Multi-Worker Docker Compose
+## 3. Multi-Worker Docker Compose
 
-Simulate distributed traffic across multiple worker nodes locally or in a dedicated VM:
+Run several workers locally or on a dedicated VM. Each worker writes its own results to a separate volume:
 
 ```yaml title="docker-compose.load.yml"
-version: '3.8'
-
 services:
   load-worker-1:
     image: testfly-load-runner:latest
@@ -67,9 +106,9 @@ services:
 
 ---
 
-## 3. Scaling to 100,000+ RPS on Kubernetes (Helm)
+## 4. Scaling Out on Kubernetes (Job manifest)
 
-For high-throughput enterprise load testing, deploy worker pods across a Kubernetes cluster:
+To spread the load across a cluster, run the same image as a parallel Kubernetes Job:
 
 ```yaml title="loadtest-job.yaml"
 apiVersion: batch/v1
@@ -93,14 +132,26 @@ spec:
             memory: "8Gi"
         env:
         - name: TESTFLY_LOAD_VUSERS
-          value: "5000"
-        - name: REPORTPORTAL_ENABLED
-          value: "true"
+          value: "500"
+        - name: TESTFLY_API_BASEURL
+          value: "https://target-service.internal"
+        - name: RP_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: reportportal
+              key: apiKey
       restartPolicy: Never
 ```
 
-### Real-Time Metric Aggregation
+### Results and Quality Gates
 
-When running across distributed Kubernetes pods:
-- Each pod streams live latency percentiles (P50, P90, P95, P99) to **ReportPortal** using TestFly's built-in `ReportPortalReportAdapter`.
-- TestFly's **`BuildThresholdEnforcer`** verifies that global error rates remain under 0.1% and P99 response times do not exceed your SLO thresholds.
+- **Per-pod results:** every pod produces its own load metrics (`testfly-metrics.json`, the TestFly HTML report and, with `loadtest.reportEnabled: true`, `loadtest-report.html`) under its `target/` directory. TestFly does not merge metrics across pods. Collect each pod's `target/` (for example to a shared volume or object storage) and compare or aggregate the results yourself.
+- **ReportPortal (optional):** with `reporting.reportportal.enabled: true`, `endpoint` and `apiKey: ${RP_API_KEY}` configured, results are uploaded by the ReportPortal TestNG agent. Each pod reports its own launch. The built-in `ReportPortalReportAdapter` only validates the configuration and prints a launch summary with the dashboard URL. It does not stream live latency percentiles.
+- **SLO checks:** put latency and error-rate thresholds in the fluent load assertions (`assertP95Below`, `assertP99Below`, `assertErrorRateBelow`, `assertThroughputAbove`, …) so a pod fails its test when its SLO is violated.
+- **Suite-level gate:** `BuildThresholdEnforcer` evaluates only `ci.failOnPassRateBelow` and `ci.maxFlakyTests` over test outcomes in each run. It does not check latency or error rates.
+
+```yaml title="testfly.yml"
+ci:
+  failOnPassRateBelow: 100.0
+  maxFlakyTests: 0
+```

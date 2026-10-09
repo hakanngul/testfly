@@ -21,7 +21,7 @@ Takılma durumundaki Selenium testlerinin tek en büyük kaynağı **zamanlamad�
 
 ```java title="Yanlış yol"
 Thread.sleep(3000); // umarım sayfa hazırdır
-driver.findElement(By.id("submit")).click();
+getDriver().findElement(By.id("submit")).click();
 ```
 
 Sorunlar:
@@ -36,7 +36,7 @@ Sorunlar:
 ## Dağınık `WebDriverWait` ile ilgili sorun nedir
 
 ```java title="Biraz daha iyi, yine de dağınık"
-new WebDriverWait(driver, Duration.ofSeconds(10))
+new WebDriverWait(getDriver(), Duration.ofSeconds(10))
     .until(ExpectedConditions.elementToBeClickable(By.id("submit")))
     .click();
 ```
@@ -53,7 +53,7 @@ Bu izole olarak doğrudur, ancak her page object kendi zaman aşımını icat et
 ## WaitEngine bunu nasıl çözer
 
 ```java title="TestFly yolu"
-getWait().waitForClickable(By.id("submit"));
+io.testfly.wait.WaitEngine.waitForClickable(By.id("submit"));
 ```
 
 Tek satır:
@@ -61,10 +61,31 @@ Tek satır:
 - Zaman aşımını `testfly.yml`'den okur (`timeouts.explicit`)
 - Koşul doğru olana kadar onu yoklar
 - Koşul asla doğru olmazsa net bir mesajla başarısız olur
-- Locator başarısız olursa kendi kendini iyileştirme yedeğini tetikler
+- Locator başarısız olursa kendi kendini iyileştirme yedeğini tetikler (`locators.selfHealing: true` ise)
 - `BasePage` ve `BaseTest`'in erişebildiği her yerde kullanılabilir
 
 ---
+
+## Bekleme metotları nerede bulunur
+
+- **`WaitEngine`** (`io.testfly.wait.WaitEngine`) **statik** metotlardan oluşan bir yardımcı sınıftır. Mevcut thread'in framework tarafından yönetilen driver'ını ve `timeouts.explicit` değerini kullanır; bu yüzden her page object, test veya yardımcı sınıftan çağrılabilir.
+- **`BasePage` ve `BaseTest`**, `WaitEngine`'e yönlendiren birkaç örnek (instance) kısayolu ekler: `waitForPageLoad()`, `waitForUrlContains(String)`, `waitForUrlMatches(String)`, `waitForTitle(String)` ve `waitForTitleContains(String)`.
+- **`getWait()`** (`BasePage` ve `BaseTest` üzerinde), `timeouts.explicit` ile oluşturulmuş sade bir Selenium `WebDriverWait` döndürür. `waitFor...` metotları yoktur; özel koşullar için `.until(...)` kullanın.
+
+```java title="LoginPage.java"
+import io.testfly.test.BasePage;
+import io.testfly.wait.WaitEngine;
+import org.openqa.selenium.By;
+
+public class LoginPage extends BasePage {
+
+    public void submit() {
+        WaitEngine.waitForClickable(By.id("submit")).click();
+        WaitEngine.waitForInvisible(By.cssSelector(".spinner"));
+        waitForUrlContains("/dashboard");   // BasePage kısayolu → WaitEngine.waitForUrlContains
+    }
+}
+```
 
 ## Kendiniz yazmak zorunda olmadığınız koşullar
 
@@ -74,20 +95,23 @@ Tek satır:
 |---|---|
 | `waitForVisible(By)` | Öğe görünür |
 | `waitForInvisible(By)` | Loader/spinner kaybolur |
-| `waitForClickable(By)` | Öğe etkinleştirilmiş ve gizlenmemiş |
-| `waitForText(By, String)` | Tam metin görünür |
+| `waitForClickable(By)` | Öğe görünür ve etkin |
+| `waitForText(By, String)` | Öğe metni verilen metne tam olarak eşittir |
 | `waitForTextMatches(By, String)` | Metin bir regex ile eşleşir |
 | `waitForAttribute(By, String, String)` | Öznitelik bir değere eşittir |
 | `waitForAttributeContains(...)` | Öznitelik bir alt dize içerir |
 | `waitForUrlContains(String)` / `waitForUrlMatches(String)` | Gezinme tamamlandı |
 | `waitForPageLoad()` | `document.readyState === "complete"` |
 | `waitForStaleness(WebElement)` | Eski DOM düğümü AJAX ile değiştirilir |
+| `waitForNumberOfWindowsToBe(int)` | Yeni bir sekme veya pencere açıldı |
 | `waitForAlert()` | JavaScript uyarısı mevcut |
 
-Özel bir şeye mi ihtiyacınız var? Kaçış kapağı her zaman oradadır:
+Özel bir şeye mi ihtiyacınız var? Kaçış kapağı herhangi bir Selenium `ExpectedCondition` kabul eder ve yapılandırılmış zaman aşımını kullanmaya devam eder:
 
 ```java
-getWait().wait(ExpectedConditions.numberOfWindowsToBe(2));
+WaitEngine.wait(ExpectedConditions.numberOfElementsToBe(By.cssSelector(".row"), 5));
+// veya aynı şekilde, ham WebDriverWait ile:
+getWait().until(ExpectedConditions.numberOfElementsToBe(By.cssSelector(".row"), 5));
 ```
 
 ---
@@ -104,7 +128,8 @@ Tek bir sayıyı değiştirin, paketin tamamının bekleme davranışı değişi
 Tek bir yavaş işlem için config'e dokunmadan geçersiz kılın:
 
 ```java
-getWait(30).waitForVisible(By.id("heavy-report"));
+new WebDriverWait(getDriver(), Duration.ofSeconds(30))
+    .until(ExpectedConditions.visibilityOfElementLocated(By.id("heavy-report")));
 ```
 
 ---

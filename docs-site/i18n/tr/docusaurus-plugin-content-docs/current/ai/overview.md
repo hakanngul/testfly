@@ -6,73 +6,33 @@ sidebar_position: 1
 description: TestFly'ın Model Context Protocol (MCP) kullanarak yapay zeka asistanlarıyla gerçek tarayıcı testi ve doğrulanmış kod üretimi yapma yöntemi.
 ---
 
-# Yapay Zeka (AI) & MCP Otomasyonuna Genel Bakış
+# AI & MCP Otomasyonuna Genel Bakış
 
-Günümüzün modern yapay zeka kodlama asistanları (**JetBrains AI Assistant**, **Claude Code**, **GitHub Copilot** ve **Google Antigravity**) kod yazabilir; ancak web test otomasyonuna gelindiğinde klasik büyük dil modelleri (LLM) ciddi sınırlarla karşılaşır:
-- **Kör Kod Üretimi:** Web uygulamanızın gerçek DOM'unu, görsel düzenini veya erişilebilirlik niteliklerini göremezler.
-- **Hayali / Kırılgan Seçiciler (Halüsinasyon):** Sayfada hiç bulunmayan XPath veya ID'ler uydururlar.
-- **Eski ve Hatalı Kod Desenleri:** Çerçevenizin modern API'ları yerine eski `Thread.sleep()` veya ham Selenium kalıpları yazarlar.
+TestFly iki ayrı AI kullanım yolu sunar:
 
-**TestFly bu sorunu Model Context Protocol (MCP) ile çözer.**
-
----
-
-## TestFly MCP Nedir?
-
-**TestFly MCP**, açık standart [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) protokolünü uygulayan Python tabanlı bir sunucudur. IDE'nizdeki AI asistanı ile canlı tarayıcı oturumu arasında köprü kurar:
+1. **Java runtime:** `act()`, `byIntent()`, AI doğrulamaları, eylem önbelleği ve patch üretimi TestFly testlerinin içinde çalışır. Java framework'ünün AI sağlayıcısı, IDE asistanından ayrıca yapılandırılır.
+2. **Harici MCP araçları:** asistan tarayıcı incelemesi için Playwright MCP, proje/kod üretimi ve cache/patch işlemleri için ayrı Node.js TestFly bridge kullanır.
 
 ```text
-┌──────────────────────────────┐
-│  IDE: IntelliJ IDEA / VSCode │
-└──────────────┬───────────────┘
-               │ MCP Protokolü / JSON-RPC
-               ▼
-┌──────────────────────────────┐
-│    TestFly MCP Sunucusu      │
-└──────┬────────────────▲──────┘
-       │                │ DOM & A11y
-       │ Selenium       │ Ağaç Görüntüsü
-       ▼                │
-┌──────────────────────┴───────┐
-│ Canlı Tarayıcı: Chrome/Firefox│
-└──────────────────────────────┘
-               │ Doğrulanmış TestFly Kodu Üretir
-               ▼
-┌──────────────────────────────┐
-│   TestFly Java Test Paketi   │
-└──────────────────────────────┘
+Asistan → Playwright MCP → tarayıcı incelemesi
+        → TestFly Node bridge → Java kodu / cache / patch araçları
+Java testleri → yapılandırılan AI sağlayıcısı → runtime eylem / doğrulama
 ```
 
-### Temel Yetenekler
+2026-10-04 kaynak kontrolü: `package.json`, `@testfly/mcp` 1.1.0, Node.js 18+ ve `bin/testfly-mcp.js` tanımlıyor. Public npm registry bu paket için 404 döndürdüğünden bu rehber kaynak checkout kullanır. Kaynaktaki paket adı/sürümü npm yayını yapıldığını kanıtlamaz.
 
-1. **Gerçek Tarayıcı Denetimi:** AI asistanları 88 otomatik MCP aracıyla gerçek bir tarayıcıyı (Chrome/Firefox) yönetir, verilen URL'ye gider ve canlı öğeleri tarar.
-2. **Erişilebilirlik Odaklı Seçiciler (a11y-first):** Locator'lar doğrudan tarayıcının erişilebilirlik ağacından (`getByRole`, `getByLabel`, `getByTestId`, `getByPlaceholder`) türetilir; arayüz tasarımları değişse bile testler kırılmaz.
-3. **Yerel TestFly Kod Üretimi:** Ham Selenium şablonları yerine doğrudan kurumsal TestFly Java kodları üretilir:
-   - **Page Object Modeli:** `BasePage` extend eden ve akıcı (fluent) eylem metotları içeren sınıflar.
-   - **TestNG Testleri:** `BaseTest` extend eden, driver yaşam döngüsü otomatik yönetilen sınıflar.
-   - **JUnit 5 Testleri:** `BaseJUnit5Test` extend eden sınıflar.
-   - **Cucumber BDD:** `BaseCucumberSteps` extend eden adımlar ve `BaseCucumberTest` runner'ı.
-   - **Akıllı Doğrulamalar:** `assertThat(getDriver()).hasTitle(...)` ve `assertThat(locator).isVisible()`.
+## Çalışma akışı
 
----
+Locator seçmeden önce gerçek uygulamanın DOM'unu inceleyin. `io.testfly.locator` tarafından desteklenen semantik locatorları tercih edin. Üretilen kodu inceleyip TestFly bağımlılığınıza karşı derleyin; kod üretimi testin çalıştığını kanıtlamaz. CI'a almadan önce testi kontrollü ortamda çalıştırın.
 
-## Ekosistem Bileşenleri
+## Bileşenler
 
-TestFly AI ekosistemi sıkı şekilde entegre edilmiş bileşenlerden oluşur:
+| Bileşen | Başlangıç |
+|---|---|
+| Java runtime AI özellikleri | [Agentic testler](/docs/ai/agentic-testing) |
+| Altı araçlı Node MCP bridge | [MCP Bridge & CLI](/docs/cli) |
+| Canlı tarayıcı incelemesi | [Microsoft Playwright MCP](https://github.com/microsoft/playwright-mcp) |
+| IDE kaynak projeleri | [IDE eklentileri](/docs/ai/ide-plugins) |
+| Kod üretim promptları | [Hazır promptlar](/docs/ai/prompt-recipes) |
 
-| Bileşen | Görevi | Nasıl Erişilir |
-| :--- | :--- | :--- |
-| **Agentic Testing Çalışma Zamanı** | Doğal dil hedefleri (`act()`), semantik doğrulamalar (`assertWithAi()`), niyet seçicileri (`byIntent()`), AI self-healing ve otomatik yama (auto-PR) motoru. | Yerleşik Java kütüphanesi: `io.github.hakanngul:testfly` |
-| **`@testfly/mcp` Köprüsü** | TestFly Java 21 test üretimi, action-cache ve self-healing yöneten hafif Node.js MCP köprüsü. | `npx -y @testfly/mcp` |
-| **IntelliJ IDEA Eklentisi** | JetBrains AI Assistant ile sıfır konfigürasyonlu kayıt, sistem teşhisi ve proje başlatma. | Diskten kurulum: `testfly-mcp-jetbrains-1.1.0.zip` |
-| **VS Code Eklentisi** | Tek tıkla çoklu asistan kurulumu (Cursor, Claude, Copilot), Action Cache gezgini ve görsel yama inceleyici. | VSIX kurulumu: `testfly-vscode-1.1.0.vsix` |
-
----
-
-## Sonraki Adımlar
-
-- [Agentic Testing & Otonom AI](./agentic-testing) — Hedef odaklı test adımları, Compile & Freeze önbelleği, semantik doğrulamalar ve otomatik hata yamaları.
-- [TestFly MCP Köprüsü ve Playwright](./testfly-mcp) — Mimari detaylar, kullanılabilir araçlar ve NPX yapılandırması.
-- [IDE Eklentileri](./ide-plugins) — IntelliJ IDEA ve VS Code eklentilerinin kurulumu.
-- [Etkileşimli Web Stüdyosu](./interactive-studio) — Görsel tarayıcı denetimi ve anlık kod üretimi.
-- [Hazır AI Prompt Şablonları](./prompt-recipes) — Page Object, TestNG, JUnit 5 ve Cucumber testleri üreten kopyala-yapıştır prompt şablonları.
+Önceki Python/Selenium sunucusu ve 88 araçlı recorder modeli tarihseldir. [ADR](/docs/ai/adr-001-mcp-recorder-architecture), [Web Studio](/docs/ai/interactive-studio) ve [recorder](/docs/ai/recorder) sayfaları bu tasarımı korur; bu komutlar güncel Node özellikleri olarak sunulmaz.

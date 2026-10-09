@@ -440,7 +440,7 @@ public final class Locator extends By {
     /** Returns true if the element is present and displayed — does NOT wait. */
     public boolean isVisible() {
         try {
-            return resolve().isDisplayed();
+            return resolveNow().isDisplayed();
         } catch (Exception e) {
             return false;
         }
@@ -454,7 +454,7 @@ public final class Locator extends By {
     /** Returns true if the element is present and enabled. */
     public boolean isEnabled() {
         try {
-            return resolve().isEnabled();
+            return resolveNow().isEnabled();
         } catch (Exception e) {
             return false;
         }
@@ -514,23 +514,67 @@ public final class Locator extends By {
     // Internal resolution
     // ------------------------------------------------------------------
 
+    /**
+     * Resolves the target element, auto-waiting up to {@code timeouts.explicit}.
+     *
+     * <p>
+     * The whole locator chain is re-resolved on every poll, so elements that
+     * appear late or are re-rendered (stale references) are picked up. Self-healing
+     * is attempted once, after the wait times out.
+     */
     private WebElement resolve() {
+        if (kind == Kind.ELEMENT) {
+            return resolveNow();
+        }
+        String[] lastFailure = new String[1];
+        try {
+            List<WebElement> candidates = WaitEngine.wait(d -> {
+                try {
+                    List<WebElement> found = resolveAll();
+                    return found.isEmpty() ? null : found;
+                } catch (LocatorException e) {
+                    // e.g. nth() out of range or container missing — may still appear
+                    lastFailure[0] = e.getMessage();
+                    return null;
+                }
+            });
+            return pick(candidates);
+        } catch (org.openqa.selenium.TimeoutException e) {
+            WebElement healed = tryHealRoot();
+            if (healed != null) {
+                return healed;
+            }
+            throw new LocatorException(
+                    lastFailure[0] != null ? lastFailure[0] : "No element found for: " + describe(), e);
+        }
+    }
+
+    /** Single-shot resolution (no waiting) — used by {@code isVisible()}/{@code isEnabled()}. */
+    private WebElement resolveNow() {
         List<WebElement> candidates = resolveAll();
         if (candidates.isEmpty()) {
-            // Self-healing applies only to plain By locators without chain filters,
-            // since healing replaces the whole base selector.
-            if (kind == Kind.CSS_OR_BY && !hasChainFilters()) {
-                WebElement healed = WaitEngine.tryHeal(root);
-                if (healed != null) {
-                    return healed;
-                }
+            WebElement healed = tryHealRoot();
+            if (healed != null) {
+                return healed;
             }
             throw new LocatorException("No element found for: " + describe());
         }
-        if (selectLast) {
-            return candidates.getLast();
+        return pick(candidates);
+    }
+
+    private WebElement pick(List<WebElement> candidates) {
+        return selectLast ? candidates.getLast() : candidates.getFirst();
+    }
+
+    /**
+     * Self-healing applies only to plain By locators without chain filters,
+     * since healing replaces the whole base selector.
+     */
+    private WebElement tryHealRoot() {
+        if (kind == Kind.CSS_OR_BY && !hasChainFilters()) {
+            return WaitEngine.tryHeal(root);
         }
-        return candidates.getFirst();
+        return null;
     }
 
     /**
@@ -732,16 +776,21 @@ public final class Locator extends By {
 
     /**
      * XPath matching visible text — normalized; exact equality or case-insensitive
-     * contains.
+     * contains. Only the innermost matching element is returned: an element is
+     * excluded when one of its descendants matches the same text predicate, so
+     * ancestors such as {@code html}, {@code body} or wrapper {@code div}s never
+     * shadow the real target.
      */
     private static String textXPath(String value, boolean exact) {
+        String predicate;
         if (exact) {
-            return ".//*[normalize-space(.)=" + xpathLiteral(value) + "]";
+            predicate = "normalize-space(.)=" + xpathLiteral(value);
+        } else {
+            predicate = "contains(translate(normalize-space(.),"
+                    + " '" + UPPER + "', '" + LOWER + "'),"
+                    + " " + xpathLiteral(value.toLowerCase(java.util.Locale.ROOT)) + ")";
         }
-
-        return ".//*[contains(translate(normalize-space(.),"
-                + " '" + UPPER + "', '" + LOWER + "'),"
-                + " " + xpathLiteral(value.toLowerCase(java.util.Locale.ROOT)) + ")]";
+        return ".//*[" + predicate + "][not(.//*[" + predicate + "])]";
     }
 
     /** Escapes a value for use inside a single-quoted CSS attribute selector. */

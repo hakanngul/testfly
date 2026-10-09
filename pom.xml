@@ -41,7 +41,23 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jackson.version>2.21.7</jackson.version>
+        <!-- Empty default so surefire's @{argLine} resolves even when the JaCoCo agent is not prepared. -->
+        <argLine></argLine>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Keeps every Jackson module (including transitive optional ones) on one version. -->
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -65,7 +81,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.21.6</version>
         </dependency>
 
         <!--
@@ -335,7 +350,7 @@
                     </dependency>
                 </dependencies>
                 <configuration>
-                    <argLine>-Dnet.bytebuddy.experimental=true --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <argLine>@{argLine} -Dnet.bytebuddy.experimental=true --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
 
                     <!-- Isolate class-scoped static mocks and inherited framework listeners. -->
                     <reuseForks>false</reuseForks>
@@ -408,28 +423,6 @@
                 </configuration>
             </plugin>
 
-            <!-- Required by Maven Central: GPG signing -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>sign</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <gpgArguments>
-                        <arg>--pinentry-mode</arg>
-                        <arg>loopback</arg>
-                    </gpgArguments>
-                </configuration>
-            </plugin>
-
             <!-- Maven Central publisher (new Central Portal) -->
             <plugin>
                 <groupId>org.sonatype.central</groupId>
@@ -495,6 +488,40 @@
     </build>
 
     <profiles>
+        <!--
+            Release profile: GPG-signs artifacts (required by Maven Central).
+            Only the release workflow activates it:
+                mvn deploy -Prelease
+            Plain `mvn verify` / `mvn install` stay side-effect free and need no key.
+        -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <!--
             Runs tests that need real external backends (DeepSeek, ReportPortal,
             live APIs, real browsers). Activate with:

@@ -20,21 +20,25 @@ TestFly is still Selenium. `WebDriver`, `By`, `WebElement`, and your existing pa
 
 ## Setup — swap dependencies
 
-Remove your Selenium, WebDriverManager, and reporting dependencies and add one:
+Add TestFly first. Remove duplicate Selenium/WebDriverManager dependencies once their remaining usages are migrated:
 
 ```xml title="pom.xml"
 <dependency>
-    <groupId>io.testfly</groupId>
+    <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 
-TestFly brings Selenium (and TestNG) transitively. You no longer declare `selenium-java`, `webdrivermanager`, or a reporting library yourself.
+TestFly brings Selenium and TestNG transitively. Check dependency overrides before removing duplicate declarations; keep reporting libraries required by integrations you still use.
 
 Then create a small [`testfly.yml`](/docs/configuration) — see [config mapping](#config-mapping) below.
 
 ---
+
+:::info Java version and incremental migration
+Releases up to `1.0.4` require Java 17+; versions from `1.0.6` on (including the current `1.0.7`) require Java 21. Update the build tool, IDE and CI JDK together. The dependency coordinates are `io.github.hakanngul:testfly:1.0.7`. Migrate one class first; remove old infrastructure only after its last consumer has migrated. Keep Allure/ExtentReports dependencies if you still use their custom integrations.
+:::
 
 ## 1. Driver setup
 
@@ -113,12 +117,15 @@ public class WaitUtils {
 WaitUtils.waitVisible(driver, By.id("login")).click();
 ```
 
-**After** — every locator **auto-waits**, and `WaitEngine` (pre-configured from your `timeouts.explicit`) covers the explicit cases:
+**After** — TestFly locator actions auto-wait. `getWait()` returns a configured Selenium `WebDriverWait`, so use `until(ExpectedConditions...)` for custom conditions:
 
 ```java
+import org.openqa.selenium.By;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+
 find("#login").click();                          // auto-waits for clickable
-getWait().waitForInvisible(By.cssSelector(".spinner"));
-getWait().waitForText(By.cssSelector("h1"), "Welcome back");
+getWait().until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".spinner")));
+getWait().until(ExpectedConditions.textToBePresentInElementLocated(By.cssSelector("h1"), "Welcome back"));
 ```
 
 No `Thread.sleep()`, no per-page `WebDriverWait` construction, no passing `driver` around. See the [WaitEngine guide](/docs/guides/wait-engine).
@@ -212,12 +219,15 @@ Your page objects and `@Test` methods stay — they just get shorter.
 
 ---
 
+Remove only the old lifecycle/retry/screenshot listeners that duplicate TestFly responsibilities. Keep listeners implementing business setup, test data or external integrations. Do not register TestFly listeners a second time.
+
 ## Config mapping
 
 Settings that lived in `testng.xml` attributes and scattered constants move into one file:
 
 ```yaml title="testfly.yml"
 execution:
+  mode: local
   baseUrl: https://your-app.com
   parallel: methods        # was: <suite parallel="methods">
   threadCount: 4           # was: thread-count="4"
@@ -235,7 +245,7 @@ retry:
   maxAttempts: 2           # was: RetryAnalyzer MAX
 ```
 
-You still keep a minimal `testng.xml` to list your test classes — TestFly registers its own listeners, so you can remove the `<listeners>` block. See the [Configuration Reference](/docs/configuration) for every option.
+You still keep a minimal `testng.xml` to list your test classes — TestFly registers its own listeners, so remove only duplicate listener entries from the `<listeners>` block. See the [Configuration Reference](/docs/configuration) for every option.
 
 ---
 
@@ -244,12 +254,35 @@ You still keep a minimal `testng.xml` to list your test classes — TestFly regi
 You don't have to convert everything at once:
 
 1. Add the dependency and a `testfly.yml`.
-2. Point **one** test class at `BaseTest`, delete its `@BeforeMethod`/`@AfterMethod`, and run it.
+2. Point **one** test class at `BaseTest`, remove driver creation/quit from its `@BeforeMethod`/`@AfterMethod` while keeping business setup and cleanup, and run it.
 3. Once green, delete your `DriverFactory`, `WaitUtils`, retry analyzer, and screenshot listener as the last class stops referencing them.
 
 Because TestFly *is* Selenium, a half-migrated suite runs fine.
 
 ---
+
+## Keep existing Page Objects
+
+Pass the managed driver into an existing Page Object with `new LoginPage(getDriver())`. You can keep `By`, `WebElement`, `PageFactory` and TestNG assertions during the first migration. Auto-wait applies to TestFly `Locator` operations; raw `WebElement` calls still need their Selenium waits.
+
+When adopting the fluent API, define locators in the page object:
+
+```java title="LoginPage.java"
+import io.testfly.test.BasePage;
+import io.testfly.locator.Locator;
+
+public class LoginPage extends BasePage {
+    private final Locator username = find("#username");
+    private final Locator password = find("#password");
+    private final Locator submit = find("button[type='submit']");
+
+    public void login(String user, String pass) {
+        username.type(user);
+        password.type(pass);
+        submit.click();
+    }
+}
+```
 
 ## Next steps
 

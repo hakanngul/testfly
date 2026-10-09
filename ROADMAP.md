@@ -14,7 +14,7 @@ The roadmap is intentionally opinionated and incremental. Each phase focuses on 
 ## Post-1.0 — current focus & where help is welcome
 
 Items tagged **`good first issue`** or **`help wanted`** are open for contribution. Read
-[CONTRIBUTING.md](CONTRIBUTING.md), comment on the issue to claim it, then open a PR against `master`.
+[CONTRIBUTING.md](CONTRIBUTING.md), comment on the issue to claim it, then open a PR against `development`.
 
 ### Documentation & discoverability (current priority)
 
@@ -177,6 +177,31 @@ Most users find a framework by searching, not by browsing GitHub.
 4. **Synthetic Test Data Factory (`@TestDataFactory`)**
    - Context-aware synthetic test data generator producing realistic localized data (names, identification numbers, addresses, credit cards).
    - Integrates natively with `@TestData` to generate dynamic mock API payloads and database seeds on the fly.
+
+---
+
+## Consolidated Feature Backlog
+
+These ideas consolidate earlier AI feature notes and README RFC listings. They are proposals for further work, not promises of shipped APIs or fixed release dates. Existing AI healing, triage, assertion, visual, network and MCP capabilities should be extended rather than replaced by duplicate implementations.
+
+| Area | Proposed next work | Validation boundary |
+|---|---|---|
+| Confidence-aware self-healing | Supply structured DOM candidates to the AI provider and validate the selected locator and confidence before applying it. | Confidence does not eliminate hallucinations; reject ambiguous or invalid selections and retain an audit trail. |
+| Failure triage | Correlate stack traces, recent DOM events, network errors and screenshots; distinguish suspected infrastructure failures from application failures in reports. | Classification is advisory and must not silently turn a failing test into a pass. |
+| Semantic assertions | Compare user-visible text against an expected meaning through the existing AI assertion infrastructure. | Explicit opt-in, bounded provider calls, and clear failure evidence; deterministic assertions remain available. |
+| Page Object generation and MCP | Extend the existing MCP bridge to generate idiomatic BasePage locators and TestNG/JUnit tests from observed accessibility/DOM evidence. | Generated code must compile and be reviewed; no guarantee of perfect selectors. |
+| Time-travel trace viewer | Explore an interactive execution timeline with navigation across captured steps and state. | Build on existing tracing and recording outputs. |
+| Declarative network mocking | Explore a concise browser-network interception DSL. | Keep browser CDP routing distinct from API client mock rules already implemented. |
+| CI auto-healer | Produce reviewable failure-remediation patches and optional PR workflows. | Publishing changes requires explicit authorization; do not hide product defects. |
+| Visual regression | Extend existing visual assertions with clearer diff output and perceptual analysis. | Account for dynamic content and make thresholds explicit. |
+| IDE locator inspector | Explore locator inspection and highlighting directly in the IDE. | Reuse current inspection/recorder tooling and verify locators against the page. |
+
+## Retained Decisions from Completed Plans
+
+- **Java baseline:** Java 21, `--release 21`, managed virtual threads for blocking concurrent work, stable public signatures, and no additional mandatory dependencies for modernization. Collection and switch refactors are optional maintenance, not a migration release gate.
+- **Load testing:** Keep the fluent scenario/step/feeder API independent of engine implementation; resolve YAML defaults, annotation overrides and fluent choices in that order. External engines remain optional and selected through the existing engine abstraction.
+- **Validation:** Browser-free unit tests, opt-in real-backend integration tests, and EN/TR user documentation. Preserve per-step metrics, percentile/error assertions and reporting failure isolation. Reporting adapters sharing output files run serially.
+- **Documentation:** Completed sprint checklists and migration instructions are removed from the active documentation; current contracts live in [AGENTS.md](AGENTS.md), [load-test wiki](.agents/wiki/load-testing.md) and the load-testing guides under `docs-site`.
 
 ---
 

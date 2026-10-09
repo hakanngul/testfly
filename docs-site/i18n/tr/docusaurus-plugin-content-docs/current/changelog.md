@@ -11,19 +11,48 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 
 ---
 
-## [1.0.7] — 2026-09-29
+## [1.0.7] — 2026-10-09
 
 ### Eklenenler
 - **Standart `Locator.cssSelector(String)`**: Selenium'un `By.cssSelector` adlandırma standardına tam uyumlu, akılda kalıcı ve birincil fabrika metodu olarak `Locator.cssSelector(String)` eklendi.
 - **Doğrulama Sistemi Mimari Sınırları**: TestFly'ın otomatik beklemeli Web UI doğrulamaları (`LocatorAssert`, `PageAssert`) ile genel amaçlı ilkel veri kontrolleri (AssertJ / TestNG'ye devredilen) arasındaki mimari sınırlar resmileştirildi.
+- **`execution.sessionWaitSeconds`** (varsayılan `300`, `0` = bekleme, `>= 0` olarak doğrulanır): `execution.maxActiveSessions` dolduğunda bir testin boş tarayıcı slotu için ne kadar bekleyeceğini belirler. Daha önce sabit kodlanmış 30 saniyelik bekleme yerine geçer.
+- **`ExecutionValidator.crossCheckWarnings`**: paralel çalıştırmada `execution.threadCount`, `execution.maxActiveSessions` değerinden büyükse uyarı yazdırır; fazla thread'ler tarayıcı slotu için kuyrukta bekler.
+- **`LoadTestDetector`** (dahili): bir testin yük testi olup olmadığına karar veren tek nokta (bkz. *Değişenler*).
+- **`testfly-test-authoring` ajan skill'i**: alan bazlı başvuru belgeleriyle (WebUI, API, TestNG, JUnit 5, Cucumber, yük testi).
+
+### Değişenler
+- **Yük testi algılama artık açıktır (davranış değişikliği).** İsme dayalı dört `contains("loadtest")` sezgisi (`DriverManager`, `TestExecutionListener`, `TestFlyExtension`, `CucumberHooks`) tek bir `LoadTestDetector` ile değiştirildi. Bir test yalnızca `BaseLoadTest` sınıfını genişletiyorsa, `LoadTestSupport` arayüzünü uyguluyorsa, `@LoadTest` / `@NoBrowser` ile işaretliyse veya tam `@loadtest` Cucumber etiketini taşıyorsa yük testi sayılır (WebDriver oluşturulmaz). `FileUploadTest`, `DownloadTest` gibi sınıflar veya `com.acme.uploadtests` gibi paketlerdeki testler artık sessizce WebDriver'dan yoksun bırakılmaz. Eski isim sezgisiyle eşleşen ancak yeni kurallarla eşleşmeyen sınıf/etiketler için bir kez WARN yazılır.
+- `Locator` aksiyonları (`click`, `fill`, `text`, ...) artık `timeouts.explicit` süresine kadar otomatik bekler; her yoklamada elementi yeniden çözer (stale referansları da toparlar) ve süre dolunca kendini onarmayı dener. `isVisible()`, `isEnabled()` ve `count()` beklemesiz kalır.
+- `DriverManager.getDriver()` artık driver'ın neden bulunmadığını (`@Test` / `@PreCondition` / `@ConditionProvider` dışında, örn. `@BeforeMethod` içinde) ve kurulumun nereye taşınacağını açıklar.
+- Oturum slotu zaman aşımı hatası artık hem `execution.maxActiveSessions` hem `execution.sessionWaitSeconds` ayarını belirtir.
+- Jackson modülleri `jackson-bom` 2.21.7 ile sabitlendi (önceden yalnızca `jackson-databind`, 2.21.6 olarak sabitlenmişti); geçişli ve opsiyonel Jackson modülleri tek sürümde kalır.
+- JaCoCo ajanı artık Surefire JVM'ine bağlanıyor (`argLine` değeri `@{argLine} ...`); böylece `mvn verify` `target/jacoco.exec` ve kapsam raporunu üretir.
+- GPG imzalama varsayılan derlemeden `release` Maven profiline taşındı: `mvn verify` / `mvn install` anahtar gerektirmez; yayın `-Prelease` ile yapılır.
 
 ### Kullanımdan Kaldırılanlar (Deprecated)
 - **`Locator.css(String)`**: `Locator.cssSelector(String)` lehine kullanımdan kaldırıldı (`@Deprecated`). Mevcut kodları bozmamak için arkaplanda kesintisiz delegasyon yapmaya devam eder.
+
+### Düzeltilenler
+- `getByText()` metni taşıyan elementi değil en dıştaki atayı (`html`/`body`/sarmalayıcı `div`) döndürüyordu; artık yalnızca en içteki eşleşmeyi döndürür. `exact()` aynı mantığı kullanır.
+- Yük testleri: HTTP durum kodları artık `statusCodes` içine kaydedilir (taşıma hataları sentetik `-1` koduyla), `LoadScenario.assertStatus(n)` başka bir durum kodu oluştuğunda artık başarısız olur (önceden farklı bir kod için `assertNoStatus` çağırıyordu) ve `extract()` feeder'sız senaryolarda da çalışır.
+- HTML raporu: sayfaya gömülen rapor verisi `<script>` bağlamı için kaçışlanır (`<`, U+2028, U+2029); hata mesajları ve test verisi artık işaretleme enjekte edemez veya script bloğunu kapatamaz. Şablon yer tutucuları tek geçişte doldurulur, bu yüzden yerleştirilen değerler tekrar taranmaz.
+- `DriverManager` oturum izinleri: bir izin, `driver.quit()` hata fırlatsa ve driver oluşturmanın her başarısızlık yolunda bile, driver başına tam bir kez iade edilir (`maxActiveSessions` değerini tüketebilen izin sızıntısı).
+- `DriverManager.recreateDriver()` artık ölü bir `per-suite` driver'ı da değiştirir (daha önce suite kayıt defterinde kalıyordu); `quitAllSuiteDrivers()` yalnızca gerçekten tutulan izinleri iade eder.
+- `OpenApiValidator`, doğrulayıcıya tam URL yerine URI yolunu ve yanıtın `Content-Type` başlığını iletir; bu, "No API path found" hatalarını ve yanıt gövdesi doğrulamasını düzeltir.
+
+### Güvenlik
+- `.github/workflows/release.yml` sıkılaştırıldı: yayın sürümü bütün bir dize olarak doğrulanır (satır sonu veya betik enjeksiyonu yok) ve yalnızca ortam değişkeni üzerinden okunur, betiklere asla yerleştirilmez; yayın commit'i `main` üzerinden erişilebilir olmalıdır; yayınlama `release` GitHub environment'ına bağlıdır; pom sürümü yayın sürümüne eşit olmalıdır (tag push'ları artık yeniden yazılmaz); testler bir kez çalışır, GPG imzalama yalnızca `-Prelease` ile etkindir ve tag/GitHub Release doğrulanan commit üzerinde oluşturulur.
 
 ### Dokümantasyon ve Spesifikasyonlar
 - **Mühendislik Spesifikasyonları Modernizasyonu**: Kök `docs/` spesifikasyonları (`internals.md`, `public-api.md`, `architecture.md`, `testng-listeners.md`), Java 21 LTS standardı, `SmartTriageEngine`, `FuzzyHealingEngine` ve assertion sınırları ile güncellendi.
 - **Dokümantasyon Sitesi Senkronizasyonu**: Semantik seçiciler, doğrulamalar ve kendini onarma kılavuzları hem İngilizce hem Türkçe yerellerinde güncellendi.
 - **Ajan Bilgi Grafiği Senkronizasyonu**: `[[wiki/assertion-system]]` sayfası oluşturuldu, mimari ve WebUI wikileri güncellendi, `MAP.md` haritasına bağlandı.
+- **Dokümantasyon denetimi (EN + TR)**: Maven koordinatı her yerde `io.github.hakanngul` olarak düzeltildi, gerçek API ile derlenmeyen örnekler yeniden yazıldı, yük testi dokümanları gerçek DSL ile (`load(path).users().rampUp().hold()`, `LoadTestFeeder`, `@LoadTest` öznitelikleri) hizalandı; `WaitEngine`, Kubernetes/dağıtık yük testi, Allure ve CI kurulumu hakkındaki iddialar düzeltildi. Kurulum rehberleri artık hangi sürümün Maven Central'da, hangisinin bu checkout'ta olduğunu belirtir.
+- **Ajan yönergeleri birleştirildi**: `AGENTS.md` tek giriş noktasıdır (`GEMINI.md`, `PRODUCT.md` ve `features/features-report.md` kaldırıldı); `ROADMAP.md` ve `CONTRIBUTING.md` güncellendi, eskimiş planlama belgeleri `docs/` altından kaldırıldı.
+
+### Testler
+- Birim test paketi 1362'den 1444 teste çıktı; HTML rapor kaçışlama, `DriverManager` (izin muhasebesi, per-suite yeniden oluşturma, slot bekleme), `LoadTestDetector`, `JdkLoadEngine`, `OpenApiValidator`, `ExecutionValidator`, `Locator` otomatik bekleme ve test-id yapılandırma izolasyonu için regresyon testleri eklendi.
 
 ---
 
@@ -88,12 +117,12 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
   - **Gatling Motoru**: Yüksek eşzamanlı alt süreç (subprocess) yürütme, otomatik simülasyon üretimi, konsol/log ayrıştırma ve TestFly raporlarına entegre etkileşimli Gatling HTML raporu.
   - **Hafif Sanal İş Parçacığı (Virtual Thread) Motoru**: Harici bağımlılık gerektirmeyen, geliştirici makineleri ve hızlı CI/CD döngüleri için optimize edilmiş saf Java sanal iş parçacığı motoru.
 - **Akıcı (Fluent) Yük Testi DSL'i**:
-  - `load(url).users(n).during(duration).rampUp(duration).run()` veya `loadScenario("name").step(...).run()` ile bildirimsel senaryolar.
-  - `BaseTest`, `BaseApiTest`, `BaseLoadTest` ve `BaseJUnit5Test` sınıflarında doğrudan kullanılabilir.
+  - `load(path).users(n).rampUp(duration).hold(duration).run()` veya `loadScenario("name").step(...).run()` ile bildirimsel senaryolar.
+  - `BaseLoadTest` (tarayıcı başlatmayan yük testi taban sınıfı) içinde kullanılabilir.
 - **Anotasyon Odaklı Yürütme (`@LoadTest`)**:
-  - Sınıf veya metot düzeyinde `@LoadTest` ile kullanıcı sayısı, süre, kademeli artış (rampUp), hedef RPS, motor ve besleyici ayarları.
-- **Veri Besleyiciler (`Feeder`)**:
-  - `circular()`, `random()` ve `batch()` stratejilerine sahip yerleşik CSV, JSON, Array ve özel Supplier besleyicileri.
+  - Sınıf veya metot düzeyinde `@LoadTest` ile `users`, `rampUp`, `hold`, `cooldown`, `engine` ve `baseUrl` ayarları.
+- **Veri Besleyiciler (`LoadTestFeeder`)**:
+  - `csv`, `json`, `random`, `uuid`, `sequence` ve `constant` `LoadTestFeeder` fabrikaları ile senaryo üzerinde `feedCsv`/`feedJson` kısayolları.
 - **SLA ve Gecikme Doğrulamaları (`LoadTestAssert`)**:
   - Yüzdelik dilimler (P50, P90, P95, P99), maksimum yanıt süresi, minimum RPS ve hata oranı limitleri için akıcı doğrulamalar.
 - **Birleşik Çok Kanallı Raporlama**:
@@ -155,7 +184,7 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 
 ### Changed
 - **Project rebrand to TestFly** — complete identity migration from Selenium Boot:
-  - Maven coordinates changed to `io.testfly:testfly:1.0.0`
+  - Maven coordinates changed to `io.testfly:testfly:1.0.0` *(historical entry: legacy group ID; the current coordinate is `io.github.hakanngul:testfly`)*
   - Java namespace changed to `io.testfly`
   - Configuration file renamed to `testfly.yml`
   - Public API annotation renamed to `@TestFlyApi`
@@ -239,7 +268,7 @@ testmanagement:
 ## [2.6.0] — 2026-06-20
 
 ### Added
-- **Gradle Build Support** — `testImplementation 'io.testfly:testfly:2.6.0'` + `test { useTestNG() }` is the complete Gradle setup; full docs cover Groovy DSL, Kotlin DSL, JUnit 5 bridge, parallel execution, optional dependencies, and `./gradlew test` equivalents for all `mvn` commands
+- **Gradle Build Support** — `testImplementation 'io.testfly:testfly:2.6.0'` + `test { useTestNG() }` is the complete Gradle setup; full docs cover Groovy DSL, Kotlin DSL, JUnit 5 bridge, parallel execution, optional dependencies, and `./gradlew test` equivalents for all `mvn` commands *(historical entry: legacy group ID; the current coordinate is `io.github.hakanngul:testfly`)*
 - **JUnit XML auto-detection** — `JUnitXmlReporter` now detects the active build tool at runtime: writes to `build/test-results/test/` (Gradle) when only a `build/` directory exists, or `target/surefire-reports/` (Maven) otherwise; override with `-Dtestfly.reports.dir=` system property
 - **Cross-build-tool version reporting** — `FrameworkVersion.get()` now reads `Implementation-Version` from the JAR's `MANIFEST.MF` as the primary source (works with both Maven and Gradle); falls back to `META-INF/maven/.../pom.properties` (Maven-only) and then `"0.0.0"`; `maven-jar-plugin` configured with `addDefaultImplementationEntries: true` to populate the manifest on every Maven build
 

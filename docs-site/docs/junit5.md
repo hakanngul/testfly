@@ -1,5 +1,5 @@
 ---
-description: "Run TestFly with JUnit 5: opt in via BaseJUnit5Test, @EnableTestFly, or @ExtendWith(TestFlyExtension) for full feature parity with TestNG including UI, API, DB, and accessibility testing."
+description: "Run TestFly with JUnit 5: opt in via BaseJUnit5Test, @EnableTestFly, or @ExtendWith(TestFlyExtension) to share most TestNG BaseTest capabilities, including UI, API, DB, and accessibility testing, with documented retry and lifecycle differences."
 id: junit5
 title: JUnit 5 Support
 sidebar_position: 10
@@ -7,7 +7,7 @@ sidebar_position: 10
 
 # JUnit 5 Support
 
-TestFly supports both **TestNG** (built-in) and **JUnit 5** (opt-in). Rather than a minimal runner, the JUnit 5 integration is a first-class citizen providing **100% feature parity** with TestNG `BaseTest`: framework-managed WebDriver lifecycle, ThreadLocal isolation, fluent locators, web-first and soft assertions, built-in REST API testing, multi-user sessions, HTML timeline reporting, AI failure analysis, and flakiness tracking.
+TestFly supports both **TestNG** (built-in) and **JUnit 5** (opt-in). Rather than a minimal runner, the JUnit 5 integration is a first-class citizen sharing core capabilities with TestNG `BaseTest`: framework-managed WebDriver lifecycle, ThreadLocal isolation, fluent locators, web-first and soft assertions, built-in REST API testing, multi-user sessions, HTML timeline reporting, AI failure analysis, and flakiness tracking.
 
 ---
 
@@ -21,7 +21,7 @@ Add JUnit 5 dependencies alongside TestFly:
 <dependencies>
     <!-- TestFly Core -->
     <dependency>
-        <groupId>io.testfly</groupId>
+        <groupId>io.github.hakanngul</groupId>
         <artifactId>testfly</artifactId>
         <version>1.0.7</version>
     </dependency>
@@ -48,7 +48,7 @@ Maven Surefire 3.x auto-detects JUnit 5 without any extra plugin configuration.
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.4'
+    testImplementation 'io.github.hakanngul:testfly:1.0.7'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
 }
@@ -102,9 +102,9 @@ class LoginTest extends BaseJUnit5Test {
 | **Fluent Locators** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
 | **Web-First Assertions** | `assertThat(By).isVisible()`, `assertThat(Locator).hasText(...)`, `assertThat(...).count(n)` |
 | **Soft Assertions** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)`, `softAssert().that(...)` |
-| **REST API Testing** | `apiClient()`, `apiGet(path)`, `apiPost(path, body)`, `apiPut()`, `apiPatch()`, `apiDelete()` |
+| **REST API Testing** | `apiClient()`, `apiGet(path)`, `apiPost(path)`, `apiPut(path)`, `apiPatch(path)`, `apiDelete(path)` (each returns an `ApiClient` builder; finish with `.send()`) |
 | **Multi-Session** | `session(name)`, `withSession(name, runnable)` for multi-user / chat / marketplace flows |
-| **Database Checks** | `db()`, `db("datasourceName")` for query execution and assertions |
+| **Database Checks** | `db()` (default datasource) and `db("datasourceName")` for SQL queries and row assertions such as `assertRowExists(table, conditions)` |
 | **Email Verification** | `mailbox()`, `to("user@example.com")` for OTP, link, and content checks |
 | **Accessibility (a11y)**| `accessibility().scan()`, `assertAccessibility()` using axe-core |
 | **Step Logging** | `step(name)`, `step(name, takeScreenshot)` for HTML timeline reporting |
@@ -170,21 +170,22 @@ import io.testfly.junit5.BaseJUnit5Test;
 import io.testfly.test.NoBrowser;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 class UserApiIntegrationTest extends BaseJUnit5Test {
 
     @Test
     @NoBrowser  // No browser is opened; executes purely via HTTP
     void verifyUserCreationViaApi() {
-        ApiResponse response = apiPost("/api/users", "{\"name\":\"John Doe\",\"email\":\"john@example.com\"}");
-        
-        response.assertThat()
-                .statusCode(201)
-                .bodyContains("John Doe");
+        ApiResponse response = apiPost("/api/users")
+                .body("{\"name\":\"John Doe\",\"email\":\"john@example.com\"}")
+                .send();
+
+        response.assertStatus(201)
+                .assertBodyContains("John Doe");
 
         // Verify record in database
-        db().table("users")
-            .where("email", "john@example.com")
-            .assertExists();
+        db().assertRowExists("users", Map.of("email", "john@example.com"));
     }
 }
 ```
@@ -209,8 +210,10 @@ class OrderHistoryTest extends BaseJUnit5Test {
     void userCanViewCreatedOrder() {
         // 1. Seed order data quickly via REST API (bypassing slow UI forms)
         step("Seed order data via API");
-        String orderId = apiPost("/api/orders", "{\"item\":\"Widget\",\"qty\":2}")
-                .jsonPath().getString("id");
+        String orderId = apiPost("/api/orders")
+                .body("{\"item\":\"Widget\",\"qty\":2}")
+                .send()
+                .json("$.id");
 
         // 2. Open browser to order history page
         step("Open order history in browser");
@@ -305,15 +308,16 @@ Implement `BaseConditions` and register it via Java SPI:
 ```java
 import io.testfly.precondition.BaseConditions;
 import io.testfly.precondition.ConditionProvider;
+import org.openqa.selenium.By;
 
 public class AppConditions extends BaseConditions {
 
     @ConditionProvider("loginAsAdmin")
     public void loginAsAdmin() {
         open("/login");
-        find("#username").type("admin");
-        find("#password").type("secret");
-        find("#login-btn").click();
+        type(By.id("username"), "admin");
+        type(By.id("password"), "secret");
+        click(By.id("login-btn"));
     }
 }
 ```
@@ -361,6 +365,15 @@ retry:
 
 Retried tests display a **↻ Nx** badge in the HTML report.
 
+:::caution Retry differences from TestNG
+JUnit 5 retries are implemented inside `TestFlyExtension.interceptTestMethod`, not by re-scheduling the test:
+
+- Only the test method body is re-invoked. Your own `@BeforeEach` / `@AfterEach` methods and TestFly's `beforeEach` setup (test data loading, `@UseAuth`, recording start, console-error shim) are **not** repeated between attempts. The driver is recreated and `@PreCondition` is re-run.
+- JUnit reports a single test result (the last attempt). Earlier failed attempts are not shown as separate JUnit entries; they are visible only as the retry count in the TestFly report.
+- `maxAttempts` means **additional** attempts (`maxAttempts = 2` → up to 3 runs).
+- Only `WebDriver` method parameters are replaced with the new driver on retry; other injected parameters keep their original values.
+:::
+
 ---
 
 ## Browser Lifecycle: Per-Test vs. Per-Suite
@@ -374,7 +387,7 @@ browser:
 ```
 
 - **`per-test` (Default):** A fresh browser is opened before each test (`beforeEach`) and closed immediately after (`afterEach`). Best for total isolation.
-- **`per-suite`:** A single browser instance is reused across tests within the suite for faster execution. `TestFlyExtension.afterAll()` automatically cleans up all suite drivers when the test class finishes.
+- **`per-suite`:** A single browser instance is reused across tests for faster execution. In JUnit 5, `TestFlyExtension.afterAll()` quits all suite drivers when each test class finishes, so reuse is effectively **per test class**, not across the whole run as with TestNG.
 
 ---
 
@@ -427,11 +440,14 @@ Quarantined tests are safely skipped before any browser or resource allocation o
 
 ---
 
-## Feature Parity: TestNG vs. JUnit 5
+## Feature Comparison: TestNG vs. JUnit 5
+
+Most `BaseTest` capabilities are available in JUnit 5. ⚠️ marks features that work with the differences described above.
 
 | Feature | TestNG | JUnit 5 |
 |---|:---:|:---:|
 | Automated WebDriver Lifecycle | ✅ | ✅ |
+| `per-suite` Browser Reuse | ✅ | ⚠️ per test class |
 | ThreadLocal Driver Isolation | ✅ | ✅ |
 | Fluent Locators (`$()`, `find()`) | ✅ | ✅ |
 | Semantic Locators (`getByRole`, `getByText`, etc.) | ✅ | ✅ |
@@ -449,6 +465,6 @@ Quarantined tests are safely skipped before any browser or resource allocation o
 | Execution Tracing & Screen Recording | ✅ | ✅ |
 | JavaScript Console Error Detection | ✅ | ✅ |
 | `@PreCondition` Session Caching | ✅ | ✅ |
-| `@Retryable` Smart Retry Mechanism | ✅ | ✅ |
+| `@Retryable` Smart Retry Mechanism | ✅ | ⚠️ method body only |
 | `testfly-quarantine.yml` Quarantine Support | ✅ | ✅ |
 | ReportPortal, TestRail & Xray Sync | ✅ | ✅ |

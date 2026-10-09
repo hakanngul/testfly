@@ -4,7 +4,6 @@ target/
 !**/src/test/**/target/
 .kotlin
 .agent
-GEMINI.md
 .kiro
 .mcp.json
 reportportal.lock

@@ -47,7 +47,7 @@ If adding TestFly to an existing project, follow the steps below:
 
 ```xml title="pom.xml"
 <dependency>
-    <groupId>io.testfly</groupId>
+    <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
     <version>1.0.7</version>
 </dependency>
@@ -58,7 +58,7 @@ If adding TestFly to an existing project, follow the steps below:
 
 ```groovy title="build.gradle"
 dependencies {
-    testImplementation 'io.testfly:testfly:1.0.7'
+    testImplementation 'io.github.hakanngul:testfly:1.0.7'
 }
 
 test {
@@ -72,7 +72,7 @@ test {
 
 ```kotlin title="build.gradle.kts"
 dependencies {
-    testImplementation("io.testfly:testfly:1.0.7")
+    testImplementation("io.github.hakanngul:testfly:1.0.7")
 }
 
 tasks.test {
@@ -95,12 +95,13 @@ See the full [Gradle Setup Guide](/docs/gradle) for parallel config, JUnit 5, op
 Create `testfly.yml` in your project root (next to `pom.xml` or `build.gradle`):
 
 ```yaml title="testfly.yml"
+execution:
+  mode: local
+  baseUrl: https://your-app.com
+
 browser:
   name: chrome
   headless: false
-
-execution:
-  baseUrl: https://your-app.com
 
 retry:
   enabled: true
@@ -110,6 +111,10 @@ timeouts:
   explicit: 10
   pageLoad: 30
 ```
+
+:::note Required keys
+`execution.mode`, `browser.name`, `timeouts.explicit`, and `timeouts.pageLoad` are mandatory. If any of them is missing, TestFly stops at startup with a configuration error. Everything else has a sensible default.
+:::
 
 ---
 

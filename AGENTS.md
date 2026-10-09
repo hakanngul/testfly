@@ -41,8 +41,8 @@ It summarizes the project's architecture, build/test workflows, code conventions
 **TestFly** is an opinionated, zero-boilerplate Java test-automation framework built on top of Selenium WebDriver.
 It is published to Maven Central as a single JAR that users add as a dependency.
 
-- **Group / Artifact:** `io.testfly:testfly`
-- **Current version:** `1.1.0`
+- **Group / Artifact:** `io.github.hakanngul:testfly`
+- **Current version:** `1.0.7`
 - **Java baseline:** 21 (compiled with `--release 21`)
 - **Build tool:** Maven 3.8+
 - **Primary test framework:** TestNG 7.9.0
@@ -71,16 +71,16 @@ Key selling points:
 |-------|------------|
 | Language | Java 21 |
 | Build | Maven |
-| Browser automation | Selenium Java 4.40.0 |
+| Browser automation | Selenium Java 4.48.0 |
 | Test framework | TestNG 7.9.0 |
 | YAML parsing | SnakeYAML 2.2 |
-| JSON processing | Jackson Databind 2.21.0 |
+| JSON processing | Jackson Databind 2.21.7 (via `jackson-bom`) |
 | Unit-test mocking | Mockito 5.11.0 |
 | Optional: Cucumber | `cucumber-java` + `cucumber-testng` 7.20.1 |
 | Optional: JUnit 5 | `junit-jupiter-api` + `junit-platform-launcher` 1.10.2 |
 | Optional: JSON Schema | `json-schema-validator` 1.4.3 |
-| Optional: IMAP email | `jakarta.mail` 2.0.1 |
-| Optional: Excel data | Apache POI 5.2.5 |
+| Optional: IMAP email | `jakarta.mail` 2.0.2 |
+| Optional: Excel data | Apache POI 5.4.0 |
 
 Docs site:
 
@@ -188,8 +188,8 @@ mvn test -Dtest=ConfigurationLoaderTest#testMethodName
 # Run with an environment profile (uses testfly-{profile}.yml)
 mvn test -Dtestfly.profile=staging
 
-# Skip GPG signing during local install
-mvn clean install -DskipTests -Dgpg.skip=true
+# GPG signing only runs with -Prelease, so no flag is needed locally
+mvn clean install -DskipTests
 ```
 
 Docs site:
@@ -244,6 +244,15 @@ Profiles are activated with `-Dtestfly.profile=<name>` and load `testfly-<name>.
 
 ---
 
+## Shared Agent and Product Context
+
+`AGENTS.md` is the single entry point for coding-agent instructions, including Gemini/Antigravity. Consult the linked rules and skills rather than maintaining separate tool-specific copies.
+
+- Follow the `testfly.yml` schema and `${VAR}` environment placeholders. Treat loaded configuration as immutable during execution; use framework APIs for scoped overrides.
+- TestFly serves QA engineers, SDETs, and Java automation teams in local, CI, Grid, and cloud environments. Preserve direct access to Selenium primitives and prefer convention over boilerplate.
+- Public documentation and HTML reports should use clear, practical language and meet WCAG AA contrast, keyboard navigation, and semantic markup requirements. Visual rules live in [DESIGN.md](DESIGN.md).
+- For real-backend integration checks use `mvn verify -Preal-backends`; for the optional quality gate use `mvn clean verify -Pquality`. These are separate from browser-free unit tests.
+
 ## Code Style Guidelines
 
 - **No enforced formatter** — follow the style already present in the file you are editing.
@@ -274,7 +283,7 @@ mvn test
 
 ### Consumer integration tests
 
-A separate sample/consumer project exists at `github.com/testfly/testfly-test`.
+A separate sample/consumer project exists at `github.com/hakanngul/testfly-test`.
 To test framework changes end-to-end:
 
 ```bash
@@ -287,10 +296,10 @@ mvn clean install -DskipTests
 
 ### CI
 
-GitHub Actions (`.github/workflows/testfly.yml`):
+GitHub Actions (`.github/workflows/testfly-ci.yml`):
 
 1. `unit-tests` job — runs `mvn test`
-2. `integration-tests` job — installs the framework, checks out `testfly/testfly-test`, pins it to the current version, and runs API demo tests
+2. `integration-tests` job — installs the framework, checks out `<owner>/testfly-test`, pins it to the current version, and runs API demo tests
 
 Jenkins (`ci/Jenkinsfile`):
 
@@ -328,15 +337,22 @@ Important stable entry points:
 
 ### Version-bump checklist
 
-When changing the framework version, update **all** occurrences:
+Docs present the version being released as the current Maven Central release, so the install pins move with every release. When changing the framework version, update **all** occurrences:
 
 - `pom.xml` `<version>`
-- `README.md` dependency snippet and "Current release" line
+- `AGENTS.md` "Current version" line (Project Overview)
+- `README.md` dependency snippets and "Current release" line
 - `CHANGELOG.md` new release entry
-- `docs-site/docs/getting-started.md`
-- `docs-site/docs/junit5.md`
+- `.github/profile/README.md` dependency snippet
 - `docs-site/docs/changelog.md`
-- `docs-site/src/pages/index.js`
+- Install pins (Maven `<version>`, Gradle `io.github.hakanngul:testfly:X.Y.Z`) in `docs-site/docs/getting-started.md`, `junit5.md`, `cucumber.md`, `gradle.md`, `loadtest/getting-started.md`, `migration/from-selenium-testng.md`
+- Version prose in `docs-site/docs/migration/from-selenium-testng.md` (Java version note), `loadtest/getting-started.md` and `loadtest/examples.md` (Availability / current release wording), `guides/api-schema-validation.md`
+- `docs-site/src/pages/index.js` (Maven Central badge) and `docs-site/src/data/homeData.js` (stats value and install snippet)
+- `docs-site/docusaurus.config.js` has no version text now (the announcement bar was removed); keep it that way
+- every Turkish mirror of the docs above under `docs-site/i18n/tr/docusaurus-plugin-content-docs/current/`
+- Do not bump `@testfly/mcp` references in `docs-site/docs/cli.md` / `ai/*` (separate npm package) or `@TestFlyApi(since = ...)` annotations (they record when an API was introduced)
+
+Verify with `git grep -nE '<old-version>' -- . ':!CHANGELOG.md' ':!docs-site/docs/changelog.md' ':!docs-site/i18n/tr/docusaurus-plugin-content-docs/current/changelog.md' ':!docs-site/package-lock.json'` and `cd docs-site && npm run build`.
 
 After release, also update `LATEST_VERSION` in the separate `testfly/website` repo.
 

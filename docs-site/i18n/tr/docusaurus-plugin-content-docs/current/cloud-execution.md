@@ -9,8 +9,8 @@ sidebar_position: 12
 
 TestFly, test paketinizi sıfır test-kodu değişikliğiyle **BrowserStack** ve **Sauce Labs** üzerinde çalıştırmayı destekler. `testfly.yml` içindeki bir satırı değiştirerek yerel Chrome'dan bulut tarayıcı çiftliğine geçin.
 
-:::caution TestFly 3.2.1+ gerektirir
-Bulut yürütme (`execution.mode: browserstack` veya `saucelabs`), **TestFly 3.2.1 veya sonrasını** gerektirir. Daha eski bir sürümde çalışmaz — bu sayfadaki örnekler ne gösterirse göstersin, yapılandırma yükleme aşamasında `execution.mode` için `local` ve `remote` dışındaki herhangi bir değeri reddeder.
+:::caution TestFly 1.0.0+ gerektirir
+Bulut yürütme (`execution.mode: browserstack` veya `saucelabs`), **TestFly 1.0.0 veya sonrasını** gerektirir. Daha eski bir sürümde çalışmaz — bu sayfadaki örnekler ne gösterirse göstersin, yapılandırma yükleme aşamasında `execution.mode` için `local` ve `remote` dışındaki herhangi bir değeri reddeder.
 :::
 
 ---

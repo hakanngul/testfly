@@ -1,105 +1,50 @@
 ---
 id: feeders
 title: Veri Besleyiciler ve Parametrelendirme (Feeders)
-description: "CSV dosyalarından, JSON yapılarından, dairesel listelerden veya dinamik tedarikçilerden yük senaryolarına dinamik veri aktarımı."
 sidebar_position: 5
 ---
 
-# Veri Besleyiciler ve Parametrelendirme (Feeders)
+# Feeder ve Parametrizasyon
 
-Statik isteklerle yapılan yük testleri, veritabanı veya uygulama önbellekleri nedeniyle yanıltıcı derecede hızlı sonuç verebilir. TestFly'ın `LoadTestFeeder` mekanizması, sanal kullanıcılar arasında farklı verileri dolaştırarak gerçekçi senaryolar üretir.
+Senaryoya bir feeder bağlanır. `${name}` değişkenleri path, header ve body içinde çözülür. URL parametrelerinde `queryParam` kullanın.
 
----
+| Factory | Değerler |
+| --- | --- |
+| `csv("testdata/search.csv")` | CSV sütunları değişken olur; satırlar dosya sırasıyla döngüye girer. |
+| `json("testdata/products.json")` | JSON nesne dizisi; satırlar dosya sırasıyla döngüye girer. |
+| `random("userId", 1, 10000)` | Her iki sınır dahil rastgele tamsayı. |
+| `uuid("requestId")` | Yeni UUID değeri. |
+| `sequence("orderId", 1000, 1)` | 1000’den başlayan, 1 artan sıra. |
+| `constant("tenant", "demo")` | Sabit string değeri. |
 
-## 1. Veri Besleyici Oluşturma
+`fromCsv`, `fromList`, `fromSupplier`, `circular()` veya parametresiz `random()` factory/strateji metotları yoktur. CSV ve JSON otomatik döngü yapar. Yerleşik CSV ayrıştırıcısı basit virgülle ayırma kullanır; tam quoted-field CSV parser değildir. İçinde virgül bulunmayan basit veri kullanın ve dosyanın varlığını çalıştırmadan önce doğrulayın.
 
-TestFly birden fazla veri kaynağını destekler:
+## Örnek
 
-### A. CSV Besleyicisi
-Tablo biçimindeki verileri doğrudan sınıf yolundan veya dosya sisteminden yükleyin:
+```csv title="testdata/search.csv"
+query,clientId
+laptop,client-1
+keyboard,client-2
+```
+
 
 ```java
+import io.testfly.loadtest.BaseLoadTest;
 import io.testfly.loadtest.LoadTestFeeder;
+import org.testng.annotations.Test;
 
-// data/kullanicilar.csv dosyasını okur (sütunlar: kullaniciAdi, sifre)
-LoadTestFeeder kullaniciBesleyici = LoadTestFeeder.fromCsv("data/kullanicilar.csv");
-```
-
-### B. Bellek İçi Liste / Harita
-```java
-List<Map<String, Object>> aramaTerimleri = List.of(
-    Map.of("query", "laptop", "maxPrice", 1200),
-    Map.of("query", "klavye", "maxPrice", 80),
-    Map.of("query", "monitor", "maxPrice", 300)
-);
-
-LoadTestFeeder aramaBesleyici = LoadTestFeeder.fromList(aramaTerimleri);
-```
-
-### C. Dinamik Lambda / Üretici Fonksiyon
-Her istekte rastgele veya hesaplanmış yeni değerler üretin:
-
-```java
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-
-LoadTestFeeder dinamikBesleyici = LoadTestFeeder.fromSupplier(() -> Map.of(
-    "siparisId", UUID.randomUUID().toString(),
-    "tutar", ThreadLocalRandom.current().nextInt(50, 1000)
-));
-```
-
----
-
-## 2. Dağıtım Stratejileri
-
-Kayıtların sanal kullanıcılar arasında nasıl dağıtılacağını belirleyin:
-
-- **Dairesel / Round-Robin (Varsayılan):** Veri setinin sonuna gelindiğinde başa döner.
-  ```java
-  LoadTestFeeder feeder = LoadTestFeeder.fromCsv("kullanicilar.csv").circular();
-  ```
-- **Rastgele (Random):** Veri kümesinden rastgele seçim yapar.
-  ```java
-  LoadTestFeeder feeder = LoadTestFeeder.fromCsv("urunler.csv").random();
-  ```
-
----
-
-## 3. Besleyicileri Senaryoda Kullanma
-
-Besleyiciler, `${degisken}` yer tutucularını kullanarak URL'lere, başlıklara ve JSON gövdelerine otomatik enjekte edilir:
-
-```java
-@Test
-public void testGirisliArama() {
-    LoadTestFeeder feeder = LoadTestFeeder.fromCsv("data/arama.csv");
-
-    load("/api/search?q=${query}&limit=${limit}")
-        .feed(feeder)
-        .header("X-Musteri-No", "${musteriNo}")
-        .users(20)
-        .run()
-        .assertP95Below(200);
+public class SearchLoadTest extends BaseLoadTest {
+    @Test
+    public void searchWithData() {
+        loadScenario("Search").users(10)
+            .feed(LoadTestFeeder.csv("testdata/search.csv"))
+            .step("Search").get("/search")
+                .queryParam("q", "${query}")
+                .header("X-Client-ID", "${clientId}").and()
+            .run().assertP95Below(300);
+    }
 }
 ```
 
-### POST Gövdesine Veri Enjeksiyonu
 
-```java
-String sablon = """
-    {
-      "urunKodu": "${urunKodu}",
-      "adet": ${adet},
-      "postaKodu": "${postaKodu}"
-    }
-""";
-
-load("/api/kargo/hesapla")
-    .feed(LoadTestFeeder.fromCsv("data/gonderiler.csv"))
-    .post(sablon)
-    .header("Content-Type", "application/json")
-    .users(15)
-    .run()
-    .assertErrorRateBelow(0.01);
-```
+CSV/JSON dosyaları filesystem veya classpath üzerinde bulunabilir. Sentetik kimlik bilgileri kullanın; gerçek parolaları commit etmeyin. JSON login body’sinde feeder kullanımı için [çok adımlı örneğe](./examples.md) bakın.

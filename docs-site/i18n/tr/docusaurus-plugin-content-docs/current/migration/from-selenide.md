@@ -128,7 +128,7 @@ find("#email").type("a@b.com");
 
 1. **Bağımlılığı değiştirin**
    - `com.codeborne:selenide` bağımlılığını kaldırın
-   - `io.testfly:testfly` bağımlılığını ekleyin
+   - `io.github.hakanngul:testfly` bağımlılığını ekleyin
 
 2. **Yapılandırmayı `testfly.yml` dosyasına taşıyın**
    - `Configuration.browser` → `browser.name`

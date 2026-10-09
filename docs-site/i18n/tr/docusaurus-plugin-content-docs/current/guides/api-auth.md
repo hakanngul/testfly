@@ -45,20 +45,22 @@ Framework, `grant_type=client_credentials` ile bir `POST` gönderir ve dönen `a
 
 ---
 
-## Global Auth — Bir Kez Ayarla, Her Yerde Kullan
+## Global Auth — Her Test İçin Ayarla
 
-Kimlik doğrulamayı `@BeforeSuite` içinde bir kez ayarlayın; o thread üzerindeki sonraki her istek otomatik olarak onu içerir. Her istekte `.auth()` çağrısı gerekmez.
+Kimlik doğrulamayı her test için `@BeforeMethod` içinde ayarlayın. Global auth thread-local test kapsamındadır ve test kapanışında temizlenir; suite genelinde paylaşılmaz. Paralel testlerin her biri kendi auth ayarını kurmalıdır. Test içindeki her istekte `.auth()` çağrısı gerekmez.
 
 ```java
 import io.testfly.test.BaseApiTest;
 import io.testfly.client.ApiAuth;
 import io.testfly.client.ApiClient;
-import org.testng.annotations.BeforeSuite;
+import io.testfly.client.ApiResponse;
+import java.util.Map;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class UserApiTest extends BaseApiTest {
 
-    @BeforeSuite
+    @BeforeMethod
     public void authenticate() {
         ApiResponse login = ApiClient.post("/api/auth/login")
                 .body(Map.of("username", "admin", "password", "pass"))

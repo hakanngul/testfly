@@ -8,71 +8,31 @@ description: How TestFly integrates with AI coding assistants using the Model Co
 
 # AI & MCP Automation Overview
 
-Modern AI coding assistants (such as **JetBrains AI Assistant**, **Claude Code**, **GitHub Copilot**, and **Google Antigravity**) can write code, but when asked to automate web tests, raw LLMs face severe limitations:
-- **Blind Generation:** They cannot see the actual DOM, layout, or accessibility attributes of your web application.
-- **Hallucinated Locators:** They invent brittle XPath selectors or IDs that do not exist on the page.
-- **Outdated Code Patterns:** They default to raw `Thread.sleep()` or deprecated Selenium APIs rather than robust, auto-waiting test frameworks.
+TestFly has two distinct AI paths:
 
-**TestFly solves this with the Model Context Protocol (MCP).**
-
----
-
-## What is TestFly MCP?
-
-**TestFly MCP** is a Python-based server implementing the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). It bridges your IDE's AI assistant with live, real-world browser execution:
+1. **Java runtime:** `act()`, `byIntent()`, AI assertions, action caching and patch generation run inside TestFly tests. Configure the Java framework's AI provider separately from your IDE assistant.
+2. **External MCP tooling:** an assistant uses Playwright MCP for browser inspection and a separate Node.js TestFly bridge for project/code generation and cache/patch operations.
 
 ```text
-┌──────────────────────────────┐
-│  IDE: IntelliJ IDEA / VSCode │
-└──────────────┬───────────────┘
-               │ MCP Protocol / JSON-RPC
-               ▼
-┌──────────────────────────────┐
-│    TestFly MCP Server        │
-└──────┬────────────────▲──────┘
-       │                │ DOM & A11y
-       │ Selenium       │ Tree Snapshot
-       ▼                │
-┌──────────────────────┴───────┐
-│ Live Browser: Chrome/Firefox │
-└──────────────────────────────┘
-               │ Emits Validated TestFly Code
-               ▼
-┌──────────────────────────────┐
-│   TestFly Java Test Suite    │
-└──────────────────────────────┘
+Assistant → Playwright MCP → browser inspection
+          → TestFly Node bridge → Java source / cache / patch tools
+Java tests → configured AI provider → runtime actions / assertions
 ```
 
-### Key Capabilities
+Source checked on 2026-10-04: `package.json` declares `@testfly/mcp` 1.1.0, Node.js 18+, and `bin/testfly-mcp.js`. The public npm registry returned 404 for that package, so this guide uses the source checkout. The package name/version in source is not proof of an npm release.
 
-1. **Real Browser Inspection:** AI assistants drive a real browser session (Chrome/Firefox) via 88 automated MCP tools, navigating to real URLs and inspecting genuine interactive elements.
-2. **Accessibility-First Locators:** Locators are derived directly from the browser's accessibility tree (`getByRole`, `getByLabel`, `getByTestId`, `getByPlaceholder`), making tests resilient against UI redesigns.
-3. **Native TestFly Codegen:** Instead of writing raw Selenium boilerplate, the MCP server emits production-grade TestFly Java code:
-   - **Page Object Model:** Classes extending `BasePage` with fluent action methods.
-   - **TestNG Tests:** Classes extending `BaseTest` with framework-managed driver lifecycles.
-   - **JUnit 5 Tests:** Classes extending `BaseJUnit5Test`.
-   - **Cucumber BDD:** Steps extending `BaseCucumberSteps` and runners extending `BaseCucumberTest`.
-   - **Web-First Assertions:** Auto-waiting `assertThat(getDriver()).hasTitle(...)` and `assertThat(locator).isVisible()`.
+## Workflow
 
----
+Inspect the real application DOM before choosing locators. Prefer semantic locators supported by `io.testfly.locator`. Review generated code and compile it against your TestFly dependency; code generation does not prove that a test works. Run the test against a controlled environment before using it in CI.
 
-## Ecosystem Components
+## Components
 
-The TestFly AI ecosystem consists of tightly integrated components:
+| Component | Where to start |
+|---|---|
+| Java runtime AI features | [Agentic testing](/docs/ai/agentic-testing) |
+| Six-tool Node MCP bridge | [MCP Bridge & CLI](/docs/cli) |
+| Live browser inspection | [Microsoft Playwright MCP](https://github.com/microsoft/playwright-mcp) |
+| IDE source projects | [IDE plugins](/docs/ai/ide-plugins) |
+| Generation prompts | [Prompt recipes](/docs/ai/prompt-recipes) |
 
-| Component | Purpose | How to Access |
-| :--- | :--- | :--- |
-| **Agentic Testing Runtime** | Embedded Java engine for goal actions (`act()`), semantic assertions (`assertWithAi()`), intent locators (`byIntent()`), self-healing, and auto-remediation patches. | Built-in Java library: `io.github.hakanngul:testfly` |
-| **`@testfly/mcp` Bridge** | Lightweight Node.js MCP bridge for TestFly Java 21 codegen, action-cache, and self-healing. | `npx -y @testfly/mcp` |
-| **IntelliJ IDEA Plugin** | Zero-config registration with JetBrains AI Assistant, diagnostics, and project bootstrap. | Disk installation: `testfly-mcp-jetbrains-1.1.0.zip` |
-| **VS Code Extension** | 1-Click Multi-Assistant setup (Cursor, Claude, Copilot), Action Cache explorer, and visual patch reviewer. | VSIX installation: `testfly-vscode-1.1.0.vsix` |
-
----
-
-## Next Steps
-
-- [Agentic Testing & Autonomous AI](./agentic-testing) — Goal-oriented execution, Compile & Freeze caching, semantic assertions, and self-remediation.
-- [TestFly MCP Bridge & Playwright](./testfly-mcp) — Learn about the architecture, available tools, and NPX setup.
-- [IDE Plugins & Extensions](./ide-plugins) — Set up the IntelliJ IDEA and VS Code plugins.
-- [Interactive Web Studio](./interactive-studio) — Use the visual browser playground and live codegen studio.
-- [Prompt Recipes](./prompt-recipes) — Copy-paste prompt templates for generating Page Objects, TestNG, JUnit 5, and Cucumber tests.
+The earlier Python/Selenium server and 88-tool recorder model are historical. The [ADR](/docs/ai/adr-001-mcp-recorder-architecture), [Web Studio](/docs/ai/interactive-studio) and [recorder](/docs/ai/recorder) pages preserve that design without advertising those commands as current Node features.

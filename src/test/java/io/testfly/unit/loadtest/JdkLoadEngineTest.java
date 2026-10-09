@@ -63,6 +63,15 @@ public class JdkLoadEngineTest {
             }
         });
 
+        AtomicInteger flakyCounter = new AtomicInteger(0);
+        server.createContext("/api/flaky", exchange -> {
+            int status = flakyCounter.incrementAndGet() % 2 == 0 ? 500 : 200;
+            String response = "{}";
+            exchange.sendResponseHeaders(status, response.length());
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(response.getBytes());
+            }
+        });
         server.setExecutor(null);
         server.start();
     }
@@ -299,5 +308,88 @@ public class JdkLoadEngineTest {
                 .engine("jdk");
 
         LoadTestRunner.run(scenario);
+    }
+
+    // ── Status codes, assertStatus and extract (API-001 / API-003 / API-004) ──
+
+    private LoadScenario scenarioFor(String name, String path) {
+        return LoadScenario.named(name)
+                .baseUrl("http://localhost:" + port)
+                .get(path)
+                .users(2)
+                .rampUp(java.time.Duration.ofSeconds(0))
+                .hold(java.time.Duration.ofSeconds(1))
+                .engine("jdk");
+    }
+
+    @Test
+    public void testStatusCodesRecordedForHealthyEndpoint() {
+        LoadTestMetrics metrics = LoadTestRunner.run(scenarioFor("Status 200", "/api/health")).metrics();
+
+        long ok = metrics.statusCodes().getOrDefault(200, 0L);
+        assertTrue(ok > 0, "statusCodes should contain 200 but was " + metrics.statusCodes());
+        assertEquals(ok, (long) metrics.totalRequests());
+    }
+
+    @Test
+    public void testStatusCodesRecordedForErrorEndpoint() {
+        LoadTestMetrics metrics = LoadTestRunner.run(scenarioFor("Status 500", "/api/error")).metrics();
+
+        assertTrue(metrics.statusCodes().getOrDefault(500, 0L) > 0,
+                "statusCodes should contain 500 but was " + metrics.statusCodes());
+        assertFalse(metrics.statusCodes().containsKey(200));
+    }
+
+    @Test
+    public void testTransportFailuresRecordedWithSyntheticStatus() throws IOException {
+        int closedPort;
+        try (java.net.ServerSocket socket = new java.net.ServerSocket(0)) {
+            closedPort = socket.getLocalPort();
+        }
+        LoadScenario scenario = scenarioFor("Transport", "/api/health")
+                .baseUrl("http://localhost:" + closedPort);
+
+        LoadTestMetrics metrics = LoadTestRunner.run(scenario).metrics();
+
+        assertTrue(metrics.failedRequests() > 0);
+        assertTrue(metrics.statusCodes().getOrDefault(JdkLoadEngine.TRANSPORT_ERROR_STATUS, 0L) > 0,
+                "statusCodes should contain the transport-error code but was " + metrics.statusCodes());
+    }
+
+    @Test
+    public void testScenarioAssertStatusPassesOnHealthyEndpoint() {
+        scenarioFor("Assert 200", "/api/health").assertStatus(200);
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void testScenarioAssertStatusFailsWhenEndpointReturnsOtherStatus() {
+        scenarioFor("Assert 404 on 500", "/api/error").assertStatus(404);
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void testScenarioAssertStatus200FailsOnErrorEndpoint() {
+        scenarioFor("Assert 200 on 500", "/api/error").assertStatus(200);
+    }
+
+    @Test(expectedExceptions = AssertionError.class, expectedExceptionsMessageRegExp = ".*status 500.*")
+    public void testScenarioAssertStatusFailsWhenMixedStatusesOccur() {
+        // "All responses returned 200" must not pass when some responses were 500
+        scenarioFor("Assert 200 on mixed", "/api/flaky").assertStatus(200);
+    }
+
+    @Test
+    public void testExtractWithoutFeederDoesNotFailRequests() {
+        LoadScenario scenario = LoadScenario.named("Extract no feeder")
+                .baseUrl("http://localhost:" + port)
+                .users(2)
+                .rampUp(java.time.Duration.ofSeconds(0))
+                .hold(java.time.Duration.ofSeconds(1))
+                .engine("jdk");
+        scenario.step("health").get("/api/health").extract("state", "$.status");
+
+        LoadTestMetrics metrics = LoadTestRunner.run(scenario).metrics();
+
+        assertTrue(metrics.totalRequests() > 0);
+        assertEquals(metrics.failedRequests(), 0, "extract() must not fail without a feeder");
     }
 }

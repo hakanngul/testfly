@@ -66,12 +66,14 @@ browser:
   headless: false
 
 execution:
+  mode: local
   baseUrl: https://your-app.com
   parallel: methods
   threadCount: 4
 
 timeouts:
   explicit: 10
+  pageLoad: 30
 
 retry:
   enabled: true
@@ -121,7 +123,7 @@ If your organisation depends on Serenity's narrative living-documentation report
 
 1. **Replace dependencies**
    - Remove `net.serenity-bdd:*` artifacts
-   - Add `io.testfly:testfly`
+   - Add `io.github.hakanngul:testfly`
 
 2. **Move configuration**
    - Convert `serenity.conf` / `serenity.properties` to `testfly.yml`

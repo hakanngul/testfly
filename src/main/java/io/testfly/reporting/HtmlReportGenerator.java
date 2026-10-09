@@ -15,9 +15,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Generates an Allure-style single-page interactive HTML report driven by JSON
@@ -34,6 +37,8 @@ import java.util.Map;
  * </p>
  */
 public final class HtmlReportGenerator {
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{([A-Z_]+)\\}\\}");
+
 
     private HtmlReportGenerator() {
     }
@@ -503,35 +508,65 @@ public final class HtmlReportGenerator {
                     ? "<span class=\"nav-count status-failed\">" + cumFailed + "</span>"
                     : "";
 
-            return template
-                    .replace("{{TESTFLY_DATA_JSON}}", reportDataJson)
-                    .replace("{{RUN_HISTORY_JSON}}", runHistoryJson)
-                    .replace("{{TOTAL_TESTS}}", String.valueOf(cumTotal))
-                    .replace("{{PASSED}}", String.valueOf(cumPassed))
-                    .replace("{{FAILED}}", String.valueOf(cumFailed))
-                    .replace("{{SKIPPED}}", String.valueOf(cumSkipped))
-                    .replace("{{PASS_RATE}}", passRateStr)
-                    .replace("{{PASS_RATE_CLASS}}", passRateClass)
-                    .replace("{{TOTAL_TIME_MS}}", String.valueOf(cumDuration))
-                    .replace("{{AVG_TIME_MS}}", String.valueOf(cumAvg))
-                    .replace("{{METADATA}}", metadataSection)
-                    .replace("{{RUN_TIMESTAMP}}", timestamp)
-                    .replace("{{HISTORY_COUNT}}", String.valueOf(historyCount))
-                    .replace("{{FAILURE_BADGE}}", failureBadge)
-                    .replace("{{ROWS}}", "")
-                    .replace("{{FAILURE_ROWS}}", "")
-                    .replace("{{SLOWEST_TESTS}}", "")
-                    .replace("{{RUN_HISTORY_SECTION}}", "")
-                    .replace("{{RETRY_SECTION}}", "")
-                    .replace("{{FLAKINESS_SECTION}}", "")
-                    .replace("{{DONUT_DATA}}",
-                            String.format("{\"passed\":%d,\"failed\":%d,\"skipped\":%d}", cumPassed, cumFailed,
-                                    cumSkipped))
-                    .replace("{{EXECUTION_PERCENTILES}}", "{}");
+            Map<String, String> values = new HashMap<>();
+            values.put("TESTFLY_DATA_JSON", escapeJsonForHtml(reportDataJson));
+            values.put("RUN_HISTORY_JSON", escapeJsonForHtml(runHistoryJson));
+            values.put("TOTAL_TESTS", String.valueOf(cumTotal));
+            values.put("PASSED", String.valueOf(cumPassed));
+            values.put("FAILED", String.valueOf(cumFailed));
+            values.put("SKIPPED", String.valueOf(cumSkipped));
+            values.put("PASS_RATE", passRateStr);
+            values.put("PASS_RATE_CLASS", passRateClass);
+            values.put("TOTAL_TIME_MS", String.valueOf(cumDuration));
+            values.put("AVG_TIME_MS", String.valueOf(cumAvg));
+            values.put("METADATA", metadataSection);
+            values.put("RUN_TIMESTAMP", timestamp);
+            values.put("HISTORY_COUNT", String.valueOf(historyCount));
+            values.put("FAILURE_BADGE", failureBadge);
+            values.put("ROWS", "");
+            values.put("FAILURE_ROWS", "");
+            values.put("SLOWEST_TESTS", "");
+            values.put("RUN_HISTORY_SECTION", "");
+            values.put("RETRY_SECTION", "");
+            values.put("FLAKINESS_SECTION", "");
+            values.put("DONUT_DATA",
+                    String.format("{\"passed\":%d,\"failed\":%d,\"skipped\":%d}", cumPassed, cumFailed,
+                            cumSkipped));
+            values.put("EXECUTION_PERCENTILES", "{}");
+            return renderTemplate(template, values);
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to render HTML report template", e);
         }
+    }
+
+    /**
+     * Makes serialized JSON safe to embed inside a {@code <script>} element: {@code <} can no longer
+     * open a {@code </script>} or {@code <!--} sequence, and U+2028/U+2029 cannot break a JS line.
+     * The result is still valid JSON that decodes to the same value.
+     */
+    static String escapeJsonForHtml(String json) {
+        if (json == null) {
+            return "";
+        }
+        return json.replace("<", "\\u003c")
+                .replace("\u2028", "\\u2028")
+                .replace("\u2029", "\\u2029");
+    }
+
+    /**
+     * Substitutes every {@code {{NAME}}} placeholder in a single pass, so substituted values are never
+     * scanned again. Placeholders without an entry in {@code values} are left untouched.
+     */
+    static String renderTemplate(String template, Map<String, String> values) {
+        Matcher matcher = PLACEHOLDER.matcher(template);
+        StringBuilder out = new StringBuilder(template.length() + 4096);
+        while (matcher.find()) {
+            String value = values.get(matcher.group(1));
+            matcher.appendReplacement(out, Matcher.quoteReplacement(value != null ? value : matcher.group()));
+        }
+        matcher.appendTail(out);
+        return out.toString();
     }
 
     private static String escapeHtml(String s) {

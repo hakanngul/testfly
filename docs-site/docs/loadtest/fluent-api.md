@@ -1,116 +1,64 @@
 ---
 id: fluent-api
 title: Fluent Load Testing API
-description: "Master TestFly's intuitive fluent builder API for single-endpoint and complex multi-step scenario load testing."
 sidebar_position: 3
 ---
 
 # Fluent Load Testing API
 
-The TestFly Load Testing API is designed to feel natural, readable, and fully integrated with existing UI and API test patterns. Starting from `load(url)`, you can chain concurrency settings, headers, payloads, feeders, and multi-step actions.
+Use `load(path)` for a single GET step. For headers, payloads, checks, and multiple steps, start with `loadScenario(name)`. `step(name)` returns `LoadStep`; `and()` returns its parent `LoadScenario`.
 
----
+## POST request
 
-## 1. Single-Endpoint Request
+The following fragment belongs inside a `BaseLoadTest` test method, with `java.util.Map` imported:
 
-For microservice health checks or individual API endpoints, invoke `load(...)` directly:
 
 ```java
-load("https://api.example.com/items")
-    .get()                                    // default is GET
-    .header("Accept", "application/json")
-    .queryParam("category", "electronics")
-    .users(25)
-    .rampUp(Duration.ofSeconds(5))
-    .hold(Duration.ofSeconds(20))
-    .run();
+loadScenario("Create order").users(10)
+    .step("Create").post("/orders")
+        .header("Content-Type", "application/json")
+        .body(Map.of("sku", "PROD-998", "quantity", 1))
+        .check(status().is(201)).and()
+    .run().assertErrorRateBelow(0.01);
 ```
 
-### POST with JSON Body
+
+## Multi-step journey
+
 
 ```java
-String jsonPayload = """
-    {
-      "sku": "PROD-998",
-      "quantity": 1
-    }
-""";
-
-load("/api/cart/add")
-    .post(jsonPayload)
-    .header("Content-Type", "application/json")
-    .users(15)
-    .run();
-```
-
-Supported HTTP verbs: `.get()`, `.post(body)`, `.put(body)`, `.delete()`, `.patch(body)`.
-
----
-
-## 2. Multi-Step User Journeys
-
-Real-world users do not bombard a single endpoint; they navigate across multiple API calls. TestFly models this using `step(name, request)`:
-
-```java
-import io.testfly.loadtest.LoadScenario;
-import io.testfly.test.BaseTest;
+import io.testfly.loadtest.BaseLoadTest;
+import io.testfly.loadtest.LoadTestFeeder;
 import org.testng.annotations.Test;
 import java.time.Duration;
+import java.util.Map;
 
-public class CheckoutJourneyTest extends BaseTest {
-
+public class CheckoutLoadTest extends BaseLoadTest {
     @Test
-    public void simulateCheckoutFlow() {
-        LoadScenario scenario = LoadScenario.named("E-Commerce User Journey")
-            .step("Browse Catalog", req -> req.get("/api/products?page=1"))
-            .step("View Details", req -> req.get("/api/products/42"))
-            .step("Add to Cart", req -> req.post("/api/cart")
-                                          .header("Content-Type", "application/json")
-                                          .body("{\"productId\": 42, \"quantity\": 1}"))
-            .step("Checkout", req -> req.post("/api/checkout")
-                                       .header("Authorization", "Bearer mock-token"));
-
-        load(scenario)
-            .users(30)
-            .rampUp(Duration.ofSeconds(10))
-            .hold(Duration.ofSeconds(30))
-            .run()
-            .assertThroughputAbove(20.0)
-            .assertStepP95Below("Checkout", 500)
-            .assertErrorRateBelow(0.02);
+    public void checkout() {
+        loadScenario("Checkout")
+            .engine("jdk").users(15).hold(Duration.ofSeconds(10))
+            .feed(LoadTestFeeder.csv("testdata/users.csv"))
+            .step("Login").post("/login")
+                .body(Map.of("username", "${username}", "password", "${password}"))
+                .check(status().is(200)).extract("token", "$.accessToken").and()
+            .step("Payment").post("/payment")
+                .header("Authorization", "Bearer ${token}")
+                .body(Map.of("amount", 10)).check(status().is(200)).and()
+            .run().assertStepP95Below("Login", 300)
+                .assertStepP95Below("Payment", 800)
+                .assertStepErrorRateBelow("Payment", 0.01);
     }
 }
 ```
 
----
 
-## 3. Concurrency Profile Options
+## Method reference
 
-Customize user arrival rates and ramping shapes:
+| Receiver | Methods |
+| --- | --- |
+| `BaseLoadTest` | `load(String path)`, `loadScenario(String name)`, `lastLoadMetrics()`, `status()`, `jsonPath(String)` |
+| `LoadScenario` | `users`, `rampUp`, `hold`, `cooldown`, `engine`, `baseUrl`, `feed`, `feedCsv`, `feedJson`, `thinkTime`, `step`, `run` |
+| `LoadStep` | `get(path)`, `post(path)`, `put(path)`, `patch(path)`, `delete(path)`, `header`, `queryParam`, `formParam`, `body`, `check`, `extract`, `and`, `run` |
 
-```java
-load("/api/search")
-    .users(100)                     // Peak concurrent virtual users
-    .rampUp(Duration.ofSeconds(15)) // Linear ramp-up from 1 to 100 users
-    .hold(Duration.ofSeconds(45))   // Sustained peak duration
-    .targetRps(250)                 // Optional rate limit: max 250 requests/sec
-    .run();
-```
-
----
-
-## 4. Method Reference Summary
-
-| Method | Description |
-| :--- | :--- |
-| `load(String url)` | Initializes a load test scenario for a single URL. |
-| `load(LoadScenario scenario)` | Initializes a load test for a multi-step user journey. |
-| `users(int count)` | Specifies concurrent virtual users. |
-| `rampUp(Duration duration)` | Sets linear ramp-up duration. |
-| `hold(Duration duration)` | Sets duration to sustain peak virtual users. |
-| `targetRps(int rps)` | Throttles maximum requests per second. |
-| `header(String name, String value)` | Adds an HTTP request header. |
-| `queryParam(String name, String value)` | Appends query parameters to the URL. |
-| `feed(LoadTestFeeder feeder)` | Binds dynamic data feeder to requests. |
-| `engine(String engine)` | Overrides execution engine (`"auto"`, `"gatling"`, `"jdk"`). |
-| `run()` | Triggers execution and returns a `LoadTestAssert` instance. |
+`thinkTime(Duration)` sets a fixed pause; `thinkTime(minMs, maxMs)` sets a random pause between requests. `extract` makes a response value available to subsequent steps of the same virtual user. There is no `load(LoadScenario)` overload or `targetRps()` throttling API. Place load settings on the scenario and request settings on its steps.

@@ -11,19 +11,52 @@ All notable changes to TestFly are documented here.
 
 ---
 
-## [1.0.7] — 2026-09-29
+## [1.0.7] — 2026-10-09
 
 ### Added
 - **Canonical `Locator.cssSelector(String)`**: Introduced `Locator.cssSelector(String)` as the primary, memorable factory method matching Selenium's `By.cssSelector` naming conventions.
 - **Assertion Boundary Architecture**: Formalized the separation between TestFly's auto-retrying, DOM-polling Web UI assertions (`LocatorAssert`, `PageAssert`) and general-purpose primitive assertions (delegated to AssertJ / TestNG).
+- **`execution.sessionWaitSeconds`** (default `300`, `0` = do not wait, validated `>= 0`): controls how long a test waits for a free browser slot when `execution.maxActiveSessions` is exhausted. It replaces the previously hard-coded 30-second wait.
+- **`ExecutionValidator.crossCheckWarnings`**: prints a warning when parallel execution uses `execution.threadCount` greater than `execution.maxActiveSessions`, because the surplus threads queue for a browser slot.
+- **`LoadTestDetector`** (internal): single place that decides whether a test is a load test (see *Changed*).
+- **`testfly-test-authoring` agent skill** with per-area references (WebUI, API, TestNG, JUnit 5, Cucumber, load testing).
+
+### Changed
+
+- **Load-test detection is explicit (behavior change).** The four name-based `contains("loadtest")` heuristics (`DriverManager`, `TestExecutionListener`, `TestFlyExtension`, `CucumberHooks`) were replaced by a single `LoadTestDetector`. A test is now treated as a load test (no WebDriver) only when it extends `BaseLoadTest`, implements `LoadTestSupport`, is annotated with `@LoadTest` / `@NoBrowser`, or carries the exact Cucumber tag `@loadtest`. Classes such as `FileUploadTest`, `DownloadTest` or anything in a package like `com.acme.uploadtests` are no longer silently denied a WebDriver. A one-time WARN is logged for classes/tags that matched the old name heuristic but not the new rules.
+- `Locator` actions (`click`, `fill`, `text`, ...) now auto-wait up to `timeouts.explicit`, re-resolving the element on each poll (also recovers from stale references) and self-healing after the timeout. `isVisible()`, `isEnabled()` and `count()` stay non-waiting.
+- `DriverManager.getDriver()` now explains why no driver exists (outside `@Test` / `@PreCondition` / `@ConditionProvider`, e.g. in `@BeforeMethod`) and where to move the setup.
+- The session-slot timeout error now names both `execution.maxActiveSessions` and `execution.sessionWaitSeconds`.
+- Jackson modules are pinned through `jackson-bom` 2.21.7 (previously only `jackson-databind` was pinned, at 2.21.6), so transitive and optional Jackson modules stay on one version.
+- The JaCoCo agent is now attached to the Surefire JVM (`argLine` is `@{argLine} ...`), so `target/jacoco.exec` and the coverage report are produced by `mvn verify`.
+- GPG signing moved from the default build into the `release` Maven profile: `mvn verify` / `mvn install` need no key; releases use `-Prelease`.
 
 ### Deprecated
 - **`Locator.css(String)`**: Deprecated in favor of `Locator.cssSelector(String)`. It continues to delegate seamlessly to prevent breaking existing code.
+
+### Fixed
+
+- `getByText()` returned the outermost ancestor (`html`/`body`/wrapper `div`) instead of the element holding the text; it now returns only the innermost match. `exact()` uses the same logic.
+- Load tests: HTTP status codes are now recorded in `statusCodes` (transport failures use the synthetic code `-1`), `LoadScenario.assertStatus(n)` now fails when any other status occurs (it previously asserted against `assertNoStatus` of a different code), and `extract()` works for scenarios without a feeder.
+- HTML report: the report data embedded in the page is escaped for a `<script>` context (`<`, U+2028, U+2029), so failure messages and test data can no longer inject markup or close the script block; template placeholders are now substituted in a single pass, so substituted values are never re-scanned.
+- `DriverManager` session permits: a permit is now returned exactly once per driver, including when `driver.quit()` throws and on every failure path of driver creation (a permit leak that could exhaust `maxActiveSessions`).
+- `DriverManager.recreateDriver()` now also replaces a dead `per-suite` driver (it was kept in the suite registry), and `quitAllSuiteDrivers()` releases only the permits that were actually held.
+- `OpenApiValidator` passes the URI path (not the full URL) and the response `Content-Type` header to the validator, which fixes "No API path found" failures and response body validation.
+
+### Security
+
+- `.github/workflows/release.yml` hardened: the release version is validated as a whole string (no newline or script injection) and read only through the environment, never interpolated into scripts; the release commit must be reachable from `main`; publishing is gated on the `release` GitHub environment; the pom version must equal the release version (tag pushes are no longer rewritten); tests run once, GPG signing is enabled only through `-Prelease`, and the tag/GitHub Release is created at the verified commit.
 
 ### Documentation & Specifications
 - **Engineering Specs Modernization**: Modernized root `docs/` specifications (`internals.md`, `public-api.md`, `architecture.md`, `testng-listeners.md`) to reflect the Java 21 LTS baseline, `SmartTriageEngine`, `FuzzyHealingEngine`, and assertion boundaries.
 - **Documentation Site Sync**: Updated guides for semantic locators, assertions, and self-healing across both English and Turkish documentation locales.
 - **Agent Knowledge Graph Sync**: Registered `[[wiki/assertion-system]]`, updated architecture and WebUI wikis, and synchronized `MAP.md`.
+- **Documentation audit (EN + TR)**: corrected the Maven coordinate to `io.github.hakanngul` throughout, rewrote examples that did not compile against the real API, aligned the load-testing docs with the real DSL (`load(path).users().rampUp().hold()`, `LoadTestFeeder`, `@LoadTest` attributes), and corrected claims about `WaitEngine`, Kubernetes/distributed load tests, Allure and CI setup. Install guides now state which version is on Maven Central and which version this checkout is.
+- **Agent guidance consolidated**: `AGENTS.md` is the single entry point (`GEMINI.md`, `PRODUCT.md` and `features/features-report.md` removed), `ROADMAP.md` and `CONTRIBUTING.md` updated, and obsolete planning documents under `docs/` retired.
+
+### Tests
+
+- Unit suite grew from 1362 to 1444 tests, adding regression coverage for HTML report escaping, `DriverManager` (permit accounting, per-suite recreate, slot wait), `LoadTestDetector`, `JdkLoadEngine`, `OpenApiValidator`, `ExecutionValidator`, `Locator` auto-wait and test-id configuration isolation.
 
 ---
 
@@ -88,12 +121,12 @@ All notable changes to TestFly are documented here.
   - **Gatling Engine**: High-concurrency subprocess execution, automatic simulation generation, stdout/log parsing, and full interactive Gatling HTML report generation linked directly in TestFly reports.
   - **Lightweight Virtual Thread Engine**: Zero-dependency JDK virtual thread engine for developer machines and fast CI/CD feedback loops.
 - **Fluent Load Testing DSL**:
-  - Declarative scenario builder via `load(url).users(n).during(duration).rampUp(duration).run()` or `loadScenario("name").step(...).run()`.
-  - Seamlessly available in `BaseTest`, `BaseApiTest`, `BaseLoadTest`, and `BaseJUnit5Test`.
+  - Declarative scenario builder via `load(path).users(n).rampUp(duration).hold(duration).run()` or `loadScenario("name").step(...).run()`.
+  - Available in `BaseLoadTest` (the load-test base class; it starts no browser).
 - **Annotation-Driven Execution (`@LoadTest`)**:
-  - Configure load test parameters (`users`, `duration`, `rampUp`, `targetRps`, `engine`, `feeders`, `warmUp`) directly at test class or method level.
-- **Data Feeders (`Feeder`)**:
-  - Built-in CSV, JSON, Array, and custom Supplier feeders with `circular()`, `random()`, and `batch()` iteration strategies.
+  - Configure load test parameters (`users`, `rampUp`, `hold`, `cooldown`, `engine`, `baseUrl`) directly at test class or method level.
+- **Data Feeders (`LoadTestFeeder`)**:
+  - `LoadTestFeeder` factories `csv`, `json`, `random`, `uuid`, `sequence`, and `constant`, plus `feedCsv`/`feedJson` shortcuts on the scenario.
 - **SLA & Latency Assertions (`LoadTestAssert`)**:
   - Fluent assertions for percentiles (P50, P90, P95, P99), max response time, min throughput (RPS), error rate thresholds, and HTTP status distributions.
 - **Unified Multi-Channel Reporting**:
@@ -203,7 +236,7 @@ reporting:
 
 ### Changed
 - **Project rebrand to TestFly** — complete identity migration:
-  - Maven coordinates: `io.testfly:testfly:1.0.0`
+  - Maven coordinates: `io.testfly:testfly:1.0.0` *(historical entry: legacy group ID; the current coordinate is `io.github.hakanngul:testfly`)*
   - Java namespace: `io.testfly`
   - Config file: `testfly.yml`
   - Public API annotation: `@TestFlyApi`
@@ -268,7 +301,7 @@ getByTestId("checkout-btn").click();
 ## [0.19.0] — 2026-06-20
 
 ### Added
-- **Gradle build support** — `testImplementation 'io.testfly:testfly'` + `test { useTestNG() }`
+- **Gradle build support** — `testImplementation 'io.testfly:testfly'` + `test { useTestNG() }` *(historical entry: legacy group ID; the current coordinate is `io.github.hakanngul:testfly`)*
 - JUnit XML auto-detects Maven vs Gradle directory layout
 - `FrameworkVersion.get()` reads `MANIFEST.MF` (works with both build tools)
 

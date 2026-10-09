@@ -15,13 +15,11 @@ TestFly, motor bağımsız bir mimariye sahiptir. İki farklı motor seçeneği 
 
 | Özellik | Gatling Motoru (`gatling`) | JDK Motoru (`jdk`) |
 | :--- | :--- | :--- |
-| **Temel Altyapı** | Gatling 3.10.x + Netty asenkron IO | Java 21+ `HttpClient` + Sanal İş Parçacıkları |
+| **Temel Altyapı** | Gatling 3.13.x + Netty asenkron IO | Java 21+ `HttpClient` + Sanal İş Parçacıkları |
 | **Bağımlılık Durumu** | İsteğe bağlı (`gatling-charts-highcharts`)| Java standart kütüphanesine gömülü |
-| **Maksimum Eşzamanlılık**| 10.000+ sanal kullanıcı | ~100–500 sanal kullanıcı |
 | **Süreç İzolasyonu** | Forked ayrı JVM alt süreci | Test iş parçacığında aynı süreçte çalışır |
 | **Yerel Rapor** | İnteraktif Highcharts HTML raporu | Bütünleşik TestFly HTML gösterge paneli |
 | **Alt Süreç Logu** | `gatling-subprocess.log` | Standart TestFly log akışı |
-| **Başlama Maliyeti** | ~1.5–2.5 saniye (JVM ısınması) | < 20 ms (anında) |
 | **Önerilen Kullanım** | Stres testleri, CI/CD hatları | Yerel duman testleri, hızlı PR doğrulamaları |
 
 ---
@@ -62,8 +60,11 @@ load("/api/health")
 ### Anotasyon ile
 ```java
 @Test
-@LoadEngine("gatling")
+@io.testfly.loadtest.LoadTest(engine = "gatling")
 public void stresTesti() {
     load("/api/payment/checkout").run();
 }
 ```
+
+
+Eşzamanlılık ve throughput donanıma, hedef servise ve senaryoya bağlıdır. Sabit kapasite veya başlangıç süresi garantisi yoktur; kendi yükünüzü ölçün. JDK yük motoru kendi transport’unu kullanır; ApiClient interceptor ve mock kuralları otomatik uygulanmaz.

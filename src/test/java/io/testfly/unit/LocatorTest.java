@@ -6,6 +6,7 @@ import io.testfly.internal.TestFlyContext;
 import io.testfly.locator.Locator;
 import io.testfly.locator.LocatorException;
 import io.testfly.test.BaseTest;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.openqa.selenium.By;
@@ -14,6 +15,15 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.testng.annotations.Test;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -273,5 +283,136 @@ public class LocatorTest {
         } finally {
             closeMocks(mocks);
         }
+    }
+
+    // ----------------------------------------------------------
+    // Auto-wait contract (API-011 / TST-005)
+    // ----------------------------------------------------------
+
+    @Test
+    public void click_waitsForLateElement_andReResolvesEachPoll() {
+        MockedStatic<?>[] mocks = setupHealingMocks(false);
+        try {
+            By by = By.cssSelector("#late");
+            WebElement late = mock(WebElement.class);
+            when(late.isDisplayed()).thenReturn(true);
+            when(late.isEnabled()).thenReturn(true);
+            // absent on the first two polls, present afterwards
+            when(lastMockDriver.findElements(by))
+                    .thenReturn(Collections.emptyList(), Collections.emptyList(), List.of(late));
+
+            Locator.of(by).click();
+
+            org.mockito.Mockito.verify(late).click();
+            org.mockito.Mockito.verify(lastMockDriver, org.mockito.Mockito.atLeast(3)).findElements(by);
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void resolve_waitsForExplicitTimeout_beforeThrowing() {
+        MockedStatic<?>[] mocks = setupHealingMocks(false);
+        try {
+            By by = By.cssSelector("#never");
+            when(lastMockDriver.findElements(by)).thenReturn(Collections.emptyList());
+
+            long start = System.nanoTime();
+            LocatorException ex = expectThrows(LocatorException.class, () -> Locator.of(by).getText());
+            long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+
+            assertTrue(elapsedMs >= 1500, "should wait ~timeouts.explicit (2s) but took " + elapsedMs + "ms");
+            assertTrue(ex.getMessage().contains("#never"), ex.getMessage());
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void resolve_healsOnlyAfterTimeout_whenHealingEnabled() {
+        MockedStatic<?>[] mocks = setupHealingMocks(true);
+        try {
+            By primary = By.cssSelector("#login-btn");
+            when(lastMockDriver.findElements(primary)).thenReturn(Collections.emptyList());
+            WebElement healed = mock(WebElement.class);
+            when(healed.isDisplayed()).thenReturn(true);
+            when(healed.getText()).thenReturn("Healed");
+            when(lastMockDriver.findElements(By.id("login-btn"))).thenReturn(List.of(healed));
+
+            long start = System.nanoTime();
+            assertEquals(Locator.of(primary).getText(), "Healed");
+            long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+
+            assertTrue(elapsedMs >= 1500, "heal must run after the wait times out, took " + elapsedMs + "ms");
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void isVisible_doesNotWait_whenElementAbsent() {
+        MockedStatic<?>[] mocks = setupHealingMocks(false);
+        try {
+            By by = By.cssSelector("#absent");
+            when(lastMockDriver.findElements(by)).thenReturn(Collections.emptyList());
+
+            long start = System.nanoTime();
+            assertFalse(Locator.of(by).isVisible());
+            assertFalse(Locator.of(by).isEnabled());
+            assertEquals(Locator.of(by).count(), 0);
+            long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+
+            assertTrue(elapsedMs < 1000, "isVisible/isEnabled/count must not wait, took " + elapsedMs + "ms");
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    // ----------------------------------------------------------
+    // getByText innermost match (API-012)
+    // ----------------------------------------------------------
+
+    private List<String> matchedNodeNames(Locator locator, String html) throws Exception {
+        MockedStatic<?>[] mocks = setupHealingMocks(false);
+        try {
+            when(lastMockDriver.findElements(org.mockito.ArgumentMatchers.any(By.class)))
+                    .thenReturn(Collections.emptyList());
+            locator.count();
+            ArgumentCaptor<By> captor = ArgumentCaptor.forClass(By.class);
+            org.mockito.Mockito.verify(lastMockDriver).findElements(captor.capture());
+            String xpath = String.valueOf(((By.Remotable) captor.getValue()).getRemoteParameters().value());
+
+            Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+                    .parse(new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
+            NodeList nodes = (NodeList) XPathFactory.newInstance().newXPath()
+                    .evaluate(xpath, doc, XPathConstants.NODESET);
+            List<String> names = new ArrayList<>();
+            for (int i = 0; i < nodes.getLength(); i++) {
+                Node n = nodes.item(i);
+                names.add(n.getNodeName());
+            }
+            return names;
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    private static final String SIGN_IN_PAGE =
+            "<html><body><div id='app'><form><button>Sign In</button></form></div></body></html>";
+
+    @Test
+    public void byText_matchesOnlyInnermostElement() throws Exception {
+        assertEquals(matchedNodeNames(Locator.byText("Sign In"), SIGN_IN_PAGE), List.of("button"));
+    }
+
+    @Test
+    public void byText_exact_matchesOnlyInnermostElement() throws Exception {
+        assertEquals(matchedNodeNames(Locator.byText("Sign In").exact(), SIGN_IN_PAGE), List.of("button"));
+    }
+
+    @Test
+    public void byText_keepsParent_whenTextSpansChildElements() throws Exception {
+        String html = "<html><body><p>Click <b>Sign</b> In</p></body></html>";
+        assertEquals(matchedNodeNames(Locator.byText("sign in"), html), List.of("p"));
     }
 }

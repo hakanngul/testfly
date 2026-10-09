@@ -7,7 +7,7 @@ sidebar_position: 13
 
 # Harici Test Verisi Kaynakları
 
-TestFly 2.2.0, `@TestData` özelliğini CSV dosyalarından, Excel çalışma kitaplarından ve canlı veritabanı sorgularından satırları doğrudan yükleyecek şekilde genişletir — ekstra kalıp kod gerekmez.
+TestFly 1.0.0, `@TestData` özelliğini CSV dosyalarından, Excel çalışma kitaplarından ve canlı veritabanı sorgularından satırları doğrudan yükleyecek şekilde genişletir — ekstra kalıp kod gerekmez.
 
 ---
 
@@ -105,7 +105,7 @@ Apache POI'yı projenizin `pom.xml` dosyasına ekleyin:
 <dependency>
     <groupId>org.apache.poi</groupId>
     <artifactId>poi-ooxml</artifactId>
-    <version>5.2.5</version>
+    <version>5.4.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -114,7 +114,7 @@ O olmadan, çalışma zamanında net bir hata alırsınız:
 
 ```
 [TestData] Apache POI is required for Excel sources.
-Add 'org.apache.poi:poi-ooxml:5.2.5' to your pom.xml.
+Add 'org.apache.poi:poi-ooxml:5.4.0' to your pom.xml.
 ```
 
 ---

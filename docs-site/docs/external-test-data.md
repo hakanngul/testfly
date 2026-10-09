@@ -105,7 +105,7 @@ Add Apache POI to your project's `pom.xml`:
 <dependency>
     <groupId>org.apache.poi</groupId>
     <artifactId>poi-ooxml</artifactId>
-    <version>5.2.5</version>
+    <version>5.4.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -114,7 +114,7 @@ Without it, you will get a clear error at runtime:
 
 ```
 [TestData] Apache POI is required for Excel sources.
-Add 'org.apache.poi:poi-ooxml:5.2.5' to your pom.xml.
+Add 'org.apache.poi:poi-ooxml:5.4.0' to your pom.xml.
 ```
 
 ---

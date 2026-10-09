@@ -8,24 +8,26 @@ description: TestFly Page Object, TestNG, JUnit 5, Cucumber BDD ve self-healing 
 
 # Yapay Zeka İçin Hazır Prompt Şablonları
 
-**JetBrains AI Assistant**, **Claude Code** veya **GitHub Copilot** ile çalışırken doğrudan kullanabileceğiniz, derlenebilir ve TestFly v1.0.0 kurallarına %100 uyan test kodları üreten prompt şablonları:
+**JetBrains AI Assistant**, **Claude Code** veya **GitHub Copilot** ile çalışırken doğrudan kullanabileceğiniz, TestFly Java 21 kod üretimine yol gösteren prompt şablonları:
+
+Bu promptlar asistana yol gösterir; üretilen kod yine derlenmeli ve uygulamanızda çalıştırılmalıdır. Araç adları kurduğunuz MCP sunucusuna bağlıdır; `generate_testfly_code` yalnız bu bridge yapılandırılmışsa kullanılabilir.
 
 ---
 
 ## Yapay Zeka ile Çalışırken Altın Kural
 
 > **AI'a her zaman önce tarayıcıyı açıp incelemesini söyleyin.**
-> AI asistanınızdan doğrudan hayalinden kod yazmasını istemeyin. Önce TestFly MCP araçlarıyla sayfayı ziyaret etmesini, canlı DOM'u taramasını ve ardından `generate_*` araçlarını kullanmasını isteyin.
+> AI asistanınızdan doğrudan hayalinden kod yazmasını istemeyin. Önce yapılandırılmış tarayıcı MCP araçlarıyla sayfayı ziyaret etmesini, canlı DOM'u taramasını ve ardından `generate_testfly_code` araçlarını kullanmasını isteyin.
 
 ---
 
 ## Şablon 1: Page Object Modeli (`BasePage`)
 
-TestFly v1.0.0 Page Object sınıfı üretmek için:
+TestFly Java 21 Page Object sınıfı üretmek için:
 
 ```text
 https://www.saucedemo.com adresine git.
-Giriş formu elemanlarını TestFly MCP araçlarıyla incele (erişilebilirlik niteliklerini tercih et).
+Giriş formu elemanlarını yapılandırılmış tarayıcı MCP araçlarıyla incele (erişilebilirlik niteliklerini tercih et).
 io.testfly.examples.pages paketi altında BasePage extend eden 'LoginPage' adında bir TestFly Page Object üret.
 Kullanıcı adı girme, şifre girme ve login butonuna tıklama için akıcı (fluent) eylem metotları ekle.
 ```
@@ -34,29 +36,29 @@ Kullanıcı adı girme, şifre girme ve login butonuna tıklama için akıcı (f
 ```java
 package io.testfly.examples.pages;
 
-import io.testfly.core.BasePage;
-import io.testfly.locators.Role;
+import io.testfly.test.BasePage;
+import io.testfly.locator.Role;
 import org.openqa.selenium.By;
 
 public class LoginPage extends BasePage {
 
-    public LoginPage open() {
+    public LoginPage openLogin() {
         super.open("https://www.saucedemo.com");
         return this;
     }
 
     public LoginPage enterUsername(String username) {
-        find(getByPlaceholder("Username")).fill(username);
+        getByPlaceholder("Username").type(username);
         return this;
     }
 
     public LoginPage enterPassword(String password) {
-        find(getByPlaceholder("Password")).fill(password);
+        getByPlaceholder("Password").type(password);
         return this;
     }
 
     public void clickLogin() {
-        find(getByRole(Role.BUTTON, "Login")).click();
+        getByRole(Role.BUTTON, "Login").click();
     }
 }
 ```
@@ -79,7 +81,7 @@ SauceDemo girişi için TestFly TestNG testi yaz:
 ```java
 package io.testfly.examples.testng;
 
-import io.testfly.core.BaseTest;
+import io.testfly.test.BaseTest;
 import io.testfly.examples.pages.LoginPage;
 import org.openqa.selenium.By;
 import org.testng.annotations.Test;
@@ -91,7 +93,7 @@ public class SauceDemoLoginTest extends BaseTest {
     @Test(description = "Verify successful login to SauceDemo inventory")
     public void testSuccessfulLogin() {
         new LoginPage()
-            .open()
+            .openLogin()
             .enterUsername("standard_user")
             .enterPassword("secret_sauce")
             .clickLogin();

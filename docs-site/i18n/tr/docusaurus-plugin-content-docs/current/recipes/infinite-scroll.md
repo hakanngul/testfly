@@ -17,8 +17,8 @@ En güvenli durma koşulu, gerçekten önemsediğiniz öğeyi bulmaktır:
 
 ```java title="ProductListPage.java"
 import io.testfly.test.BasePage;
+import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.By;
-import org.openqa.selenium.support.ui.ExpectedConditions;
 
 public class ProductListPage extends BasePage {
 
@@ -31,9 +31,14 @@ public class ProductListPage extends BasePage {
             if (find(target).count() > 0) {
                 return;                  // found it
             }
+            int before = find(PRODUCTS).count();
             scrollToBottom();
-            // Wait for the DOM to settle and at least one new card to render
-            getWait().wait(ExpectedConditions.numberOfElementsToBeMoreThan(PRODUCTS, i * 10));
+            WaitEngine.wait(d -> !d.findElements(target).isEmpty()
+                || d.findElements(PRODUCTS).size() > before
+                || !d.findElements(By.cssSelector(".catalog-end")).isEmpty());
+            if (find(target).count() == 0 && find(".catalog-end").count() > 0) {
+                throw new AssertionError("Catalog ended before product: " + productId);
+            }
         }
         throw new AssertionError("Product not loaded after scrolling: " + productId);
     }
@@ -41,6 +46,9 @@ public class ProductListPage extends BasePage {
 ```
 
 ```java title="ProductTest.java"
+import io.testfly.test.BaseTest;
+import org.testng.annotations.Test;
+
 public class ProductTest extends BaseTest {
 
     @Test
@@ -55,32 +63,29 @@ public class ProductTest extends BaseTest {
 
 ---
 
-## Liste büyümeyi durdurana kadar kaydırma
+## Kataloğu bitiş işaretine kadar yükleme
 
 Doğrulamalar yapmadan önce kataloğun tamamını yüklemek istediğinizde bunu kullanın:
 
 ```java
+// ProductListPage içinde (scrollToBottom(), BasePage'in protected yardımcısıdır)
 public int loadAllProducts() {
-    int previousCount = 0;
-    int sameCountIterations = 0;
-
-    while (sameCountIterations < 2) {
-        scrollToBottom();
-        getWait().waitForPageLoad();
-
-        int currentCount = find(".product-card").count();
-        if (currentCount == previousCount) {
-            sameCountIterations++;
-        } else {
-            sameCountIterations = 0;
-            previousCount = currentCount;
+    By products = By.cssSelector(".product-card");
+    By end = By.cssSelector(".catalog-end");
+    for (int page = 0; page < 100; page++) {
+        if (find(end).count() > 0) {
+            return find(products).count();
         }
+        int before = find(products).count();
+        scrollToBottom();
+        WaitEngine.wait(d -> d.findElements(products).size() > before
+            || !d.findElements(end).isEmpty());
     }
-    return previousCount;
+    throw new AssertionError("Catalog did not reach its end within 100 scrolls");
 }
 ```
 
-Ardışık iki yinelemede aynı sayının görülmesi genellikle akışın sona ulaştığı anlamına gelir.
+`.catalog-end` gibi uygulamaya özel bir bitiş işareti kullanın. Değişmeyen öğe sayısı veya `document.readyState`, asenkron yüklemenin tamamlandığını kanıtlamaz. Yineleme sınırı sonsuz akışın testi kilitlemesini önler.
 
 ---
 
@@ -100,14 +105,15 @@ Ardışık iki yinelemede aynı sayının görülmesi genellikle akışın sona 
 Bazı akışlar otomatik kaydırma yerine "Daha fazla yükle" düğmesi kullanır:
 
 ```java
+// ProductListPage içinde; WaitEngine ve ExpectedConditions import edilmiş olmalı
 while (find("#load-more").isVisible()) {
     int before = find(".product-card").count();
     find("#load-more").click();
-    getWait().wait(ExpectedConditions.numberOfElementsToBeMoreThan(
+    WaitEngine.wait(ExpectedConditions.numberOfElementsToBeMoreThan(
         By.cssSelector(".product-card"), before));
 }
 ```
 
 ---
 
-**Daha derin referans:** [WaitEngine](/docs/guides/wait-engine) — `waitForPageLoad`, özel `ExpectedConditions` ve diğer bekleme desenleri.
+**Daha derin referans:** [WaitEngine](/docs/guides/wait-engine) — özel koşullar için `WaitEngine.wait(ExpectedCondition)`, `waitForPageLoad()` ve diğer bekleme desenleri.

@@ -34,6 +34,10 @@ public class OpenApiValidator {
         
         // Atlassian's validator needs the response to validate
         SimpleResponse.Builder resBuilder = SimpleResponse.Builder.status(response.status());
+        String contentType = response.header("Content-Type");
+        if (contentType != null) {
+            resBuilder.withContentType(contentType);
+        }
         if (response.body() != null) {
             resBuilder.withBody(response.body());
         }
@@ -44,7 +48,7 @@ public class OpenApiValidator {
         // To do full contract testing, we should pass headers. But for simplicity, we just pass body/status.
         
         ValidationReport report = validator.validateResponse(
-                response.requestUrl(), 
+                java.net.URI.create(response.requestUrl()).getPath(), 
                 com.atlassian.oai.validator.model.Request.Method.valueOf(response.requestMethod().toUpperCase()), 
                 resBuilder.build()
         );

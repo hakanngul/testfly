@@ -6,10 +6,15 @@ sidebar_position: 8
 description: Architecture Decision Record for the TestFly MCP server, Chrome companion recorder, and multi-file Java codegen engine.
 ---
 
+:::info Historical implementation — superseded (2026-10-04)
+This page preserves the earlier Python/Selenium recorder design. The current [Node bridge source](https://github.com/hakanngul/testfly-mcp/blob/main/bin/testfly-mcp.js) exposes six MCP tools and `init`, `--version`, and `--help`; it does not ship `testfly studio`, `testfly ui`, or `testfly record`. Commands, port behavior, and tool counts below describe that historical implementation. Follow [MCP Bridge & CLI](/docs/cli) for the current source installation and [MCP architecture](/docs/ai/testfly-mcp) for the current design.
+:::
+
+
 # ADR-001: MCP Server & Interactive Recorder Architecture
 
 ## Status
-**Accepted**
+**Superseded (2026-10-04); accepted historically on 2026-09-11**
 
 ## Date
 2026-09-11

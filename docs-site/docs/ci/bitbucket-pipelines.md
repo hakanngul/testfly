@@ -38,15 +38,29 @@ pipelines:
           - apt-get update && apt-get install -y google-chrome-stable
 
           # 2. Run TestFly test suite
-          - mvn test -B -Dtestfly.browser.headless=true
+          - mvn test -B
 
         # 3. Archive TestFly HTML report & artifacts
         artifacts:
-          - target/testfly-reports/**
+          - target/testfly-report.html
           - target/surefire-reports/**
 ```
 
 ---
+
+## Headless configuration
+
+The workflow reads headless settings from the selected complete `testfly.yml`; arbitrary `-Dtestfly.browser.headless` properties are not automatic overrides.
+
+```yaml title="testfly.yml"
+execution:
+  mode: local
+  baseUrl: https://example.com
+browser:
+  name: chrome
+  headless: true
+  arguments: [--no-sandbox, --disable-dev-shm-usage]
+```
 
 ## Enforcing Quality Gates in CI
 

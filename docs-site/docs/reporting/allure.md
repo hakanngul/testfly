@@ -21,18 +21,18 @@ Enable Allure reporting with a simple toggle in your `testfly.yml`:
 reporting:
   allure:
     enabled: true
-    resultsDir: target/allure-results # default
 ```
 
-When enabled, TestFly registers the adapter via SPI and generates one `*-result.json` per test upon suite finish.
+When enabled, TestFly registers the built-in adapter and generates one `*-result.json` per test upon suite finish. The output path is fixed at `target/allure-results/`; `reporting.allure.resultsDir` is not a supported setting. Exporting JSON needs no Allure agent dependency; rendering HTML requires the separately installed Allure CLI.
 
 ---
 
 ## What Gets Captured
 
-- **Test Metadata:** Class name, method name, package, thread name, host, and timing (`start` / `stop` epoch timestamps).
+- **Test Metadata:** Test name, full name (`Class#method`) and the labels `suite`, `testClass`, `thread`, `framework` (`testng`) and `language` (`java`), plus `browser` when known and `flaky` when the test was retried.
+- **Timing:** `start` / `stop` epoch timestamps are synthesized from the suite end time (`stop` = suite end, `start` = `stop` − test duration). They are not the real wall-clock times of each test.
 - **Execution Status:** 
-  - `PASSED` / `PASS` → `passed`
+  - `PASSED` / `PASS` / `INFO` → `passed`
   - `FAILED` / `FAIL` → `failed` (including full exception message and stack trace)
   - `SKIPPED` → `skipped`
   - `WARN` / other → `broken`

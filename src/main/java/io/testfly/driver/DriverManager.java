@@ -6,6 +6,7 @@ import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
 import org.openqa.selenium.WebDriver;
 
+import java.time.Duration;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -46,8 +47,21 @@ public final class DriverManager {
     /** Tracks all drivers created under per-suite lifecycle for bulk teardown. */
     private static final java.util.Set<WebDriver> SUITE_DRIVERS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
+    /**
+     * Drivers that currently own a session permit. A permit is returned only by
+     * the call that removes the driver from this set, which guarantees exactly one
+     * release per driver however many teardown paths reach it.
+     */
+    private static final java.util.Set<WebDriver> PERMIT_HOLDERS = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     private static volatile Semaphore SESSION_SEMAPHORE;
     private static volatile int MAX_SESSIONS;
+
+    /**
+     * Test seam: when non-null, replaces {@code execution.sessionWaitSeconds} as the
+     * slot-wait duration so unit tests can control the wait without sleeping.
+     */
+    private static volatile Duration SLOT_WAIT_OVERRIDE;
 
     static {
         registerShutdownHook();
@@ -77,8 +91,44 @@ public final class DriverManager {
         return SESSION_SEMAPHORE;
     }
 
-    private static int activeSessions() {
-        return SESSION_SEMAPHORE == null ? 0 : MAX_SESSIONS - SESSION_SEMAPHORE.availablePermits();
+    /**
+     * Number of session permits currently held (primary drivers plus named
+     * sessions). {@code 0} when the semaphore has not been initialised.
+     */
+    public static int activeSessions() {
+        Semaphore semaphore = SESSION_SEMAPHORE;
+        return semaphore == null ? 0 : MAX_SESSIONS - semaphore.availablePermits();
+    }
+
+    /**
+     * Framework-internal test hook: discards the static session semaphore, the
+     * suite-driver registry, the slot-wait override and the calling thread's
+     * bindings so the next {@link #createDriver()} re-reads the configuration.
+     * Does not quit any driver; production code must not call this.
+     * <p>Not part of the {@code @TestFlyApi} stability contract; it may change or
+     * move to an internal accessor in any release.
+     */
+    public static synchronized void resetForTesting() {
+        SESSION_SEMAPHORE = null;
+        MAX_SESSIONS = 0;
+        SLOT_WAIT_OVERRIDE = null;
+        SUITE_DRIVERS.clear();
+        PERMIT_HOLDERS.clear();
+        DRIVER.remove();
+        CLOUD_SESSION_URL.remove();
+        SESSION_STACK.remove();
+    }
+
+    /**
+     * Framework-internal test hook: overrides how long {@link #createDriver()} and
+     * {@link #acquirePermit()} wait for a free session slot. Pass {@code null} to
+     * fall back to {@code execution.sessionWaitSeconds}. Cleared by
+     * {@link #resetForTesting()}.
+     * <p>Not part of the {@code @TestFlyApi} stability contract; it may change or
+     * move to an internal accessor in any release.
+     */
+    public static void setSlotWaitForTesting(Duration wait) {
+        SLOT_WAIT_OVERRIDE = wait;
     }
 
     private DriverManager() {
@@ -127,18 +177,9 @@ public final class DriverManager {
 
         Semaphore semaphore = getOrInitSemaphore();
 
-        try {
-            boolean acquired = semaphore.tryAcquire(30, TimeUnit.SECONDS);
-            if (!acquired) {
-                throw new IllegalStateException(
-                        "Timed out waiting for an available session slot after 30s. " +
-                                "Consider increasing maxActiveSessions in configuration.");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted while waiting for a session slot", e);
-        }
+        acquireSlot(semaphore);
 
+        boolean permitOwned = false; // true once PERMIT_HOLDERS owns the permit
         try {
 
             long startTime = System.currentTimeMillis();
@@ -154,6 +195,8 @@ public final class DriverManager {
 
             long startupDuration = System.currentTimeMillis() - startTime;
 
+            PERMIT_HOLDERS.add(driver);
+            permitOwned = true;
             DRIVER.set(driver);
 
             // Capture cloud session URL for BrowserStack / Sauce Labs
@@ -188,9 +231,10 @@ public final class DriverManager {
 
             System.out.println("[TestFly] Active sessions: " + activeSessions());
 
-        } catch (Exception e) {
-            semaphore.release(); // return the permit — driver was never stored
-            throw e;
+        } finally {
+            if (!permitOwned) {
+                semaphore.release(); // return the permit — driver was never stored
+            }
         }
     }
 
@@ -200,7 +244,7 @@ public final class DriverManager {
 
     /**
      * Acquires a single session permit from the session semaphore, blocking for
-     * up to 30 seconds. Used by {@code MultiSessionManager} when creating named
+     * up to {@code execution.sessionWaitSeconds}. Used by {@code MultiSessionManager} when creating named
      * session drivers so that {@code maxActiveSessions} is enforced across all
      * drivers (primary + named sessions).
      *
@@ -208,13 +252,32 @@ public final class DriverManager {
      *                               timeout or the thread is interrupted
      */
     public static void acquirePermit() {
-        Semaphore semaphore = getOrInitSemaphore();
+        acquireSlot(getOrInitSemaphore());
+    }
+
+    /** How long a thread waits for a free session slot before giving up. */
+    private static Duration slotWait() {
+        Duration override = SLOT_WAIT_OVERRIDE;
+        if (override != null) {
+            return override;
+        }
+        int seconds = TestFlyContext.getConfig().getExecution().getSessionWaitSeconds();
+        return Duration.ofSeconds(Math.max(0, seconds));
+    }
+
+    private static String describe(Duration wait) {
+        return wait.toMillis() % 1000 == 0 ? wait.toSeconds() + "s" : wait.toMillis() + "ms";
+    }
+
+    private static void acquireSlot(Semaphore semaphore) {
+        Duration wait = slotWait();
         try {
-            boolean acquired = semaphore.tryAcquire(30, TimeUnit.SECONDS);
+            boolean acquired = semaphore.tryAcquire(wait.toNanos(), TimeUnit.NANOSECONDS);
             if (!acquired) {
                 throw new IllegalStateException(
-                        "Timed out waiting for an available session slot after 30s. " +
-                                "Consider increasing maxActiveSessions in configuration.");
+                        "Timed out waiting for an available session slot after " + describe(wait) + ". " +
+                                "Consider increasing execution.maxActiveSessions or " +
+                                "execution.sessionWaitSeconds in configuration.");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -294,7 +357,12 @@ public final class DriverManager {
 
         if (driver == null) {
             throw new IllegalStateException(
-                    "WebDriver not initialized for current thread.");
+                    "WebDriver not initialized for current thread. "
+                            + "TestFly creates the driver just before a @Test method starts and quits it "
+                            + "right after the test finishes, so the driver is only available inside @Test "
+                            + "(and @PreCondition / @ConditionProvider methods). It does not exist yet in "
+                            + "@BeforeMethod or @BeforeClass, and it is already closed in @AfterMethod. "
+                            + "Move browser setup (such as logging in) into @PreCondition, or into the @Test itself.");
         }
 
         if (!isDriverAlive()) {
@@ -313,12 +381,14 @@ public final class DriverManager {
     // Driver Recreation (Self-Healing)
     // ==========================================================
 
+    /**
+     * Discards the current thread's driver and creates a fresh one. Works for both
+     * lifecycles: the old driver is torn down like {@link #forceQuitDriver()} (so a
+     * dead {@code per-suite} driver is not kept) and removed from the suite registry.
+     */
     public static void recreateDriver() {
 
-        try {
-            quitDriver();
-        } catch (Exception ignored) {
-        }
+        forceQuitDriver();
 
         createDriver();
     }
@@ -357,19 +427,7 @@ public final class DriverManager {
             return; // driver intentionally kept alive for next test on this thread
         }
 
-        WebDriver driver = DRIVER.get();
-
-        try {
-            if (driver != null) {
-                driver.quit();
-                getOrInitSemaphore().release();
-            }
-        } catch (Exception e) {
-            System.err.println("[TestFly] Driver quit failed: " + e.getMessage());
-        } finally {
-            DRIVER.remove();
-            CLOUD_SESSION_URL.remove();
-        }
+        teardownCurrentDriver("Driver quit failed: ");
 
         System.out.println("[TestFly] Active sessions: " + activeSessions());
     }
@@ -378,18 +436,34 @@ public final class DriverManager {
      * Forcibly quits the current thread's WebDriver instance, regardless of lifecycle setting.
      */
     public static void forceQuitDriver() {
+        teardownCurrentDriver("Driver force quit failed: ");
+    }
+
+    /**
+     * Quits the current thread's driver, then unbinds it and returns its permit even
+     * when {@code quit()} throws. No-op when no driver is bound.
+     */
+    private static void teardownCurrentDriver(String failurePrefix) {
         WebDriver driver = DRIVER.get();
-        if (driver != null) {
-            try {
-                SUITE_DRIVERS.remove(driver);
-                driver.quit();
-                releasePermit();
-            } catch (Exception e) {
-                System.err.println("[TestFly] Driver force quit failed: " + e.getMessage());
-            } finally {
-                DRIVER.remove();
-                CLOUD_SESSION_URL.remove();
-            }
+        if (driver == null) {
+            return;
+        }
+        try {
+            SUITE_DRIVERS.remove(driver);
+            driver.quit();
+        } catch (Exception e) {
+            System.err.println("[TestFly] " + failurePrefix + e.getMessage());
+        } finally {
+            releasePermitOf(driver);
+            DRIVER.remove();
+            CLOUD_SESSION_URL.remove();
+        }
+    }
+
+    /** Returns the permit held by {@code driver}, at most once per driver. */
+    private static void releasePermitOf(WebDriver driver) {
+        if (PERMIT_HOLDERS.remove(driver)) {
+            releasePermit();
         }
     }
 
@@ -404,21 +478,25 @@ public final class DriverManager {
             forceQuitDriver();
             return;
         }
-        int total = SUITE_DRIVERS.size();
-        SUITE_DRIVERS.parallelStream().forEach(driver -> {
+        java.util.List<WebDriver> drivers = new java.util.ArrayList<>(SUITE_DRIVERS);
+        java.util.concurrent.atomic.AtomicInteger released = new java.util.concurrent.atomic.AtomicInteger();
+        drivers.parallelStream().forEach(driver -> {
             try {
                 driver.quit();
             } catch (Exception e) {
                 System.err.println("[TestFly] Error quitting suite driver: " + e.getMessage());
+            } finally {
+                SUITE_DRIVERS.remove(driver);
+                if (PERMIT_HOLDERS.remove(driver)) {
+                    releasePermit();
+                    released.incrementAndGet();
+                }
             }
         });
-        if (SESSION_SEMAPHORE != null && total > 0) {
-            SESSION_SEMAPHORE.release(total);
-        }
-        SUITE_DRIVERS.clear();
         DRIVER.remove();
         CLOUD_SESSION_URL.remove();
-        System.out.println("[TestFly] All suite drivers quit in parallel. Released " + total + " session slot(s).");
+        System.out.println("[TestFly] All suite drivers quit in parallel. Released " + released.get()
+                + " session slot(s).");
     }
 
     /**
@@ -430,21 +508,10 @@ public final class DriverManager {
             return true;
         }
         try {
-            Class<?> testClass = TestFlyContext.getCurrentTestClass();
-            java.lang.reflect.Method testMethod = TestFlyContext.getCurrentTestMethod();
-            if (testClass != null) {
-                if (io.testfly.loadtest.BaseLoadTest.class.isAssignableFrom(testClass)
-                        || io.testfly.test.support.LoadTestSupport.class.isAssignableFrom(testClass)
-                        || testClass.isAnnotationPresent(io.testfly.loadtest.LoadTest.class)
-                        || testClass.getName().toLowerCase().contains("loadtest")) {
-                    return true;
-                }
-            }
-            if (testMethod != null && testMethod.isAnnotationPresent(io.testfly.loadtest.LoadTest.class)) {
-                return true;
-            }
+            return io.testfly.loadtest.internal.LoadTestDetector.isLoadTest(
+                    TestFlyContext.getCurrentTestClass(), TestFlyContext.getCurrentTestMethod());
         } catch (Exception ignored) {
+            return false;
         }
-        return false;
     }
 }

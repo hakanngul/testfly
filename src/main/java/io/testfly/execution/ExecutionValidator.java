@@ -3,7 +3,9 @@ package io.testfly.execution;
 import io.testfly.config.TestFlyConfig;
 import org.testng.xml.XmlSuite;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
@@ -42,6 +44,39 @@ public class ExecutionValidator {
                             " exceeds safe limit (" + maxAllowed + ")"
             );
         }
+
+        if (execution.getSessionWaitSeconds() < 0) {
+            throw new IllegalStateException(
+                    "execution.sessionWaitSeconds must be >= 0 (was " + execution.getSessionWaitSeconds() + ")");
+        }
+
+        for (String warning : crossCheckWarnings(execution)) {
+            System.err.println("[TestFly] WARNING: " + warning);
+        }
+    }
+
+    /**
+     * Cross-field checks that are suspicious but not invalid, so they warn instead
+     * of failing the run. Currently: more parallel threads than
+     * {@code maxActiveSessions} means the surplus threads queue for a browser slot
+     * for up to {@code sessionWaitSeconds} each.
+     */
+    public static List<String> crossCheckWarnings(TestFlyConfig.Execution execution) {
+        List<String> warnings = new ArrayList<>();
+        if (execution == null || execution.getParallel() == null
+                || "none".equalsIgnoreCase(execution.getParallel().trim())) {
+            return warnings;
+        }
+        int threads = execution.getThreadCount();
+        int maxSessions = execution.getMaxActiveSessions();
+        if (threads > maxSessions) {
+            warnings.add("execution.threadCount (" + threads + ") is greater than execution.maxActiveSessions ("
+                    + maxSessions + "); " + (threads - Math.max(maxSessions, 0))
+                    + " thread(s) will queue for a browser slot for up to execution.sessionWaitSeconds ("
+                    + execution.getSessionWaitSeconds() + "s) each. Raise maxActiveSessions to at least "
+                    + threads + " or lower threadCount.");
+        }
+        return warnings;
     }
 
     private static String validParallelModes() {

@@ -13,6 +13,8 @@ import static org.testng.Assert.*;
  * {@code getByLabel}, …). These verify the synthesized Selenium {@link By} selector and
  * the human-readable description — no real browser is required.
  */
+// These tests mutate the global test-id attribute and must run sequentially.
+@Test(singleThreaded = true)
 public class SemanticLocatorTest {
 
     @AfterMethod
