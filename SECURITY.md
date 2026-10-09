@@ -5,7 +5,7 @@
 If you believe you've found a security vulnerability in TestFly, please report it
 privately — **do not open a public GitHub issue.**
 
-Email **security@testfly.github.io/testfly** with:
+Email **founder@testfly.dev** with:
 
 - a description of the issue and its impact,
 - the version affected (`mvn dependency:tree` or your `pom.xml`),

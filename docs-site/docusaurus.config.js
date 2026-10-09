@@ -20,29 +20,21 @@ module.exports = function createConfig() {
     tagline: siteTagline,
     favicon: 'img/favicon.svg',
 
-    // GitHub Pages URL
-    url: 'https://hakanngul.github.io',
-    // 👇 DÜZELTİLDİ: Repo adı küçük harf "testfly" ile eşleşmeli
-    baseUrl: '/testfly/',
+    // Cloudflare Workers (custom domain)
+    url: 'https://testfly.dev',
+    // Site domain'in kökünde yayınlanır
+    baseUrl: '/',
 
     // GitHub bilgileri
     organizationName: 'hakanngul',
     projectName: 'testfly',
-    // 👇 KALDIRILDI: GitHub Actions kullanıyorsun, bu sadece CLI deploy içindir
-    // deploymentBranch: 'gh-pages',
     trailingSlash: false,
 
     onBrokenLinks: 'throw',
     onBrokenMarkdownLinks: 'warn',
 
-    // Goatcounter path'i baseUrl ile uyumlu
+    // Goatcounter: site kökte yayınlandığı için path öneki gerekmez (varsayılan pathname kullanılır)
     headTags: [
-      {
-        tagName: 'script',
-        attributes: { type: 'text/javascript' },
-        innerHTML:
-          "window.goatcounter={path:function(p){return '/testfly/docs-site'+p;}};",
-      },
       {
         tagName: 'script',
         attributes: {
