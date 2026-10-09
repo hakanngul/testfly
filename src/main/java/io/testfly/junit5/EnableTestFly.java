@@ -1,5 +1,6 @@
 package io.testfly.junit5;
 
+import io.testfly.api.TestFlyApi;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.lang.annotation.Documented;
@@ -29,5 +30,6 @@ import java.lang.annotation.Target;
 @Documented
 @Inherited
 @ExtendWith(TestFlyExtension.class)
+@TestFlyApi(since = "0.9.0")
 public @interface EnableTestFly {
 }

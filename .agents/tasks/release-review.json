@@ -1,9 +1,0 @@
-{
-  "verdict": "APPROVED",
-  "findings": [
-    "Non-blocking: docs-site install snippets stay pinned to Maven Central 1.0.4 (EN+TR, plus src/pages/index.js:459 badge) by design; flip after 1.0.7 is published and refresh the stale AGENTS.md version-bump checklist.",
-    "Non-blocking: 50 @TestFlyApi/@Deprecated since=\"1.1.0\" lines in 21 files claim a version that never shipped; user decides whether to retro-correct in a separate metadata-only change.",
-    "Non-blocking: the 'tests grew from 1362 to 1444' changelog bullet uses the scratchpad baseline, not a count measured at origin/main; reword if exactness matters."
-  ],
-  "reviewDoc": "/Users/hagul/Projects/TestFramework/testfly-worktrees/audit-phase1/.agents/tasks/release-review.md"
-}

@@ -152,10 +152,10 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 
 ### Eklenenler — Ajanik Test (Agentic Testing) & Otonom AI
 
-- **Yapay Zeka Destekli İleri Seviye Kendi Kendini Onarma (Self-Healing)** — `DomPruner` karmaşık web DOM ağaçlarını anlamsız düğümleri budayarak 8K token altına sıkıştırır. `AiHealingEngine`, statik yedekler tükendiğinde LLM muhakemesiyle yeni seçici sentezler ve sonraki koşularda 0 ms gecikmeyle `.testfly/healed-locators.json` dosyasından okur.
+- **Yapay Zeka Destekli İleri Seviye Kendi Kendini Onarma (Self-Healing)** — `DomPruner` karmaşık web DOM ağaçlarını anlamsız düğümleri budayarak 8K token altına sıkıştırır. `AiHealingEngine`, statik yedekler tükendiğinde LLM muhakemesiyle yeni seçici sentezler ve `.testfly/healed-locators.json` dosyasında önbelleğe alır; önbellek isabeti yeni bir AI isteğini önler ancak sıfır yürütme süresi garanti etmez.
 - **Yapay Zeka Destekli Otomatik PR Yamaları (Auto-PR Patches)** — `SourceCodeLocator` çalışma anındaki hataları doğrudan tüketici test ve sayfa nesnesi sınıflarına eşler. `RemediationPatchGenerator`, tek komutla `git apply` yapılabilen temiz Unified Git Diff `.patch` dosyalarını `target/remediations/` dizinine üretir.
 - **Semantik Doğal Dil Doğrulamaları** — `PageAssert` ve `LocatorAssert` üzerinde `satisfiesAi(şart)` ve `violatesAi(şart)` doğrulamaları. Anti-throttle korumalı tek seferlik akıllı kontrol ve soft assertion desteği.
-- **Hedef Odaklı Adımlar (`act`) & Compile & Freeze Önbelleği** — `act(String goal)` ve `byIntent(String intent)` ile doğal dil hedeflerini somut Selenium adımlarına derler ve `.testfly/action-cache.json` dosyasına dondurarak `<50ms` deterministik hızla işletir.
+- **Hedef Odaklı Adımlar (`act`) & Compile & Freeze Önbelleği** — `act(String goal)` ve `byIntent(String intent)` ile doğal dil hedeflerini somut Selenium adımlarına derler ve `.testfly/action-cache.json` dosyasına kaydeder; önbellek isabeti yeni bir LLM isteğini önler, sabit bir gecikme garantisi vermez.
 - **Açılır Menü & Sayfa Navigasyon Primitifleri** — `ActionType.SELECT` ve `ActionType.NAVIGATE` eylemleriyle hedef element olmadan da sayfa geçişleri ve seçimler.
 
 ### Eklenenler — API Testi İyileştirmeleri
@@ -221,7 +221,7 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 
 ### Added
 - **Accessibility-first locators** — Playwright-style semantic locators available on `BaseTest` and `BasePage`: `getByRole`, `getByText`, `getByLabel`, `getByPlaceholder`, `getByTestId`, `getByAltText`, `getByTitle`. They target the accessibility tree the user perceives rather than brittle CSS/DOM structure, so tests survive redesigns.
-- **`getByRole(Role)`** — 38 WAI-ARIA roles, each matching implicit HTML elements (`<button>`, `<a href>`, `<h1>`…) and explicit `role="…"` attributes. Refine with `.withName("Submit")` (accessible-name match, following ARIA precedence: `aria-label` → `aria-labelledby` → associated `<label>` → text → `value`/`alt`/`title`) and `.withLevel(1)` (heading level).
+- **`getByRole(Role)`** — 36 WAI-ARIA rolü; örtük HTML öğeleri (`<button>`, `<a href>`, `<h1>`…) ve açık `role="…"` nitelikleriyle eşleşir. İlk yayındaki 38 sayısı düzeltilmiştir. `.withName("Submit")` ve `.withLevel(1)` ile daraltılabilir.
 - **Case-insensitive substring matching by default**, with `.exact()` opt-in. All locators flow through the existing auto-wait `Locator` chain — no `Thread.sleep`, no explicit waits.
 - **`toBy()` escape hatch** — every semantic locator can return its synthesized Selenium `By` for interop with raw Selenium or `SmartLocator`.
 - **Configurable test-id attribute** — `locators.testIdAttribute` in `testfly.yml` (default `data-testid`).
@@ -470,7 +470,7 @@ execution:
 - **GeoLocation mock** — `GeoLocation.set(lat, lon)` / `clear()`; CDP `Emulation.setGeolocationOverride` on Chrome/Edge; `navigator.geolocation` JS override fallback on Firefox
 - **Network interception** — `NetworkMock.stub(urlPattern)` with fluent `StubBuilder`; glob patterns (`**/api/**`); configurable response body, content-type, status code, and delay; auto-cleared after each test
 - **Browser storage helpers** — `StorageHelper.localStorage()`, `sessionStorage()`, `cookies()` — read/write/clear browser storage from tests without JS boilerplate
-- **Fluent Locator API** — `$(css)` / `$(By)` returning a chainable `Locator`; methods: `filter()`, `withText()`, `within()`, `nth()`; auto-wait terminal actions: `click()`, `type()`, `getText()`, `isVisible()`, `count()`, `element()`, `elements()`
+- **Fluent Locator API** — `$(css)` / `$(By)` zincirlenebilir bir `Locator` döndürür; `filter(String)`, `withText(String)`, `within(By)`, `nth(int)` desteklenir. Güncel davranış açıklaması: `click()`, `type()`, `getText()` ve `element()` bekler; `isVisible()`, `count()` ve `elements()` anında çözümlenir.
 - **Web-First Assertions** — `assertThat(By)` / `assertThat(Locator)` returning `LocatorAssert`; auto-retrying assertions: `isVisible()`, `isHidden()`, `isEnabled()`, `hasText()`, `containsText()`, `hasValue()`, `hasAttribute()`, `hasClass()`, `count()`
 
 ---

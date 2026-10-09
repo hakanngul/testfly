@@ -537,6 +537,10 @@ export default function Home() {
                     : "TestFly's interactive companion studio streams your clicks, typing, and visual assertions over real-time SSE. Emits clean Page Object Model and Cucumber BDD tests with compiler safeguards, saved directly to your repository in seconds."}
                 </p>
 
+                <div className={styles.recorderCode}>
+                  <RecorderCodeShowcase />
+                </div>
+
                 <div className={styles.recorderPills}>
                   <div className={styles.recorderPill}>
                     <span className={styles.recorderPillIcon}>🎥</span>
@@ -607,10 +611,6 @@ export default function Home() {
                   </Link>
                 </div>
               </div>
-
-              <div className={styles.recorderCode} data-reveal style={{ '--i': 1 }}>
-                <RecorderCodeShowcase />
-              </div>
             </div>
           </div>
         </section>
@@ -640,8 +640,8 @@ export default function Home() {
                 </h2>
                 <p className={styles.quickSubtitle}>
                   {isTr
-                    ? 'Yüzlerce satırlık kırılgan driver fabrikaları ve dağınık setup script’leri yazmaya son. ThreadLocal paralel thread yönetimi, native Chromium CDP MP4 video kaydı, Allure ve ReportPortal senkronizasyonu, DeepSeek/OpenAI kök neden tespiti ve kendi kendini onaran seçicileri tek bir standart YAML ile canlı yönetin.'
-                    : 'Stop writing fragile framework plumbing. Configure ThreadLocal driver isolation, native Chromium CDP MP4 recordings, live Allure & ReportPortal sync, DeepSeek/OpenAI failure diagnosis, and self-healing locators—all driven by a single, type-safe configuration.'}
+                    ? 'Yüzlerce satırlık driver fabrikaları ve dağınık setup script’leri yazmaya son. Tek YAML ile paralel testleri, tarayıcı oturum sınırını, CDP tercihli MP4 kaydını ve seçici onarımını yapılandırın. Allure açıktır; DeepSeek/OpenAI analizi ve ReportPortal için gerçek erişim bilgilerinizi ekleyip ilgili anahtarları açabilirsiniz.'
+                    : 'Stop writing fragile framework plumbing. Configure parallel tests, browser session limits, CDP-preferred MP4 recording, and locator recovery in one YAML file. Allure is enabled; add real credentials and enable the switches for DeepSeek/OpenAI analysis and ReportPortal.'}
                 </p>
 
                 <div className={styles.quickPills}>
@@ -662,8 +662,8 @@ export default function Home() {
                       <strong>{isTr ? 'Native Chromium CDP MP4 Screencast' : 'Native CDP MP4 Screencast'}</strong>
                       <span>
                         {isTr
-                          ? 'Yalnızca hata anında saklanan sıfır ek yükte video kaydı'
-                          : 'Zero-overhead video, retained only on test failure'}
+                          ? 'Test boyunca kaydedilir, yalnızca hata anında saklanır'
+                          : 'Captured during tests, retained only on failure'}
                       </span>
                     </div>
                   </div>
@@ -673,8 +673,8 @@ export default function Home() {
                       <strong>{isTr ? 'DeepSeek & OpenAI AI Analiz Motoru' : 'DeepSeek & OpenAI AI Engine'}</strong>
                       <span>
                         {isTr
-                          ? 'Hata kök-neden tespiti ve otomatik git patch üretimi'
-                          : 'Plain-English root-cause triage and auto-PR patches'}
+                          ? 'Erişim anahtarıyla açılabilen hata analizi ve patch üretimi'
+                          : 'Optional failure analysis and patch generation with an API key'}
                       </span>
                     </div>
                   </div>
@@ -684,8 +684,8 @@ export default function Home() {
                       <strong>{isTr ? 'Allure & ReportPortal Entegrasyonu' : 'Unified Enterprise Reporting'}</strong>
                       <span>
                         {isTr
-                          ? 'HTML zaman çizelgesi, JUnit XML ve canlı dashboard akışı'
-                          : 'Interactive HTML timeline, JUnit XML, and live dashboard sync'}
+                          ? 'Yerel HTML ve Allure açık; ReportPortal erişim bilgisiyle açılır'
+                          : 'Local HTML and Allure on; ReportPortal needs credentials to enable'}
                       </span>
                     </div>
                   </div>
@@ -722,8 +722,8 @@ export default function Home() {
               </h2>
               <p className={styles.sectionSubtitle}>
                 {isTr
-                  ? 'Mühendislik ekiplerinin ve QA liderlerinin TestFly hakkında en çok merak ettikleri.'
-                  : 'The key architectural questions engineering teams ask before adopting TestFly.'}
+                  ? 'İlk kurulumdan test çalıştırmaya, isteğe bağlı AI ve entegrasyonlara kadar kısa yanıtlar.'
+                  : 'Straight answers on setup, running tests, optional AI features, and integrations.'}
               </p>
             </div>
 

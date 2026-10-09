@@ -1,5 +1,7 @@
 package io.testfly.reporting;
 
+import io.testfly.api.TestFlyApi;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +14,7 @@ import java.util.ServiceLoader;
  * SPI adapters are appended after it; programmatic adapters can be added
  * via {@link #register(ReportAdapter)} before suite finish.
  */
+@TestFlyApi(since = "0.1.0")
 public final class ReportAdapterRegistry {
 
     private static final List<ReportAdapter> adapters = new ArrayList<>();

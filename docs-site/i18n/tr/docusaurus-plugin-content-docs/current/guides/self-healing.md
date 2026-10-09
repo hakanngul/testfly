@@ -29,7 +29,7 @@ locators:
 
 Kendini onarma, [`WaitEngine`](./wait-engine) içine bağlanır. `waitForVisible(...)` veya `waitForClickable(...)` zaman aşımına uğradığında (`TimeoutException` / `NoSuchElementException`), framework başarısız olan `By` tanımını ayrıştırır, sıralı bir geri dönüş locator listesi türetir ve bulunan **ve görünür** ilk öğeyi döndürür. Hiçbiri eşleşmezse, orijinal istisna yeniden fırlatılır — kendini onarma, gerçekten eksik olan bir öğeyi asla gizlemez.
 
-`WaitEngine` içinde yaşadığı için onarma, framework'ün beklemeleri üzerine inşa edilen her şeye otomatik olarak uygulanır — `BasePage` eylemleri, semantik locator'lar ve doğrudan `WaitEngine` çağrıları. Özel bir API çağırmazsınız.
+Onarma yalnızca zincir filtresi olmayan düz bir `find(By...)` veya `find("...")` locator'ı için denenir. Semantik locator'lar (`getByRole`, `getByText` ve diğer `getBy*` metotları) ile `filter`, `withText`, `within`, `nth`, `withName` veya `last` kullanılarak daraltılan locator'lar uygun değildir; çünkü onarma temel seçicinin tamamını değiştirir. Uygun `BasePage` eylemleri ve doğrudan `WaitEngine` çağrıları ayrı bir onarma API'si gerektirmez.
 
 ### Geri dönüş stratejileri
 
@@ -50,15 +50,15 @@ Geri dönüşler **orijinal locator'ın kendi içeriğinden** türetilir — fra
 
 Statik kurallar başarısız olduğunda TestFly, harici LLM'e gitmeden önce yerel **FuzzyHealingEngine**'i devreye alır:
 - ID, isim ve CSS parçalarından seçici ipuçlarını (clues) ayıklar.
-- DOM'daki aday öğeler üzerinde Levenshtein mesafe algoritmasıyla sıfır maliyetli ve ultra hızlı (5ms altında) dize benzerlik analizi yapar.
-- Yeniden adlandırılan veya ufak yazım hataları içeren seçicileri 0 token maliyetiyle onarır.
+- DOM'daki aday öğeler üzerinde yerel ve sıfır-token Levenshtein mesafe analizi yapar.
+- Yeniden adlandırılan veya ufak yazım hataları içeren seçicileri harici AI çağrısı olmadan onarır. Çalışma süresi DOM boyutuna bağlıdır ve garanti edilmez.
 
 ### Seviye 2: Yapay Zeka Destekli Onarma (`aiHealing: true`)
 
 Statik ve fuzzy stratejilerin yetersiz kaldığı durumlarda `locators.aiHealing: true` aktifse **AiHealingEngine** devreye girer:
 - Sayfa DOM'unu budayarak yapılandırılmış token bütçesine sığdırır.
 - LLM'den başarısız olan seçicinin amacına uygun yeni bir locator üretmesini talep eder.
-- Üretilen seçiciyi canlı sayfada doğrular ve `.testfly/healed-locators.json` dosyasına önbelleğe alarak sonraki koşumlarda 0ms gecikmeyle çalıştırır.
+- Üretilen seçiciyi canlı sayfada doğrular ve `.testfly/healed-locators.json` dosyasına önbelleğe alır; sonraki koşumlar yeni bir AI çağrısından kaçınabilir ancak normal locator çözümleme yine zaman alır.
 
 ---
 

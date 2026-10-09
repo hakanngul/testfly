@@ -19,7 +19,7 @@ slug: /
 
 TestFly eliminates the boilerplate that every Java Selenium project repeats — WebDriver setup and teardown, wait helpers, retry logic, screenshot capture, and report generation — so your test code contains only test intent.
 
-It is inspired by **Spring Boot's philosophy**: sensible defaults, convention over configuration, and zero required setup for common cases.
+It is inspired by **Spring Boot's philosophy**: sensible defaults and convention over configuration. A `testfly.yml` file is required for bootstrap; common optional settings retain their defaults when omitted.
 
 ```java
 public class LoginTest extends BaseTest {
@@ -42,7 +42,7 @@ No `WebDriver` setup. No `@AfterMethod` teardown. No wait helpers. No retry conf
 
 People often ask whether TestFly is meant to be an opinionated framework, an extensible toolkit, or a thin productivity layer over Selenium. It's **the Spring Boot of Java test automation** — and the answer is layered, not equal parts of all three:
 
-1. **Opinionated core (primary).** Convention over configuration, zero boilerplate by default. Add one dependency, extend `BaseTest` / `BasePage`, and the framework has already made the sensible decisions for you. `testfly.yml` is optional — `TestFlyDefaults` covers you if you never write it.
+1. **Opinionated core (primary).** Convention over configuration with little test-code boilerplate. Add one dependency, provide the required `testfly.yml`, and extend `BaseTest` / `BasePage`. `TestFlyDefaults` lets shared test-base libraries register selected fallback values after YAML loading; it does not replace the configuration file.
 2. **Never hides Selenium (the constraint).** Unlike heavier abstractions, TestFly never takes the raw `WebDriver` away from you. When the conventions don't fit, drop straight down to `WebDriver` / `By` / `WebElement`. Opinionated without being a cage.
 3. **Extensible toolkit (the escape hatch).** An SPI/registry plugin system (`DriverProviderRegistry`, `PluginRegistry`, `ReportAdapterRegistry`) makes it modular for the power users who need it — serving the opinionated core, not replacing it. Most users never touch it.
 
@@ -55,7 +55,7 @@ You don't have to abandon Selenium to get the ergonomics people love in Playwrig
 | Accessibility-first locators | `getByRole`, `getByLabel`, `getByText`, `getByPlaceholder`, `getByTestId` — target the accessibility tree, survive CSS/DOM refactors |
 | Auto-waiting | `WaitEngine`-backed actions — `Thread.sleep()` disappears |
 | Web-first assertions | `assertThat(...)` that auto-retries until true |
-| Convention over configuration | Zero-boilerplate defaults, optional `testfly.yml` |
+| Convention over configuration | Required `testfly.yml`; defaults for optional settings |
 
 …all **without hiding raw Selenium**, and while keeping your existing Selenium / Java / TestNG stack, team skills, and Selenium Grid.
 
@@ -102,7 +102,7 @@ Outcomes first — the API that delivers each one is on the right so you can jum
 | **Bring your own test runner** | Full JUnit 5 parity via `@ExtendWith(TestFlyExtension.class)` or `BaseJUnit5Test` |
 | **Write specs your product team can read** | BDD / Cucumber — `BaseCucumberSteps`, `CucumberHooks`, per-scenario steps in report |
 | **Test UI and API in the same suite** | `BaseApiTest`, fluent `ApiClient`, JSONPath, schema validation, hybrid UI+API |
-| **Pin down the exact element, fluently** | `find("selector").filter().nth().withText()` — Playwright-style chainable locators |
+| **Pin down the exact element, fluently** | `find(".row").filter(".active").nth(0).withText("Save")` — chainable locators with explicit arguments |
 | **Tests survive CSS and DOM refactors** | Accessibility-first locators — `getByRole(Role.BUTTON).withName("Submit")`, `getByText`, `getByLabel`, `getByPlaceholder`, `getByTestId` |
 | **Assertions that don't flake on timing** | Web-first `assertThat(By.id("x")).isVisible()` — auto-retrying until timeout |
 | **Test admin-and-user flows in one test** | `withSession("admin", () -> { ... })` — two browsers in one test |

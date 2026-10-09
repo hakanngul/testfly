@@ -169,7 +169,7 @@ public class LoginSteps extends BaseCucumberSteps {
 |---|---|
 | **Navigation** | `open()`, `open(path)`, `getDriver()`, `getWait()` |
 | **Semantic Locators** | `getByRole(Role, name)`, `getByText()`, `getByLabel()`, `getByPlaceholder()`, `getByTestId()`, `getByAltText()`, `getByTitle()` |
-| **Fluent Locators** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
+| **Fluent Locators** | `find(css)`, `find(By)`; use `find(css).elements()` for all matches (`$` is a deprecated single-locator alias) |
 | **Web-First Assertions** | `assertThat(By)`, `assertThat(Locator)` with automatic waiting |
 | **Soft Assertions** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)` |
 | **Built-in REST Client** | `apiClient()`, `apiGet(path)`, `apiPost(path)`, `apiPut(path)`, `apiDelete(path)` (each returns an `ApiClient` builder; finish with `.send()`) |

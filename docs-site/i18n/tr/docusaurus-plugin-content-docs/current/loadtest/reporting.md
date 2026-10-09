@@ -13,7 +13,7 @@ TestFly; yerleşik **HTML Raporu**, **Allure** ve **ReportPortal** dahil olmak �
 
 ## 1. TestFly HTML Raporu
 
-Bir yük testi çalıştırıldığında HTML raporunda (`target/reports/testfly-report.html`) otomatik olarak **⚡ Load Testing & Performance Analysis** sekmesi belirir.
+Bir yük testi çalıştırıldığında HTML raporunda (`target/testfly-report.html`) otomatik olarak **⚡ Load Testing & Performance Analysis** sekmesi belirir.
 
 ### Görsel Bileşenler:
 - **KPI Özet Kartları:** Toplam istekler, genel Throughput (istek/sn), genel P95 gecikmesi ve sistem hata oranı.
@@ -25,7 +25,7 @@ Bir yük testi çalıştırıldığında HTML raporunda (`target/reports/testfly
 - **Doğrudan Gatling Raporu Bağlantısı:** Gatling'in interaktif Highcharts raporunu yeni sekmede açan `📊 Open Gatling Report →` butonu.
 
 ### Müstakil Yük Testi Raporu
-`loadtest.reportEnabled: true` ayarlandığında, yalnızca yük testlerine odaklanan bağımsız `target/reports/loadtest-report.html` raporu da oluşturulur.
+`loadtest.reportEnabled: true` ayarlandığında, yalnızca yük testlerine odaklanan bağımsız `target/loadtest-report.html` raporu da oluşturulur.
 
 ---
 
@@ -59,10 +59,10 @@ ReportPortal kullanıldığında test öğesi açıkken yük testi verileri anı
 ## 4. Alt Süreç Logları ve CI Yönetimi
 
 CI ortamlarında terminal çıktılarının bozulmaması için:
-- Gatling'in sürekli ekranı yeniden çizen terminal çıktıları `target/reports/loadtest/<run-id>/gatling-subprocess.log` dosyasına yönlendirilir.
+- Gatling'in sürekli ekranı yeniden çizen terminal çıktıları varsayılan olarak `target/loadtest/<run-id>/gatling-subprocess.log` dosyasına yönlendirilir (`loadtest.resultsDir` üst dizini belirler).
 - TestNG/Surefire konsoluna yalnızca temiz durum mesajları yazdırılır:
   ```
   [LoadTest] Starting Gatling engine (simulation: ..., results: ...)
-  [LoadTest] Gatling results parsed from target/reports/loadtest/...
+  [LoadTest] Gatling results parsed from target/loadtest/...
   ```
 - Eğer Gatling süreci hata ile sonlanırsa, log dosyasının son 25 satırı doğrudan `System.err` ile ekrana dökülür.

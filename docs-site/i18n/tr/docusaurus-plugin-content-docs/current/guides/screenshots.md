@@ -46,19 +46,9 @@ Ekran görüntüleri Base64 olarak kodlanır ve doğrudan HTML raporuna gömül�
 
 ## Yapılandırma
 
-```yaml title="testfly.yml"
-screenshots:
-  onFailure: true   # varsayılan — her başarısızlıkta ekran görüntüsü yakala
-```
+Başarısızlık ekran görüntüleri varsayılan olarak her zaman etkindir ve yapılandırmayla devre dışı bırakılamaz. Her test hatasında ekran görüntüsü alınmaya ve HTML raporuna gömülmeye çalışılır.
 
-Otomatik başarısızlık ekran görüntülerini devre dışı bırakmak için:
-
-```yaml
-screenshots:
-  onFailure: false
-```
-
-Adım ekran görüntüleri (`StepLogger` aracılığıyla), metod çağrısındaki `boolean screenshot` bağımsız değişkeniyle kontrol edilir, bu yapılandırmayla değil.
+Adım ekran görüntüleri (`StepLogger` aracılığıyla), metot çağrısındaki `boolean screenshot` argümanıyla kontrol edilir.
 
 ---
 

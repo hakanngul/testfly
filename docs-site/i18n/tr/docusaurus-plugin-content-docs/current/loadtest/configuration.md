@@ -17,7 +17,7 @@ TestFly, `testfly.yml` içerisinde merkezi bir `loadtest:` bloğu sunar. Bu saye
 
 ```yaml
 loadtest:
-  enabled: false          # yük testini etkinleştir (features.loadtest ile de yönetilebilir)
+  enabled: false          # ayrılmış bayrak; açık runner çağrıları henüz bu değerle engellenmez
   baseUrl: https://api.example.com
   engine: auto            # auto (varsa Gatling, yoksa JDK) | gatling | jdk
   users: 10               # varsayılan eşzamanlı sanal kullanıcı sayısı
@@ -36,8 +36,8 @@ loadtest:
 
 | Parametre | Tip | Varsayılan | Açıklama |
 | :--- | :--- | :--- | :--- |
-| `enabled` | `boolean` | `false` | Yük testi modülünü etkinleştirir veya devre dışı bırakır (`features.loadtest` ile geçersiz kılınabilir). |
-| `baseUrl` | `string` | `null` | Yük testinde kullanılacak temel HTTP adresi (tanımsızsa test içindeki adres veya `execution.baseUrl` kullanılır). |
+| `enabled` | `boolean` | `false` | Ayrılmış etkin bayrak (`features.loadtest` ile geçersiz kılınabilir); mevcut `LoadTestRunner.run()` yolu bu değeri uygulamaz. |
+| `baseUrl` | `string` | `null` | Senaryo/annotation önceliğinden sonraki hedef adres. Gatling `execution.baseUrl` değerine düşer; JDK motoru bu değeri veya senaryo/annotation adresini zorunlu tutar. |
 | `engine` | `string` | `auto` | Çalıştırma motoru: `auto` (varsa Gatling, yoksa JDK), `gatling` (kesinlikle Gatling gerektirir), `jdk` (yerel sanal iş parçacıkları / virtual threads). |
 | `users` | `int` | `10` | Kodda belirtilmediğinde kullanılacak varsayılan eşzamanlı kullanıcı sayısı. |
 | `rampUp` | `string` | `10s` | Zirve kullanıcı sayısına ulaşırken geçecek kademeli artış süresi (örn: `10s`, `1m`). |

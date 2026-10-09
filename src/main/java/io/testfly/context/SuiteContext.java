@@ -1,5 +1,7 @@
 package io.testfly.context;
 
+import io.testfly.api.TestFlyApi;
+
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * String orderId = suiteCtx().get("orderId");
  * </pre>
  */
+@TestFlyApi(since = "0.3.0")
 public class SuiteContext {
 
     private static final ConcurrentHashMap<String, Object> STORE = new ConcurrentHashMap<>();

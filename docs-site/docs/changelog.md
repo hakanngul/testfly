@@ -64,7 +64,7 @@ All notable changes to TestFly are documented here.
 
 ### Added
 - **Smart Flakiness Triage (`SmartTriageEngine`)**: Local heuristic analyzer integrated into `TestExecutionListener` that inspects exception hierarchies to categorize failures (`SYSTEM_FLAKY`, `APPLICATION_BUG`, `NEEDS_INVESTIGATION`) without LLM token cost.
-- **Fuzzy Self-Healing (`FuzzyHealingEngine`)**: High-speed (under 5ms), zero-token heuristic fallback healing using Levenshtein distance against DOM candidates and attribute tokens before escalating to external LLMs.
+- **Fuzzy Self-Healing (`FuzzyHealingEngine`)**: Local, zero-token heuristic fallback healing using Levenshtein distance against DOM candidates and attribute tokens before escalating to external LLMs; no fixed latency is guaranteed.
 - **Auto-POM Page Knowledge System**: Autonomous page element discovery and local semantic intent resolution with continuous learning cache (`PageKnowledge`).
 - **Sequenced Collections on Locators**: Added `first()` and `last()` navigation methods to `Locator` leveraging Java 21 sequenced collections.
 - **`BaseJUnit5ApiTest`**: Native REST API testing base class with full `api()` client support for JUnit 5 Jupiter suites.
@@ -156,7 +156,7 @@ All notable changes to TestFly are documented here.
 
 ### Added — Agentic Testing & Autonomous AI
 
-- **AI-Driven Advanced Self-Healing** — `DomPruner` compresses complex web DOM trees to under 8K tokens by stripping non-semantic and decorative nodes. `AiHealingEngine` synthesizes replacement locators with LLM reasoning when static fallbacks are exhausted, caching healed locators to `.testfly/healed-locators.json` for 0 ms replay latency.
+- **AI-Driven Advanced Self-Healing** — `DomPruner` compresses complex web DOM trees to under 8K tokens by stripping non-semantic and decorative nodes. `AiHealingEngine` synthesizes replacement locators with LLM reasoning when static fallbacks are exhausted and caches healed locators in `.testfly/healed-locators.json`; cache hits avoid another AI request but do not guarantee zero execution time.
 - **AI-Powered Self-Remediation & Auto-PR Patches** — `SourceCodeLocator` maps runtime failures back to consumer test and page object sources. `RemediationPatchGenerator` generates clean, unified git diff `.patch` files into `target/remediations/` for single-command `git apply` resolution.
 - **Semantic Natural Language Assertions** — `satisfiesAi(condition)` and `violatesAi(condition)` on `PageAssert` and `LocatorAssert`, plus `assertWithAi(condition)` convenience method in `AssertionSupport`. Features single-evaluation anti-throttle guard and soft-assertion compatibility.
 - **Goal-Oriented Dynamic Steps (`act`) & Compile & Freeze Caching** — High-level natural language goal execution via `act(String goal)` in `ActionSupport` (`BaseTest`, `BasePage`, `BaseJUnit5Test`, `BaseCucumberSteps`) and `byIntent(String intent)` in `LocatorSupport`. Compiles user intents into deterministic Selenium action plans and freezes them into `.testfly/action-cache.json` for instant replay.
@@ -278,7 +278,7 @@ reporting:
 
 ### Added
 - **Accessibility-first locators** — `getByRole`, `getByText`, `getByLabel`, `getByPlaceholder`, `getByTestId`, `getByAltText`, `getByTitle`
-- **`getByRole(Role)`** — 38 WAI-ARIA roles with implicit + explicit matching; `.withName()`, `.withLevel()`
+- **`getByRole(Role)`** — 36 WAI-ARIA roles with implicit + explicit matching; `.withName()`, `.withLevel()` (corrected from the original count of 38)
 - **`toBy()` escape hatch** — returns synthesized Selenium `By`
 
 ```java

@@ -99,7 +99,7 @@ class LoginTest extends BaseJUnit5Test {
 |---|---|
 | **Navigation** | `open()`, `open(path)`, `getDriver()`, `getWait()` |
 | **Semantic Locators** | `getByRole(Role, name)`, `getByText()`, `getByLabel()`, `getByPlaceholder()`, `getByTestId()`, `getByAltText()`, `getByTitle()` |
-| **Fluent Locators** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
+| **Fluent Locators** | `find(css)`, `find(By)`; use `find(css).elements()` for all matches (`$` is a deprecated single-locator alias) |
 | **Web-First Assertions** | `assertThat(By).isVisible()`, `assertThat(Locator).hasText(...)`, `assertThat(...).count(n)` |
 | **Soft Assertions** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)`, `softAssert().that(...)` |
 | **REST API Testing** | `apiClient()`, `apiGet(path)`, `apiPost(path)`, `apiPut(path)`, `apiPatch(path)`, `apiDelete(path)` (each returns an `ApiClient` builder; finish with `.send()`) |

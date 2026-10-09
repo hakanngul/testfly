@@ -1,5 +1,6 @@
 package io.testfly.performance;
 
+import io.testfly.api.TestFlyApi;
 import io.testfly.driver.DriverManager;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -52,6 +53,7 @@ import java.util.Map;
  * after the start mark. Navigation Timing fields (TTFB, domLoad, pageLoad)
  * are set to {@code -1} since they are not meaningful for SPA transitions.
  */
+@TestFlyApi(since = "0.17.0")
 public final class PerformanceCollector {
 
     /**

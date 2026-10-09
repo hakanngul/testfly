@@ -60,13 +60,24 @@ export const heroTabs = [
     label: '⚡ Self-Healing',
     filename: 'InventoryPage.java',
     language: 'java',
-    code: `public class InventoryPage extends BasePage {
+    code: `import io.testfly.test.BasePage;
+import java.util.Map;
+
+public class InventoryPage extends BasePage {
+
+  // DOM contract: each button has data-testid="add-to-cart-{product-id}".
+  private static final Map<String, String> PRODUCT_IDS = Map.of(
+      "Sauce Labs Backpack", "sauce-labs-backpack",
+      "Sauce Labs Bike Light", "sauce-labs-bike-light");
 
   public InventoryPage addToCart(String itemName) {
-    // Playwright-style accessibility locator with auto-waiting
-    getByRole(Role.BUTTON, "Add to cart")
-        .filter(hasText(itemName))
-        .click(); // Level-1 (static) & Level-2 (LLM) self-healing if markup drifted
+    String productId = PRODUCT_IDS.get(itemName);
+    if (productId == null) {
+      throw new IllegalArgumentException("Unknown inventory item: " + itemName);
+    }
+
+    // Plain, unfiltered CSS locators are eligible for configured self-healing.
+    find("[data-testid='add-to-cart-" + productId + "']").click();
     return this;
   }
 
@@ -79,25 +90,39 @@ export const heroTabs = [
   },
   {
     id: 'api',
-    label: '🌐 API & CDP',
+    label: '🌐 API & Mocking',
     filename: 'PaymentApiTest.java',
     language: 'java',
-    code: `public class PaymentApiTest extends BaseApiTest {
+    code: `import io.testfly.client.ApiAuth;
+import io.testfly.client.ApiMockRule;
+import io.testfly.client.ApiResponse;
+import io.testfly.test.BaseApiTest;
+import org.testng.annotations.Test;
+
+public class PaymentApiTest extends BaseApiTest {
 
   @Test
-  public void checkoutWithMockedCdpPayment() {
-    // Intercept payment gateway over Chrome DevTools Protocol
-    network().route("**/api/payment", r -> r.fulfill(200, "{\\"status\\":\\"PAID\\"}"));
+  public void checkoutWithClientSideMock() {
+    ApiMockRule orderMock = ApiMockRule.builder()
+        .match(request -> request.method().equals("POST")
+            && request.uri().getPath().equals("/orders"))
+        .respond(request -> ApiResponse.builder()
+            .request(request)
+            .status(201)
+            .header("Content-Type", "application/json")
+            .body("{\\"orderId\\":\\"order-123\\"}")
+            .durationMs(12)
+            .build())
+        .build();
 
-    // Fluent REST assertions
-    api().auth(bearer("\${AUTH_TOKEN}"))
-         .post("/orders")
-         .body(new OrderRequest("item-42", 1))
+    apiPost("https://api.example.test/orders")
+         .auth(ApiAuth.bearerToken(System.getenv("AUTH_TOKEN")))
+         .mockRule(orderMock)
+         .body(java.util.Map.of("itemId", "item-42", "quantity", 1))
          .send()
-         .assertThat()
-         .status(201)
-         .jsonPath("$.orderId").exists()
-         .durationLessThan(500);
+         .assertStatus(201)
+         .assertJsonExists("$.orderId")
+         .assertDurationLessThan(500);
   }
 }`,
   },
@@ -172,8 +197,8 @@ export function getFlagshipFeatures(isTr) {
       ),
       title: isTr ? 'Agentic Testing & Compile & Freeze' : 'Agentic Testing & Compile & Freeze',
       description: isTr
-        ? 'act("...") ile doğal dil hedeflerini çalıştırın. İlk koşuda somut Selenium adımlarına derlenir, .testfly/action-cache.json dosyasına dondurulur ve sonraki tüm koşularda <50ms deterministik hızla çalışır.'
-        : 'Execute high-level natural language goals via act("..."). Compiles into concrete Selenium steps on run 1, freezes to .testfly/action-cache.json, and replays under 50ms with zero AI latency.',
+        ? 'act("...") ile doğal dil hedeflerini çalıştırın. İlk koşuda somut Selenium adımlarına derlenir, .testfly/action-cache.json dosyasına dondurulur ve önbellek isabetlerinde yeni bir LLM isteği olmadan yeniden oynatılır.'
+        : 'Execute high-level natural language goals via act("..."). The first run compiles concrete Selenium steps into .testfly/action-cache.json; cache hits replay without a new LLM request.',
       code: `// First run compiles; subsequent runs replay frozen cache
 act("Delete the first item in the cart and checkout");
 
@@ -201,8 +226,8 @@ byIntent("Proceed to payment").click();`,
       ),
       title: isTr ? 'Semantik Doğrulamalar (satisfiesAi & violatesAi)' : 'Semantic AI Assertions',
       description: isTr
-        ? 'Kırılgan metin eşleşmeleri yerine LLM muhakemesiyle sayfa veya element durumunu doğrulayın. 500ms polling gecikmesi olmadan anti-throttle korumalı tek seferlik akıllı kontrol.'
-        : 'Verify complex visual or logical state using zero-shot LLM reasoning against the live DOM. Single-shot anti-throttle protection ensures zero rate-limit waste.',
+        ? 'Kırılgan metin eşleşmeleri yerine LLM muhakemesiyle sayfa veya element durumunu doğrulayın. Her doğrulama DOM üzerinde tek bir AI değerlendirmesi yapar; sağlayıcı kota sınırları yine geçerlidir.'
+        : 'Verify complex visual or logical state using LLM reasoning against the live DOM. Each assertion performs one AI evaluation; provider rate limits still apply.',
       code: `assertThatPage()
     .satisfiesAi("Order confirmation summary shows valid total");
 assertThatPage()
@@ -276,22 +301,22 @@ export function getMoreFeatures(isTr) {
       icon: '♿',
       title: isTr ? 'axe-core ile Erişilebilirlik (a11y)' : 'Accessibility Auditing (axe-core)',
       short: isTr
-        ? 'Sayfalar arası geçişlerde WCAG 2.1 AA uyumluluk denetimleri ve otomatik ihlal raporlaması.'
-        : 'Automated WCAG 2.1 AA audits on every navigation with zero-boilerplate violation reports.',
+        ? 'Akışın gerekli noktalarında accessibility().run() ile axe-core WCAG taramaları ve ayrıntılı ihlal raporları çalıştırın.'
+        : 'Run explicit axe-core WCAG scans with accessibility().run() at the points your flow requires.',
     },
     {
       icon: '📈',
       title: isTr ? 'Core Web Vitals & Performans' : 'Core Web Vitals Performance',
       short: isTr
-        ? 'LCP, CLS ve FID değerlerini canlı tarayıcıdan toplayıp SLA eşik değer kontrolleri uygulayın.'
-        : 'Capture real-user LCP, CLS, and FID metrics directly from Chromium and assert performance SLAs.',
+        ? 'Desteklendiği tarayıcılarda LCP, FCP, TTFB ve CLS metriklerini toplayıp performans eşiklerini doğrulayın.'
+        : 'Collect LCP, FCP, TTFB, and CLS where the browser exposes them, then assert performance thresholds.',
     },
     {
       icon: '📋',
       title: isTr ? '@TestData Veri Sürücüsü (Excel/CSV)' : 'Data-Driven Testing (@TestData)',
       short: isTr
-        ? 'Excel (.xlsx), CSV ve JSON dosyalarını otomatik TestNG DataProvider parametrelerine dönüştürün.'
-        : 'Load Excel (.xlsx), CSV, and JSON data sources directly into strongly typed test method parameters.',
+        ? 'Excel (.xlsx), CSV, JSON veya veritabanı satırını yükleyin; getTestData() ya da tipli anahtar erişimiyle okuyun.'
+        : 'Load an Excel, CSV, JSON, or database row and read it through getTestData() or typed key access.',
     },
     {
       icon: '🌐',
@@ -441,8 +466,8 @@ assertThat(getByRole(Role.STATUS))
     .hasText("Confirmed");`,
     badgeBeforeEn: '14 lines · 2 explicit waits · StaleElement prone',
     badgeBeforeTr: '14 satır · 2 explicit wait · StaleElement riski',
-    badgeAfterEn: '2 lines · Zero-flakiness auto-waiting',
-    badgeAfterTr: '2 satır · Sıfır kırılganlıkta akıllı bekleme',
+    badgeAfterEn: '2 lines · Built-in auto-waiting',
+    badgeAfterTr: '2 satır · Yerleşik akıllı bekleme',
   },
   {
     id: 'healing',
@@ -600,64 +625,88 @@ export function getFaqs(isTr) {
   if (isTr) {
     return [
       {
-        q: 'Compile & Freeze mimarisi CI ortamında determinizmi nasıl garanti eder?',
-        a: "act(...) metodunu ilk kez çalıştırdığınızda TestFly doğal dil hedefini somut Selenium adımlarına derler ve .testfly/action-cache.json dosyasına dondurur. Sonraki CI koşularında LLM'e hiç gitmeden standart Selenium WaitEngine ile 50 ms'nin altında ve sıfır AI gecikmesiyle çalışır. Arayüz değişip bir adım aksarsa önbellek otomatik düşürülür ve plan yeniden derlenerek test kurtarılır.",
+        q: 'TestFly nedir; yalnızca tarayıcı testleri için mi kullanılır?',
+        a: 'TestFly, Java 21 için çok alanlı bir test otomasyon SDK’sıdır. Selenium tabanlı web testlerinin yanında API, yük ve diğer test alanları için de araçlar sunar; tarayıcı sürücüsü framework’ün tamamı değil, bir adaptörüdür.',
       },
       {
-        q: 'Seviye 2 AI Self-Healing klasik iyileştirme araçlarından nasıl ayrışır?',
-        a: "Geliştiriciler ID veya class adlarını değiştirdiğinde, DomPruner 8K token bütçesinde canlı DOM'u analiz eder ve doğru elementi semantik olarak bulur. Onarılan seçici .testfly/healed-locators.json dosyasına kaydedilerek sonraki koşularda 0 ms sürede işletilir ve HTML raporda ⚠ healed etiketiyle işaretlenir.",
+        q: 'İlk testime nasıl başlarım?',
+        a: 'Java 21 ve Maven ile TestFly bağımlılığını ekleyin, src/test/resources/testfly.yml içinde tarayıcı, çalışma modu ve zaman aşımı ayarlarını tanımlayın. Web testi için BaseTest, API testi için BaseApiTest kullanabilirsiniz. İlk örnek için Başlangıç rehberini izleyin.',
       },
       {
-        q: 'Yapay zekanın ürettiği hata düzeltmelerini doğrudan koduma uygulayabilir miyim?',
-        a: "Evet! ai.generatePatch: true ayarlandığında, başarısız olan locator veya assertion için target/remediations/TestClass.patch Unified Git Diff dosyası üretilir. Geliştiriciler veya CI botları 'git apply target/remediations/...' ile tek komutta kaynak kodu güncelleyebilir.",
+        q: 'testfly.yml zorunlu mu ve nasıl bulunur?',
+        a: 'Standart başlatma akışı yapılandırma dosyası arar. Önce -Dtestfly.config ile verilen dosyaya, ardından classpath üzerindeki testfly.yml dosyasına, son olarak çalışma dizinine bakar; testfly.profile verilirse profil dosyasını arar. Hiçbiri bulunmazsa hata verir. Her özelliği YAML’a yazmanız gerekmez.',
       },
       {
-        q: 'TestFly bizi belirli bir test aracına veya bulut sağlayıcısına mahkum eder mi?',
-        a: "Asla. TestNG, JUnit 5 ve Cucumber BDD ile %100 özellik denkliğine sahiptir. Yerel Chrome/Firefox/Edge'den Selenium Grid'e, BrowserStack'ten Sauce Labs'e kadar tek bir config satırıyla her yerde çalışır.",
+        q: 'Hangi test çalıştırıcıları ve tarayıcı ortamları desteklenir?',
+        a: 'TestNG, JUnit 5 ve Cucumber BDD adaptörleri bulunur; yaşam döngüsü ve bazı özellikler adaptöre göre değişebilir. Yerel tarayıcılar ve uzak sağlayıcılar, gereken sürücü, yapılandırma ve erişim bilgileri sağlandığında kullanılabilir.',
       },
       {
-        q: 'TestFly MCP sunucusu IDE asistanlarıyla (Claude Code, IntelliJ, Copilot) nasıl entegre olur?',
-        a: "TestFly, 88 adet tarayıcı otomasyon aracı sunan yerleşik bir Model Context Protocol (MCP) sunucusuna sahiptir. AI asistanınız kör kod yazmak yerine canlı tarayıcıyı inceler, erişilebilirlik ağacından doğru elementleri seçer ve hatasız TestFly Java kodları üretir.",
+        q: 'Paralel çalışma ve raporlama nasıl ayarlanır?',
+        a: 'TestNG için execution.parallel ve execution.threadCount paralelliği belirler; execution.maxActiveSessions eşzamanlı tarayıcı oturumlarını sınırlar. Yerel HTML raporu ayrı bir ayardır; Allure ve ReportPortal isteğe bağlı entegrasyonlardır. ReportPortal için ayrıca geçerli sunucu ve erişim bilgileri gerekir.',
       },
       {
-        q: 'testfly record komutu ve Interactive Recorder stüdyosu nasıl çalışır?',
-        a: "testfly record <url> komutunu çalıştırdığınızda TestFly izole bir Google Chrome penceresi açar ve CDP aracılığıyla injected_recorder.js betiğini otomatik enjekte eder. Tarayıcıdaki tıklamalar, tuş vuruşları (debounced typing) ve görsel doğrulamalar (isVisible, hasText) SSE üzerinden yerel stüdyoya (:8765) iletilir. Stüdyo anlık olarak Page Object Model, TestNG, JUnit 5 veya Cucumber BDD kodları derler. 'Save to Project' butonuna bastığınızda dosyalar Java anahtar kelime güvenceleriyle (örn. continueElement) doğrudan src/test/java/ projenize yazılır.",
+        q: 'Seçici onarımı ve AI hata analizi varsayılan olarak çalışır mı?',
+        a: 'Hayır. locators.selfHealing yerel onarma stratejilerini, locators.aiHealing AI destekli seçici onarımını açar. Hata analizi için ai.failureAnalysis ve uygun sağlayıcı/anahtar gerekir. Başarılı onarma veya analiz garanti edilmez.',
       },
       {
-        q: 'Ham Selenium WebDriver ve CDP API\'larına doğrudan erişebilir miyim?',
-        a: "Her zaman. getDriver() ile canlı WebDriver daima elinizin altındadır. Tüm Playwright-tarzı Locator nesneleri .toBy() ile standart Selenium By verir. CDP üzerinden ağ trafiği durdurma, API taklit etme, konum taklidi ve çerez yönetimi yerel olarak desteklenir.",
+        q: 'AI ile patch üretimi kodumu otomatik değiştirir mi?',
+        a: 'Hayır. ai.generatePatch etkinse, AI erişimi varsa, hataya ait kaynak kod bulunursa ve geçerli bir diff üretilebilirse target/remediations/ altında incelenebilecek bir .patch dosyası yazılır. Uygulama kararı size aittir.',
+      },
+      {
+        q: 'Compile & Freeze tekrar eden AI çağrılarını nasıl azaltır?',
+        a: 'act(...) ile oluşturulan eylem planı .testfly/action-cache.json içinde saklanabilir. Aynı hedefte önbellek isabeti yeni bir LLM isteğini önler; tarayıcı eylemleri ve beklemeler yine çalışır. Önbellek özelliği ve AI sağlayıcısı kendi ayarlarına bağlıdır.',
+      },
+      {
+        q: 'MCP köprüsü ve tarayıcı kaydedici aynı ürün mü?',
+        a: 'Hayır. Java SDK’dan ayrı Node.js MCP köprüsü proje oluşturma ve kod üretme araçları sunar; canlı tarayıcı incelemesi için Playwright MCP kullanılır. Mevcut Node köprüsünde testfly record komutu bulunmaz; bu komut tarihsel Python kaydedicisine aittir. Ayrıntılar için CLI rehberine bakın.',
+      },
+      {
+        q: 'Selenium WebDriver’a doğrudan erişebilir miyim?',
+        a: 'Evet. Web testlerinde getDriver() canlı WebDriver oturumunu verir; TestFly Locator nesneleri toBy() ile Selenium By değerine dönüştürülebilir. CDP özellikleri kullanılan tarayıcı ve sürücünün desteğine bağlıdır.',
       },
     ];
   }
 
   return [
     {
-      q: 'How does Agentic Testing with Compile & Freeze guarantee zero flakiness in CI?',
-      a: 'When you run act(...), TestFly compiles the high-level intent into concrete Selenium steps and freezes them into .testfly/action-cache.json. In subsequent CI runs, the cached plan replays directly via Selenium WaitEngine with zero AI latency (under 50ms) and 100% deterministic repeatability. If the UI changes and a step fails, TestFly automatically invalidates the cache, recompiles against the fresh DOM, and self-heals.',
+      q: 'What is TestFly? Is it only for browser testing?',
+      a: 'TestFly is a multi-domain test automation SDK for Java 21. Alongside Selenium-based web tests, it offers tools for API, load, and other test domains. The browser driver is an adapter, not the entire framework.',
     },
     {
-      q: 'How does Level-2 AI Self-Healing prevent false build failures?',
-      a: 'When selectors break due to front-end refactoring (renamed IDs, altered classes, or DOM restructuring), TestFly prunes the live DOM to under 8,000 tokens and prompts the configured LLM to synthesize a replacement selector. The healed selector is saved to .testfly/healed-locators.json and reused in future runs at 0 ms latency.',
+      q: 'How do I get started with my first test?',
+      a: 'With Java 21 and Maven, add the TestFly dependency and define browser, execution mode, and timeouts in src/test/resources/testfly.yml. Use BaseTest for a web test or BaseApiTest for an API test. Follow the Getting Started guide for a complete example.',
     },
     {
-      q: 'Can I apply AI-generated fixes directly to my source code?',
-      a: 'Yes! With ai.generatePatch: true, whenever an assertion or locator fails permanently, TestFly generates a standard Unified Git Diff (target/remediations/TestClass.patch). Developers or CI bots can review and apply the fix in one command with git apply target/remediations/...',
+      q: 'Is testfly.yml required, and where does TestFly look for it?',
+      a: 'The standard bootstrap looks for a configuration file: first the path set with -Dtestfly.config, then testfly.yml on the classpath, then in the working directory. Set testfly.profile to select a profile-specific filename. Missing files cause an error; you do not need to list every optional feature in YAML.',
     },
     {
-      q: 'Does TestFly lock my team into a specific test runner or vendor cloud?',
-      a: 'Never. TestFly provides 100% feature parity across TestNG, JUnit 5, and Cucumber BDD. It executes locally on Chrome, Firefox, Edge, and Safari, or remotely on Selenium Grid, BrowserStack, and Sauce Labs with a single config line.',
+      q: 'Which test runners and browser environments are supported?',
+      a: 'TestFly has adapters for TestNG, JUnit 5, and Cucumber BDD; lifecycle and some features can differ by adapter. Local browsers and remote providers work when their required drivers, configuration, and credentials are available.',
     },
     {
-      q: 'How does the TestFly MCP server integrate with AI coding tools?',
-      a: 'TestFly provides a built-in Model Context Protocol (MCP) server exposing 88 browser automation tools. AI assistants like Claude Code, JetBrains AI Assistant, GitHub Copilot, and Google Antigravity can inspect live browsers, query the accessibility tree, and generate reliable, production-grade TestFly Java code rather than hallucinating selectors.',
+      q: 'How do parallel execution and reporting work?',
+      a: 'For TestNG, execution.parallel and execution.threadCount control parallelism; execution.maxActiveSessions limits concurrent browser sessions. Local HTML reporting is a separate setting, while Allure and ReportPortal are optional integrations. ReportPortal also requires a valid endpoint and credentials.',
     },
     {
-      q: 'How does testfly record and the Interactive Recorder studio work?',
-      a: "Running testfly record <url> launches an isolated Google Chrome instance with automated CDP script injection. User clicks, coalesced keystrokes, and toolbar assertions (isVisible, hasText) are streamed via SSE to the local web studio (:8765). The studio synthesizes production-ready Page Object Model, TestNG, JUnit 5, or Cucumber BDD code in real time. Clicking 'Save to Project' writes clean, compiler-safe classes directly into your project's src/test/java/ directory.",
+      q: 'Are locator recovery and AI failure analysis enabled by default?',
+      a: 'No. locators.selfHealing enables local locator recovery; locators.aiHealing enables AI-assisted recovery. Failure analysis requires ai.failureAnalysis and a configured provider and API key. Neither recovery nor analysis guarantees a successful result.',
     },
     {
-      q: 'Can I still drop down to the raw Selenium WebDriver and CDP APIs?',
-      a: 'Always. getDriver() returns the live WebDriver instance, and every fluent locator exposes .toBy(). Furthermore, native CDP integration lets you intercept network traffic, mock REST responses, manipulate browser cookies, and emulate geo-locations without third-party proxies.',
+      q: 'Does AI patch generation automatically change my code?',
+      a: 'No. When ai.generatePatch is enabled, AI access is configured, a source snippet can be found, and a valid diff is returned, TestFly can write a reviewable .patch file under target/remediations/. You decide whether to apply it.',
+    },
+    {
+      q: 'How does Compile & Freeze reduce repeated AI calls?',
+      a: 'An action plan created with act(...) can be stored in .testfly/action-cache.json. A cache hit for the same goal avoids a new LLM request; browser actions and waits still run. Caching and AI-provider use depend on their configuration.',
+    },
+    {
+      q: 'Are the MCP bridge and browser recorder the same product?',
+      a: 'No. The Node.js MCP bridge is separate from the Java SDK and provides project scaffolding and code-generation tools; live browser inspection uses Playwright MCP. The current Node bridge has no testfly record command: that command belongs to the historical Python recorder. See the CLI guide for details.',
+    },
+    {
+      q: 'Can I access Selenium WebDriver directly?',
+      a: 'Yes. In web tests, getDriver() returns the live WebDriver session, and TestFly Locator objects can be converted to Selenium By with toBy(). CDP features depend on browser and driver support.',
     },
   ];
 }
@@ -665,7 +714,7 @@ export function getFaqs(isTr) {
 export const stats = [
   { value: '1', label: 'Single Maven Dependency', labelTr: 'Tek Maven Bağımlılığı' },
   { value: '1.0.7', label: 'Latest Stable Release', labelTr: 'Güncel Kararlı Sürüm' },
-  { value: '<50ms', label: 'Frozen AI Action Replay', labelTr: 'Dondurulmuş AI Oynatma Hızı' },
+  { value: '0', label: 'LLM Calls on Cache Hit', labelTr: 'Önbellek İsabetinde LLM Çağrısı' },
   { value: '88', label: 'Built-in MCP Tools', labelTr: 'Yerleşik MCP Aracı' },
 ];
 
@@ -773,67 +822,71 @@ export const mavenDependencySnippet = `<dependency>
 
 export function getQuickConfig(isTr) {
   return `browser:
-  name: chrome
-  headless: false
+  name: chrome                     # ${isTr ? 'Yerel Chrome sürücüsünü seçer' : 'Selects the local Chrome driver'}
+  headless: false                  # ${isTr ? 'Görünür pencere açar' : 'Opens a visible browser window'}
+  lifecycle: per-test              # ${isTr ? 'Her testten sonra tarayıcıyı kapatır' : 'Closes the browser after each test'}
   arguments:
-    - --start-maximized
-    - --disable-notifications
-    - --remote-allow-origins=*
+    - --start-maximized            # ${isTr ? 'Pencereyi büyütür (headless modda boyut belirler)' : 'Maximizes the window (sets size in headless mode)'}
+    - --disable-notifications      # ${isTr ? 'Chrome bildirimlerini kapatır' : 'Disables Chrome notifications'}
+    - --remote-allow-origins=*     # ${isTr ? 'Chrome başlatma argümanı olarak iletilir' : 'Passed through as a Chrome launch argument'}
   capabilities:
-    acceptInsecureCerts: true
-    pageLoadStrategy: normal
+    acceptInsecureCerts: true      # ${isTr ? 'Geçersiz TLS sertifikalarını kabul eder' : 'Accepts invalid TLS certificates'}
+    pageLoadStrategy: normal       # ${isTr ? 'Sayfa yüklenmesinin tamamlanmasını bekler' : 'Waits for full page load'}
 
 execution:
-  mode: local
-  baseUrl: https://www.saucedemo.com/
-  gridUrl: http://localhost:4444/wd/hub
-  parallel: methods
-  threadCount: 4
-  maxActiveSessions: 4
+  mode: local                      # ${isTr ? 'Yerel tarayıcı sürücüsünü kullanır' : 'Uses a local browser driver'}
+  baseUrl: https://www.saucedemo.com/ # ${isTr ? 'Göreli web adresleri için temel URL' : 'Base URL for relative web navigation'}
+  gridUrl: http://localhost:4444/wd/hub # ${isTr ? 'Yalnızca mode: remote iken kullanılır' : 'Used only when mode: remote'}
+  parallel: methods                # ${isTr ? 'TestNG metotlarını paralel çalıştırır' : 'Runs TestNG methods in parallel'}
+  threadCount: 4                   # ${isTr ? 'TestNG paralel thread sayısı' : 'Number of parallel TestNG threads'}
+  maxActiveSessions: 4             # ${isTr ? 'Eşzamanlı tarayıcı oturumu sınırı' : 'Limit on concurrent browser sessions'}
 
 locators:
-  selfHealing: true
+  selfHealing: true                # ${isTr ? 'Başarısız seçiciler için onarım dener' : 'Attempts recovery for failed locators'}
+  aiHealing: false                 # ${isTr ? 'AI seçici onarımı kapalı; anahtarla açılabilir' : 'AI locator healing off; enable with an API key'}
 
 ai:
-  failureAnalysis: false
-  provider: openai-compatible     # openai-compatible | claude | gemini | deepseek
-  baseUrl: https://api.deepseek.com
-  apiKey: "\${AI_API_KEY}"
-  model: deepseek-v4-flash
-  language: ${isTr ? 'tr' : 'en'}
-  timeoutSeconds: 20
+  failureAnalysis: false          # ${isTr ? 'Hata analizini kapatır' : 'Disables failure analysis'}
+  generatePatch: false            # ${isTr ? 'AI patch üretimini kapatır' : 'Disables AI patch generation'}
+  provider: openai-compatible     # ${isTr ? 'DeepSeek için OpenAI uyumlu sağlayıcı' : 'OpenAI-compatible provider for DeepSeek'}
+  baseUrl: https://api.deepseek.com # ${isTr ? 'AI istekleri için sağlayıcı adresi' : 'Provider URL for AI requests'}
+  apiKey: "\${AI_API_KEY}"           # ${isTr ? 'Anahtarı ortam değişkeninden çözer' : 'Resolves the key from an environment variable'}
+  model: deepseek-v4-flash         # ${isTr ? 'İsteklerde iletilecek model adı' : 'Model name sent with requests'}
+  language: ${isTr ? 'tr' : 'en'}                      # ${isTr ? 'Hata analizi yanıt dili' : 'Failure analysis response language'}
+  timeoutSeconds: 20              # ${isTr ? 'AI isteği için zaman aşımı (saniye)' : 'AI request timeout in seconds'}
 
 recording:
-  enabled: true                    ${isTr ? '# Video kaydını aktif eder (varsayılan: false)' : '# Enables test video recording'}
-  mode: retain-on-failure          # 'retain-on-failure' | 'on' | 'off'
-  format: mp4                      # 'mp4' (H.264 video) | 'gif'
-  fps: 5                           ${isTr ? '# Saniyedeki kare sayısı (2-10)' : '# Frames per second (2-10)'}
-  maxDurationSeconds: 60           ${isTr ? '# Bellek güvenliği için maksimum kayıt süresi' : '# Max duration safety limit'}
-  cdp: true                        ${isTr ? '# Chromium native CDP screencast kullanımı' : '# Native Chromium CDP screencast'}
+  enabled: true                   # ${isTr ? 'Tarayıcı testlerinde video kaydını açar' : 'Enables recording for browser tests'}
+  mode: retain-on-failure         # ${isTr ? 'Videoyu yalnızca hatada saklar' : 'Keeps video only on failure'}
+  format: mp4                     # ${isTr ? 'Videoyu MP4 olarak kaydeder (hata halinde GIF)' : 'Saves MP4 video (GIF fallback on error)'}
+  fps: 5                          # ${isTr ? 'Saniyede hedeflenen kare sayısı' : 'Target frames captured per second'}
+  maxDurationSeconds: 60          # ${isTr ? 'Saklanan kareleri fps × süre ile sınırlar' : 'Caps stored frames at fps × duration'}
+  cdp: true                       # ${isTr ? 'CDP tercih eder; JUnit 5 bu alanı okumaz' : 'Prefers CDP; JUnit 5 ignores this field'}
 
 reporting:
-  allureEnabled: true
+  allureEnabled: true             # ${isTr ? 'Allure rapor entegrasyonunu açar' : 'Enables Allure reporting integration'}
+  htmlReport: true                # ${isTr ? 'Yerel HTML test raporunu üretir' : 'Generates the local HTML test report'}
   reportPortal:
-    enabled: false
-    endpoint: "\${REPORTPORTAL_ENDPOINT:-https://reportportal.example.com}"
-    apiKey: "\${REPORTPORTAL_API_KEY}"
-    project: demo-web
-    launch: "Demo Web - Dev"
-    description: "Automated test execution powered by TestFly"
-    attributes: "env:dev"
-    type: auto
-    mode: default
+    enabled: false                # ${isTr ? 'ReportPortal aktarımını kapatır' : 'Disables ReportPortal publishing'}
+    endpoint: "\${REPORTPORTAL_ENDPOINT:-https://reportportal.example.com}" # ${isTr ? 'Sunucu adresi; değişken yoksa örnek adres' : 'Server URL; example fallback if unset'}
+    apiKey: "\${REPORTPORTAL_API_KEY}" # ${isTr ? 'Erişim anahtarını ortamdan çözer' : 'Resolves the access key from the environment'}
+    project: demo-web             # ${isTr ? 'ReportPortal proje adı' : 'ReportPortal project name'}
+    launch: "Demo Web - Dev"      # ${isTr ? 'Rapor çalıştırması adı' : 'Report launch name'}
+    description: "Automated test execution powered by TestFly" # ${isTr ? 'Çalıştırma açıklaması' : 'Launch description'}
+    attributes: "env:dev"         # ${isTr ? 'Çalıştırma etiketleri' : 'Launch attributes'}
+    type: auto                    # ${isTr ? 'API veya Web çalıştırma türünü belirler' : 'Detects API or Web run type'}
+    mode: default                 # ${isTr ? 'Kabul edilir; çalışma akışında kullanımı yok' : 'Accepted; not applied by the runtime'}
 
 api:
-  baseUrl: https://fakeapi.net
-  timeoutSeconds: 30
-  logBody: false
+  baseUrl: https://fakeapi.net    # ${isTr ? 'API istemcisinin varsayılan temel adresi' : 'Default base URL for the API client'}
+  timeoutSeconds: 30              # ${isTr ? 'API istekleri için zaman aşımı (saniye)' : 'API request timeout in seconds'}
+  logBody: false                  # ${isTr ? 'Yanıt gövdesini loglarda göstermez' : 'Omits response bodies from logs'}
 
 retry:
-  enabled: false
-  maxAttempts: 2
+  enabled: false                  # ${isTr ? 'Başarısız testlerin yeniden denenmesini kapatır' : 'Disables retries for failed tests'}
+  maxAttempts: 2                  # ${isTr ? 'Yalnızca retry açıkken kullanılır' : 'Only used when retries are enabled'}
 
 timeouts:
-  explicit: 10
-  pageLoad: 30`;
+  explicit: 10                     # ${isTr ? 'Öğe bekleme süresi (saniye)' : 'Element wait timeout in seconds'}
+  pageLoad: 30                    # ${isTr ? 'Sayfa yükleme süresi (saniye)' : 'Page load timeout in seconds'}`;
 }

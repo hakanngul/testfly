@@ -1,5 +1,7 @@
 package io.testfly.hooks;
 
+import io.testfly.api.TestFlyApi;
+
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -11,6 +13,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Hook failures are isolated — an exception in one hook is logged and
  * does not prevent other hooks or framework operations from running.
  */
+@TestFlyApi(since = "0.3.0")
 public final class HookRegistry {
 
     private static final List<ExecutionHook> hooks = new CopyOnWriteArrayList<>();

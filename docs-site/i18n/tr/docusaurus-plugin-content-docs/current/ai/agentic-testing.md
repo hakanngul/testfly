@@ -26,7 +26,7 @@ Geleneksel test otomasyonunda mühendislerin arayüzdeki her adımı, tıklamay�
             ▼                                                ▼
 ┌───────────────────────┐                        ┌───────────────────────┐
 │ Deterministik Yeniden │                        │       DomPruner       │
-│   Oynatma (< 50ms)    │                        │  Token Optimizasyonu  │
+│ Önbellekten Oynatma   │                        │  Token Optimizasyonu  │
 └───────────┬───────────┘                        └───────────┬───────────┘
             │                                                │
             │  ┌─────────────────────────────────────────────┘
@@ -56,7 +56,7 @@ Geleneksel test otomasyonunda mühendislerin arayüzdeki her adımı, tıklamay�
             ▼                                ▼
 ┌───────────────────────┐        ┌───────────────────────┐
 │ .testfly/healed-      │        │ target/remediations/  │
-│ locators.json (0 ms)  │        │ *.patch (git apply)   │
+│ locators.json (cache) │        │ *.patch (git apply)   │
 └───────────────────────┘        └───────────────────────┘
 ```
 
@@ -71,7 +71,7 @@ Arayüz refactoring süreçlerinde bir element seçicisi patladığında TestFly
 2. **AI Seçici Türetme:**  
    Yapılandırılmış LLM modeline budanmış DOM ve test bağlamını ileterek semantik olarak eşleşen yeni bir Selenium `By` seçicisi üretir.
 3. **Kalıcı Önbellekleme:**  
-   Onarılan seçici `.testfly/healed-locators.json` dosyasına `"ai-healed"` etiketiyle yazılır. Sonraki test koşularında doğrudan bu seçici kullanılır ve **0 ms AI gecikmesiyle** çalışır.
+   Onarılan seçici `.testfly/healed-locators.json` dosyasına `"ai-healed"` etiketiyle yazılır. Sonraki bir önbellek isabeti yeni bir AI isteğini önler; önbellek araması ve seçici çözümlemesi yine zaman alır.
 
 ### Yapılandırma (`testfly.yml`)
 
@@ -112,7 +112,7 @@ assertThat(find("#status-pill")).violatesAi("Süresi dolmuş veya iptal edilmiş
 ```
 
 ### Anti-Throttle Koruması (Kota Aşımı Engelleme)
-Geleneksel element bekleme döngülerinin (her 500ms'de bir sorgulama) aksine `satisfiesAi`, DOM'u tek seferde değerlendirir. Böylece API kotası tükenmez ve gereksiz maliyet oluşmaz. Ayrıca Soft Assertions ile tam uyumludur:
+Geleneksel element bekleme döngülerinin aksine `satisfiesAi`, DOM'u doğrulama başına bir kez değerlendirir. Bu yaklaşım yinelenen LLM çağrılarını ve maliyeti azaltır; yapılandırılan sağlayıcının kota sınırları yine geçerlidir. Ayrıca Soft Assertions ile uyumludur:
 
 ```java
 softAssertThatPage().satisfiesAi("Kullanıcı selamlama mesajı görünüyor");
@@ -161,7 +161,7 @@ Otonom test ajanlarının en büyük handikapı yavaşlık ve kararsızlıktır 
 
 - **1. Koşu (Derleme):** Ajan budanmış DOM'u analiz eder, somut Selenium aksiyon adımlarını (`CLICK`, `TYPE`, `WAIT_VISIBLE`) üretir ve sırayla çalıştırır.
 - **Dondurma (Freeze):** Derlenen eylem planı `.testfly/action-cache.json` dosyasına kaydedilir.
-- **2+ Koşular (Dondurulmuş Planın Yeniden Oynatılması):** Sonraki tüm test koşularında LLM'e hiç gitmeden, önbellekteki plan doğrudan standart Selenium `WaitEngine` ile **50 ms'nin altında ve sıfır AI gecikmesiyle** çalıştırılır.
+- **2+ Koşular (Dondurulmuş Planın Yeniden Oynatılması):** Sonraki test koşularında önbellekteki plan standart Selenium `WaitEngine` ile yeni bir LLM isteği olmadan çalıştırılır. Önbellek okuma, bekleme ve tarayıcı eylemleri yine zaman alır.
 - **Otomatik İyileşme (Self-Recovery):** Arayüz değişip önbellekteki adımlardan biri başarısız olursa TestFly önbellek girdisini otomatik düşürür, yeni DOM'a göre planı yeniden derler ve testi kurtarır.
 
 ```json
@@ -182,7 +182,7 @@ Otonom test ajanlarının en büyük handikapı yavaşlık ve kararsızlıktır 
 ```
 
 :::tip Auto-POM: Öğrenilmiş Sayfa Modeli
-Birebir hedef önbelleğinin ötesinde TestFly, **[Auto-POM (Öğrenilmiş Sayfa Modeli)](auto-pom.md)** yeteneğine de sahiptir. Auto-POM, test koşumları sırasında kalıcı bir sayfa nesnesi grafiği (`.testfly/page-knowledge.json`) inşa eder ve farklı testlerdeki anlamsal hedefleri **0 ms AI gecikmesi ve 0 token maliyetiyle** yerel olarak çözer.
+Birebir hedef önbelleğinin ötesinde TestFly, **[Auto-POM (Öğrenilmiş Sayfa Modeli)](auto-pom.md)** yeteneğine de sahiptir. Auto-POM, test koşumları sırasında kalıcı bir sayfa nesnesi grafiği (`.testfly/page-knowledge.json`) inşa eder; bilgi tabanı isabetleri ilgili hedefleri yeni bir LLM isteği veya token kullanımı olmadan çözebilir, ancak yerel işleme ve tarayıcı yürütmesi yine zaman alır.
 :::
 
 ---

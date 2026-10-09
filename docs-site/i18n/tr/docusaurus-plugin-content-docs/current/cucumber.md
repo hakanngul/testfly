@@ -169,7 +169,7 @@ public class LoginSteps extends BaseCucumberSteps {
 |---|---|
 | **Gezinme (Navigation)** | `open()`, `open(path)`, `getDriver()`, `getWait()` |
 | **Anlamsal Locator'lar** | `getByRole(Role, name)`, `getByText()`, `getByLabel()`, `getByPlaceholder()`, `getByTestId()`, `getByAltText()`, `getByTitle()` |
-| **Akıcı Locator'lar** | `find(css)`, `find(By)`, `$(css)`, `$$(css)` |
+| **Akıcı Locator'lar** | `find(css)`, `find(By)`; tüm eşleşmeler için `find(css).elements()` kullanın (`$`, kullanımdan kaldırılacak tek-locator takma adıdır) |
 | **Web-Öncelikli Doğrulamalar** | `assertThat(By)`, `assertThat(Locator)` otomatik beklemeli doğrulamalar |
 | **Soft Assertions** | `softAssert(By).isVisible()`, `softAssert(By).hasText(...)` |
 | **Yerleşik REST İstemcisi** | `apiClient()`, `apiGet(path)`, `apiPost(path)`, `apiPut(path)`, `apiDelete(path)` (her biri bir `ApiClient` builder döndürür; `.send()` ile bitirin) |

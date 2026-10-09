@@ -1,5 +1,7 @@
 package io.testfly.context;
 
+import io.testfly.api.TestFlyApi;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,6 +15,7 @@ import java.util.Map;
  * int id = ctx().get("userId", Integer.class);
  * </pre>
  */
+@TestFlyApi(since = "0.3.0")
 public class ScenarioContext {
 
     private static final ThreadLocal<Map<String, Object>> STORE =
