@@ -10,7 +10,7 @@ reportportal.sync
 .playwright-*
 review
 docs-agent
-
+src/main/java/graphify-out
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml
