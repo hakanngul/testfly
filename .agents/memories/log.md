@@ -261,43 +261,15 @@ Arama: `grep "^## \[" memories/log.md | tail -10`
 
 ## 2026-10-01 — #27 report adapter race fix
 - generateAll synchronized ve serial kayıt sırası; List.copyOf snapshot, hata sonrası devam korunuyor. Shared HTML writer/reader regresyon testi eklendi. İlgili raporlama testleri ve tam mvn test BUILD SUCCESS. Kullanıcı düzeltme yetkisi kapsamında development commit/push ve ilgili review resolution yapılacak; sürüm artışı yok.
+## 2026-10-08 — Docs Cloudflare Workers (testfly.dev) geçişi
+- wrangler.jsonc eklendi (assets docs-site/build, 404-page); docusaurus url=https://testfly.dev, baseUrl=/; GoatCounter prefix kaldırıldı; robots.txt sitemap güncellendi; deploy-docs.yml (GitHub Pages) silindi.
+- Eski hakanngul.github.io linkleri README/ROADMAP/pom url/ISSUE_TEMPLATE/profile README/testfly.yml/AGENTS.md içinde testfly.dev yapıldı; güvenlik e-postası founder@testfly.dev oldu.
+- Deploy Cloudflare GitHub entegrasyonuyla yapılacak; CLI deploy yok. Sürüm/tag yok. Hostinger MX/SPF/DKIM/DMARC DNS kayıtları korunmalı.
+## 2026-10-08 — PR #44 BEKLEMEDE (Anthropic Claude Startups başvurusu)
+- PR #44 (chore/docs-cloudflare-workers → main) MERGE EDİLMEYECEK; başvuru sonuçlanana kadar (~72 saat) beklenecek. Eski site https://hakanngul.github.io/testfly/ korunacak: Pages ayarları ve yayınlanmış dosyalar değişmez, Pages kapatılmaz, yönlendirme eklenmez.
+- testfly.dev henüz Cloudflare'de canlı değil (A kaydı Hostinger IP'sinde). Merge öncesi: testfly.dev doğrulanmalı (README/pom linkleri ölü kalmasın) veya doküman linkleri geçici github.io'da bırakılmalı. DNS'te Hostinger MX/SPF/DKIM/DMARC korunmalı.
 
-## 2026-10-01 — MD analizi
-- 274 MD; birebir duplicate yok. Arşiv adayları: completed load sprint, Draft load mimarisi, unchecked JDK21 plan ve AI fikir raporu. PRODUCT tekrar/kırık lokal link adayı; DESIGN aktif referanslı. ROADMAP master stale; README docs/features RFC linkleri yok. Dosya silinmedi. Secret HEAD pattern ön taraması güçlü token bulmadı; tam geçmiş audit yapılmadı.
-
-## 2026-10-01 — MD konsolidasyonu
-- Kullanıcı yetkisiyle GEMINI/PRODUCT ek kuralları AGENTS’a, feature fikirleri ROADMAP’e, eski planların kararları ROADMAP/load wiki’ye taşındı. Altı MD silindi: GEMINI, PRODUCT, features-report, loadtest architecture/sprint ve JDK21 migration. README kırık docs/features linkleri düzeltildi; ROADMAP master hedefi development; .gitignore GEMINI satırı kaldırıldı. Aktif referans kontrolü/diff --check temiz. Tarihsel log korunuyor; kod/site değişmedi, commit/push yok.
-
-## 2026-10-03 — Selenium migration docs
-- EN/TR from-selenium-testng: eski io.testfly:1.0.0 yerine mevcut pom io.github.hakanngul:1.0.7, Java21; olmayan getWait.waitFor* çağrıları WebDriverWait.until ile düzeltildi. Page Object/fluent LoginPage, listener ve setup/teardown seçici kaldırma, ayrı migration run önerileri eklendi. Kaynak API kontrolü ve npm run build başarılı (iki locale), diff --check temiz. Kod/test değişmedi; commit/push yok.
-
-## 2026-10-03 — Docs tüm başlıklar ilk denetim
-- 101 sidebar sayfası/altbaşlık envanteri; EN101/TR97. Rapor /tmp/testfly-docs-audit-2026-10-03.md. Kurulum coordinate, WebDriverWait API, load sürüm çelişkisi, report adapter checked exception source doğrulandı; eksik yeni api config/OpenAPI içeriği ve TR4 kaydedildi. CI overrides/clock refresh/parity henüz test edilmedi. Java snippetlerin tamamı derlenmedi. Kullanıcı talimatına göre docs metni değiştirilmedi; uygulama bekliyor.
-
-## 2026-10-04 — Docs derin denetim
-- Prompt-refine ile kullanıcı kapsamı korundu: rapor/öneri, uygulama yok. EN101/TR97 sayfa; 830 Java/YAML blok; 264 YAML parser/bean kontrolü (loader case-insensitive/tire toleransı ve dış CI YAML ayrımı). 129 Java sınıf adayı context importları/package sırası tamamlanarak derlendi: 62 başarılı/67 başarısız; temsili sınıf/optional dependency hataları API hatası diye sayılmadı.
-- /tmp/testfly-docs-audit-2026-10-04.md: 30 bulgu grubu/38 EN sayfa; ayrıntılı page coverage ve ham kanıt /tmp/testfly-docs-audit-work/. Yeni kesinler: profil merge vaadi yanlış, load annotation/feeder/step/base-class API eskimiş, Locator/WebElement, BaseTest alert/BaseConditions find, video/AI importları, plugin baseUrl/context, BeforeSuite auth cleanup, etkisiz CI overrides, Allure resultsDir. Adapter IOException stub ile ayrıca derleme doğrulandı.
-- Plugin skip, Chromium clock persist, JUnit retry, testmanagement casing adayları elendi. Microsoft resmi README @playwright/mcp; public npm @testfly/mcp ve @modelcontextprotocol/server-playwright sorguları 404. Ayrı MCP/IDE ürünleri ve dış servisler uçtan uca doğrulanmadı; bunlar raporda sınırlı. 4 TR eksik; file URI linkleri kaydedildi.
-- mvn -q test-compile dependency:build-classpath ve npm run build başarılı. Tam mvn test/browser/servis testleri bu audit için çalıştırılmadı. development doğrulandı; mevcut working tree korundu. Docs/ürün kodu değişmedi, commit/push yok.
-
-## 2026-10-04 — Docs Audit Düzeltmeleri & test-authoring Skill Eklentisi
-- 2026-10-04 tarihli audit raporuna istinaden Docs-site EN ve TR i18n dosyalarında düzeltmeler yapıldı:
-  - Eski `io.testfly` koordinatları `io.github.hakanngul` ile güncellendi, Central / 1.0.4 uyarıları düzeltildi.
-  - Hatalı `WaitEngine` snippet'ları güncellendi, JUnit 5 feature parity iddiaları gerçeğe uygun hale getirildi.
-  - Allure log içerikleri ve Kubernetes manifest iddiaları düzeltildi.
-  - Eksik olan TR sayfaları oluşturuldu/çevrildi.
-- İki locale için de `npm run build` hatasız geçti. `docs-site` kod değişikliği yapıldı ancak commit/push atılmadı (Kullanıcı onayı bekleniyor).
-- OpenApiValidator `assertOpenApi` ve `LoadScenario.assertStatus` API'lerindeki kod hataları (bug) tespit edildi, test ve fix yazılmasına henüz başlanmadı.
-- AI ajanlarının tüketici (consumer) projelerinde TestFly testi yazabilmesi için `testfly-test-authoring` yeteneği (.agents/skills/testfly-test-authoring) geliştirildi ve eklendi. Test senaryoları `target/classes` üzerinden compile edilerek doğrulandı.
-
-## 2026-10-04 — Development commit/push hazırlığı
-- Kullanıcı tüm git changes için commit ve push istedi. Önceki docs/core düzeltmesi 299a4c6 zaten commit; kalan GEMINI/PRODUCT ve eski planların silinmesi, README/ROADMAP/.gitignore konsolidasyonu incelendi; aktif referanslar temiz.
-- mvn test ilk koşuda SemanticLocatorTest global test-id paralel yarışı nedeniyle 1/1362 fail; sınıfa @Test(singleThreaded=true) eklenip tam paket yeniden çalıştırıldı: 1362 test, 0 fail/error/skip, BUILD SUCCESS. EN/TR npm run build başarılı. Test izolasyonu ayrı commit, MD temizliği ve hafıza ayrı commit kapsamı.
-- development ve remote ahead durumu doğrulandı; release/sürüm bump/tag kapsam dışı. GPG signing inappropriate ioctl hatası için yalnız commit komutunda commit.gpgsign=false kullanıldı; kalıcı Git ayarı değişmedi. Push hedefi origin/development.
-## 2026-10-08 — Remediation Faz 1 final doğrulama (audit-phase1 worktree)
-- Worktree development @ d6ca2ff, hiçbir şey commit edilmedi. `mvn clean verify -Dgpg.skip=true`: 1444 test, 0 fail/error/skip (taban 1362→1405→1444), target/jacoco.exec üretildi. docs-site `npm run build` EN+TR başarılı.
-- 5 mutasyon (/tmp yama dosyalarıyla) uygulanıp geri alındı: Locator innermost XPath, Locator.resolve auto-wait, ExecutionValidator negatif sessionWaitSeconds, LoadScenario.assertStatus karışık kodlar, HtmlReportGenerator `<` kaçışı. Hepsi ilgili testlerde kırmızı; `git diff` SHA ve izlenmeyen dosya hash'leri geri yüklemeden sonra birebir aynı.
-- Ana checkout temiz (yalnız target/audit-scratch kullanıldı). Sır/@TestFlyApi imza değişikliği yok. Özet: testfly/target/audit-scratch/phase1-summary.md. Bekleyen: D-01/02/03/04/06, T1.13.
-## 2026-10-09 — v1.0.7 sürüm hazırlığı
-- main..development farkı (7 commit/160 dosya) için sürüm referansları 1.0.7'ye eşitlendi, CHANGELOG (EN/TR) yeniden yazıldı. mvn clean verify 1444 test 0 hata, docs EN+TR build OK, review APPROVED.
-- 4702096 `chore(release): prepare v1.0.7` development'a push edildi. PR/tag/release yapılmadı; kullanıcı onayı bekleniyor.
+## 2026-10-08 — Docs-site mimari/API uyum denetimi
+- Ürün/docs değişikliği yapılmadan EN/TR dokümantasyon gerçek kaynak API'leriyle karşılaştırıldı. Docusaurus config validator ve iki dilli production build başarılı.
+- Semantik doğrulamadan kaçan kritik sapmalar bulundu: By-merkezli POM örnekleri, deprecated `$()`, yanlış paket/metotlar, WaitEngine kullanım hataları, hayalî/eski load-test API'si, Maven koordinat/sürüm çelişkileri ve 4 eksik TR sayfası.
+- Düzeltme sırası P0 derlenebilirlik ve koordinatlar, P1 Locator-first örnek standardı, P2 i18n eşliği, ardından otomatik snippet compile/lint kapısı olarak planlandı. Ayrıntılı aktif bağlam `[[memories/scratchpad]]` içinde.

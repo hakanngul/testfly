@@ -1,21 +1,19 @@
 # TestFly — Güncel Durum (Scratchpad)
 
-## Mevcut Durum
-- Yerel pom: io.github.hakanngul:testfly:1.0.7; Java21. main commit/push yasak; her git işleminden önce `git branch --show-current`.
-- Denetim remediation Faz 1 worktree'de (`testfly-worktrees/audit-phase1`, development, HEAD d6ca2ff) UNCOMMITTED. Ana checkout `chore/docs-cloudflare-workers` dalında, dokunulmadı.
+## Aktif Odak
+- Dal: `chore/docs-cloudflare-workers`; `main` dalına commit/push yasak. PR #44 Anthropic başvuru sonucu gelene kadar merge edilmeyecek.
+- Docs-site mimari/API uyum denetimi tamamlandı; kullanıcı henüz düzeltme uygulaması istemedi, yalnız plan istedi.
 
-## Faz 1 Sonucu — 2026-10-08
-- Final doğrulama: `mvn clean verify -Dgpg.skip=true` 1444 test/0 hata (taban 1362→1405→1444), jacoco.exec var; docs EN+TR build OK. 5 mutasyonla regresyon testleri düzeltmesiz kırmızı doğrulandı, geri yükleme byte-identical.
-- Yapılan: T1.2 release.yml sertleştirme, T1.4 kısmi koordinat/sürüm, T1.5, T1.6 jackson-bom 2.21.7, T1.7 HtmlReport kaçış+tek geçiş, T1.8-10/12 DriverManager (izin sızıntısı, per-suite recreate, sessionWaitSeconds), T1.11 LoadTestDetector, T1.14b hata mesajı, T1.16 kısmi, T1.17 Locator auto-wait, T1.18 innermost getByText, T1.20 JaCoCo, T1.21 kısmi, T1.22 docs örnekleri.
-- Rapor: `testfly/target/audit-scratch/phase1-summary.md` (görev bazlı detay, takipler).
+## Docs Denetimi — 2026-10-08
+- Docusaurus config doğrulaması ve EN/TR `npm run build` başarılı; derleme Java örneklerinin doğruluğunu denetlemiyor.
+- Önerilen UI standardı: semantik `Locator` (`getByRole/getByLabel/getByTestId`), sonra `find(String)`; `By` yalnız WaitEngine/frame/shadow/upload/SmartLocator/raw Selenium interop gibi sınır API'lerinde. Yeni örneklerde deprecated `$()` kullanılmamalı; framework-managed driver için varsayılan `BasePage()` tercih edilmeli.
+- Kritik stale/derlenmeyen docs: `guides/base-page`, `ai/prompt-recipes`, `ai/testfly-mcp`, `guides/video-recording`, `why/why-waitengine`, `migration/from-selenium-testng`, `extensibility/plugins`, TR `recipes/oauth-sso` ve loadtest sayfaları. Yanlış örnekler: `io.testfly.core/locators`, `RoleOptions`, `.fill/.val`, `getWait().waitFor*`, olmayan `@LoadEngine`, eski `@LoadTest` alanları ve feeder/load DSL metotları.
+- Maven koordinat/sürüm çelişkisi var: yürütülebilir `pom.xml` = `io.github.hakanngul:testfly:1.0.7`; docs içinde `io.testfly`, 1.0.0/1.0.4/1.0.7/1.1.0 ve TR Gradle'da 2.6.0 karışık. Düzeltmeden önce yayınlanmış koordinat/sürüm tek kaynak olarak netleştirilmeli.
+- EN sayfalarının 4 TR karşılığı eksik: `ci/bitbucket-pipelines`, `loadtest/distributed-docker-k8s`, `migration/from-restassured`, `reporting/allure`.
 
-## Bekleyen Kullanıcı Kararları
-- D-01 sürüm/koordinat + Central kök neden; D-02 retry; D-03 config katmanlama; D-04 yük testi 4xx/5xx/targetRps; D-06 lazy driver; T1.13 quitAllSuiteDrivers daraltma.
-- T1.3 öncesi: release.yml fork kuru koşusu + GitHub `release` environment.
-
-## v1.0.7 Hazırlık — 2026-10-09
-- Faz 1 + sürüm hazırlığı development'a push edildi (4702096). CHANGELOG/README/AGENTS/profile sürümleri 1.0.7. Rapor: `.agents/tasks/release-v1.0.7-prep.md` (commit'lenmedi).
-- Kalan: development→main PR, v1.0.7 tag (main merge commit'i), release env onayı, fork kuru koşusu. Sonra docs 1.0.4 pin'lerini çevir, `since="1.1.0"` (50 satır/21 dosya) kararı.
+## Sonraki Açık Görevler
+- Kullanıcı onaylarsa P0 derleme hataları → P1 Locator/POM standardı → P2 EN/TR eşitleme → snippet compile/lint kapısı sırasıyla uygulanacak.
+- Her docs değişiminde çift dil korunacak, config değişirse validator; sonunda `npm run build` çalıştırılacak.
 
 ## Linkler
-[[MAP]] | [[wiki/api-testing]] | [[memories/log]] | [[skills/testfly-test-authoring/SKILL]]
+[[wiki/webui-testing]] | [[wiki/architecture]] | [[rules/docusaurus-workflow]] | [[rules/git-release-workflow]] | [[memories/log]]

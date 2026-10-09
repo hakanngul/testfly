@@ -14,7 +14,7 @@ Write less boilerplate. Ship faster. Automate web, API, and BDD with native AI a
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.hakanngul/testfly?label=Maven%20Central&color=0969da)](https://central.sonatype.com/artifact/io.github.hakanngul/testfly)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/hakanngul/testfly/blob/main/LICENSE)
-[![Docs](https://img.shields.io/badge/docs-testfly.io-1f6feb)](https://hakanngul.github.io/testfly)
+[![Docs](https://img.shields.io/badge/docs-testfly.dev-1f6feb)](https://testfly.dev)
 [![MCP Server](https://img.shields.io/badge/MCP-TestFly%20Server-8957e5.svg)](https://github.com/hakanngul/testfly-mcp)
 
 </div>
@@ -30,7 +30,7 @@ Most Selenium add-ons give you one utility class. **TestFly** is a cohesive, pro
 | 🧪 **TestFly Core SDK** | Zero-boilerplate Java automation SDK. Built-in driver lifecycle, smart auto-waits, auto-retries, ThreadLocal isolation, CDP network mocking, and rich interactive HTML reporting. | [`testfly`](https://github.com/hakanngul/testfly) · [Maven Central](https://central.sonatype.com/artifact/io.github.hakanngul/testfly) |
 | 🤖 **TestFly MCP** | Official Model Context Protocol (MCP) server that empowers AI agents (Claude, Cursor, Copilot, Antigravity) to drive real browsers and author production-grade TestFly tests. | [`testfly-mcp`](https://github.com/hakanngul/testfly-mcp) |
 | 🚀 **Showcase Project** | Runnable consumer test suite demonstrating end-to-end web, REST API, mobile emulation, and Cucumber BDD features. | [`testfly-test`](https://github.com/hakanngul/testfly-test) |
-| 📖 **Documentation Site** | Comprehensive guides, interactive code snippets, configuration reference, and architecture deep-dives (English & Turkish). | [Documentation](https://hakanngul.github.io/testfly) |
+| 📖 **Documentation Site** | Comprehensive guides, interactive code snippets, configuration reference, and architecture deep-dives (English & Turkish). | [Documentation](https://testfly.dev) |
 
 ---
 
@@ -92,8 +92,8 @@ TestFly brings AI into your daily test workflow through **[TestFly MCP](https://
 </dependency>
 ```
 
-- 📘 **[Quickstart Guide](https://hakanngul.github.io/testfly/docs/intro)** — Get your first green test running in under 60 seconds.
-- 🧰 **[Configuration Guide](https://hakanngul.github.io/testfly/docs/configuration)** — Explore `testfly.yml` environment profiles and capabilities.
+- 📘 **[Quickstart Guide](https://testfly.dev/docs/intro)** — Get your first green test running in under 60 seconds.
+- 🧰 **[Configuration Guide](https://testfly.dev/docs/configuration)** — Explore `testfly.yml` environment profiles and capabilities.
 - 💬 **[GitHub Discussions](https://github.com/hakanngul/testfly/discussions)** — Questions, ideas, feature proposals, and community support.
 - ⭐ **Star the repository** if TestFly saves you time and boilerplate!
 
