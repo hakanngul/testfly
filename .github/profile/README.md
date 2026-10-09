@@ -88,7 +88,7 @@ TestFly brings AI into your daily test workflow through **[TestFly MCP](https://
 <dependency>
     <groupId>io.github.hakanngul</groupId>
     <artifactId>testfly</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 

@@ -798,7 +798,7 @@ ci:
 
 ## Project Status
 
-**Current release: v1.1.0** — Load & Performance Testing with Gatling and Lightweight Virtual Thread Engines, Declarative DSL, Feeder Support, and Multi-Channel Reporting (HTML, Allure, ReportPortal).
+**Current release: v1.0.7** — Audit hardening: HTML report escaping, `DriverManager` session-permit and per-suite fixes, `Locator` auto-wait, explicit load-test detection, and a hardened release workflow. See the [CHANGELOG](CHANGELOG.md) for details.
 
 See the full version history in **[CHANGELOG.md](CHANGELOG.md)**.
 

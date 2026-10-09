@@ -42,7 +42,7 @@ It summarizes the project's architecture, build/test workflows, code conventions
 It is published to Maven Central as a single JAR that users add as a dependency.
 
 - **Group / Artifact:** `io.github.hakanngul:testfly`
-- **Current version:** `1.1.0`
+- **Current version:** `1.0.7`
 - **Java baseline:** 21 (compiled with `--release 21`)
 - **Build tool:** Maven 3.8+
 - **Primary test framework:** TestNG 7.9.0

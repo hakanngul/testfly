@@ -7,33 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [1.0.7] — 2026-10-09
+
+### Added
+- **Canonical `Locator.cssSelector(String)`**: Introduced `Locator.cssSelector(String)` as the primary, memorable factory method matching Selenium's `By.cssSelector` naming conventions.
+- **Assertion Boundary Architecture**: Formalized the separation between TestFly's auto-retrying, DOM-polling Web UI assertions (`LocatorAssert`, `PageAssert`) and general-purpose primitive assertions (delegated to AssertJ / TestNG).
+- **`execution.sessionWaitSeconds`** (default `300`, `0` = do not wait, validated `>= 0`): controls how long a test waits for a free browser slot when `execution.maxActiveSessions` is exhausted. It replaces the previously hard-coded 30-second wait.
+- **`ExecutionValidator.crossCheckWarnings`**: prints a warning when parallel execution uses `execution.threadCount` greater than `execution.maxActiveSessions`, because the surplus threads queue for a browser slot.
+- **`LoadTestDetector`** (internal): single place that decides whether a test is a load test (see *Changed*).
+- **`testfly-test-authoring` agent skill** with per-area references (WebUI, API, TestNG, JUnit 5, Cucumber, load testing).
 
 ### Changed
 
 - **Load-test detection is explicit (behavior change).** The four name-based `contains("loadtest")` heuristics (`DriverManager`, `TestExecutionListener`, `TestFlyExtension`, `CucumberHooks`) were replaced by a single `LoadTestDetector`. A test is now treated as a load test (no WebDriver) only when it extends `BaseLoadTest`, implements `LoadTestSupport`, is annotated with `@LoadTest` / `@NoBrowser`, or carries the exact Cucumber tag `@loadtest`. Classes such as `FileUploadTest`, `DownloadTest` or anything in a package like `com.acme.uploadtests` are no longer silently denied a WebDriver. A one-time WARN is logged for classes/tags that matched the old name heuristic but not the new rules.
 - `Locator` actions (`click`, `fill`, `text`, ...) now auto-wait up to `timeouts.explicit`, re-resolving the element on each poll (also recovers from stale references) and self-healing after the timeout. `isVisible()`, `isEnabled()` and `count()` stay non-waiting.
+- `DriverManager.getDriver()` now explains why no driver exists (outside `@Test` / `@PreCondition` / `@ConditionProvider`, e.g. in `@BeforeMethod`) and where to move the setup.
+- The session-slot timeout error now names both `execution.maxActiveSessions` and `execution.sessionWaitSeconds`.
+- Jackson modules are pinned through `jackson-bom` 2.21.7 (previously only `jackson-databind` was pinned, at 2.21.6), so transitive and optional Jackson modules stay on one version.
+- The JaCoCo agent is now attached to the Surefire JVM (`argLine` is `@{argLine} ...`), so `target/jacoco.exec` and the coverage report are produced by `mvn verify`.
+- GPG signing moved from the default build into the `release` Maven profile: `mvn verify` / `mvn install` need no key; releases use `-Prelease`.
+
+### Deprecated
+- **`Locator.css(String)`**: Deprecated in favor of `Locator.cssSelector(String)`. It continues to delegate seamlessly to prevent breaking existing code.
 
 ### Fixed
 
 - `getByText()` returned the outermost ancestor (`html`/`body`/wrapper `div`) instead of the element holding the text; it now returns only the innermost match. `exact()` uses the same logic.
-- Load tests: HTTP status codes are now recorded in `statusCodes` (transport failures use the synthetic code `-1`), `LoadScenario.assertStatus(n)` now fails when any other status occurs, and `extract()` works for scenarios without a feeder.
+- Load tests: HTTP status codes are now recorded in `statusCodes` (transport failures use the synthetic code `-1`), `LoadScenario.assertStatus(n)` now fails when any other status occurs (it previously asserted against `assertNoStatus` of a different code), and `extract()` works for scenarios without a feeder.
+- HTML report: the report data embedded in the page is escaped for a `<script>` context (`<`, U+2028, U+2029), so failure messages and test data can no longer inject markup or close the script block; template placeholders are now substituted in a single pass, so substituted values are never re-scanned.
+- `DriverManager` session permits: a permit is now returned exactly once per driver, including when `driver.quit()` throws and on every failure path of driver creation (a permit leak that could exhaust `maxActiveSessions`).
+- `DriverManager.recreateDriver()` now also replaces a dead `per-suite` driver (it was kept in the suite registry), and `quitAllSuiteDrivers()` releases only the permits that were actually held.
+- `OpenApiValidator` passes the URI path (not the full URL) and the response `Content-Type` header to the validator, which fixes "No API path found" failures and response body validation.
 
----
+### Security
 
-## [1.0.7] — 2026-09-29
-
-### Added
-- **Canonical `Locator.cssSelector(String)`**: Introduced `Locator.cssSelector(String)` as the primary, memorable factory method matching Selenium's `By.cssSelector` naming conventions.
-- **Assertion Boundary Architecture**: Formalized the separation between TestFly's auto-retrying, DOM-polling Web UI assertions (`LocatorAssert`, `PageAssert`) and general-purpose primitive assertions (delegated to AssertJ / TestNG).
-
-### Deprecated
-- **`Locator.css(String)`**: Deprecated in favor of `Locator.cssSelector(String)`. It continues to delegate seamlessly to prevent breaking existing code.
+- `.github/workflows/release.yml` hardened: the release version is validated as a whole string (no newline or script injection) and read only through the environment, never interpolated into scripts; the release commit must be reachable from `main`; publishing is gated on the `release` GitHub environment; the pom version must equal the release version (tag pushes are no longer rewritten); tests run once, GPG signing is enabled only through `-Prelease`, and the tag/GitHub Release is created at the verified commit.
 
 ### Documentation & Specifications
 - **Engineering Specs Modernization**: Modernized root `docs/` specifications (`internals.md`, `public-api.md`, `architecture.md`, `testng-listeners.md`) to reflect the Java 21 LTS baseline, `SmartTriageEngine`, `FuzzyHealingEngine`, and assertion boundaries.
 - **Documentation Site Sync**: Updated guides for semantic locators, assertions, and self-healing across both English and Turkish documentation locales.
 - **Agent Knowledge Graph Sync**: Registered `[[wiki/assertion-system]]`, updated architecture and WebUI wikis, and synchronized `MAP.md`.
+- **Documentation audit (EN + TR)**: corrected the Maven coordinate to `io.github.hakanngul` throughout, rewrote examples that did not compile against the real API, aligned the load-testing docs with the real DSL (`load(path).users().rampUp().hold()`, `LoadTestFeeder`, `@LoadTest` attributes), and corrected claims about `WaitEngine`, Kubernetes/distributed load tests, Allure and CI setup. Install guides now state which version is on Maven Central and which version this checkout is.
+- **Agent guidance consolidated**: `AGENTS.md` is the single entry point (`GEMINI.md`, `PRODUCT.md` and `features/features-report.md` removed), `ROADMAP.md` and `CONTRIBUTING.md` updated, and obsolete planning documents under `docs/` retired.
+
+### Tests
+
+- Unit suite grew from 1362 to 1444 tests, adding regression coverage for HTML report escaping, `DriverManager` (permit accounting, per-suite recreate, slot wait), `LoadTestDetector`, `JdkLoadEngine`, `OpenApiValidator`, `ExecutionValidator`, `Locator` auto-wait and test-id configuration isolation.
 
 ---
 

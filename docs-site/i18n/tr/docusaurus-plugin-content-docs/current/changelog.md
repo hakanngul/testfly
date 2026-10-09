@@ -11,19 +11,48 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 
 ---
 
-## [1.0.7] — 2026-09-29
+## [1.0.7] — 2026-10-09
 
 ### Eklenenler
 - **Standart `Locator.cssSelector(String)`**: Selenium'un `By.cssSelector` adlandırma standardına tam uyumlu, akılda kalıcı ve birincil fabrika metodu olarak `Locator.cssSelector(String)` eklendi.
 - **Doğrulama Sistemi Mimari Sınırları**: TestFly'ın otomatik beklemeli Web UI doğrulamaları (`LocatorAssert`, `PageAssert`) ile genel amaçlı ilkel veri kontrolleri (AssertJ / TestNG'ye devredilen) arasındaki mimari sınırlar resmileştirildi.
+- **`execution.sessionWaitSeconds`** (varsayılan `300`, `0` = bekleme, `>= 0` olarak doğrulanır): `execution.maxActiveSessions` dolduğunda bir testin boş tarayıcı slotu için ne kadar bekleyeceğini belirler. Daha önce sabit kodlanmış 30 saniyelik bekleme yerine geçer.
+- **`ExecutionValidator.crossCheckWarnings`**: paralel çalıştırmada `execution.threadCount`, `execution.maxActiveSessions` değerinden büyükse uyarı yazdırır; fazla thread'ler tarayıcı slotu için kuyrukta bekler.
+- **`LoadTestDetector`** (dahili): bir testin yük testi olup olmadığına karar veren tek nokta (bkz. *Değişenler*).
+- **`testfly-test-authoring` ajan skill'i**: alan bazlı başvuru belgeleriyle (WebUI, API, TestNG, JUnit 5, Cucumber, yük testi).
+
+### Değişenler
+- **Yük testi algılama artık açıktır (davranış değişikliği).** İsme dayalı dört `contains("loadtest")` sezgisi (`DriverManager`, `TestExecutionListener`, `TestFlyExtension`, `CucumberHooks`) tek bir `LoadTestDetector` ile değiştirildi. Bir test yalnızca `BaseLoadTest` sınıfını genişletiyorsa, `LoadTestSupport` arayüzünü uyguluyorsa, `@LoadTest` / `@NoBrowser` ile işaretliyse veya tam `@loadtest` Cucumber etiketini taşıyorsa yük testi sayılır (WebDriver oluşturulmaz). `FileUploadTest`, `DownloadTest` gibi sınıflar veya `com.acme.uploadtests` gibi paketlerdeki testler artık sessizce WebDriver'dan yoksun bırakılmaz. Eski isim sezgisiyle eşleşen ancak yeni kurallarla eşleşmeyen sınıf/etiketler için bir kez WARN yazılır.
+- `Locator` aksiyonları (`click`, `fill`, `text`, ...) artık `timeouts.explicit` süresine kadar otomatik bekler; her yoklamada elementi yeniden çözer (stale referansları da toparlar) ve süre dolunca kendini onarmayı dener. `isVisible()`, `isEnabled()` ve `count()` beklemesiz kalır.
+- `DriverManager.getDriver()` artık driver'ın neden bulunmadığını (`@Test` / `@PreCondition` / `@ConditionProvider` dışında, örn. `@BeforeMethod` içinde) ve kurulumun nereye taşınacağını açıklar.
+- Oturum slotu zaman aşımı hatası artık hem `execution.maxActiveSessions` hem `execution.sessionWaitSeconds` ayarını belirtir.
+- Jackson modülleri `jackson-bom` 2.21.7 ile sabitlendi (önceden yalnızca `jackson-databind`, 2.21.6 olarak sabitlenmişti); geçişli ve opsiyonel Jackson modülleri tek sürümde kalır.
+- JaCoCo ajanı artık Surefire JVM'ine bağlanıyor (`argLine` değeri `@{argLine} ...`); böylece `mvn verify` `target/jacoco.exec` ve kapsam raporunu üretir.
+- GPG imzalama varsayılan derlemeden `release` Maven profiline taşındı: `mvn verify` / `mvn install` anahtar gerektirmez; yayın `-Prelease` ile yapılır.
 
 ### Kullanımdan Kaldırılanlar (Deprecated)
 - **`Locator.css(String)`**: `Locator.cssSelector(String)` lehine kullanımdan kaldırıldı (`@Deprecated`). Mevcut kodları bozmamak için arkaplanda kesintisiz delegasyon yapmaya devam eder.
+
+### Düzeltilenler
+- `getByText()` metni taşıyan elementi değil en dıştaki atayı (`html`/`body`/sarmalayıcı `div`) döndürüyordu; artık yalnızca en içteki eşleşmeyi döndürür. `exact()` aynı mantığı kullanır.
+- Yük testleri: HTTP durum kodları artık `statusCodes` içine kaydedilir (taşıma hataları sentetik `-1` koduyla), `LoadScenario.assertStatus(n)` başka bir durum kodu oluştuğunda artık başarısız olur (önceden farklı bir kod için `assertNoStatus` çağırıyordu) ve `extract()` feeder'sız senaryolarda da çalışır.
+- HTML raporu: sayfaya gömülen rapor verisi `<script>` bağlamı için kaçışlanır (`<`, U+2028, U+2029); hata mesajları ve test verisi artık işaretleme enjekte edemez veya script bloğunu kapatamaz. Şablon yer tutucuları tek geçişte doldurulur, bu yüzden yerleştirilen değerler tekrar taranmaz.
+- `DriverManager` oturum izinleri: bir izin, `driver.quit()` hata fırlatsa ve driver oluşturmanın her başarısızlık yolunda bile, driver başına tam bir kez iade edilir (`maxActiveSessions` değerini tüketebilen izin sızıntısı).
+- `DriverManager.recreateDriver()` artık ölü bir `per-suite` driver'ı da değiştirir (daha önce suite kayıt defterinde kalıyordu); `quitAllSuiteDrivers()` yalnızca gerçekten tutulan izinleri iade eder.
+- `OpenApiValidator`, doğrulayıcıya tam URL yerine URI yolunu ve yanıtın `Content-Type` başlığını iletir; bu, "No API path found" hatalarını ve yanıt gövdesi doğrulamasını düzeltir.
+
+### Güvenlik
+- `.github/workflows/release.yml` sıkılaştırıldı: yayın sürümü bütün bir dize olarak doğrulanır (satır sonu veya betik enjeksiyonu yok) ve yalnızca ortam değişkeni üzerinden okunur, betiklere asla yerleştirilmez; yayın commit'i `main` üzerinden erişilebilir olmalıdır; yayınlama `release` GitHub environment'ına bağlıdır; pom sürümü yayın sürümüne eşit olmalıdır (tag push'ları artık yeniden yazılmaz); testler bir kez çalışır, GPG imzalama yalnızca `-Prelease` ile etkindir ve tag/GitHub Release doğrulanan commit üzerinde oluşturulur.
 
 ### Dokümantasyon ve Spesifikasyonlar
 - **Mühendislik Spesifikasyonları Modernizasyonu**: Kök `docs/` spesifikasyonları (`internals.md`, `public-api.md`, `architecture.md`, `testng-listeners.md`), Java 21 LTS standardı, `SmartTriageEngine`, `FuzzyHealingEngine` ve assertion sınırları ile güncellendi.
 - **Dokümantasyon Sitesi Senkronizasyonu**: Semantik seçiciler, doğrulamalar ve kendini onarma kılavuzları hem İngilizce hem Türkçe yerellerinde güncellendi.
 - **Ajan Bilgi Grafiği Senkronizasyonu**: `[[wiki/assertion-system]]` sayfası oluşturuldu, mimari ve WebUI wikileri güncellendi, `MAP.md` haritasına bağlandı.
+- **Dokümantasyon denetimi (EN + TR)**: Maven koordinatı her yerde `io.github.hakanngul` olarak düzeltildi, gerçek API ile derlenmeyen örnekler yeniden yazıldı, yük testi dokümanları gerçek DSL ile (`load(path).users().rampUp().hold()`, `LoadTestFeeder`, `@LoadTest` öznitelikleri) hizalandı; `WaitEngine`, Kubernetes/dağıtık yük testi, Allure ve CI kurulumu hakkındaki iddialar düzeltildi. Kurulum rehberleri artık hangi sürümün Maven Central'da, hangisinin bu checkout'ta olduğunu belirtir.
+- **Ajan yönergeleri birleştirildi**: `AGENTS.md` tek giriş noktasıdır (`GEMINI.md`, `PRODUCT.md` ve `features/features-report.md` kaldırıldı); `ROADMAP.md` ve `CONTRIBUTING.md` güncellendi, eskimiş planlama belgeleri `docs/` altından kaldırıldı.
+
+### Testler
+- Birim test paketi 1362'den 1444 teste çıktı; HTML rapor kaçışlama, `DriverManager` (izin muhasebesi, per-suite yeniden oluşturma, slot bekleme), `LoadTestDetector`, `JdkLoadEngine`, `OpenApiValidator`, `ExecutionValidator`, `Locator` otomatik bekleme ve test-id yapılandırma izolasyonu için regresyon testleri eklendi.
 
 ---
 
