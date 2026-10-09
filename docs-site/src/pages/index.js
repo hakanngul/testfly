@@ -537,6 +537,10 @@ export default function Home() {
                     : "TestFly's interactive companion studio streams your clicks, typing, and visual assertions over real-time SSE. Emits clean Page Object Model and Cucumber BDD tests with compiler safeguards, saved directly to your repository in seconds."}
                 </p>
 
+                <div className={styles.recorderCode}>
+                  <RecorderCodeShowcase />
+                </div>
+
                 <div className={styles.recorderPills}>
                   <div className={styles.recorderPill}>
                     <span className={styles.recorderPillIcon}>🎥</span>
@@ -606,10 +610,6 @@ export default function Home() {
                     {isTr ? '💻 CLI Kılavuzu' : '💻 CLI Reference'}
                   </Link>
                 </div>
-              </div>
-
-              <div className={styles.recorderCode} data-reveal style={{ '--i': 1 }}>
-                <RecorderCodeShowcase />
               </div>
             </div>
           </div>
