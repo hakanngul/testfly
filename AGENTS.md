@@ -47,3 +47,20 @@ Run the smallest relevant gate first. State which checks ran, failed, or were un
 - Never commit or push unless explicitly requested. Never commit or push directly to `main`.
 - Preserve unrelated and uncommitted work. Avoid destructive Git operations.
 - Never commit secrets; use environment-variable placeholders in configuration examples.
+
+## Graphify — Code Intelligence
+
+Use Graphify for efficient codebase discovery and change-impact analysis.
+
+- Before cross-module changes, refactoring, or unfamiliar feature development, prefer targeted Graphify queries over broad repository scans.
+- Use `graphify query "<question>" --budget 1000` to locate relevant components and relationships.
+- Use `graphify explain "<symbol>"` to explore an unfamiliar class or method.
+- Use `graphify affected "<symbol>" --depth 2` to identify potentially impacted components before modifying shared infrastructure.
+- Skip Graphify for trivial changes or when the relevant files are already known.
+- Use Graphify only when `graphify-out/graph.json` exists and is sufficiently current.
+- If the graph is missing, stale, or incomplete, fall back to targeted source-code inspection.
+- Treat inferred graph relationships as hypotheses, not verified facts.
+- Always inspect actual Java source signatures before modifying code.
+- After changes, validate affected functionality using the existing TestFly verification workflow.
+- Do not rebuild the graph, scan the full repository, or read `GRAPH_REPORT.md` on every task.
+- Never treat Graphify as a replacement for compilation, tests, or API compatibility checks.
