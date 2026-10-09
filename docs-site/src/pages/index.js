@@ -480,17 +480,17 @@ export default function Home() {
 
             <div className={styles.moreHeader} data-reveal>
               <h3 className={styles.moreTitle}>
-                {isTr ? 'Eksiksiz Test Araç Seti' : 'The Complete Toolkit'}
+                {isTr ? 'SDK Yetenekleri' : 'Inside the Java SDK'}
               </h3>
               <p className={styles.moreSubtitle}>
                 {isTr
-                  ? 'Ekstra eklenti veya konfigürasyon gerektirmeyen 16 yerleşik kurumsal yetenek.'
-                  : 'Sixteen enterprise capabilities, all built in — no plugins, no extra setup.'}
+                  ? `${moreFeatures.sdk.length} SDK yeteneği. Bazıları etkinleştirme, desteklenen tarayıcı, ek bağımlılık veya harici servis gerektirir.`
+                  : `${moreFeatures.sdk.length} SDK capabilities. Some require configuration, a supported browser, an optional dependency, or an external service.`}
               </p>
             </div>
 
             <div className={styles.miniGrid}>
-              {moreFeatures.map((f, i) => (
+              {moreFeatures.sdk.map((f, i) => (
                 <div
                   key={f.title}
                   className={styles.miniCard}
@@ -498,9 +498,33 @@ export default function Home() {
                   style={{ '--i': i % 4 }}
                 >
                   <span className={styles.miniIcon}>{f.icon}</span>
+                    <div className={styles.miniText}>
+                      <h4 className={styles.miniTitle}>{f.title}</h4>
+                      <p className={styles.miniDesc}>{f.short}</p>
+                      <span className={styles.miniRequirement}>{f.requirement}</span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            <div className={`${styles.moreHeader} ${styles.companionHeader}`} data-reveal>
+              <h3 className={styles.moreTitle}>
+                {isTr ? 'Ayrı Araçlar' : 'Companion Tools'}
+              </h3>
+              <p className={styles.moreSubtitle}>
+                {isTr
+                  ? `${moreFeatures.companion.length} ayrı Node/IDE aracı; Java SDK JAR dosyasına dahil değildir.`
+                  : `${moreFeatures.companion.length} separate Node/IDE tools; not included in the Java SDK JAR.`}
+              </p>
+            </div>
+            <div className={styles.miniGrid}>
+              {moreFeatures.companion.map((f, i) => (
+                <div key={f.title} className={styles.miniCard} data-reveal style={{ '--i': i % 4 }}>
+                  <span className={styles.miniIcon}>{f.icon}</span>
                   <div className={styles.miniText}>
                     <h4 className={styles.miniTitle}>{f.title}</h4>
                     <p className={styles.miniDesc}>{f.short}</p>
+                    <span className={styles.miniRequirement}>{f.requirement}</span>
                   </div>
                 </div>
               ))}
