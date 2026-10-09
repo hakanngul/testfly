@@ -4,7 +4,6 @@ target/
 !**/src/test/**/target/
 .kotlin
 .agent
-.kiro
 .mcp.json
 reportportal.lock
 reportportal.sync
