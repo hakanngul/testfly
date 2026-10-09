@@ -1,5 +1,7 @@
 package io.testfly.network;
 
+import io.testfly.api.TestFlyApi;
+
 /**
  * Fluent builder returned by {@link NetworkMock#stub(String)}.
  *
@@ -9,6 +11,7 @@ package io.testfly.network;
  * networkMock().stub("**&#47;api/data").delay(2000);
  * </pre>
  */
+@TestFlyApi(since = "0.6.0")
 public final class StubBuilder {
 
     private final NetworkMock owner;

@@ -1,11 +1,14 @@
 package io.testfly.ai;
 
+import io.testfly.api.TestFlyApi;
+
 /**
  * Abstraction over different LLM providers (Claude, DeepSeek, Gemini, OpenAI, etc.).
  *
  * <p>Each provider knows how to format the request and parse the response
  * for its specific API. Implementations are registered in {@link AiProviderRegistry}.
  */
+@TestFlyApi(since = "1.0.0")
 public interface AiProvider {
 
     /** Provider identifier used in {@code testfly.yml} ({@code ai.provider}). */

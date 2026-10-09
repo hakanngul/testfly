@@ -1,5 +1,7 @@
 package io.testfly.driver;
 
+import io.testfly.api.TestFlyApi;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -14,6 +16,7 @@ import java.util.ServiceLoader;
  * <p>SPI providers are loaded automatically via {@link #loadAll()}.
  * Programmatic providers can be added via {@link #register(NamedDriverProvider)}.
  */
+@TestFlyApi(since = "0.1.0")
 public final class DriverProviderRegistry {
 
     private static final Map<String, DriverProvider> registry = new LinkedHashMap<>();

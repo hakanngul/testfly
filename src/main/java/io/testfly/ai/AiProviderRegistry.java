@@ -1,5 +1,7 @@
 package io.testfly.ai;
 
+import io.testfly.api.TestFlyApi;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -19,6 +21,7 @@ import java.util.logging.Logger;
  * AiProviderRegistry.register(new MyCustomProvider());
  * </pre>
  */
+@TestFlyApi(since = "1.0.0")
 public final class AiProviderRegistry {
 
     private static final Logger LOG = Logger.getLogger(AiProviderRegistry.class.getName());

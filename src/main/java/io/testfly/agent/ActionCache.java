@@ -3,6 +3,7 @@ package io.testfly.agent;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.testfly.api.TestFlyApi;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +20,7 @@ import java.util.logging.Logger;
  * {@code .testfly/action-cache.json}. On subsequent test runs, the frozen plan is executed
  * directly with 0 ms AI latency, achieving deterministic replay.
  */
+@TestFlyApi(since = "1.0.4")
 public final class ActionCache {
 
     private static final Logger LOG = Logger.getLogger(ActionCache.class.getName());

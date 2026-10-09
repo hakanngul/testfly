@@ -1,5 +1,6 @@
 package io.testfly.accessibility;
 
+import io.testfly.api.TestFlyApi;
 import io.testfly.driver.DriverManager;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -27,6 +28,7 @@ import java.util.Map;
  * {@code accessibility()} in {@code BaseTest}) over calling this class
  * directly.
  */
+@TestFlyApi(since = "0.18.0")
 public final class AccessibilityChecker {
 
     private static final String AXE_RESOURCE = "/io/testfly/accessibility/axe.min.js";

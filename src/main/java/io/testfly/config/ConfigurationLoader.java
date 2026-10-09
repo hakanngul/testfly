@@ -1,5 +1,7 @@
 package io.testfly.config;
 
+import io.testfly.api.TestFlyApi;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,6 +18,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.introspector.Property;
 import org.yaml.snakeyaml.introspector.PropertyUtils;
 
+@TestFlyApi(since = "0.1.0")
 public final class ConfigurationLoader {
 
     private ConfigurationLoader() {
