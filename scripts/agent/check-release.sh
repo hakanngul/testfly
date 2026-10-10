@@ -29,6 +29,8 @@ rg -Fq 'mvn -B verify --no-transfer-progress' .github/workflows/release.yml || \
   fail "release workflow does not run Maven verification"
 rg -Fq 'mvn -B deploy -Prelease -DskipTests --no-transfer-progress' .github/workflows/release.yml || \
   fail "release workflow does not deploy through the release profile"
+rg -Fq 'maven-3.9' .github/workflows/release.yml || \
+  fail "release workflow does not pin Maven 3.9 for Central publishing"
 
 git diff --check
 

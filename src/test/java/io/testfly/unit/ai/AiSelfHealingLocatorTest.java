@@ -4,6 +4,7 @@ import io.testfly.ai.AiHealingEngine;
 import io.testfly.ai.AiProvider;
 import io.testfly.ai.AiProviderRegistry;
 import io.testfly.config.TestFlyConfig;
+import io.testfly.healing.HealEvent;
 import io.testfly.healing.HealLog;
 import io.testfly.internal.TestFlyContext;
 import org.mockito.Mockito;
@@ -146,9 +147,16 @@ public class AiSelfHealingLocatorTest {
 
             Assert.assertNotNull(healed);
             Assert.assertEquals(healed, mockElement);
-            Assert.assertEquals(HealLog.getAll().size(), 1);
-            Assert.assertEquals(HealLog.getAll().get(0).getStrategy(), "ai-healed");
-            Assert.assertEquals(HealLog.getAll().get(0).getHealedLocator(), "By.cssSelector: .healed-button");
+            // Scope assertions to this test's id: HealLog is a static global
+            // and Surefire runs methods in parallel, so other tests may record
+            // their own heal events concurrently.
+            Assert.assertEquals(HealLog.countForTest("test_healed_success"), 1);
+            HealEvent recorded = HealLog.getAll().stream()
+                    .filter(e -> "test_healed_success".equals(e.getTestId()))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("No heal recorded for test_healed_success"));
+            Assert.assertEquals(recorded.getStrategy(), "ai-healed");
+            Assert.assertEquals(recorded.getHealedLocator(), "By.cssSelector: .healed-button");
         }
     }
 
@@ -184,7 +192,9 @@ public class AiSelfHealingLocatorTest {
             WebElement healed = AiHealingEngine.heal(driver, By.id("old-button"), "test_hidden");
 
             Assert.assertNull(healed, "Should not return non-visible healed element");
-            Assert.assertEquals(HealLog.getAll().size(), 0);
+            // Scope to this test's id: HealLog is a static global shared with
+            // tests running in parallel, so a global size check is racy.
+            Assert.assertEquals(HealLog.countForTest("test_hidden"), 0);
         }
     }
 

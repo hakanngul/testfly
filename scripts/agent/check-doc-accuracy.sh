@@ -42,6 +42,7 @@ reject 'api().auth(' docs-site/src/data/homeData.js
 reject 'Zero-flakiness' docs-site/src/data/homeData.js
 reject '100% feature parity' docs-site/src/data/homeData.js
 reject '88 protocol-native MCP tools' docs-site/src/pages/index.js
+reject 'Sixteen enterprise capabilities, all built in' docs-site/src/pages/index.js
 reject '88 live tools' docs-site/src/data/homeData.js
 reject 'testfly record https://' docs-site/src/data/homeData.js docs-site/src/pages/index.js
 
