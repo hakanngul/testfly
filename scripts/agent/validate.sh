@@ -13,12 +13,14 @@ required_files=(
   AGENTS.md
   .agents/skills/testfly-change/SKILL.md
   .agents/skills/testfly-api-write/SKILL.md
+  .agents/skills/testfly-web-write/SKILL.md
   .agents/skills/testfly-docs/SKILL.md
   .agents/skills/testfly-test-authoring/SKILL.md
   .agents/skills/testfly-triage/SKILL.md
   .agents/skills/testfly-verify/SKILL.md
   .kiro/agents/testfly.json
   .kiro/steering/api-test-authoring.md
+  .kiro/steering/web-test-authoring.md
   .kiro/steering/documentation.md
   .kiro/steering/java-sdk.md
   .kiro/steering/test-authoring.md
@@ -71,11 +73,13 @@ for skill_file in .agents/skills/*/SKILL.md; do
   [[ "$skill_name" == "$skill_dir" ]] || fail "$skill_file name must match its directory"
   [[ -n "$description" ]] || fail "$skill_file has no description"
 done
-[[ "$skill_count" -eq 6 ]] || fail "expected 6 shared skills, found $skill_count"
+[[ "$skill_count" -eq 8 ]] || fail "expected 8 shared skills, found $skill_count"
 
 for steering in .kiro/steering/*.md; do
   inclusion="$(sed -n '2,/^---$/s/^inclusion:[[:space:]]*//p' "$steering" | head -n 1)"
   case "$inclusion" in
+    always)
+      ;;
     auto)
       rg -q '^name:' "$steering" || fail "$steering auto inclusion has no name"
       rg -q '^description:' "$steering" || fail "$steering auto inclusion has no description"
