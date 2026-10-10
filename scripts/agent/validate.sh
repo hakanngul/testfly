@@ -18,6 +18,7 @@ required_files=(
   .agents/skills/testfly-test-authoring/SKILL.md
   .agents/skills/testfly-triage/SKILL.md
   .agents/skills/testfly-verify/SKILL.md
+  .agents/skills/graphify/SKILL.md
   .kiro/agents/testfly.json
   .kiro/steering/api-test-authoring.md
   .kiro/steering/web-test-authoring.md

@@ -10,7 +10,7 @@ Java 21 ve TestNG yük testleri için `io.testfly.loadtest.BaseLoadTest` kullan�
 
 ## Kullanılabilirlik
 
-Yük testi modülü `1.0.5` sürümünde eklendi (bkz. changelog) ve güncel `1.0.7` sürümüne dahildir. Bağımlılığı Maven Central'dan ekleyin:
+Yük testi modülü `1.0.5` sürümünde eklendi (bkz. changelog) ve `1.0.7` kaynak kodunda bulunur. Bu sürümü kullanmadan önce Maven Central erişimini doğrulayın:
 
 ```xml
 <dependency>

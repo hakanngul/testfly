@@ -1,5 +1,7 @@
 ---
-inclusion: always
+inclusion: auto
+name: graphify
+description: Use for scoped TestFly codebase discovery or change-impact analysis when the graph is available and current.
 ---
 
-graphify: A knowledge graph of this project lives in `graphify-out/`. For codebase, architecture, or dependency questions, when `graphify-out/graph.json` exists, first run `graphify query "<question>"` (or `graphify path "<A>" "<B>"` / `graphify explain "<concept>"`). These return a scoped subgraph, usually much smaller than `GRAPH_REPORT.md` or raw grep output. Read `GRAPH_REPORT.md` only for broad architecture review or when those commands do not surface enough context.
+When `graphify-out/graph.json` exists and is current, use targeted `graphify query`, `explain`, or `affected` calls before unfamiliar cross-module changes. Otherwise inspect source directly. Do not rebuild the graph or read the full report for routine tasks; source signatures and verification remain authoritative.

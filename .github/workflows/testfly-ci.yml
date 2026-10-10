@@ -165,10 +165,12 @@ jobs:
           if [ -f "testfly-test/pom.xml" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
             echo "Consumer project found with valid pom.xml."
+            echo "Consumer checkout available; API smoke tests will run." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Consumer repo ${{ github.repository_owner }}/testfly-test not found or has no pom.xml — skipping consumer tests."
+            echo "::warning::Consumer compatibility NOT VERIFIED: ${{ github.repository_owner }}/testfly-test not found or has no pom.xml."
             echo "Repo may be private, renamed, or not yet created. Create it or make it accessible to GITHUB_TOKEN."
+            echo "**Consumer compatibility NOT VERIFIED:** checkout unavailable; API smoke tests skipped. Do not treat this job as release evidence." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Update consumer project version
