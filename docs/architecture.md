@@ -41,7 +41,7 @@ TestFly follows a layered, responsibility-driven architecture:
 │             TestFly Core (Java 21 LTS)                 │
 │   Lifecycle Orchestrator · ThreadLocal Driver Manager │
 │   Immutable Locators (cssSelector, byRole) & Asserts  │
-│   Network Mocking (CDP v152) · REST API & Load Engine  │
+│   Network Mocking (CDP v155) · REST API & Load Engine  │
 │   Precondition Session Cache · WaitEngine & Retries   │
 └───────────────────────────┬────────────────────────────┘
                             │
@@ -106,7 +106,7 @@ Responsibilities:
 - **ThreadLocal Isolation**: Ensures zero cross-thread driver contamination during parallel execution.
 - **Immutable Fluent Locators (`Locator`)**: Auto-waiting locator factories (`Locator.cssSelector()`, `Locator.byRole()`, `Locator.id()`, etc.) with in-browser JavaScript filtering and null-safe actions.
 - **Web-First Polling Assertions**: Auto-retrying assertions (`assertThat(locator)`, `assertThatPage()`) that poll until timeout; standard primitive assertions are cleanly delegated to AssertJ/TestNG.
-- **Network Mocking (`page().route()`)**: Declarative request stubbing and routing over Chrome DevTools Protocol (CDP v152).
+- **Network Mocking (`page().route()`)**: Declarative request stubbing and routing over Chrome DevTools Protocol (CDP v155).
 - **Unified REST API & Load Testing**: Built-in HTTP client (`api()`) with polling and JSONPath validation, plus lightweight embedded `JdkLoadEngine` load testing.
 - **Session Caching**: Caches cookies and web storage via `@PreCondition` to skip repetitive UI logins.
 - **Wait Engine & Retries**: Centralized explicit waits (preventing harmful implicit waits) and automated flakiness retry (`@Retryable`).
@@ -125,7 +125,7 @@ Responsibilities:
 ### 5. Selenium & Browser Layer
 
 Responsibilities:
-- Native Selenium 4.48.0 WebDriver APIs and Chrome DevTools Protocol (CDP v152).
+- Native Selenium 4.51.0 WebDriver APIs and Chrome DevTools Protocol (CDP v155).
 - Automated driver binary discovery via Selenium Manager (no manual chromedriver downloads needed).
 - Support for Local (Chrome, Firefox, Edge, Safari) and Remote Grid execution.
 

@@ -1,7 +1,7 @@
 package io.testfly.network;
 
 import io.testfly.api.TestFlyApi;
-import org.openqa.selenium.devtools.v152.network.model.ErrorReason;
+import org.openqa.selenium.devtools.v155.network.model.ErrorReason;
 
 /**
  * Reasons a mocked route can abort a request, mapped to the underlying

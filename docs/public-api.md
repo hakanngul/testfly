@@ -86,7 +86,7 @@ Playwright-inspired, immutable auto-waiting locator API:
 
 ### 4. Network Mocking & Interception (`page().route(...)`)
 
-Chrome DevTools Protocol (CDP v152) network control:
+Chrome DevTools Protocol (CDP v155) network control:
 - `page().route(String globOrRegex, RouteHandler handler)`
 - `Route.fulfill(...)`: Stub status codes, headers, and JSON/text response bodies.
 - `Route.abort(...)`: Abort requests with network failure reasons (`FAILED`, `TIMED_OUT`, `CONNECTION_RESET`).

@@ -17,7 +17,7 @@ TestFly, Playwright'ın `video: 'retain-on-failure'` özelliğinden esinlenen **
 ## Öne Çıkan Özellikler
 
 - **Sıfır Yerel Bağımlılık (Saf Java MP4 Kodlayıcı)**: Dahili JCodec H.264 video kodlayıcı kullanır. İşletim sisteminde `ffmpeg`, `X11` veya harici ikili dosyalar gerektirmez. Headless Docker konteynerlerinde, Linux CI, GitHub Actions, macOS ve Windows üzerinde doğrudan çalışır.
-- **Chrome DevTools Protocol (CDP v152) Screencast**: Chromium tabanlı tarayıcılarda (Chrome ve Edge), kareler CDP `Page.startScreencast` protokolüyle asenkron ve bloklamayan akışla yakalanır; WebDriver komutlarını yavaşlatmaz.
+- **Chrome DevTools Protocol (CDP v155) Screencast**: Chromium tabanlı tarayıcılarda (Chrome ve Edge), kareler CDP `Page.startScreencast` protokolüyle asenkron ve bloklamayan akışla yakalanır; WebDriver komutlarını yavaşlatmaz.
 - **Akıllı Saklama (`retain-on-failure`)**: Yalnızca başarısız olan testler video dosyasını saklar. Başarılı testlerde video diskte yer kaplamaz, CI depolama maliyetini ve koşum süresini korur.
 - **Etkileşimli HTML5 Video Oynatıcı**: `target/testfly-report.html` raporu içine Base64 veri URI (`data:video/mp4;base64,...`) olarak gömülür. Oynat/duraklat, zaman çubuğu, döngü (loop) ve tam ekran lightbox penceresi sunar.
 - **İsteğe Bağlı Allure Entegrasyonu**: Allure adaptörü etkinse gerçek çıktı biçimine göre `video/mp4` veya `image/gif` olarak eklenir.
