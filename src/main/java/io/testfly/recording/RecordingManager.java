@@ -5,8 +5,8 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.devtools.DevTools;
 import org.openqa.selenium.devtools.HasDevTools;
-import org.openqa.selenium.devtools.v152.page.Page;
-import org.openqa.selenium.devtools.v152.page.Page.StartScreencastFormat;
+import org.openqa.selenium.devtools.v155.page.Page;
+import org.openqa.selenium.devtools.v155.page.Page.StartScreencastFormat;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -273,7 +273,9 @@ public final class RecordingManager {
                             Optional.of(80),
                             Optional.of(1280),
                             Optional.of(720),
-                            Optional.of(1)));
+                            Optional.of(1),
+                            Optional.empty(), // added in CDP v155
+                            Optional.empty())); // added in CDP v155
 
                     this.devTools = dt;
                     this.cdpActive = true;

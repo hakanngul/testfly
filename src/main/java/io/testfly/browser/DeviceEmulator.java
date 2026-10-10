@@ -7,7 +7,7 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chromium.ChromiumDriver;
 import org.openqa.selenium.devtools.DevTools;
-import org.openqa.selenium.devtools.v152.emulation.Emulation;
+import org.openqa.selenium.devtools.v155.emulation.Emulation;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -109,8 +109,9 @@ public final class DeviceEmulator {
                     Optional.empty(), // viewport
                     Optional.empty(), // displayFeature
                     Optional.empty(), // devicePosture
-                    Optional.empty(), // scrollbarType (added in CDP v152)
-                    Optional.empty() // (added in CDP v152)
+                    Optional.empty(), // scrollbarType
+                    Optional.empty(), // screenOrientationLockEmulation
+                    Optional.empty() // viewportMeta (added in CDP v155)
             ));
             devTools.send(Emulation.setUserAgentOverride(
                     p.getUserAgent(),

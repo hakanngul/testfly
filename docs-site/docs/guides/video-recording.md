@@ -17,7 +17,7 @@ When enabled, TestFly captures browser frames during test execution. In `retain-
 ## Key Benefits
 
 - **Zero Native Dependencies (Pure-Java MP4 Encoding)**: Powered by an integrated JCodec H.264 encoder. Does **not** require `ffmpeg`, `X11`, or external OS binaries. Runs seamlessly out-of-the-box in headless Alpine / Ubuntu Docker containers, GitHub Actions, macOS, and Windows.
-- **Chrome DevTools Protocol (CDP v152) Screencast**: On Chromium browsers (Chrome and Edge), frames are captured asynchronously via CDP `Page.startScreencast` without blocking or slowing down WebDriver interactions.
+- **Chrome DevTools Protocol (CDP v155) Screencast**: On Chromium browsers (Chrome and Edge), frames are captured asynchronously via CDP `Page.startScreencast` without blocking or slowing down WebDriver interactions.
 - **Smart Retention (`retain-on-failure`)**: Only failed tests retain their recording files. Successful tests discard buffered frames instantly, saving runner memory and CI disk storage.
 - **Interactive HTML5 Video Player**: Embedded directly into the standalone `target/testfly-report.html` as a Base64 data URI (`data:video/mp4;base64,...`). Features play/pause, time scrubbing, looping, and a full-screen lightbox modal.
 - **Optional Allure Integration**: When the Allure adapter is enabled, the recording is attached as `video/mp4` or `image/gif`, according to its actual output format.

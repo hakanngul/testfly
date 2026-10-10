@@ -14,6 +14,7 @@ required_files=(
   .agents/skills/testfly-change/SKILL.md
   .agents/skills/testfly-api-write/SKILL.md
   .agents/skills/testfly-web-write/SKILL.md
+  .agents/skills/testfly-locator-finder/SKILL.md
   .agents/skills/testfly-docs/SKILL.md
   .agents/skills/testfly-test-authoring/SKILL.md
   .agents/skills/testfly-triage/SKILL.md
@@ -74,7 +75,7 @@ for skill_file in .agents/skills/*/SKILL.md; do
   [[ "$skill_name" == "$skill_dir" ]] || fail "$skill_file name must match its directory"
   [[ -n "$description" ]] || fail "$skill_file has no description"
 done
-[[ "$skill_count" -eq 8 ]] || fail "expected 8 shared skills, found $skill_count"
+[[ "$skill_count" -eq 9 ]] || fail "expected 9 shared skills, found $skill_count"
 
 for steering in .kiro/steering/*.md; do
   inclusion="$(sed -n '2,/^---$/s/^inclusion:[[:space:]]*//p' "$steering" | head -n 1)"

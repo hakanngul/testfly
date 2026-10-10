@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="tr">
+<head><meta charset="utf-8"><title>Locator Finder Fixture</title></head>
+<body>
+  <header><nav><a href="/">Ana Sayfa</a> <a href="/help" title="Yardım merkezi">Yardım</a></nav></header>
+  <main>
+    <h1>Giriş Yap</h1>
+    <form id="login-form">
+      <label for="email">E-posta</label>
+      <input id="email" type="email" placeholder="ornek@site.com">
+      <label>Şifre <input type="password" name="password"></label>
+      <input type="text" aria-label="Firma kodu" id=":r3:">
+      <label><input type="checkbox" name="remember"> Beni hatırla</label>
+      <select name="lang"><option>Türkçe</option><option>English</option></select>
+      <button type="submit" data-testid="login-submit">Giriş</button>
+      <button type="button">Giriş yardımı</button>
+    </form>
+    <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="Şirket logosu" width="10" height="10">
+    <ul class="products">
+      <li><span>Ürün A</span> <button class="buy">Sepete ekle</button></li>
+      <li><span>Ürün B</span> <button class="buy">Sepete ekle</button></li>
+    </ul>
+    <div class="mobile-menu" style="display:none"><button>Giriş</button></div>
+  </main>
+</body>
+</html>
