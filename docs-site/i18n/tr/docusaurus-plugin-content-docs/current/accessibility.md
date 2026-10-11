@@ -12,6 +12,10 @@ TestFly 1.0.0, [axe-core](https://github.com/dequelabs/axe-core) 4.10.2'yi doğr
 
 ---
 
+:::tip Tek bir öğeyi mi kontrol ediyorsunuz?
+Bu sayfa axe-core ile WCAG taramalarını anlatır. Tek bir öğenin rolünü, erişilebilir adını, açıklamasını veya yapısını kontrol etmek için [`hasRole`, `hasAccessibleName` ve ARIA snapshot'larını](/docs/guides/assertions#erişilebilirlik-doğrulamaları) kullanın.
+:::
+
 ## Hızlı örnek
 
 ```java

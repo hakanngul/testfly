@@ -83,6 +83,13 @@ getByText("Submit").exact();  // matches only "Submit"
 
 ---
 
+## Asserting role and name
+
+`withName(...)` and `hasAccessibleName(...)` read the same accessible name, so a locator that
+finds an element by name and an assertion that checks that name always agree. See
+[Accessibility assertions](/docs/guides/assertions#accessibility-assertions) for `hasRole`,
+`hasAccessibleName`, `hasAccessibleDescription` and ARIA snapshots.
+
 ## Configuring the test-id attribute
 
 `getByTestId` uses `data-testid` by default. Override it in `testfly.yml`:

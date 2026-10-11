@@ -520,6 +520,18 @@ public final class Locator extends By {
         return resolveAll().size();
     }
 
+    /**
+     * Returns the accessibility tree under this element as YAML, ready to paste into
+     * {@code assertThat(...).matchesAriaSnapshot(...)}. See
+     * {@link io.testfly.accessibility.AriaSnapshot} for the format.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public String ariaSnapshot() {
+        StepLogger.step("ARIA snapshot of " + this);
+        return io.testfly.accessibility.AriaSnapshot.toYaml(
+                io.testfly.accessibility.AriaSnapshot.capture(driver(), element()));
+    }
+
     /** Returns the resolved {@link WebElement}, applying all chain filters. */
     public WebElement element() {
         return waitForVisible(resolve());

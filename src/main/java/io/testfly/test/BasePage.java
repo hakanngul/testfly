@@ -223,6 +223,21 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
     }
 
     // ----------------------------------------------------------
+    // Accessibility snapshot
+    // ----------------------------------------------------------
+
+    /**
+     * Returns the accessibility tree of the whole page as YAML, to bootstrap
+     * {@code matchesAriaSnapshot(...)} templates. Use {@code find(...).ariaSnapshot()} for a
+     * single element.
+     */
+    protected String ariaSnapshot() {
+        step("ARIA snapshot of the page");
+        return io.testfly.accessibility.AriaSnapshot.toYaml(
+                io.testfly.accessibility.AriaSnapshot.capture(getDriver(), null));
+    }
+
+    // ----------------------------------------------------------
     // Alert helpers
     // ----------------------------------------------------------
 

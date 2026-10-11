@@ -210,6 +210,70 @@ softAssert().that(items.size() > 0, "Öğe listesi boş olmamalı");
 
 ---
 
+## Erişilebilirlik doğrulamaları
+
+`getByRole(...)` öğeleri rolüne ve adına göre bulur. Bu doğrulamalar, elinizde olan bir
+öğe üzerinde aynı şeyleri LLM kullanmadan, deterministik olarak kontrol eder:
+
+```java
+assertThat(By.id("save")).hasRole(Role.BUTTON);
+assertThat(By.id("save")).hasAccessibleName("Kaydet");          // içerir, büyük/küçük harf farkı yok
+assertThat(By.id("save")).hasExactAccessibleName("Siparişi kaydet");
+assertThat(By.id("email")).hasAccessibleDescription("paylaşmayız");
+assertThat(By.id("email")).hasExactAccessibleDescription("Adresinizi kimseyle paylaşmayız");
+```
+
+Diğer doğrulamalar gibi zaman aşımına kadar yeniden dener ve hata, bulunanı gösterir:
+`Expected element to have role [button]: By.id: save (actual: [link], timeout: 10s)`.
+
+### ARIA snapshot'ları
+
+`matchesAriaSnapshot`, bir öğenin altındaki tüm erişilebilirlik ağacını bir YAML şablonuyla
+karşılaştırır. Tek doğrulama yapıyı, adları ve durumları kapsar:
+
+```java
+assertThat(By.tagName("nav")).matchesAriaSnapshot("""
+    - navigation "Ana menü":
+      - link "Anasayfa"
+      - link "Dokümanlar"
+    """);
+```
+
+Şablonları elle yazmanız gerekmez. Mevcut ağacı yazdırın, gözden geçirin ve yapıştırın:
+
+```java
+System.out.println(find("nav").ariaSnapshot());   // tek öğe
+System.out.println(ariaSnapshot());               // tüm sayfa, page object içinde
+```
+
+Şablon bir kısıttır, ağacın tam kopyası değildir:
+
+| Şablon | Eşleşir |
+|---|---|
+| `- button` | herhangi bir buton |
+| `- button "Kaydet"` | adı `Kaydet` içeren buton, büyük/küçük harf farkı yok |
+| `- heading /Sorun \d+/` | adı düzenli ifadeye uyan başlık (büyük/küçük harfi yok saymak için kapanış `/` sonrasına `i` ekleyin) |
+| `- heading [level=2]` | o özelliğe sahip başlık |
+| `- checkbox "Süt" [checked]` | işaretli onay kutusu; diğer özellikler `disabled`, `expanded`, `pressed`, `selected` |
+| `- list:` ve girintili liste | doğrudan çocuklar arasında bu sırayla geçen çocuklar; diğer çocuklar yok sayılır |
+
+Üst seviye girdiler, öğenin veya altındaki herhangi bir öğenin çocuklarıyla eşleşir. Bu
+sayede şablon yalnızca ilgilendiğiniz bölümü anlatabilir. Yalnızca [`getByRole`](/docs/guides/semantic-locators#getbyrole)
+rolleri ve `text` görünür; diğer öğeler şeffaftır ve çocukları, rolü olan en yakın üst öğeye
+ait olur. Gizli içerik (`aria-hidden`, `display: none`, `hidden`) ve dekoratif görseller
+(`alt=""`) dışarıda bırakılır.
+
+Şablondaki bir hata (bilinmeyen rol, geçersiz YAML) zaman aşımını beklemeden hemen
+`IllegalArgumentException` ile bildirilir. Uyuşmazlıkta şablon ve yakalanan snapshot
+yazdırılır (en fazla 200 satır).
+
+:::note
+Erişilebilir ad, W3C algoritmasının TestFly'a özgü sadeleştirilmiş halidir. `withName(...)`
+ile aynı sırayı izler: `aria-label`, `aria-labelledby`, bir `<label>`, adını içeriğinden
+alan roller (button, link, heading, cell ve benzerleri) için görünür metin, ardından `alt`,
+`title`, butonun `value` değeri ve `placeholder`. Shadow DOM'a girilmez.
+:::
+
 ## Semantik AI Doğrulamaları (`satisfiesAi` & `violatesAi`) {#semantic-ai-assertions-satisfiesai--violatesai}
 
 Karmaşık sayfa durumları, dinamik mesajlar veya birebir metin eşleşmesinin kırılgan kaldığı görsel akışlar için TestFly, LLM ile değerlendirilen semantik doğrulamalar sunar:

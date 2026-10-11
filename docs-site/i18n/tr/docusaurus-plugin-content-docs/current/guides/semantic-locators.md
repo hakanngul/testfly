@@ -72,6 +72,13 @@ getByText("Submit").exact();  // yalnızca "Submit" ile eşleşir
 
 ---
 
+## Rol ve adı doğrulama
+
+`withName(...)` ve `hasAccessibleName(...)` aynı erişilebilir adı okur. Bu yüzden bir öğeyi
+adına göre bulan locator ile o adı kontrol eden doğrulama her zaman aynı sonuca varır.
+`hasRole`, `hasAccessibleName`, `hasAccessibleDescription` ve ARIA snapshot'ları için bkz.
+[Erişilebilirlik doğrulamaları](/docs/guides/assertions#erişilebilirlik-doğrulamaları).
+
 ## test-id niteliğini yapılandırma
 
 `getByTestId` varsayılan olarak `data-testid` kullanır. `testfly.yml` içinde geçersiz kılın:

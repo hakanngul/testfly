@@ -210,6 +210,70 @@ softAssert().that(items.size() > 0, "Item list should not be empty");
 
 ---
 
+## Accessibility assertions
+
+`getByRole(...)` finds elements by their role and name. These assertions check the same
+things on an element you already have, deterministically and without an LLM:
+
+```java
+assertThat(By.id("save")).hasRole(Role.BUTTON);
+assertThat(By.id("save")).hasAccessibleName("Save");          // contains, ignores case
+assertThat(By.id("save")).hasExactAccessibleName("Save order");
+assertThat(By.id("email")).hasAccessibleDescription("never share");
+assertThat(By.id("email")).hasExactAccessibleDescription("We never share it");
+```
+
+They retry until the timeout like every other assertion, and a failure shows what was found:
+`Expected element to have role [button]: By.id: save (actual: [link], timeout: 10s)`.
+
+### ARIA snapshots
+
+`matchesAriaSnapshot` compares the whole accessibility tree under an element with a YAML
+template, so one assertion covers structure, names and states:
+
+```java
+assertThat(By.tagName("nav")).matchesAriaSnapshot("""
+    - navigation "Main":
+      - link "Home"
+      - link "Docs"
+    """);
+```
+
+You do not have to write templates by hand. Print the current tree, review it, and paste it in:
+
+```java
+System.out.println(find("nav").ariaSnapshot());   // one element
+System.out.println(ariaSnapshot());               // whole page, inside a page object
+```
+
+A template is a constraint, not a full copy of the tree:
+
+| Template | Matches |
+|---|---|
+| `- button` | any button |
+| `- button "Save"` | a button whose name contains `Save`, ignoring case |
+| `- heading /Issues \d+/` | a heading whose name matches the regular expression (add `i` after the closing `/` to ignore case) |
+| `- heading [level=2]` | a heading with that attribute |
+| `- checkbox "Milk" [checked]` | a checked checkbox; other attributes are `disabled`, `expanded`, `pressed`, `selected` |
+| `- list:` followed by an indented list | children that appear in this order among the direct children; other children are ignored |
+
+The top-level entries match the children of the element, or of any element below it, so a
+template can describe only the part you care about. Only the roles of
+[`getByRole`](/docs/guides/semantic-locators#getbyrole) and `text` appear; other elements are transparent and their
+children belong to the nearest ancestor that has a role. Hidden content
+(`aria-hidden`, `display: none`, `hidden`) and decorative images (`alt=""`) are left out.
+
+A mistake in the template (an unknown role, invalid YAML) fails immediately with
+`IllegalArgumentException` instead of waiting for the timeout. A mismatch prints the
+template and the captured snapshot (at most 200 lines).
+
+:::note
+The accessible name is TestFly's simplified version of the W3C algorithm. It uses the same
+order as `withName(...)`: `aria-label`, `aria-labelledby`, a `<label>`, the visible text for
+roles that take their name from content (button, link, heading, cell and similar), then
+`alt`, `title`, a button's `value` and `placeholder`. Shadow DOM is not entered.
+:::
+
 ## Semantic AI Assertions (`satisfiesAi` & `violatesAi`) {#semantic-ai-assertions-satisfiesai--violatesai}
 
 For complex page states, dynamic messages, or visual flows where exact string matching is brittle, TestFly provides LLM-evaluated semantic assertions:

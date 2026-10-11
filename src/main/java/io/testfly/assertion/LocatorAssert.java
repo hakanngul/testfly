@@ -1,6 +1,9 @@
 package io.testfly.assertion;
 
+import io.testfly.accessibility.AriaSnapshot;
 import io.testfly.api.TestFlyApi;
+import io.testfly.internal.A11yProbe;
+import io.testfly.locator.Role;
 import io.testfly.driver.DriverManager;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.locator.Locator;
@@ -17,7 +20,10 @@ import io.testfly.locator.LocatorException;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import io.testfly.ai.DomPruner;
 import io.testfly.assertion.ai.AiAssertEngine;
 
@@ -345,6 +351,139 @@ public final class LocatorAssert {
     }
 
     // ------------------------------------------------------------------
+    // Accessibility (deterministic)
+    // ------------------------------------------------------------------
+
+    /**
+     * Asserts the element's role — the explicit {@code role} attribute, or the implicit role of
+     * its HTML tag — equals {@code role}. Retries until timeout.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LocatorAssert hasRole(Role role) {
+        Objects.requireNonNull(role, "role");
+        StepLogger.step("Assert role '" + role.ariaName() + "' for: " + description);
+        poll(d -> {
+            A11yProbe.NodeInfo info = probeFirst(d);
+            if (info == null)
+                return Check.fail("not found");
+            return role.ariaName().equals(info.role()) ? Check.pass()
+                    : Check.fail(info.role() == null ? "generic (no role)" : info.role());
+        }, "Expected element to have role [" + role.ariaName() + "]: " + description);
+        return this;
+    }
+
+    /**
+     * Asserts the element's accessible name contains {@code expected}, ignoring case. This is the
+     * same name {@code Locator.withName(...)} matches on. Retries until timeout.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LocatorAssert hasAccessibleName(String expected) {
+        Objects.requireNonNull(expected, "expected");
+        StepLogger.step("Assert accessible name contains '" + expected + "' for: " + description);
+        poll(d -> {
+            A11yProbe.NodeInfo info = probeFirst(d);
+            if (info == null)
+                return Check.fail("not found");
+            return containsIgnoreCase(info.name(), expected) ? Check.pass() : Check.fail(quote(info.name()));
+        }, "Expected accessible name to contain [" + expected + "] (case-insensitive) for: " + description);
+        return this;
+    }
+
+    /** Asserts the element's accessible name equals {@code expected} (whitespace collapsed). */
+    @TestFlyApi(since = "1.1.0")
+    public LocatorAssert hasExactAccessibleName(String expected) {
+        Objects.requireNonNull(expected, "expected");
+        StepLogger.step("Assert accessible name '" + expected + "' for: " + description);
+        poll(d -> {
+            A11yProbe.NodeInfo info = probeFirst(d);
+            if (info == null)
+                return Check.fail("not found");
+            return collapse(expected).equals(info.name()) ? Check.pass() : Check.fail(quote(info.name()));
+        }, "Expected accessible name [" + expected + "] for: " + description);
+        return this;
+    }
+
+    /**
+     * Asserts the element's accessible description (aria-describedby, aria-description or title)
+     * contains {@code expected}, ignoring case. Retries until timeout.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LocatorAssert hasAccessibleDescription(String expected) {
+        Objects.requireNonNull(expected, "expected");
+        StepLogger.step("Assert accessible description contains '" + expected + "' for: " + description);
+        poll(d -> {
+            A11yProbe.NodeInfo info = probeFirst(d);
+            if (info == null)
+                return Check.fail("not found");
+            return containsIgnoreCase(info.description(), expected) ? Check.pass()
+                    : Check.fail(quote(info.description()));
+        }, "Expected accessible description to contain [" + expected + "] (case-insensitive) for: " + description);
+        return this;
+    }
+
+    /** Asserts the element's accessible description equals {@code expected} (whitespace collapsed). */
+    @TestFlyApi(since = "1.1.0")
+    public LocatorAssert hasExactAccessibleDescription(String expected) {
+        Objects.requireNonNull(expected, "expected");
+        StepLogger.step("Assert accessible description '" + expected + "' for: " + description);
+        poll(d -> {
+            A11yProbe.NodeInfo info = probeFirst(d);
+            if (info == null)
+                return Check.fail("not found");
+            return collapse(expected).equals(info.description()) ? Check.pass()
+                    : Check.fail(quote(info.description()));
+        }, "Expected accessible description [" + expected + "] for: " + description);
+        return this;
+    }
+
+    /**
+     * Asserts the accessibility tree under the element matches a YAML template. See
+     * {@link AriaSnapshot} for the template syntax and matching rules. A malformed template fails
+     * immediately with {@link IllegalArgumentException}, without waiting for the timeout. On
+     * failure the message includes the template and the captured snapshot.
+     *
+     * <pre>
+     * assertThat(By.tagName("nav")).matchesAriaSnapshot("""
+     *     - link "Home"
+     *     - link "Docs"
+     *     """);
+     * </pre>
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LocatorAssert matchesAriaSnapshot(String template) {
+        Objects.requireNonNull(template, "template");
+        List<AriaSnapshot.AriaNode> expected = AriaSnapshot.parseTemplate(template);
+        StepLogger.step("Assert ARIA snapshot for: " + description);
+        AtomicReference<String> detail = new AtomicReference<>("");
+        poll(d -> {
+            List<WebElement> els = d.findElements(by);
+            if (els.isEmpty())
+                return Check.fail("not found");
+            List<AriaSnapshot.AriaNode> actual = AriaSnapshot.capture(d, els.getFirst());
+            AriaSnapshot.MatchResult result = AriaSnapshot.match(actual, expected);
+            if (result.matches())
+                return Check.pass();
+            detail.set(result.diff());
+            return Check.fail(shorten(result.diff().lines().skip(1).findFirst().orElse("mismatch")));
+        }, "Expected element to match ARIA snapshot: " + description, detail::get);
+        return this;
+    }
+
+    private A11yProbe.NodeInfo probeFirst(WebDriver d) {
+        List<WebElement> els = d.findElements(by);
+        return els.isEmpty() ? null : A11yProbe.probe(d, els.getFirst());
+    }
+
+    private static boolean containsIgnoreCase(String haystack, String needle) {
+        return haystack != null
+                && haystack.toLowerCase(Locale.ROOT).contains(collapse(needle).toLowerCase(Locale.ROOT));
+    }
+
+    private static String collapse(String s) {
+        return s.replaceAll("\\s+", " ").trim();
+    }
+
+    // ------------------------------------------------------------------
     // Semantic AI Assertions
     // ------------------------------------------------------------------
 
@@ -466,6 +605,11 @@ public final class LocatorAssert {
     }
 
     private void poll(Function<WebDriver, Check> probe, String failMessage) {
+        poll(probe, failMessage, null);
+    }
+
+    /** {@code detail}, when not null, is appended on new lines after the one-line failure message. */
+    private void poll(Function<WebDriver, Check> probe, String failMessage, Supplier<String> detail) {
         Duration timeout = customTimeout != null
                 ? customTimeout
                 : (TestFlyContext.getConfig() != null && TestFlyContext.getConfig().getTimeouts() != null
@@ -483,7 +627,8 @@ public final class LocatorAssert {
             String timeoutStr = timeout.toMillis() >= 1000 && timeout.toMillis() % 1000 == 0
                     ? timeout.toSeconds() + "s"
                     : timeout.toMillis() + "ms";
-            fail(prefix() + failMessage + " (actual: [" + lastActual.get() + "], timeout: " + timeoutStr + ")", e);
+            String extra = detail == null || detail.get().isEmpty() ? "" : "\n" + detail.get();
+            fail(prefix() + failMessage + " (actual: [" + lastActual.get() + "], timeout: " + timeoutStr + ")" + extra, e);
         }
     }
 

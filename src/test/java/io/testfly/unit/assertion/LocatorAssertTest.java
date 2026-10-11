@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertSame;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.expectThrows;
 import static org.testng.Assert.fail;
 
 /**
@@ -665,5 +666,150 @@ public class LocatorAssertTest {
         WebElement stubEl = mockElement(true, "");
         when(mockDriver.findElement(locator)).thenReturn(stubEl);
         assertNotNull(SeleniumAssert.assertThat(locator).isVisible());
+    }
+
+    // ---------------------------------------------------------------
+    // Accessibility assertions (probe answered from canned JSON)
+    // ---------------------------------------------------------------
+
+    /** A driver whose executeScript always returns {@code json}, set as the current driver. */
+    private WebDriver jsDriver(String json) {
+        WebDriver d = mock(WebDriver.class, org.mockito.Mockito.withSettings()
+                .extraInterfaces(org.openqa.selenium.JavascriptExecutor.class)
+                .defaultAnswer(inv -> inv.getMethod().getName().equals("executeScript")
+                        ? json
+                        : org.mockito.Mockito.RETURNS_DEFAULTS.answer(inv)));
+        driverManagerMock.when(DriverManager::getDriver).thenReturn(d);
+        return d;
+    }
+
+    private static String node(String role, String name, String description) {
+        String r = role == null ? "null" : "\"" + role + "\"";
+        return "{\"role\":" + r + ",\"name\":\"" + name + "\",\"description\":\"" + description
+                + "\",\"attrs\":{}}";
+    }
+
+    private static final String NAV_TREE = "{\"truncated\":false,\"nodes\":[{\"role\":\"navigation\","
+            + "\"name\":\"Main\",\"attrs\":{},\"children\":["
+            + "{\"role\":\"link\",\"name\":\"Home\",\"attrs\":{},\"children\":[]},"
+            + "{\"role\":\"link\",\"name\":\"Docs\",\"attrs\":{},\"children\":[]}]}]}";
+
+    private By stubFirstElement(WebDriver d, String id) {
+        By locator = By.id(id);
+        WebElement el = mock(WebElement.class);
+        when(d.findElements(locator)).thenReturn(Collections.singletonList(el));
+        return locator;
+    }
+
+    @Test
+    public void hasRole_matching_passes() {
+        WebDriver d = jsDriver(node("button", "Save", ""));
+        SeleniumAssert.assertThat(stubFirstElement(d, "x")).hasRole(io.testfly.locator.Role.BUTTON);
+    }
+
+    @Test
+    public void hasRole_mismatch_reportsActualRole() {
+        WebDriver d = jsDriver(node("link", "Docs", ""));
+        By locator = stubFirstElement(d, "x");
+        String msg = failureOf(() -> SeleniumAssert.assertThat(locator).hasRole(io.testfly.locator.Role.BUTTON));
+        assertTrue(msg.contains("to have role [button]"), msg);
+        assertTrue(msg.contains("actual: [link]"), msg);
+    }
+
+    @Test
+    public void hasRole_genericElement_reportsNoRole() {
+        WebDriver d = jsDriver(node(null, "", ""));
+        By locator = stubFirstElement(d, "x");
+        String msg = failureOf(() -> SeleniumAssert.assertThat(locator).hasRole(io.testfly.locator.Role.BUTTON));
+        assertTrue(msg.contains("actual: [generic (no role)]"), msg);
+    }
+
+    @Test
+    public void hasRole_elementNotFound_reportsNotFound() {
+        jsDriver(node("button", "", ""));
+        By locator = By.id("missing");
+        String msg = failureOf(() -> SeleniumAssert.assertThat(locator).hasRole(io.testfly.locator.Role.BUTTON));
+        assertTrue(msg.contains("actual: [not found]"), msg);
+    }
+
+    @Test
+    public void hasAccessibleName_containsIgnoringCase_passes() {
+        WebDriver d = jsDriver(node("button", "Submit order", ""));
+        SeleniumAssert.assertThat(stubFirstElement(d, "x")).hasAccessibleName("submit");
+    }
+
+    @Test
+    public void hasAccessibleName_mismatch_reportsActualName() {
+        WebDriver d = jsDriver(node("button", "Submit order", ""));
+        By locator = stubFirstElement(d, "x");
+        String msg = failureOf(() -> SeleniumAssert.assertThat(locator).hasAccessibleName("Cancel"));
+        assertTrue(msg.contains("accessible name to contain [Cancel]"), msg);
+        assertTrue(msg.contains("actual: [\"Submit order\"]"), msg);
+    }
+
+    @Test
+    public void hasExactAccessibleName_requiresFullMatch() {
+        WebDriver d = jsDriver(node("button", "Submit order", ""));
+        By locator = stubFirstElement(d, "x");
+        SeleniumAssert.assertThat(locator).hasExactAccessibleName("Submit   order");
+        String msg = failureOf(() -> SeleniumAssert.assertThat(locator).hasExactAccessibleName("Submit"));
+        assertTrue(msg.contains("actual: [\"Submit order\"]"), msg);
+    }
+
+    @Test
+    public void hasAccessibleDescription_passesAndFails() {
+        WebDriver d = jsDriver(node("textbox", "Email", "We never share it"));
+        By locator = stubFirstElement(d, "x");
+        SeleniumAssert.assertThat(locator).hasAccessibleDescription("never share");
+        SeleniumAssert.assertThat(locator).hasExactAccessibleDescription("We never share it");
+        String msg = failureOf(() -> SeleniumAssert.assertThat(locator).hasAccessibleDescription("spam"));
+        assertTrue(msg.contains("actual: [\"We never share it\"]"), msg);
+    }
+
+    @Test
+    public void matchesAriaSnapshot_partialTemplate_passes() {
+        WebDriver d = jsDriver(NAV_TREE);
+        SeleniumAssert.assertThat(stubFirstElement(d, "nav"))
+                .matchesAriaSnapshot("- navigation \"Main\":\n  - link \"Docs\"");
+    }
+
+    @Test
+    public void matchesAriaSnapshot_mismatch_includesTemplateAndCapturedSnapshot() {
+        WebDriver d = jsDriver(NAV_TREE);
+        By locator = stubFirstElement(d, "nav");
+        String msg = failureOf(() -> SeleniumAssert.assertThat(locator).within(Duration.ofMillis(500))
+                .matchesAriaSnapshot("- navigation:\n  - link \"Pricing\""));
+        assertTrue(msg.contains("to match ARIA snapshot"), msg);
+        assertTrue(msg.contains("- link \"Pricing\""), msg);
+        assertTrue(msg.contains("--- actual (captured) ---"), msg);
+        assertTrue(msg.contains("- link \"Home\""), msg);
+    }
+
+    @Test
+    public void matchesAriaSnapshot_badTemplate_failsFastWithoutPolling() {
+        WebDriver d = jsDriver(NAV_TREE);
+        By locator = stubFirstElement(d, "nav");
+        long start = System.nanoTime();
+        expectThrows(IllegalArgumentException.class,
+                () -> SeleniumAssert.assertThat(locator).within(Duration.ofSeconds(5))
+                        .matchesAriaSnapshot("- bogus \"x\""));
+        assertTrue((System.nanoTime() - start) / 1_000_000 < 1000, "a bad template must not wait for the timeout");
+    }
+
+    @Test
+    public void accessibilityAssertion_onDriverWithoutJavaScript_failsClearly() {
+        By locator = By.id("x");
+        when(mockDriver.findElements(locator)).thenReturn(Collections.singletonList(mock(WebElement.class)));
+        IllegalStateException e = expectThrows(IllegalStateException.class,
+                () -> SeleniumAssert.assertThat(locator).hasRole(io.testfly.locator.Role.BUTTON));
+        assertTrue(e.getMessage().contains("JavaScript"), e.getMessage());
+    }
+
+    @Test
+    public void accessibilityAssertion_soft_recordsFailure() {
+        WebDriver d = jsDriver(node("link", "Docs", ""));
+        By locator = stubFirstElement(d, "x");
+        SeleniumAssert.assertThat(locator).softly().hasRole(io.testfly.locator.Role.BUTTON);
+        assertTrue(SoftAssertions.get().hasFailed());
     }
 }

@@ -12,6 +12,11 @@ TestFly 1.0.0 bundles [axe-core](https://github.com/dequelabs/axe-core) 4.10.2 d
 
 ---
 
+:::tip Checking a single element?
+This page is about WCAG scans with axe-core. To check one element's role, accessible name,
+description or structure, use [`hasRole`, `hasAccessibleName` and ARIA snapshots](/docs/guides/assertions#accessibility-assertions).
+:::
+
 ## Quick example
 
 ```java
