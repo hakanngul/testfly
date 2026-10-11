@@ -120,6 +120,7 @@ browser:
   lifecycle: per-test               # per-test (clean isolation) | per-suite (reuse session per thread)
   downloadDir: ./target/downloads   # target directory for browser file downloads
   captureConsoleErrors: false       # collect browser console (JS) error logs
+  bidi: false                       # open a WebDriver BiDi connection; console errors then include load-time errors on Firefox
   failOnConsoleErrors: false        # fail test if severe console errors are detected
   device:                           # optional mobile emulation profile (e.g. "iPhone 14")
   matrix: []                        # multi-browser matrix execution (e.g. [chrome, firefox])
@@ -509,6 +510,7 @@ Controls WebDriver browser provisioning, execution mode, capabilities, and proce
 | `lifecycle` | `string` | `per-test` | Lifecycle scope for WebDriver instances: `per-test` (closes browser after each test method) or `per-suite` (retains browser per thread across tests). |
 | `downloadDir` | `string` | `./target/downloads` | Path where downloaded files are saved. Auto-configured in browser options. |
 | `captureConsoleErrors` | `boolean` | `false` | When `true`, intercepts browser `console.error` entries during execution. |
+| `bidi` | `boolean` | `false` | Starts the browser with a WebDriver BiDi connection (local Chrome, Edge, Firefox). Console error capture then listens to BiDi log events from the start of every page load, which Firefox needs to see load-time errors. See [Console Errors](guides/console-errors#using-bidi). |
 | `failOnConsoleErrors` | `boolean` | `false` | When `true`, automatically fails the test if any `SEVERE` browser console errors occurred. |
 | `device` | `string` | `null` | Emulate a specific mobile device viewport and user agent (e.g. `"iPhone 14"`, `"Pixel 7"`). |
 | `matrix` | `list<string>` | `[]` | Multi-browser matrix execution list (e.g. `[chrome, firefox]`). |

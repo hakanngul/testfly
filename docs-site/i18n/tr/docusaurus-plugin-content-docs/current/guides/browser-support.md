@@ -32,7 +32,7 @@ geçerlidir.
 | `DeviceEmulator` | Tam: görünüm, piksel oranı, dokunma, user agent, gezinmede korunur | Pencereyi yeniden boyutlandırır ve geçerli sayfada `navigator.userAgent` değerini değiştirir. Gezinmede kaybolur. | Firefox ile aynı |
 | `GeoLocation` | Tam | Yalnızca geçerli sayfada geçerlidir. Gezinmede kaybolur. | Firefox ile aynı |
 | [Saat mock'lama](/docs/clock-mocking) | Yenileme ve gezinmede korunur | Yalnızca geçerli sayfa | Yalnızca geçerli sayfa |
-| [Konsol hataları](/docs/guides/console-errors) | Tarayıcı günlüğü: sayfa yüklenirken ve link ile gidilen sayfalarda oluşan hatalar yakalanır | Yalnızca test `open()` çağırdıktan sonra yapılan `console.error` çağrıları. Sayfa yüklenirken oluşan hatalar, yakalanmamış istisnalar ve link ile gidilen sayfalar kaçar. | Doğrulanmadı |
+| [Konsol hataları](/docs/guides/console-errors) | Tarayıcı günlüğü: sayfa yüklenirken ve link ile gidilen sayfalarda oluşan hatalar yakalanır | Yalnızca test `open()` çağırdıktan sonra yapılan `console.error` çağrıları. Sayfa yüklenirken oluşan hatalar, yakalanmamış istisnalar ve link ile gidilen sayfalar kaçar. Firefox'ta [`browser.bidi: true`](/docs/guides/console-errors#bidi-kullanımı) ile yakalanır; Safari'de BiDi yoktur. | Doğrulanmadı |
 | Performans LCP ve CLS | Tam | `-1` raporlanır, doğrulamalar atlanır | Doğrulanmadı |
 
 Chrome ve Edge için "Tam" ve konsol hataları satırı, projenin entegrasyon testlerinde gerçek bir

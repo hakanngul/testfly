@@ -30,7 +30,7 @@ has no DevTools connection in TestFly today. That is true **even when the remote
 | `DeviceEmulator` | Full: viewport, pixel ratio, touch, user agent, kept across navigation | Resizes the window and overrides `navigator.userAgent` in the current page. Lost on navigation. | Same as Firefox |
 | `GeoLocation` | Full | Overridden in the current page only. Lost on navigation. | Same as Firefox |
 | [Clock mocking](/docs/clock-mocking) | Survives refresh and navigation | Current page only | Current page only |
-| [Console errors](/docs/guides/console-errors) | The browser log: errors raised while a page loads and on pages reached by a link are caught | Only `console.error` calls made after the test called `open()`. Errors raised while a page loads, uncaught exceptions and pages reached by a link are missed. | Not verified |
+| [Console errors](/docs/guides/console-errors) | The browser log: errors raised while a page loads and on pages reached by a link are caught | Only `console.error` calls made after the test called `open()`. Errors raised while a page loads, uncaught exceptions and pages reached by a link are missed. With [`browser.bidi: true`](/docs/guides/console-errors#using-bidi) on Firefox they are caught; Safari has no BiDi. | Not verified |
 | Performance LCP and CLS | Full | Reported as `-1`, assertions are skipped | Not verified |
 
 "Full" for Chrome and Edge, and the console error row, were checked against a real browser in the

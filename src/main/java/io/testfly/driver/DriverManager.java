@@ -167,6 +167,8 @@ public final class DriverManager {
     public static void createDriver() {
 
         if (DRIVER.get() != null) {
+            // Retry or a reused per-suite browser: start this test with no leftover console errors.
+            io.testfly.browser.ConsoleErrorCollector.beginTest(DRIVER.get());
             return; // retry-safe — semaphore permit already held by this thread
         }
 
@@ -198,6 +200,7 @@ public final class DriverManager {
             PERMIT_HOLDERS.add(driver);
             permitOwned = true;
             DRIVER.set(driver);
+            io.testfly.browser.ConsoleErrorCollector.beginTest(driver);
 
             // Capture cloud session URL for BrowserStack / Sauce Labs
             try {

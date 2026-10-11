@@ -116,6 +116,7 @@ public class LocalChromeDriverProvider implements DriverProvider {
         // W3C default is "dismiss and notify" which auto-dismisses alerts before
         // the next WebDriver command executes, making driver.switchTo().alert() fail.
         options.setCapability("unhandledPromptBehavior", "ignore");
+        BiDiCapability.applyIfConfigured(options, config);
 
         return options;
     }

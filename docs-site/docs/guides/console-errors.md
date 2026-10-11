@@ -65,10 +65,34 @@ List<String> paymentErrors = ConsoleErrorCollector.getErrors();
 
 | Browser | Method | Notes |
 |---|---|---|
-| Chrome | WebDriver browser logs | Works automatically, no shim needed |
-| Firefox | JS console shim | Call `injectShim()` after page load |
+| Chrome, Edge | WebDriver browser logs | Works automatically, no shim needed. Errors raised while a page loads, and on pages reached by a link, are caught. |
+| Firefox | JS console shim | Call `injectShim()` after page load. Only `console.error` calls made after that are seen. |
+| Firefox, with `browser.bidi: true` | WebDriver BiDi log events | Every error from the moment a page starts loading, including uncaught exceptions and pages reached by a link. |
 
-Chrome collects errors automatically via `LogType.BROWSER`. Firefox requires the JS shim because it does not expose browser logs through WebDriver.
+Chrome collects errors automatically via `LogType.BROWSER`. Firefox does not expose browser logs through
+WebDriver, so without BiDi it needs the JS shim, which can only see errors raised after it was injected.
+That means `failOnConsoleErrors` can pass on Firefox although the page raised an error while loading.
+
+### Using BiDi
+
+```yaml title="testfly.yml"
+browser:
+  captureConsoleErrors: true
+  failOnConsoleErrors: true
+  bidi: true                    # open a WebDriver BiDi connection (default: false)
+```
+
+With `bidi: true` the browser starts with a BiDi connection, and TestFly listens to its log events from
+the moment the test gets its browser, so no shim is needed. Errors from earlier tests are forgotten when
+a test starts, also when the browser is reused (`browser.lifecycle: per-suite`). Check which capture is in
+use with `ConsoleErrorCollector.isBiDiActive()`.
+
+- It works with a locally started Chrome, Edge or Firefox. Safari has no BiDi, and TestFly does not open
+  a BiDi connection on remote drivers (Grid, BrowserStack, Sauce Labs); there it logs one warning and
+  uses the usual capture.
+- Events arrive over a websocket, a moment after the page ran, so read errors after the page has settled.
+- The BiDi capture is checked against Chrome in the project's integration tests. Firefox support depends
+  on its BiDi implementation and is exercised by the experimental Firefox CI job.
 
 ---
 

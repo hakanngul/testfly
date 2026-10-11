@@ -157,7 +157,7 @@ jobs:
           mvn verify -Preal-backends --no-transfer-progress
           -Dtestfly.config=${{ matrix.config }}
           -Dtest=NoSuchTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false
-          -Dit.test='ActionabilityIntegrationTest,AriaSnapshotIntegrationTest,TraceSnapshotIntegrationTest,DeviceEmulatorIntegrationTest,ConsoleErrorIntegrationTest,NetworkMockIntegrationTest,NetworkMockReuseIntegrationTest'
+          -Dit.test='ActionabilityIntegrationTest,AriaSnapshotIntegrationTest,TraceSnapshotIntegrationTest,DeviceEmulatorIntegrationTest,ConsoleErrorIntegrationTest,ConsoleErrorBiDiIntegrationTest,NetworkMockIntegrationTest,NetworkMockReuseIntegrationTest'
 
       - name: Upload Failsafe reports
         if: always()

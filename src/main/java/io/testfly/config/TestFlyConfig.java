@@ -127,6 +127,7 @@ public final class TestFlyConfig {
         private String downloadDir = "./target/downloads";
         private boolean captureConsoleErrors = false;
         private boolean failOnConsoleErrors = false;
+        private boolean bidi = false;
         private List<String> matrix = Collections.emptyList();
         private String device; // optional device profile name, e.g. "iPhone 14"
 
@@ -156,6 +157,22 @@ public final class TestFlyConfig {
 
         public boolean isFailOnConsoleErrors() {
             return failOnConsoleErrors;
+        }
+
+        /**
+         * Starts the browser with a WebDriver BiDi connection ({@code webSocketUrl}). Console error
+         * capture uses it, when {@code captureConsoleErrors} is on, to see every error from the
+         * moment a page starts loading, in browsers without a WebDriver browser log (Firefox).
+         * Safari does not support BiDi.
+         */
+        @TestFlyApi(since = "1.1.0")
+        public boolean isBidi() {
+            return bidi;
+        }
+
+        @TestFlyApi(since = "1.1.0")
+        public void setBidi(boolean bidi) {
+            this.bidi = bidi;
         }
 
         public void setFailOnConsoleErrors(boolean failOnConsoleErrors) {

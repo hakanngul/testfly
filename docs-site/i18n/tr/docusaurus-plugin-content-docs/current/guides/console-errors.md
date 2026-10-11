@@ -65,10 +65,35 @@ List<String> paymentErrors = ConsoleErrorCollector.getErrors();
 
 | Tarayıcı | Metod | Notlar |
 |---|---|---|
-| Chrome | WebDriver tarayıcı logları | Otomatik çalışır, shim gerektirmez |
-| Firefox | JS konsol shim'i | Sayfa yüklendikten sonra `injectShim()` çağırın |
+| Chrome, Edge | WebDriver tarayıcı logları | Otomatik çalışır, shim gerektirmez. Sayfa yüklenirken ve link ile gidilen sayfalarda oluşan hatalar yakalanır. |
+| Firefox | JS konsol shim'i | Sayfa yüklendikten sonra `injectShim()` çağırın. Yalnızca o andan sonra yapılan `console.error` çağrıları görülür. |
+| Firefox, `browser.bidi: true` ile | WebDriver BiDi log olayları | Sayfa yüklenmeye başladığı andan itibaren her hata, yakalanmamış istisnalar ve link ile gidilen sayfalar dahil. |
 
-Chrome, hataları `LogType.BROWSER` üzerinden otomatik olarak toplar. Firefox, tarayıcı loglarını WebDriver üzerinden açığa çıkarmadığı için JS shim'ini gerektirir.
+Chrome, hataları `LogType.BROWSER` üzerinden otomatik olarak toplar. Firefox tarayıcı loglarını WebDriver
+üzerinden açığa çıkarmaz. Bu yüzden BiDi olmadan JS shim'ini gerektirir ve shim yalnızca enjekte
+edildikten sonra oluşan hataları görebilir. Yani Firefox'ta sayfa yüklenirken hata oluşsa bile
+`failOnConsoleErrors` geçebilir.
+
+### BiDi kullanımı
+
+```yaml title="testfly.yml"
+browser:
+  captureConsoleErrors: true
+  failOnConsoleErrors: true
+  bidi: true                    # WebDriver BiDi bağlantısı aç (varsayılan: false)
+```
+
+`bidi: true` ile tarayıcı bir BiDi bağlantısıyla başlar ve TestFly, test tarayıcısını aldığı andan
+itibaren log olaylarını dinler. Shim gerekmez. Bir test başlarken önceki testlerin hataları unutulur,
+tarayıcı yeniden kullanılsa bile (`browser.lifecycle: per-suite`). Hangi yakalamanın kullanıldığını
+`ConsoleErrorCollector.isBiDiActive()` ile görebilirsiniz.
+
+- Yerelde başlatılan Chrome, Edge veya Firefox ile çalışır. Safari'de BiDi yoktur ve TestFly uzak
+  sürücülerde (Grid, BrowserStack, Sauce Labs) BiDi bağlantısı açmaz. Orada bir uyarı yazar ve olağan
+  yakalamayı kullanır.
+- Olaylar websocket üzerinden, sayfa çalıştıktan kısa süre sonra gelir. Hataları sayfa oturduktan sonra okuyun.
+- BiDi yakalaması projenin entegrasyon testlerinde Chrome'a karşı denenmiştir. Firefox desteği onun
+  BiDi uygulamasına bağlıdır ve deneysel Firefox CI işinde çalıştırılır.
 
 ---
 

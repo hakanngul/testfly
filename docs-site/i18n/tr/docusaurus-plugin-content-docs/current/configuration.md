@@ -101,6 +101,7 @@ browser:
   lifecycle: per-test               # per-test (her teste temiz oturum) | per-suite (thread başına oturum koruma)
   downloadDir: ./target/downloads   # indirilen dosyaların kaydedileceği dizin
   captureConsoleErrors: false       # tarayıcı console.error loglarını topla
+  bidi: false                       # WebDriver BiDi bağlantısı aç; Firefox'ta konsol hataları yükleme anı hatalarını da içerir
   failOnConsoleErrors: false        # SEVERE konsol hatası varsa testi başarısız say
   device:                           # isteğe bağlı mobil emülasyon profili (örn: "iPhone 14")
   matrix: []                        # çoklu tarayıcı matrisi (örn: [chrome, firefox])
@@ -490,6 +491,7 @@ Tarayıcı sağlama, çalıştırma modu, yetenekler ve süreç argümanlarını
 | `lifecycle` | `string` | `per-test` | WebDriver yaşam döngüsü: `per-test` (her testten sonra kapatır) veya `per-suite` (thread başına oturumu testler boyunca açık tutar). |
 | `downloadDir` | `string` | `./target/downloads` | İndirilen dosyaların kaydedileceği yerel dizin. |
 | `captureConsoleErrors` | `boolean` | `false` | `true` ise yürütme sırasında tarayıcı `console.error` loglarını yakalar. |
+| `bidi` | `boolean` | `false` | Tarayıcıyı bir WebDriver BiDi bağlantısıyla başlatır (yerel Chrome, Edge, Firefox). Konsol hata yakalama bu durumda her sayfa yüklemesinin başından itibaren BiDi log olaylarını dinler. Firefox'un yükleme anı hatalarını görmesi için gereklidir. Bkz. [Konsol Hataları](guides/console-errors#bidi-kullanımı). |
 | `failOnConsoleErrors` | `boolean` | `false` | `true` ise test sırasında `SEVERE` düzeyinde konsol hatası oluştuğunda testi başarısız sayar. |
 | `device` | `string` | `null` | Mobil emülasyon profili adı (örn: `"iPhone 14"`, `"Pixel 7"`). |
 | `matrix` | `list<string>` | `[]` | Çoklu tarayıcı test koşumu için tarayıcı listesi (örn: `[chrome, firefox]`). |

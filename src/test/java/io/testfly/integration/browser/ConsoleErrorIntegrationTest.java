@@ -35,6 +35,7 @@ public class ConsoleErrorIntegrationTest {
 
     private HttpServer server;
     private WebDriver driver;
+    private boolean originalCapture;
 
     private void serve(String path, String html) {
         server.createContext(path, exchange -> {
@@ -65,6 +66,7 @@ public class ConsoleErrorIntegrationTest {
         server.start();
         try {
             io.testfly.lifecycle.FrameworkBootstrap.initialize();
+            originalCapture = io.testfly.internal.TestFlyContext.getConfig().getBrowser().isCaptureConsoleErrors();
             io.testfly.internal.TestFlyContext.getConfig().getBrowser().setCaptureConsoleErrors(true);
             DriverManager.createDriver();
             driver = DriverManager.getDriver();
@@ -77,6 +79,10 @@ public class ConsoleErrorIntegrationTest {
 
     @AfterClass
     public void tearDown() {
+        try {
+            io.testfly.internal.TestFlyContext.getConfig().getBrowser().setCaptureConsoleErrors(originalCapture);
+        } catch (Exception ignored) {
+        }
         try {
             DriverManager.quitDriver();
         } catch (Exception ignored) {
