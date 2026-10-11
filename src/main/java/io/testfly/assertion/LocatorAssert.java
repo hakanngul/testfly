@@ -158,10 +158,9 @@ public final class LocatorAssert {
     public LocatorAssert isEnabled() {
         StepLogger.step("Assert enabled: " + description);
         poll(d -> {
-            List<WebElement> els = d.findElements(by);
-            if (els.isEmpty())
+            WebElement el = target(d);
+            if (el == null)
                 return Check.fail("not found");
-            WebElement el = els.getFirst();
             if (!el.isDisplayed())
                 return Check.fail("not displayed");
             return el.isEnabled() ? Check.pass() : Check.fail("disabled");
@@ -173,10 +172,9 @@ public final class LocatorAssert {
     public LocatorAssert isDisabled() {
         StepLogger.step("Assert disabled: " + description);
         poll(d -> {
-            List<WebElement> els = d.findElements(by);
-            if (els.isEmpty())
+            WebElement el = target(d);
+            if (el == null)
                 return Check.fail("not found");
-            WebElement el = els.getFirst();
             if (!el.isDisplayed())
                 return Check.fail("not displayed");
             return !el.isEnabled() ? Check.pass() : Check.fail("enabled");
@@ -188,10 +186,10 @@ public final class LocatorAssert {
     public LocatorAssert isChecked() {
         StepLogger.step("Assert checked: " + description);
         poll(d -> {
-            List<WebElement> els = d.findElements(by);
-            if (els.isEmpty())
+            WebElement el = target(d);
+            if (el == null)
                 return Check.fail("not found");
-            return els.getFirst().isSelected() ? Check.pass() : Check.fail("not selected");
+            return el.isSelected() ? Check.pass() : Check.fail("not selected");
         }, "Expected element to be checked: " + description);
         return this;
     }
@@ -208,7 +206,8 @@ public final class LocatorAssert {
         StepLogger.step("Assert text '" + expected + "' for: " + description);
         poll(d -> {
             String text = d.findElement(by).getText();
-            return text != null && text.equals(expected) ? Check.pass() : Check.fail(quote(text));
+            String trimmed = text != null ? text.trim() : null;
+            return trimmed != null && trimmed.equals(expected) ? Check.pass() : Check.fail(quote(text));
         }, "Expected text [" + expected + "] for: " + description);
         return this;
     }
@@ -265,10 +264,10 @@ public final class LocatorAssert {
     public LocatorAssert hasAttribute(String attribute) {
         StepLogger.step("Assert attribute '" + attribute + "' exists for: " + description);
         poll(d -> {
-            List<WebElement> els = d.findElements(by);
-            if (els.isEmpty())
+            WebElement el = target(d);
+            if (el == null)
                 return Check.fail("not found");
-            return els.getFirst().getAttribute(attribute) != null ? Check.pass()
+            return el.getAttribute(attribute) != null ? Check.pass()
                     : Check.fail("attribute '" + attribute + "' absent");
         }, "Expected attribute [" + attribute + "] to exist for: " + description);
         return this;
@@ -281,10 +280,10 @@ public final class LocatorAssert {
     public LocatorAssert hasCssValue(String propertyName, String expectedValue) {
         StepLogger.step("Assert CSS " + propertyName + "='" + expectedValue + "' for: " + description);
         poll(d -> {
-            List<WebElement> els = d.findElements(by);
-            if (els.isEmpty())
+            WebElement el = target(d);
+            if (el == null)
                 return Check.fail("not found");
-            String val = els.getFirst().getCssValue(propertyName);
+            String val = el.getCssValue(propertyName);
             return expectedValue != null && expectedValue.equals(val) ? Check.pass()
                     : Check.fail(propertyName + "=" + quote(val));
         }, "Expected CSS property [" + propertyName + "='" + expectedValue + "'] for: " + description);
@@ -298,12 +297,12 @@ public final class LocatorAssert {
     public LocatorAssert isFocused() {
         StepLogger.step("Assert focused: " + description);
         poll(d -> {
-            List<WebElement> els = d.findElements(by);
-            if (els.isEmpty())
+            WebElement el = target(d);
+            if (el == null)
                 return Check.fail("not found");
             WebDriver.TargetLocator target = d.switchTo();
             WebElement active = target != null ? target.activeElement() : null;
-            return els.getFirst().equals(active) ? Check.pass()
+            return el.equals(active) ? Check.pass()
                     : Check.fail("focused element: " + describeElement(active));
         }, "Expected element to be focused: " + description);
         return this;
@@ -313,10 +312,10 @@ public final class LocatorAssert {
     public LocatorAssert hasClass(String className) {
         StepLogger.step("Assert has class '" + className + "' for: " + description);
         poll(d -> {
-            List<WebElement> els = d.findElements(by);
-            if (els.isEmpty())
+            WebElement el = target(d);
+            if (el == null)
                 return Check.fail("not found");
-            String classes = els.getFirst().getAttribute("class");
+            String classes = el.getAttribute("class");
             if (classes != null) {
                 for (String cls : classes.split("\\s+")) {
                     if (cls.equals(className))
@@ -385,17 +384,22 @@ public final class LocatorAssert {
 
     private void evaluateAi(String condition, boolean expectSatisfaction) {
         WebDriver driver = DriverManager.getDriver();
-        List<WebElement> els = driver.findElements(by);
-        if (els.isEmpty()) {
+        WebElement el;
+        try {
+            el = target(driver);
+        } catch (NoSuchElementException | LocatorException e) {
+            el = null;
+        }
+        if (el == null) {
             fail(prefix() + "Cannot evaluate AI condition: element not found for " + description, null);
             return;
         }
 
         String rawHtml;
         try {
-            rawHtml = els.getFirst().getAttribute("outerHTML");
+            rawHtml = el.getAttribute("outerHTML");
         } catch (Exception e) {
-            rawHtml = els.getFirst().getText();
+            rawHtml = el.getText();
         }
 
         String pruned = DomPruner.prune(rawHtml);
@@ -421,6 +425,19 @@ public final class LocatorAssert {
         static Check fail(String actual) {
             return new Check(false, actual);
         }
+    }
+
+    /**
+     * The element single-element matchers inspect, or {@code null} when nothing matches. A
+     * {@code Locator} picks its first visible match (see {@code SeleniumAssert.LocatorBy}); a plain
+     * {@code By} keeps its first match.
+     */
+    private WebElement target(WebDriver d) {
+        if (by instanceof SeleniumAssert.LocatorBy) {
+            return d.findElement(by);
+        }
+        List<WebElement> els = d.findElements(by);
+        return els.isEmpty() ? null : els.getFirst();
     }
 
     private String prefix() {

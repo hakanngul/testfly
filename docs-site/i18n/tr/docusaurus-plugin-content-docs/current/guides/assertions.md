@@ -8,7 +8,7 @@ sidebar_position: 4
 
 # Web-Öncelikli Doğrulamalar (Assertions)
 
-TestFly, Playwright'ın `expect()` ve AssertJ kütüphanelerinden esinlenen web-öncelikli assertion'lar sunar. Tüm doğrulamalar, koşul sağlanana veya zaman aşımına uğrayana kadar DOM'u `WebDriverWait` ile otomatik olarak yoklar (poll eder). Doğrulama öncesinde manuel bekleme veya `Thread.sleep()` yazmanıza gerek kalmaz.
+TestFly, Playwright'ın `expect()` ve AssertJ kütüphanelerinden esinlenen web-öncelikli assertion'lar sunar. DOM ve sayfa doğrulamalarının tümü, koşul sağlanana veya zaman aşımına uğrayana kadar `WebDriverWait` ile otomatik olarak yoklar (poll eder). İstisna [AI doğrulamalarıdır](#semantic-ai-assertions-satisfiesai--violatesai): bunlar yoklama yapmaz. Doğrulama öncesinde manuel bekleme veya `Thread.sleep()` yazmanıza gerek kalmaz.
 
 ```java
 import static io.testfly.assertion.SeleniumAssert.assertThat;
@@ -25,7 +25,13 @@ Geleneksel assertion'lar (TestNG `Assert.assertTrue(el.isDisplayed())` veya JUni
 TestFly'ın `assertThat()` mekanizması:
 1. `testfly.yml` dosyasındaki `timeouts.explicit` (varsayılan 10s) süresince **otomatik yeniden dener**.
 2. Her doğrulama adımını otomatik olarak [`StepLogger`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/steps/StepLogger.java)'a kaydeder ve HTML raporda görselleştirir.
-3. Hem Selenium [`By`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/assertion/SeleniumAssert.java) hem de akıcı [`Locator`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/locator/Locator.java) (`$()`, `getByRole()` vb.) nesneleriyle tam uyumlu çalışır.
+3. Hem Selenium [`By`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/assertion/SeleniumAssert.java) hem de akıcı [`Locator`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/locator/Locator.java) (`$()`, `getByRole()` vb.) nesnelerini kabul eder.
+
+### Hangi eleman kontrol edilir
+
+- `count`, hem `By` hem `Locator` için görünür veya gizli tüm eşleşmeleri sayar (`Locator.count()` ile aynı sayı).
+- Diğer matcher'lar tek bir elemanı kontrol eder. `By` ile bu ilk eşleşmedir. `Locator` ile zincirin tamamı (`filter`, `withText`, `nth`, ...) her yoklamada yeniden çözülür ve ilk **görünür** eşleşme kontrol edilir; görünür eşleşme yoksa ilk eşleşme kontrol edilir. Böylece gizli kopyalar (örneğin mobil ve masaüstü menü) görünür olanı gölgelemez, `input[type=hidden]` gibi gizli elemanlar da `hasValue` veya `hasAttribute` ile kontrol edilebilir.
+- Doğrulamalar `locators.strict` ayarını uygulamaz: birden fazla eşleşme hata sayılmaz.
 
 ---
 
@@ -41,7 +47,7 @@ assertThat(By.cssSelector(".spinner")).isHidden();
 ### Metin (Text)
 
 ```java
-// Birebir metin eşleşmesi (trimmed)
+// Elemanın metniyle birebir eşleşme; baştaki ve sondaki boşluklar kırpılır
 assertThat(By.tagName("h1")).hasText("Dashboard");
 
 // Alt metin içerme kontrolü
@@ -56,6 +62,8 @@ assertThat(By.id("delete-btn")).isDisabled();
 assertThat(By.id("terms-checkbox")).isChecked();
 assertThat(By.id("search-input")).isFocused();
 ```
+
+`isEnabled` ve `isDisabled` elemanın görünür olmasını da şart koşar; gizli bir eleman `actual: [not displayed]` ile başarısız olur. `isChecked`, yerel checkbox, radio button veya `<option>` elemanının seçili durumunu okur.
 
 ### Nitelikler & CSS (Attributes & CSS)
 
@@ -78,7 +86,7 @@ assertThat(By.id("item")).hasClass("active");
 
 ```java
 assertThat(By.cssSelector("table tbody tr")).count(5);
-assertThat($(".card")).count(3);
+assertThat($(".card")).count(3);   // gizli kartlar da sayılır
 ```
 
 ### Sayfa ve URL Doğrulamaları (PageAssert)
@@ -134,6 +142,8 @@ assertThat(By.id("user-avatar"))
 // Başarısız olursa: "[OAuth girişi sonrası profil resmi] Expected element to be visible: By.id: user-avatar (actual: [not found], timeout: 10s)"
 ```
 
+`describedAs(...)`, `as(...)` ile aynıdır. Sayfa doğrulamaları (`assertThat(getDriver())`, `assertThatPage()`) bunun yerine mevcut başlık ve URL'yi raporlar: `(actual title: [...], actual url: [...], timeout: ...)`.
+
 ### `actual` ne raporlar
 
 Her hata `(actual: [...], timeout: ...)` ile biter ve polling sırasında gözlenen son değeri gösterir:
@@ -141,11 +151,20 @@ Her hata `(actual: [...], timeout: ...)` ile biter ve polling sırasında gözle
 | Doğrulama | `actual` gösterir |
 |---|---|
 | `hasText`, `containsText` | elemanın metni, tırnak içinde, tek satır (en fazla 200 karakter) |
-| `hasValue`, `hasAttribute`, `hasCssValue`, `hasClass` | gözlenen değer veya `attribute 'x' absent` |
-| `isVisible`, `isEnabled`, `isChecked`, `isFocused` | `not displayed`, `disabled`, `not selected`, `focused element: <input#other>` veya `not found` |
-| `count` | bulunan eleman sayısı |
+| `hasValue` | tırnak içinde değer, değer yoksa `null` |
+| `hasAttribute(name, value)` | `name="..."` veya `attribute 'name' absent` |
+| `hasAttribute(name)` | `attribute 'name' absent` |
+| `hasCssValue` | `property="..."` |
+| `hasClass` | `class="..."` |
+| `isVisible`, `isHidden` | `not displayed`, `displayed` |
+| `isEnabled`, `isDisabled` | `not displayed`, `disabled`, `enabled` |
+| `isChecked` | `not selected` |
+| `isFocused` | `focused element: <input#other>` |
+| `count` | bulunan eleman sayısı, örneğin `2 element(s)` |
 
-Hiç görünmeyen bir `within(By)` kapsayıcısı artık `LocatorException` sızdırmak yerine normal bir `AssertionError` ile başarısız olur (`actual: [locator failed: ...]`).
+Tek elemanlı matcher'ların tümü, eşleşme yoksa `not found`, kontrol sırasında sayfa elemanı değiştirdiyse `element went stale` raporlar.
+
+Bir `Locator` çözülemezse, örneğin `$(".row").within(By.id("grid"))` kapsayıcısı hiç görünmezse veya `nth(5)` aralık dışındaysa, doğrulama `LocatorException` yerine normal bir `AssertionError` ile başarısız olur (`actual: [locator failed: ...]`).
 
 ---
 
@@ -168,6 +187,8 @@ softAssert(By.id("status-badge")).hasText("Active");
 // Framework test bitiminde tüm hataları topluca raporlar ve testi fail eder.
 ```
 
+Sayfa durumu da aynı şekilde çalışır: `softAssert(getDriver()).hasTitle("Dashboard")` veya `softAssertPage().urlContains("/orders")`.
+
 ### 2. Akıcı `.softly()` Niteleyicisi
 
 ```java
@@ -186,6 +207,26 @@ Geleneksel boolean doğrulamaları da dilediğiniz gibi kullanabilirsiniz:
 ```java
 softAssert().that(items.size() > 0, "Öğe listesi boş olmamalı");
 ```
+
+---
+
+## Semantik AI Doğrulamaları (`satisfiesAi` & `violatesAi`) {#semantic-ai-assertions-satisfiesai--violatesai}
+
+Karmaşık sayfa durumları, dinamik mesajlar veya birebir metin eşleşmesinin kırılgan kaldığı görsel akışlar için TestFly, LLM ile değerlendirilen semantik doğrulamalar sunar:
+
+```java
+// Sayfa düzeyinde semantik kontrol
+assertThatPage().satisfiesAi("Sepet özeti toplam fiyatı ve en az 1 ürünü gösteriyor");
+assertThatPage().violatesAi("Hata banner'ı, erişim reddi veya 500 sunucu uyarısı");
+
+// BaseTest/BasePage içindeki kısayol
+assertWithAi("Kullanıcı profili aktif abonelik durumunu gösteriyor");
+
+// Eleman düzeyinde semantik kontrol
+assertThat(find(".status-pill")).satisfiesAi("Başarılı bir ödemeyi gösteriyor");
+```
+
+Tüm ayrıntılar, aşırı istek (throttle) korumaları ve örnekler için [Agentic Testing & Otonom AI Rehberi](../ai/agentic-testing#2-semantik-doğrulamalar-satisfiesai--violatesai)'ne bakın.
 
 ---
 

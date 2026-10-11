@@ -8,7 +8,7 @@ sidebar_position: 4
 
 # Web-First Assertions
 
-TestFly provides web-first assertions inspired by Playwright's `expect()` and AssertJ. All assertions poll the DOM via `WebDriverWait` until the condition is met or the timeout is exceeded. You never need to write manual waits or `Thread.sleep()` before asserting.
+TestFly provides web-first assertions inspired by Playwright's `expect()` and AssertJ. All DOM and page assertions poll via `WebDriverWait` until the condition is met or the timeout is exceeded (the [AI assertions](#semantic-ai-assertions-satisfiesai--violatesai) are the exception: they do not poll). You never need to write manual waits or `Thread.sleep()` before asserting.
 
 ```java
 import static io.testfly.assertion.SeleniumAssert.assertThat;
@@ -25,7 +25,13 @@ Traditional assertions (like TestNG `Assert.assertTrue(el.isDisplayed())` or JUn
 TestFly's `assertThat()`:
 1. **Auto-retries** during the configured `timeouts.explicit` (default 10s).
 2. **Logs each step** automatically into [`StepLogger`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/steps/StepLogger.java) and surfaces it in the HTML report.
-3. **Works seamlessly** with both Selenium [`By`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/assertion/SeleniumAssert.java) and fluent [`Locator`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/locator/Locator.java) instances (`$()`, `getByRole()`, etc.).
+3. **Accepts** both Selenium [`By`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/assertion/SeleniumAssert.java) and fluent [`Locator`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/locator/Locator.java) instances (`$()`, `getByRole()`, etc.).
+
+### Which element is checked
+
+- `count` counts every match, visible or hidden, for both `By` and `Locator` (the same number `Locator.count()` returns).
+- The other matchers check a single element. With a `By`, that is the first match. With a `Locator`, the whole chain (`filter`, `withText`, `nth`, ...) is resolved again on each poll and the first **visible** match is checked; if no match is visible, the first match is checked. This way hidden duplicates (for example a mobile and a desktop menu) do not hide the visible one, and hidden elements such as `input[type=hidden]` can still be checked with `hasValue` or `hasAttribute`.
+- Assertions do not apply `locators.strict`: several matches are not an error.
 
 ---
 
@@ -41,7 +47,7 @@ assertThat(By.cssSelector(".spinner")).isHidden();
 ### Text
 
 ```java
-// Exact text match (trimmed)
+// Exact match against the element's text, with leading/trailing whitespace trimmed
 assertThat(By.tagName("h1")).hasText("Dashboard");
 
 // Substring containment
@@ -56,6 +62,8 @@ assertThat(By.id("delete-btn")).isDisabled();
 assertThat(By.id("terms-checkbox")).isChecked();
 assertThat(By.id("search-input")).isFocused();
 ```
+
+`isEnabled` and `isDisabled` also require the element to be displayed; a hidden element fails with `actual: [not displayed]`. `isChecked` reads the selected state of a native checkbox, radio button or `<option>`.
 
 ### Attributes & CSS
 
@@ -78,7 +86,7 @@ assertThat(By.id("item")).hasClass("active");
 
 ```java
 assertThat(By.cssSelector("table tbody tr")).count(5);
-assertThat($(".card")).count(3);
+assertThat($(".card")).count(3);   // hidden cards are counted too
 ```
 
 ### Page & URL (PageAssert)
@@ -134,6 +142,8 @@ assertThat(By.id("user-avatar"))
 // If it fails: "[User profile picture after OAuth login] Expected element to be visible: By.id: user-avatar (actual: [not found], timeout: 10s)"
 ```
 
+`describedAs(...)` is an alias for `as(...)`. Page assertions (`assertThat(getDriver())`, `assertThatPage()`) report the current title and URL instead: `(actual title: [...], actual url: [...], timeout: ...)`.
+
 ### What `actual` reports
 
 Every failure ends with `(actual: [...], timeout: ...)` showing the last value observed while polling:
@@ -141,11 +151,20 @@ Every failure ends with `(actual: [...], timeout: ...)` showing the last value o
 | Assertion | `actual` shows |
 |---|---|
 | `hasText`, `containsText` | the element's text, quoted, on one line (max 200 chars) |
-| `hasValue`, `hasAttribute`, `hasCssValue`, `hasClass` | the observed value, or `attribute 'x' absent` |
-| `isVisible`, `isEnabled`, `isChecked`, `isFocused` | `not displayed`, `disabled`, `not selected`, `focused element: <input#other>` or `not found` |
-| `count` | the number of elements found |
+| `hasValue` | the value, quoted, or `null` when the element has none |
+| `hasAttribute(name, value)` | `name="..."`, or `attribute 'name' absent` |
+| `hasAttribute(name)` | `attribute 'name' absent` |
+| `hasCssValue` | `property="..."` |
+| `hasClass` | `class="..."` |
+| `isVisible`, `isHidden` | `not displayed`, `displayed` |
+| `isEnabled`, `isDisabled` | `not displayed`, `disabled`, `enabled` |
+| `isChecked` | `not selected` |
+| `isFocused` | `focused element: <input#other>` |
+| `count` | the number of elements found, e.g. `2 element(s)` |
 
-A `within(By)` container that never appears now fails as a normal `AssertionError` (`actual: [locator failed: ...]`) instead of leaking a `LocatorException`.
+Every single-element matcher reports `not found` when nothing matches, and `element went stale` when the page replaced the element during the check.
+
+If a `Locator` cannot be resolved, for example because the container of `$(".row").within(By.id("grid"))` never appears or `nth(5)` is out of range, the assertion fails with a normal `AssertionError` (`actual: [locator failed: ...]`) instead of a `LocatorException`.
 
 ---
 
@@ -168,6 +187,8 @@ softAssert(By.id("status-badge")).hasText("Active");
 // Framework flushes and reports all failures at test completion.
 ```
 
+Page state works the same way: `softAssert(getDriver()).hasTitle("Dashboard")` or `softAssertPage().urlContains("/orders")`.
+
 ### 2. Fluent `.softly()` Modifier
 
 ```java
@@ -189,7 +210,7 @@ softAssert().that(items.size() > 0, "Item list should not be empty");
 
 ---
 
-## Semantic AI Assertions (`satisfiesAi` & `violatesAi`)
+## Semantic AI Assertions (`satisfiesAi` & `violatesAi`) {#semantic-ai-assertions-satisfiesai--violatesai}
 
 For complex page states, dynamic messages, or visual flows where exact string matching is brittle, TestFly provides LLM-evaluated semantic assertions:
 
