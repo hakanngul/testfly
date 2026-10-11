@@ -66,6 +66,10 @@ assertThat(getByRole(Role.HEADING)).hasText("Welcome back");
 assertThat(find(".cart-count")).hasText("3");
 ```
 
+### Strict mode
+
+Playwright rejects an action on a locator that matches several elements. TestFly makes this opt-in with `locators.strict: true`; narrow with `first()`, `nth()` or `last()`. See [Strict mode](/docs/guides/semantic-locators#strict-mode).
+
 ### Convention over configuration
 
 Both tools favour sensible defaults over ceremony. In TestFly you add one dependency, extend `BaseTest`, and driver lifecycle, waits, retries, and reporting are already wired — `testfly.yml` is optional.

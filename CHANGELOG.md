@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [1.1.0] — Unreleased
 
+### Added
+- **Strict mode** (`locators.strict`, default `false`): when enabled, an action on a locator that matches more than one visible element and is not narrowed with `first()`, `nth()` or `last()` fails with a strict mode violation that lists the candidates, instead of silently using the first match. `isVisible()` and `isEnabled()` surface the violation too. `count()`, `elements()` and `assertThat(...)` are unaffected.
+
 ### Changed
 - **Assertion failure diagnostics**: `LocatorAssert` failures now end with `(actual: [...], timeout: ...)` showing the last observed text, value, attribute, CSS value, class list, element count or element state. A `within(By)` container that never appears now fails as an `AssertionError` instead of leaking a `LocatorException`. Tools that match the exact old message suffix `(timeout: Ns)` should be updated; the prefix is unchanged.
 

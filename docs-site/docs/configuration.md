@@ -189,6 +189,7 @@ locators:
   aiHealing: false                  # fallback to LLM when static heuristics fail
   maxDomTokens: 8000                # token limit for DOM pruning
   testIdAttribute: data-testid      # attribute queried by getByTestId()
+  strict: false                     # fail when an action locator matches >1 visible element
 
 # ── AI Failure Analysis & Agentic Testing ─────────────────────────────────────
 ai:
@@ -582,6 +583,7 @@ Smart locator synthesis and resilience settings.
 | `aiHealing` | `boolean` | `false` | When enabled, uses LLM reasoning to synthesize resilient fallback locators when static regex strategies fail. |
 | `maxDomTokens` | `int` | `8000` | Maximum token budget for DOM pruning when sending DOM to LLM. |
 | `testIdAttribute` | `string` | `data-testid` | The HTML attribute targeted by `getByTestId("submit-btn")`. Can be configured to `data-qa`, `data-test`, etc. |
+| `strict` | `boolean` | `false` | When `true`, an action (or `isVisible()`/`isEnabled()`) on a locator that matches more than one **visible** element fails with a strict mode violation, unless the locator is narrowed with `first()`, `nth()` or `last()`. |
 
 ---
 

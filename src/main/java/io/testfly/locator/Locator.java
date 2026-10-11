@@ -10,7 +10,10 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.config.TestFlyConfig;
 import io.testfly.driver.DriverManager;
+import io.testfly.internal.ElementDescriber;
+import io.testfly.internal.TestFlyContext;
 import io.testfly.steps.StepLogger;
 import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.Keys;
@@ -441,6 +444,8 @@ public final class Locator extends By {
     public boolean isVisible() {
         try {
             return resolveNow().isDisplayed();
+        } catch (StrictViolationException e) {
+            throw e;
         } catch (Exception e) {
             return false;
         }
@@ -455,6 +460,8 @@ public final class Locator extends By {
     public boolean isEnabled() {
         try {
             return resolveNow().isEnabled();
+        } catch (StrictViolationException e) {
+            throw e;
         } catch (Exception e) {
             return false;
         }
@@ -563,7 +570,48 @@ public final class Locator extends By {
     }
 
     private WebElement pick(List<WebElement> candidates) {
+        if (candidates.size() > 1 && nthIndex < 0 && !selectLast && strictMode()) {
+            // Count visible candidates only: responsive layouts routinely keep hidden
+            // duplicates (mobile/desktop navs, hidden modals) in the DOM.
+            List<WebElement> visible = candidates.stream().filter(Locator::safeDisplayed).toList();
+            if (visible.size() > 1) {
+                throw new StrictViolationException("Strict mode violation: " + describe() + " resolved to "
+                        + visible.size() + " visible elements; use first()/nth()/last() or narrow the locator."
+                        + " Candidates: " + ElementDescriber.describe(visible, 3));
+            }
+            if (visible.size() == 1) {
+                return visible.getFirst();
+            }
+        }
         return selectLast ? candidates.getLast() : candidates.getFirst();
+    }
+
+    /**
+     * Marks an ambiguous-locator failure so boolean queries such as
+     * {@link #isVisible()} surface it instead of reporting "not visible".
+     */
+    private static final class StrictViolationException extends LocatorException {
+        StrictViolationException(String message) {
+            super(message);
+        }
+    }
+
+    /** Reads {@code locators.strict} lazily so unit tests can mock the context. */
+    private static boolean strictMode() {
+        try {
+            TestFlyConfig config = TestFlyContext.getConfig();
+            return config != null && config.getLocators() != null && config.getLocators().isStrict();
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    private static boolean safeDisplayed(WebElement el) {
+        try {
+            return el.isDisplayed();
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     /**

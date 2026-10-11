@@ -1028,6 +1028,23 @@ public final class TestFlyConfig {
         private boolean aiHealing = false;
         private int maxDomTokens = 8000;
         private String testIdAttribute = "data-testid";
+        // TODO(2.0): consider defaulting to true, as Playwright does.
+        private boolean strict = false;
+
+        /**
+         * When true, an action on a locator that matches more than one visible element
+         * (and is not narrowed with first()/nth()/last()) fails instead of silently
+         * using the first match.
+         */
+        @TestFlyApi(since = "1.1.0")
+        public boolean isStrict() {
+            return strict;
+        }
+
+        @TestFlyApi(since = "1.1.0")
+        public void setStrict(boolean strict) {
+            this.strict = strict;
+        }
 
         /** Overridable from the umbrella via {@code features.healing}. */
         public boolean isSelfHealing() {

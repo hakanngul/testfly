@@ -101,6 +101,30 @@ getByPlaceholder("Arama").type(null);
 
 ---
 
+## Strict mode
+
+Varsayılan olarak birden fazla elemanla eşleşen bir locator üzerinde aksiyon,
+uyarı vermeden ilk eşleşmeyi kullanır. `testfly.yml` içinde
+`locators.strict: true` yazarsanız bu durum hataya dönüşür ve bir tıklama sessizce
+yanlış butona gidemez:
+
+```
+Strict mode violation: Locator[getByRole(button)] resolved to 3 visible elements;
+use first()/nth()/last() or narrow the locator.
+Candidates: <button#save "Kaydet">, <button#cancel "İptal">, <button#help "Yardım">
+```
+
+- Yalnızca **görünür** eşleşmeler sayılır. Gizli kopyalar (mobil ve masaüstü
+  menü, kapalı bir modal) ihlal sayılmaz. Tam olarak bir eşleşme görünürse o
+  kullanılır.
+- `first()`, `nth(i)` ve `last()` bilinçli olarak kuralın dışına çıkar.
+- Aksiyonlara, `element()`, `isVisible()` ve `isEnabled()` metotlarına uygulanır.
+  `count()`, `elements()` ve `assertThat(...)` doğrulamalarına uygulanmaz.
+- Kontrol locator çözüldüğünde yapılır, bu yüzden zaman aşımını beklemeden hemen
+  hata verir.
+
+---
+
 ## YAML ile locator tanımlama
 
 `LocatorRepository`, adlandırılmış locator'ları bir YAML dosyasından yükler.

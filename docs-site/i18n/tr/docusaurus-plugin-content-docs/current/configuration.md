@@ -170,6 +170,7 @@ locators:
   aiHealing: false                  # statik sezgiseller yetersiz kaldığında LLM ile seçici onarımı
   maxDomTokens: 8000                # AI seçici onarımı için DOM budama belirteç (token) limiti
   testIdAttribute: data-testid      # getByTestId() tarafından sorgulanacak HTML özniteliği
+  strict: false                     # aksiyon locator'ı birden fazla görünür elemanla eşleşirse hata ver
 
 # ── AI Failure Analysis (AI Hata Analizi) ────────────────────────────────────
 ai:
@@ -563,6 +564,7 @@ Akıllı seçici sentezi ve dayanıklılık ayarları.
 | `aiHealing` | `boolean` | `false` | Standart sezgiseller yetersiz kaldığında LLM ile seçici sentezlemeyi açar. |
 | `maxDomTokens` | `int` | `8000` | AI seçici onarımında modele gönderilecek budanmış DOM token bütçesi. |
 | `testIdAttribute` | `string` | `data-testid` | `getByTestId("submit-btn")` çağrısının hedeflediği HTML niteliği (`data-qa`, `data-test` vb. olarak değiştirilebilir). |
+| `strict` | `boolean` | `false` | `true` olduğunda, birden fazla **görünür** elemanla eşleşen bir locator üzerinde aksiyon (veya `isVisible()`/`isEnabled()`) `first()`, `nth()` ya da `last()` ile daraltılmadıkça strict mode ihlaliyle başarısız olur. |
 
 ---
 

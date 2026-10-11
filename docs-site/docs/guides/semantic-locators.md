@@ -114,6 +114,29 @@ getByPlaceholder("Search").type(null);
 
 ---
 
+## Strict mode
+
+By default an action on a locator that matches several elements uses the first
+match without warning. Set `locators.strict: true` in `testfly.yml` to turn that
+into a failure, so a click can never silently land on the wrong button:
+
+```
+Strict mode violation: Locator[getByRole(button)] resolved to 3 visible elements;
+use first()/nth()/last() or narrow the locator.
+Candidates: <button#save "Save">, <button#cancel "Cancel">, <button#help "Help">
+```
+
+- Only **visible** matches count, so hidden duplicates (a mobile and a desktop
+  nav, a closed modal) do not trigger it. If exactly one match is visible, that
+  one is used.
+- `first()`, `nth(i)` and `last()` opt out explicitly.
+- It applies to actions, `element()`, `isVisible()` and `isEnabled()`. It does
+  not apply to `count()`, `elements()` or `assertThat(...)` assertions.
+- The check runs once the locator resolves, so it fails immediately instead of
+  waiting for the timeout.
+
+---
+
 ## Declaring locators in YAML
 
 `LocatorRepository` loads named locators from a YAML file so selectors live in

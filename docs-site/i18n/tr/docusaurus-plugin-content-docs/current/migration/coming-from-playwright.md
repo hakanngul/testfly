@@ -66,6 +66,10 @@ assertThat(getByRole(Role.HEADING)).hasText("Welcome back");
 assertThat(find(".cart-count")).hasText("3");
 ```
 
+### Strict mode
+
+Playwright, birden fazla elemanla eşleşen bir locator üzerindeki aksiyonu reddeder. TestFly bunu `locators.strict: true` ile isteğe bağlı sunar; `first()`, `nth()` veya `last()` ile daraltabilirsiniz. Bkz. [Strict mode](/docs/guides/semantic-locators#strict-mode).
+
 ### Ayarlardan çok kural (Convention over configuration)
 
 Her iki araç da törenden çok mantıklı varsayılanları tercih eder. TestFly'da bir bağımlılık eklersiniz, `BaseTest`'i genişletirsiniz ve driver yaşam döngüsü, bekleme, yeniden deneme ve raporlama zaten bağlanmıştır — `testfly.yml` opsiyoneldir.
