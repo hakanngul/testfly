@@ -3,6 +3,8 @@ package io.testfly.locator;
 import java.util.ArrayList;
 import java.util.List;
 import org.openqa.selenium.By;
+import org.openqa.selenium.ElementClickInterceptedException;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -15,7 +17,9 @@ import io.testfly.driver.DriverManager;
 import io.testfly.internal.ElementDescriber;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.steps.StepLogger;
+import io.testfly.wait.ActionKind;
 import io.testfly.wait.WaitEngine;
+import java.util.function.Consumer;
 import org.openqa.selenium.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +74,7 @@ public final class Locator extends By {
     private By withinContainer;
     private int nthIndex = -1; // -1 = no nth filter
     private boolean selectLast = false;
+    private boolean force = false; // skip the stable / not-covered actionability checks
 
     // ------------------------------------------------------------------
     // Factory — called from BasePage / BaseTest via $() and getBy*()
@@ -218,11 +223,28 @@ public final class Locator extends By {
         this.withinContainer = other.withinContainer;
         this.nthIndex = other.nthIndex;
         this.selectLast = other.selectLast;
+        this.force = other.force;
     }
 
     // ------------------------------------------------------------------
     // Chain methods
     // ------------------------------------------------------------------
+
+    /**
+     * Skips the "stable" and "not covered by another element" actionability checks
+     * for actions on this locator (Playwright's {@code force: true}). The element
+     * must still be visible, and enabled where the action needs it.
+     *
+     * <pre>
+     * find("#banner-close").force().click();
+     * </pre>
+     */
+    @TestFlyApi(since = "1.1.0")
+    public Locator force() {
+        Locator copy = new Locator(this);
+        copy.force = true;
+        return copy;
+    }
 
     /**
      * Narrow results to elements that also match the given CSS selector.
@@ -364,7 +386,7 @@ public final class Locator extends By {
     /** Waits for the element to be clickable, then clicks it. */
     public void click() {
         StepLogger.step("Click " + this);
-        waitForClickable(resolve()).click();
+        performAction(ActionKind.CLICK, WebElement::click);
     }
 
     /**
@@ -375,8 +397,7 @@ public final class Locator extends By {
      */
     public void clear() {
         StepLogger.step("Clear " + this);
-        WebElement el = waitForVisible(resolve());
-        robustClear(el);
+        performAction(ActionKind.EDIT, Locator::robustClear);
     }
 
     /**
@@ -405,18 +426,19 @@ public final class Locator extends By {
      */
     public void type(String text) {
         StepLogger.step("Type into " + this);
-        WebElement el = waitForVisible(resolve());
-        robustClear(el);
-        if (text != null && !text.isEmpty()) {
-            el.sendKeys(text);
-        }
+        performAction(ActionKind.EDIT, el -> {
+            robustClear(el);
+            if (text != null && !text.isEmpty()) {
+                el.sendKeys(text);
+            }
+        });
     }
 
     /** Appends text without clearing first. */
     public void append(String text) {
         StepLogger.step("Append into " + this);
         if (text != null && !text.isEmpty()) {
-            waitForVisible(resolve()).sendKeys(text);
+            performAction(ActionKind.EDIT, el -> el.sendKeys(text));
         }
     }
 
@@ -470,8 +492,7 @@ public final class Locator extends By {
     /** Hovers over the element using Actions. */
     public void hover() {
         StepLogger.step("Hover " + this);
-        WebElement el = waitForVisible(resolve());
-        new Actions(driver()).moveToElement(el).perform();
+        performAction(ActionKind.HOVER, el -> new Actions(driver()).moveToElement(el).perform());
     }
 
     /** Scrolls the element into view using JavaScript. */
@@ -481,7 +502,10 @@ public final class Locator extends By {
         ((JavascriptExecutor) driver()).executeScript("arguments[0].scrollIntoView(true);", el);
     }
 
-    /** Clicks using JavaScript — useful when element is obscured. */
+    /**
+     * Clicks using JavaScript — useful when element is obscured. To keep the native
+     * click but skip the obscured/stable checks, use {@link #force()} instead.
+     */
     public void jsClick() {
         StepLogger.step("JS click " + this);
         WebElement el = waitForVisible(resolve());
@@ -554,6 +578,38 @@ public final class Locator extends By {
             throw new LocatorException(
                     lastFailure[0] != null ? lastFailure[0] : "No element found for: " + describe(), e);
         }
+    }
+
+    private static final int MAX_ACTION_ATTEMPTS = 3;
+
+    /**
+     * Resolves the element, waits until it is actionable and runs the action. If the
+     * page re-renders between resolving and acting (stale element) or an overlay
+     * appears after the check (click intercepted), the chain is resolved again.
+     */
+    private void performAction(ActionKind actionKind, Consumer<WebElement> action) {
+        RuntimeException last = null;
+        for (int attempt = 1; attempt <= MAX_ACTION_ATTEMPTS; attempt++) {
+            WebElement el = resolve();
+            try {
+                WebElement ready = force ? legacyWait(el, actionKind) : WaitEngine.waitForActionable(el, actionKind);
+                action.accept(ready);
+                return;
+            } catch (StaleElementReferenceException | ElementClickInterceptedException e) {
+                if (kind == Kind.ELEMENT) {
+                    throw e; // a fixed element cannot be re-resolved
+                }
+                last = e;
+                LOGGER.debug("{} on {} attempt {} failed ({}); resolving again", actionKind, describe(), attempt,
+                        e.getClass().getSimpleName());
+            }
+        }
+        throw new LocatorException("Element kept going stale or being covered after " + MAX_ACTION_ATTEMPTS
+                + " attempts: " + describe(), last);
+    }
+
+    private static WebElement legacyWait(WebElement el, ActionKind actionKind) {
+        return actionKind == ActionKind.CLICK ? WaitEngine.waitForClickable(el) : WaitEngine.waitForVisible(el);
     }
 
     /** Single-shot resolution (no waiting) — used by {@code isVisible()}/{@code isEnabled()}. */
@@ -949,6 +1005,8 @@ public final class Locator extends By {
             sb.append(".withText(\"").append(withText).append("\")");
         if (nthIndex >= 0)
             sb.append(".nth(").append(nthIndex).append(")");
+        if (force)
+            sb.append(".force()");
         return sb.toString();
     }
 

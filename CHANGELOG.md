@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [1.1.0] — Unreleased
 
 ### Added
+- **Actionability** (`actionability.*`, enabled by default): `click`, `hover`, `type`, `clear` and `append` now wait until the element is visible, enabled where relevant, stable (bounding box unchanged between two polls) and not covered by another element, scrolling it into view when needed. A failure throws `NotActionableException` naming the element and the blocker. The locator chain is resolved again when the element goes stale or a click is intercepted. New `WaitEngine.waitForActionable(...)` overloads, `ActionKind`, and `Locator.force()` to skip the stable and not-covered checks. Set `actionability.enabled: false` to restore the previous waits. `BasePage.doubleClick`, `rightClick`, `selectBy*` and `BaseConditions.click/type` use the same checks. The checks fail open when JavaScript is unavailable. Each action waits about one extra polling interval (100 ms by default).
 - **Strict mode** (`locators.strict`, default `false`): when enabled, an action on a locator that matches more than one visible element and is not narrowed with `first()`, `nth()` or `last()` fails with a strict mode violation that lists the candidates, instead of silently using the first match. `isVisible()` and `isEnabled()` surface the violation too. `count()`, `elements()` and `assertThat(...)` are unaffected.
 
 ### Changed

@@ -13,6 +13,7 @@ import io.testfly.test.support.NavigationSupport;
 import io.testfly.test.support.SoftAssertSupport;
 import io.testfly.test.support.StepSupport;
 import io.testfly.test.support.VisualSupport;
+import io.testfly.wait.ActionKind;
 import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
@@ -184,7 +185,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     protected void selectByText(By locator, String text) {
         step("Select by text in " + locator);
-        new Select(WaitEngine.waitForVisible(locator)).selectByVisibleText(text);
+        new Select(WaitEngine.waitForActionable(locator, ActionKind.EDIT)).selectByVisibleText(text);
     }
 
     /**
@@ -197,7 +198,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     protected void selectByValue(By locator, String value) {
         step("Select by value in " + locator);
-        new Select(WaitEngine.waitForVisible(locator)).selectByValue(value);
+        new Select(WaitEngine.waitForActionable(locator, ActionKind.EDIT)).selectByValue(value);
     }
 
     /**
@@ -209,7 +210,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     protected void selectByIndex(By locator, int index) {
         step("Select by index in " + locator);
-        new Select(WaitEngine.waitForVisible(locator)).selectByIndex(index);
+        new Select(WaitEngine.waitForActionable(locator, ActionKind.EDIT)).selectByIndex(index);
     }
 
     /**
@@ -312,7 +313,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     protected void doubleClick(By locator) {
         step("Double-click " + locator);
-        WebElement el = WaitEngine.waitForClickable(locator);
+        WebElement el = WaitEngine.waitForActionable(locator, ActionKind.CLICK);
         new Actions(getDriver()).doubleClick(el).perform();
     }
 
@@ -321,7 +322,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
      */
     protected void rightClick(By locator) {
         step("Right-click " + locator);
-        WebElement el = WaitEngine.waitForVisible(locator);
+        WebElement el = WaitEngine.waitForActionable(locator, ActionKind.CLICK);
         new Actions(getDriver()).contextClick(el).perform();
     }
 

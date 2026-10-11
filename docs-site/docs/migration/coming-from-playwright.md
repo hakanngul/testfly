@@ -52,8 +52,10 @@ See [Accessibility-First Locators](/docs/guides/semantic-locators).
 Like Playwright, actions wait for the element to be actionable before interacting — no `Thread.sleep()`, no manually constructed waits.
 
 ```java
-find("#login").click();   // auto-waits for the element to be clickable
+find("#login").click();   // waits until visible, enabled, stable and not covered
 ```
+
+Actionability matches Playwright's checks: visible, enabled, stable (not animating) and receiving events (not covered by another element). Playwright's `{ force: true }` maps to `.force()`; see [Actionability](/docs/guides/wait-engine#actionability).
 
 When you need an explicit condition, [`WaitEngine`](/docs/guides/wait-engine) gives you a fluent, pre-configured wait — the Selenium equivalent of Playwright's `expect(...).toBeVisible()` waiting.
 

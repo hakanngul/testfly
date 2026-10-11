@@ -61,6 +61,8 @@ require 'target/loadtest/<run-id>/' docs-site/docs/loadtest/reporting.md
 require 'target/loadtest/<run-id>/' docs-site/i18n/tr/docusaurus-plugin-content-docs/current/loadtest/reporting.md
 require 'failOnNewBaseline' docs-site/docs/configuration.md
 require 'failOnNewBaseline' docs-site/i18n/tr/docusaurus-plugin-content-docs/current/configuration.md
+require 'actionability:' docs-site/docs/configuration.md
+require 'actionability:' docs-site/i18n/tr/docusaurus-plugin-content-docs/current/configuration.md
 
 if [[ "$failed" -ne 0 ]]; then
   exit 1

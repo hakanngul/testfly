@@ -191,6 +191,13 @@ locators:
   testIdAttribute: data-testid      # attribute queried by getByTestId()
   strict: false                     # fail when an action locator matches >1 visible element
 
+# ── Actionability ────────────────────────────────────────────────────────────
+actionability:
+  enabled: true                     # wait until the element is stable and not covered before click/hover/type
+  stabilityIntervalMs: 100          # polling interval (10-5000) while waiting for the element to settle
+  hitTargetCheck: true              # fail while another element covers the click point
+  autoScroll: true                  # scroll the element into view when it is off-screen or covered
+
 # ── AI Failure Analysis & Agentic Testing ─────────────────────────────────────
 ai:
   enabled: true                     # master switch for EVERY AI surface (also settable via features.ai)
@@ -584,6 +591,20 @@ Smart locator synthesis and resilience settings.
 | `maxDomTokens` | `int` | `8000` | Maximum token budget for DOM pruning when sending DOM to LLM. |
 | `testIdAttribute` | `string` | `data-testid` | The HTML attribute targeted by `getByTestId("submit-btn")`. Can be configured to `data-qa`, `data-test`, etc. |
 | `strict` | `boolean` | `false` | When `true`, an action (or `isVisible()`/`isEnabled()`) on a locator that matches more than one **visible** element fails with a strict mode violation, unless the locator is narrowed with `first()`, `nth()` or `last()`. |
+
+---
+
+## Actionability {#actionability}
+
+Before `click`, `hover`, `type`, `clear` and `append`, the element must be ready for
+that interaction. See [Actionability](/docs/guides/wait-engine#actionability).
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `boolean` | `true` | Master switch. `false` restores the earlier waits (visible and enabled only). |
+| `stabilityIntervalMs` | `int` | `100` | Polling interval while waiting for the element to stop moving. Must be between 10 and 5000. |
+| `hitTargetCheck` | `boolean` | `true` | Wait while another element covers the click point. Does not apply to typing. |
+| `autoScroll` | `boolean` | `true` | Scroll the element into view when its centre is off-screen or covered. |
 
 ---
 

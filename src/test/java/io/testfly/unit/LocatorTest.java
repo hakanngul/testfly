@@ -555,4 +555,81 @@ public class LocatorTest {
     public void strict_configDefaultsToFalse() {
         assertFalse(new TestFlyConfig.Locators().isStrict());
     }
+
+    // ----------------------------------------------------------
+    // Actionability: retry and force()
+    // ----------------------------------------------------------
+
+    private WebElement clickableEl() {
+        WebElement el = mock(WebElement.class);
+        when(el.isDisplayed()).thenReturn(true);
+        when(el.isEnabled()).thenReturn(true);
+        return el;
+    }
+
+    private long scriptCalls() {
+        return Mockito.mockingDetails(lastMockDriver).getInvocations().stream()
+                .filter(i -> i.getMethod().getName().equals("executeScript")).count();
+    }
+
+    @Test
+    public void click_interceptedOnce_resolvesAgainAndRetries() {
+        MockedStatic<?>[] mocks = setupMocks(false, false);
+        try {
+            By by = By.cssSelector("#btn");
+            WebElement el = clickableEl();
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(el));
+            Mockito.doThrow(new org.openqa.selenium.ElementClickInterceptedException("covered"))
+                    .doNothing().when(el).click();
+
+            Locator.of(by).click();
+
+            Mockito.verify(el, Mockito.times(2)).click();
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void click_keepsGoingStale_failsAfterThreeAttempts() {
+        MockedStatic<?>[] mocks = setupMocks(false, false);
+        try {
+            By by = By.cssSelector("#btn");
+            WebElement el = clickableEl();
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(el));
+            Mockito.doThrow(new org.openqa.selenium.StaleElementReferenceException("stale")).when(el).click();
+
+            LocatorException ex = expectThrows(LocatorException.class, () -> Locator.of(by).click());
+
+            Mockito.verify(el, Mockito.times(3)).click();
+            assertTrue(ex.getMessage().contains("3 attempts"), ex.getMessage());
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void click_runsActionabilityScript_butForceSkipsIt() {
+        MockedStatic<?>[] mocks = setupMocks(false, false);
+        try {
+            By by = By.cssSelector("#btn");
+            WebElement el = clickableEl();
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(el));
+
+            Locator.of(by).click();
+            assertTrue(scriptCalls() >= 1, "normal click must run the actionability script");
+
+            Mockito.clearInvocations(lastMockDriver);
+            Locator.of(by).force().click();
+            assertEquals(scriptCalls(), 0, "force() must skip the actionability script");
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void force_isShownInDescription() {
+        assertTrue(Locator.cssSelector(".a").force().toString().contains(".force()"));
+        assertFalse(Locator.cssSelector(".a").toString().contains(".force()"));
+    }
 }

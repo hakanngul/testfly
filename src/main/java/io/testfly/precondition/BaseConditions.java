@@ -2,6 +2,7 @@ package io.testfly.precondition;
 
 import io.testfly.api.TestFlyApi;
 import io.testfly.test.support.NavigationSupport;
+import io.testfly.wait.ActionKind;
 import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.By;
 
@@ -46,12 +47,12 @@ public abstract class BaseConditions implements NavigationSupport {
 
     /** Waits for the element to be clickable and clicks it. */
     protected void click(By locator) {
-        WaitEngine.waitForClickable(locator).click();
+        WaitEngine.waitForActionable(locator, ActionKind.CLICK).click();
     }
 
     /** Waits for the element to be visible, clears it, then types text. */
     protected void type(By locator, String text) {
-        var el = WaitEngine.waitForVisible(locator);
+        var el = WaitEngine.waitForActionable(locator, ActionKind.EDIT);
         el.clear();
         el.sendKeys(text);
     }

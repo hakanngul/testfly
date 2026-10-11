@@ -321,5 +321,13 @@ public final class ConfigurationLoader {
             throw new IllegalStateException(
                     "timeouts.explicit and timeouts.pageLoad must be configured with positive values");
         }
+
+        if (config.getActionability() != null) {
+            int interval = config.getActionability().getStabilityIntervalMs();
+            if (interval < 10 || interval > 5000) {
+                throw new IllegalStateException(
+                        "actionability.stabilityIntervalMs must be between 10 and 5000, got: " + interval);
+            }
+        }
     }
 }

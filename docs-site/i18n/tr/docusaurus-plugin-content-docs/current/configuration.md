@@ -172,6 +172,13 @@ locators:
   testIdAttribute: data-testid      # getByTestId() tarafından sorgulanacak HTML özniteliği
   strict: false                     # aksiyon locator'ı birden fazla görünür elemanla eşleşirse hata ver
 
+# ── Actionability (Etkileşime Hazır Olma) ────────────────────────────────────
+actionability:
+  enabled: true                     # click/hover/type öncesi öğenin kararlı ve örtülmemiş olmasını bekle
+  stabilityIntervalMs: 100          # öğenin oturmasını beklerken yoklama aralığı (10-5000)
+  hitTargetCheck: true              # tıklama noktası başka bir öğe tarafından örtülüyken hata ver
+  autoScroll: true                  # öğe ekran dışındaysa veya örtülüyse görünür alana kaydır
+
 # ── AI Failure Analysis (AI Hata Analizi) ────────────────────────────────────
 ai:
   enabled: true                     # TÜM AI yüzeyleri için ana anahtar (features.ai ile de ayarlanabilir)
@@ -565,6 +572,20 @@ Akıllı seçici sentezi ve dayanıklılık ayarları.
 | `maxDomTokens` | `int` | `8000` | AI seçici onarımında modele gönderilecek budanmış DOM token bütçesi. |
 | `testIdAttribute` | `string` | `data-testid` | `getByTestId("submit-btn")` çağrısının hedeflediği HTML niteliği (`data-qa`, `data-test` vb. olarak değiştirilebilir). |
 | `strict` | `boolean` | `false` | `true` olduğunda, birden fazla **görünür** elemanla eşleşen bir locator üzerinde aksiyon (veya `isVisible()`/`isEnabled()`) `first()`, `nth()` ya da `last()` ile daraltılmadıkça strict mode ihlaliyle başarısız olur. |
+
+---
+
+## Actionability (Etkileşime Hazır Olma) {#actionability}
+
+`click`, `hover`, `type`, `clear` ve `append` öncesinde öğe, o etkileşime hazır
+olmalıdır. Bkz. [Actionability](/docs/guides/wait-engine#actionability-etkileşime-hazır-olma).
+
+| Özellik | Tür | Varsayılan | Açıklama |
+|---|---|---|---|
+| `enabled` | `boolean` | `true` | Ana anahtar. `false` önceki beklemeleri geri getirir (yalnızca görünür ve etkin). |
+| `stabilityIntervalMs` | `int` | `100` | Öğenin hareketinin durmasını beklerken yoklama aralığı. 10 ile 5000 arasında olmalıdır. |
+| `hitTargetCheck` | `boolean` | `true` | Tıklama noktası başka bir öğe tarafından örtülüyken bekler. Yazmaya uygulanmaz. |
+| `autoScroll` | `boolean` | `true` | Öğenin merkezi ekran dışındaysa veya örtülüyse öğeyi görünür alana kaydırır. |
 
 ---
 

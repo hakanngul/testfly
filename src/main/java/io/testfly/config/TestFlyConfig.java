@@ -1013,6 +1013,18 @@ public final class TestFlyConfig {
         this.tracing = tracing;
     }
 
+    private Actionability actionability = new Actionability();
+
+    @TestFlyApi(since = "1.1.0")
+    public Actionability getActionability() {
+        return actionability;
+    }
+
+    @TestFlyApi(since = "1.1.0")
+    public void setActionability(Actionability actionability) {
+        this.actionability = actionability;
+    }
+
     private Locators locators;
 
     public Locators getLocators() {
@@ -1021,6 +1033,51 @@ public final class TestFlyConfig {
 
     public void setLocators(Locators locators) {
         this.locators = locators;
+    }
+
+    /**
+     * Playwright-style actionability checks run before click/hover/type: the element
+     * must be visible, enabled (where relevant), stable (not animating) and not
+     * covered by another element.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public static final class Actionability {
+        private boolean enabled = true;
+        private int stabilityIntervalMs = 100;
+        private boolean hitTargetCheck = true;
+        private boolean autoScroll = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getStabilityIntervalMs() {
+            return stabilityIntervalMs;
+        }
+
+        public void setStabilityIntervalMs(int stabilityIntervalMs) {
+            this.stabilityIntervalMs = stabilityIntervalMs;
+        }
+
+        public boolean isHitTargetCheck() {
+            return hitTargetCheck;
+        }
+
+        public void setHitTargetCheck(boolean hitTargetCheck) {
+            this.hitTargetCheck = hitTargetCheck;
+        }
+
+        public boolean isAutoScroll() {
+            return autoScroll;
+        }
+
+        public void setAutoScroll(boolean autoScroll) {
+            this.autoScroll = autoScroll;
+        }
     }
 
     public static final class Locators {

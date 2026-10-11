@@ -185,6 +185,7 @@ public class BasePageTest {
         when(mockDriver.findElement(inputLocator)).thenReturn(mockElement);
         when(mockDriver.findElements(inputLocator)).thenReturn(java.util.List.of(mockElement));
         when(mockElement.isDisplayed()).thenReturn(true);
+        when(mockElement.isEnabled()).thenReturn(true); // editing now requires an enabled element
 
         DummyPage page = new DummyPage();
         page.doClear(inputLocator);
@@ -201,6 +202,7 @@ public class BasePageTest {
         // Also test direct WebElement clear via find(element).clear()
         org.openqa.selenium.WebElement anotherElement = mock(org.openqa.selenium.WebElement.class);
         when(anotherElement.isDisplayed()).thenReturn(true);
+        when(anotherElement.isEnabled()).thenReturn(true);
         page.doClearElement(anotherElement);
         verify(anotherElement, atLeastOnce()).clear();
     }
