@@ -131,8 +131,21 @@ Bir doğrulamanın *neden* yapıldığını açıklayan bağlam mesajı ekleyin:
 assertThat(By.id("user-avatar"))
     .as("OAuth girişi sonrası profil resmi")
     .isVisible();
-// Başarısız olursa: "[OAuth girişi sonrası profil resmi] Expected element to be visible: By.id: user-avatar (timeout: 10s)"
+// Başarısız olursa: "[OAuth girişi sonrası profil resmi] Expected element to be visible: By.id: user-avatar (actual: [not found], timeout: 10s)"
 ```
+
+### `actual` ne raporlar
+
+Her hata `(actual: [...], timeout: ...)` ile biter ve polling sırasında gözlenen son değeri gösterir:
+
+| Doğrulama | `actual` gösterir |
+|---|---|
+| `hasText`, `containsText` | elemanın metni, tırnak içinde, tek satır (en fazla 200 karakter) |
+| `hasValue`, `hasAttribute`, `hasCssValue`, `hasClass` | gözlenen değer veya `attribute 'x' absent` |
+| `isVisible`, `isEnabled`, `isChecked`, `isFocused` | `not displayed`, `disabled`, `not selected`, `focused element: <input#other>` veya `not found` |
+| `count` | bulunan eleman sayısı |
+
+Hiç görünmeyen bir `within(By)` kapsayıcısı artık `LocatorException` sızdırmak yerine normal bir `AssertionError` ile başarısız olur (`actual: [locator failed: ...]`).
 
 ---
 

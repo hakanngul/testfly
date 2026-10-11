@@ -131,8 +131,21 @@ Attach contextual information to explain *why* an assertion was made:
 assertThat(By.id("user-avatar"))
     .as("User profile picture after OAuth login")
     .isVisible();
-// If it fails: "[User profile picture after OAuth login] Expected element to be visible: By.id: user-avatar (timeout: 10s)"
+// If it fails: "[User profile picture after OAuth login] Expected element to be visible: By.id: user-avatar (actual: [not found], timeout: 10s)"
 ```
+
+### What `actual` reports
+
+Every failure ends with `(actual: [...], timeout: ...)` showing the last value observed while polling:
+
+| Assertion | `actual` shows |
+|---|---|
+| `hasText`, `containsText` | the element's text, quoted, on one line (max 200 chars) |
+| `hasValue`, `hasAttribute`, `hasCssValue`, `hasClass` | the observed value, or `attribute 'x' absent` |
+| `isVisible`, `isEnabled`, `isChecked`, `isFocused` | `not displayed`, `disabled`, `not selected`, `focused element: <input#other>` or `not found` |
+| `count` | the number of elements found |
+
+A `within(By)` container that never appears now fails as a normal `AssertionError` (`actual: [locator failed: ...]`) instead of leaking a `LocatorException`.
 
 ---
 
