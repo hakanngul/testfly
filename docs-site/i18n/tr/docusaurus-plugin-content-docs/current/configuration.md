@@ -237,6 +237,9 @@ recording:
 tracing:
   enabled: false                    # adım adım ekran görüntüleri ve zaman tüneli içeren HTML izleme dosyası üret
   captureOnPass: false              # başarılı testler için de izleme kaydet
+  snapshots: aria                   # adım başına sayfa snapshot'ı: none | aria | dom | both
+  snapshotMaxKb: 256                # adım başına tutulan en uzun snapshot
+  snapshotOnFailureAfter: true      # başarısız testler son adımdan sonraki sayfayı da kaydeder
 
 # ── Görsel Karşılaştırma (Visual Regression) ─────────────────────────────────
 visual:
@@ -808,6 +811,9 @@ Hata ayıklama, kök neden analizi ve denetim uyumluluğu için tarayıcı oturu
 | `recording.cdp` | `boolean` | `true` | True olduğunda Chrome/Edge üzerinde CDP screencast kullanarak test hızını düşürmeden kayıt alır. |
 | `tracing.enabled` | `boolean` | `false` | Zaman tüneli, tıklanabilir adım ekran görüntüleri ve hata anı görseli içeren bağımsız HTML izleme dosyası üretir (`target/traces/{Class}/{method}-trace.html`). |
 | `tracing.captureOnPass` | `boolean` | `false` | Başarılı testlerde de izleme kaydeder. |
+| `tracing.snapshots` | `string` | `aria` | Her adımın iz için kaydettiği: `none`, `aria` (erişilebilirlik ağacı), `dom` (budanmış sayfa HTML'i) veya `both`. Bkz. [Adım İzleri](guides/tracing). |
+| `tracing.snapshotMaxKb` | `int` | `256` | Adım başına tutulan en uzun snapshot, kilobayt olarak. Daha uzunları `… truncated` işaretiyle kesilir. |
+| `tracing.snapshotOnFailureAfter` | `boolean` | `true` | Başarısız test için son adımdan sonra bir erişilebilirlik snapshot'ı da kaydeder ve öncesiyle fark gösterir. |
 
 ---
 

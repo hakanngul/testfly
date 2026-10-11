@@ -256,6 +256,9 @@ recording:
 tracing:
   enabled: false                    # generate standalone HTML trace bundle with step timeline and screenshots
   captureOnPass: false              # include passing tests in trace bundle
+  snapshots: aria                   # per-step page snapshot: none | aria | dom | both
+  snapshotMaxKb: 256                # longest snapshot kept per step
+  snapshotOnFailureAfter: true      # failed tests also record the page after the last step
 
 # ── Visual Regression ────────────────────────────────────────────────────────
 visual:
@@ -827,6 +830,9 @@ Session capture for debugging, failure analysis, and audit compliance. See the f
 | `recording.cdp` | `boolean` | `true` | When true, uses CDP screencast on Chrome/Edge without blocking execution. |
 | `tracing.enabled` | `boolean` | `false` | Generates a self-contained HTML trace file containing step timeline, per-step screenshots, and failure snapshot (`target/traces/{ClassName}/{testMethod}-trace.html`). |
 | `tracing.captureOnPass` | `boolean` | `false` | Also capture traces for passing tests. |
+| `tracing.snapshots` | `string` | `aria` | What each step records for the trace: `none`, `aria` (accessibility tree), `dom` (pruned page HTML) or `both`. See [Step Traces](guides/tracing). |
+| `tracing.snapshotMaxKb` | `int` | `256` | Longest snapshot kept per step, in kilobytes. Longer ones are cut with a `… truncated` marker. |
+| `tracing.snapshotOnFailureAfter` | `boolean` | `true` | For a failed test, also record an accessibility snapshot after its last step, with a diff against the page before it. |
 
 ---
 

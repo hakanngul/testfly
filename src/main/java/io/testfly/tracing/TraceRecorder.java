@@ -1,6 +1,8 @@
 package io.testfly.tracing;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.config.TestFlyConfig;
+import io.testfly.internal.TestFlyContext;
 import io.testfly.driver.DriverManager;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.metrics.TestTiming;
@@ -72,6 +74,10 @@ public final class TraceRecorder {
             LOG.warning("[TraceRecorder] No timing data for test: " + testId);
             return;
         }
+        if (!"PASSED".equalsIgnoreCase(timing.getStatus())) {
+            // Show the page as the failing test left it, next to the last step's "before" view.
+            StepSnapshotCapture.captureAfterFailure(timing);
+        }
 
         String className = timing.getTestClassName() != null ? timing.getTestClassName() : "UnknownClass";
         String finalScreenshot = captureFinalScreenshot(testName);
@@ -92,6 +98,26 @@ public final class TraceRecorder {
         String relativePath = "traces/" + className + "/" + sanitize(testName) + "-trace.html";
         ExecutionMetrics.recordTracePath(testId, relativePath);
         LOG.info("[TraceRecorder] Trace saved: " + outFile.getAbsolutePath());
+    }
+
+    /**
+     * Saves the trace when {@code tracing.enabled} is on, and, for passing tests, when
+     * {@code tracing.captureOnPass} is also on. Used by the TestNG, JUnit 5 and Cucumber
+     * integrations; never throws.
+     *
+     * @param isPassing whether the test passed
+     */
+    @TestFlyApi(since = "1.1.0")
+    public static void saveIfEnabled(String testId, String testName, boolean isPassing) {
+        try {
+            TestFlyConfig.Tracing tracing = TestFlyContext.getConfig().getTracing();
+            if (tracing == null || !tracing.isEnabled())
+                return;
+            if (isPassing && !tracing.isCaptureOnPass())
+                return;
+            save(testId, testName);
+        } catch (Exception ignored) {
+        }
     }
 
     // ------------------------------------------------------------------
@@ -151,7 +177,8 @@ public final class TraceRecorder {
                 StepRecord s = steps.get(i);
                 String stepStatus = nvl(s.getStatus(), "INFO").toLowerCase();
                 boolean hasScreenshot = s.getScreenshotBase64() != null;
-                String clickAttr = hasScreenshot
+                boolean hasSnapshot = hasSnapshot(s);
+                String clickAttr = hasScreenshot || hasSnapshot
                         ? " onclick=\"showScreenshot(" + i + ")\" style=\"cursor:pointer\""
                         : "";
                 sb.append("    <div class=\"step step-").append(stepStatus).append("\"")
@@ -162,6 +189,8 @@ public final class TraceRecorder {
                 sb.append("      <div class=\"step-meta\">+").append(s.getOffsetMs()).append("ms");
                 if (hasScreenshot)
                     sb.append(" &#x1F4F7;");
+                if (hasSnapshot)
+                    sb.append(" &#x1F333;");
                 sb.append("</div>\n");
                 sb.append("    </div>\n");
             }
@@ -174,6 +203,10 @@ public final class TraceRecorder {
             sb.append("      <button class=\"close-btn\" onclick=\"closeScreenshot()\">&#x2715; Close</button>\n");
             sb.append("    </div>\n");
             sb.append("    <img id=\"screenshot-img\" src=\"\" alt=\"Step screenshot\" />\n");
+            sb.append("    <div id=\"snapshot-area\" class=\"snapshot-area\">\n");
+            sb.append("      <div class=\"snapshot-tabs\" id=\"snapshot-tabs\"></div>\n");
+            sb.append("      <pre class=\"snap\" id=\"snapshot-pre\"></pre>\n");
+            sb.append("    </div>\n");
             sb.append("  </div>\n");
 
             // ── Embed screenshot data as JS array ──
@@ -193,7 +226,23 @@ public final class TraceRecorder {
                     sb.append(",");
                 sb.append("\n");
             }
-            sb.append("  ];\n  </script>\n");
+            sb.append("  ];\n");
+            sb.append("  var stepSnapshots = {\n");
+            boolean firstSnap = true;
+            for (int i = 0; i < steps.size(); i++) {
+                StepRecord s = steps.get(i);
+                if (!hasSnapshot(s))
+                    continue;
+                if (!firstSnap)
+                    sb.append(",\n");
+                firstSnap = false;
+                sb.append("    ").append(i).append(": {");
+                sb.append("aria:").append(jsOrNull(s.getAriaSnapshot()));
+                sb.append(", dom:").append(jsOrNull(s.getDomSnapshot()));
+                sb.append(", after:").append(jsOrNull(s.getAfterAriaSnapshot()));
+                sb.append("}");
+            }
+            sb.append("\n  };\n  </script>\n");
         }
         sb.append("</div>\n"); // section
 
@@ -292,10 +341,24 @@ public final class TraceRecorder {
                 .replace("\"", "&quot;").replace("'", "&#39;");
     }
 
-    private static String escJs(String s) {
+    /**
+     * Escapes text for a double-quoted JavaScript string inside an inline {@code <script>}.
+     * Every {@code <} becomes {@code \u003c}, so page content such as {@code </script>} or
+     * {@code <!--} can never end the script block or open an HTML comment.
+     */
+    static String escJs(String s) {
         if (s == null)
             return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "")
+                .replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029");
+    }
+
+    private static String jsOrNull(String s) {
+        return s == null ? "null" : "\"" + escJs(s) + "\"";
+    }
+
+    private static boolean hasSnapshot(StepRecord s) {
+        return s.getAriaSnapshot() != null || s.getDomSnapshot() != null || s.getAfterAriaSnapshot() != null;
     }
 
     // ------------------------------------------------------------------
@@ -356,6 +419,16 @@ public final class TraceRecorder {
             "               font-family: 'SFMono-Regular', Consolas, monospace;\n" +
             "               white-space: pre-wrap; word-break: break-all;\n" +
             "               max-height: 400px; overflow-y: auto; line-height: 1.6; }\n" +
+            ".snapshot-area { display: none; padding: 0 12px 12px; }\n" +
+            ".snapshot-tabs { display: flex; gap: 6px; margin-bottom: 8px; }\n" +
+            ".snap-tab { background: #21262d; border: 1px solid #30363d; color: #c9d1d9;\n" +
+            "            border-radius: 4px; padding: 3px 10px; cursor: pointer; font-size: 12px; }\n" +
+            ".snap-tab.active { background: #1f6feb; border-color: #1f6feb; color: #fff; }\n" +
+            ".snap { background: #0d1117; border: 1px solid #30363d; border-radius: 4px; padding: 12px;\n" +
+            "        font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; color: #c9d1d9;\n" +
+            "        white-space: pre-wrap; word-break: break-all; max-height: 420px; overflow: auto; }\n" +
+            ".snap .add { color: #3fb950; }\n" +
+            ".snap .del { color: #f85149; }\n" +
             ".status-badge { display: inline-block; padding: 2px 10px; border-radius: 12px;\n" +
             "                font-size: 12px; font-weight: 600; letter-spacing: .4px; }\n" +
             ".status-passed  { background: rgba(63,185,80,.15); color: #3fb950; }\n" +
@@ -369,14 +442,53 @@ public final class TraceRecorder {
     // ------------------------------------------------------------------
 
     private static final String JS = "<script>\n" +
+            "function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }\n" +
+            "function lineDiff(before, after) {\n" +
+            "  var b = before.split('\\n'), a = after.split('\\n'), inB = {}, inA = {};\n" +
+            "  b.forEach(function(l){ inB[l] = true; }); a.forEach(function(l){ inA[l] = true; });\n" +
+            "  var out = [];\n" +
+            "  b.forEach(function(l){ if (!inA[l]) out.push('<span class=\"del\">- ' + esc(l) + '</span>'); });\n" +
+            "  a.forEach(function(l){ if (!inB[l]) out.push('<span class=\"add\">+ ' + esc(l) + '</span>'); });\n" +
+            "  return out.length ? out.join('\\n') : '(no differences)';\n" +
+            "}\n" +
+            "function showSnap(idx, kind) {\n" +
+            "  var snap = stepSnapshots[idx]; if (!snap) return;\n" +
+            "  var pre = document.getElementById('snapshot-pre');\n" +
+            "  if (kind === 'diff') pre.innerHTML = lineDiff(snap.aria || '', snap.after || '');\n" +
+            "  else pre.textContent = snap[kind] || '';\n" +
+            "  document.querySelectorAll('.snap-tab').forEach(function(b){\n" +
+            "    b.classList.toggle('active', b.getAttribute('data-kind') === kind); });\n" +
+            "}\n" +
+            "function buildSnapTabs(idx) {\n" +
+            "  var snap = stepSnapshots[idx], area = document.getElementById('snapshot-area');\n" +
+            "  var tabs = document.getElementById('snapshot-tabs');\n" +
+            "  tabs.textContent = '';\n" +
+            "  if (!snap) { area.style.display = 'none'; return; }\n" +
+            "  var kinds = [['aria','ARIA (before step)'], ['dom','DOM (before step)'],\n" +
+            "               ['after','ARIA (after failure)']];\n" +
+            "  if (snap.aria && snap.after) kinds.push(['diff','Diff']);\n" +
+            "  var first = null;\n" +
+            "  kinds.forEach(function(k){\n" +
+            "    if (k[0] !== 'diff' && !snap[k[0]]) return;\n" +
+            "    var b = document.createElement('button');\n" +
+            "    b.className = 'snap-tab'; b.setAttribute('data-kind', k[0]); b.textContent = k[1];\n" +
+            "    b.onclick = function(){ showSnap(idx, k[0]); };\n" +
+            "    tabs.appendChild(b); if (!first) first = k[0];\n" +
+            "  });\n" +
+            "  area.style.display = first ? 'block' : 'none';\n" +
+            "  if (first) showSnap(idx, first);\n" +
+            "}\n" +
             "function showScreenshot(idx) {\n" +
             "  var entry = null;\n" +
             "  for (var i = 0; i < stepScreenshots.length; i++) {\n" +
             "    if (stepScreenshots[i].idx === idx) { entry = stepScreenshots[i]; break; }\n" +
             "  }\n" +
-            "  if (!entry || !entry.src) return;\n" +
-            "  document.getElementById('screenshot-img').src = entry.src;\n" +
+            "  if (!entry) return;\n" +
+            "  var img = document.getElementById('screenshot-img');\n" +
+            "  if (entry.src) { img.src = entry.src; img.style.display = 'block'; }\n" +
+            "  else { img.removeAttribute('src'); img.style.display = 'none'; }\n" +
             "  document.getElementById('screenshot-label').textContent = entry.name;\n" +
+            "  buildSnapTabs(idx);\n" +
             "  var panel = document.getElementById('screenshot-panel');\n" +
             "  panel.style.display = 'block';\n" +
             "  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });\n" +

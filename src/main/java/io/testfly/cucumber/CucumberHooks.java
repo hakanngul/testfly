@@ -258,6 +258,8 @@ public class CucumberHooks {
                     ExecutionMetrics.recordStatus(testId, status);
                 }
                 ExecutionMetrics.markEnd(testId);
+                io.testfly.tracing.TraceRecorder.saveIfEnabled(testId, sanitize(scenario.getName()),
+                        "PASSED".equals(status));
             } catch (Throwable ignored) {
             }
 

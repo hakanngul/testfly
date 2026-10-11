@@ -29,6 +29,7 @@ The default `mvn test` command skips these tests entirely — they live under
 | `email/MailhogIntegrationTest` | Email (Mailhog) | Local HTTP stub; message parsing, request construction, error handling (5xx, connection refused) |
 | `locator/ActionabilityIntegrationTest` | Actionability | Real Chrome; click waits for an overlay and an animation to finish, scrolls off-screen buttons, names the blocking element on failure |
 | `accessibility/AriaSnapshotIntegrationTest` | ARIA assertions | Real Chrome; role, accessible name and description, ARIA snapshot output and template matching |
+| `tracing/TraceSnapshotIntegrationTest` | Step traces | Real Chrome; per-step ARIA and DOM snapshots, after-failure snapshot, the trace file opened in the browser, hostile page markup stays inert |
 | `testmanagement/TestRailIntegrationTest` | TestRail reporter | Local HTTP stub; Basic auth, payload mapping, status ID mapping, 401/500 error handling |
 
 ## Design principles

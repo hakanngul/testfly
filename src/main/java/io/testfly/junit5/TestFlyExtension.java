@@ -467,15 +467,7 @@ public class TestFlyExtension
     }
 
     private void saveTraceIfEnabled(String testId, String testName, boolean isPassing) {
-        try {
-            TestFlyConfig.Tracing tracing = TestFlyContext.getConfig().getTracing();
-            if (tracing == null || !tracing.isEnabled())
-                return;
-            if (isPassing && !tracing.isCaptureOnPass())
-                return;
-            TraceRecorder.save(testId, testName);
-        } catch (Exception ignored) {
-        }
+        TraceRecorder.saveIfEnabled(testId, testName, isPassing);
     }
 
     private void runAiAnalysisIfEnabled(String testId) {

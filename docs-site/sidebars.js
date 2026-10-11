@@ -43,6 +43,7 @@ const sidebars = {
         'guides/screenshots',
         'guides/video-recording',
         'guides/step-logging',
+        'guides/tracing',
         'guides/browser-lifecycle',
         'guides/parallel',
         'guides/smart-locator',

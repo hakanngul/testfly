@@ -2862,6 +2862,21 @@
                 drawer.appendChild(traceBox);
             }
 
+            // 3b. Link to the step trace (DOM / ARIA snapshots), when one was saved
+            if (typeof test.tracePath === 'string' &&
+                /^traces\/[A-Za-z0-9_.$\-\/]+-trace\.html$/.test(test.tracePath) && !test.tracePath.includes('..')) {
+                const traceBox = document.createElement('div');
+                traceBox.className = 'trace-link-row';
+                traceBox.style.padding = '8px 0';
+                const link = document.createElement('a');
+                link.href = test.tracePath;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.textContent = 'Open step trace (screenshots, ARIA / DOM snapshots)';
+                traceBox.appendChild(link);
+                drawer.appendChild(traceBox);
+            }
+
             // 4. Step Execution Timeline
             const steps = test.steps || [];
             const timelineDiv = document.createElement('div');

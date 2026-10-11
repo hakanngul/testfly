@@ -1329,6 +1329,9 @@ public final class TestFlyConfig {
     public static final class Tracing {
         private boolean enabled = false;
         private boolean captureOnPass = false;
+        private String snapshots = "aria";
+        private int snapshotMaxKb = 256;
+        private boolean snapshotOnFailureAfter = true;
 
         /** Overridable from the umbrella via {@code features.tracing}. */
         public boolean isEnabled() {
@@ -1345,6 +1348,50 @@ public final class TestFlyConfig {
 
         public void setCaptureOnPass(boolean v) {
             this.captureOnPass = v;
+        }
+
+        /**
+         * What each step records for the trace: {@code none}, {@code aria} (the accessibility
+         * tree, default), {@code dom} (the pruned page HTML) or {@code both}.
+         */
+        @TestFlyApi(since = "1.1.0")
+        public String getSnapshots() {
+            return snapshots;
+        }
+
+        @TestFlyApi(since = "1.1.0")
+        public void setSnapshots(String v) {
+            String mode = v == null ? "" : v.trim().toLowerCase(java.util.Locale.ROOT);
+            if (!mode.equals("none") && !mode.equals("aria") && !mode.equals("dom") && !mode.equals("both")) {
+                throw new IllegalArgumentException(
+                        "tracing.snapshots must be one of none, aria, dom, both; got: '" + v + "'");
+            }
+            this.snapshots = mode;
+        }
+
+        /** Largest snapshot kept per step, in kilobytes; longer ones are cut with a marker. */
+        @TestFlyApi(since = "1.1.0")
+        public int getSnapshotMaxKb() {
+            return snapshotMaxKb;
+        }
+
+        @TestFlyApi(since = "1.1.0")
+        public void setSnapshotMaxKb(int v) {
+            if (v < 1) {
+                throw new IllegalArgumentException("tracing.snapshotMaxKb must be at least 1; got: " + v);
+            }
+            this.snapshotMaxKb = v;
+        }
+
+        /** Whether a failed test also records an accessibility snapshot taken after its last step. */
+        @TestFlyApi(since = "1.1.0")
+        public boolean isSnapshotOnFailureAfter() {
+            return snapshotOnFailureAfter;
+        }
+
+        @TestFlyApi(since = "1.1.0")
+        public void setSnapshotOnFailureAfter(boolean v) {
+            this.snapshotOnFailureAfter = v;
         }
     }
 
