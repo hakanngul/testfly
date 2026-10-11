@@ -114,6 +114,71 @@ getByPlaceholder("Search").type(null);
 
 ---
 
+## Declaring locators in YAML
+
+`LocatorRepository` loads named locators from a YAML file so selectors live in
+one place and can be shared between page objects and tests:
+
+```yaml
+# src/test/resources/locators/register.yaml
+page: register
+elements:
+  register_form:
+    css: "#register-form"
+    elements:
+      email:
+        css: "input[type=email]"
+      submit_button:
+        role: button
+        accessibleName: "Register"
+        exact: true
+  login_link:
+    text: "Already have an account?"
+```
+
+```java
+LocatorRepository repo = LocatorRepository.load("locators/register.yaml");
+repo.get("register_form.email").type("a@b.com");
+repo.get("register_form.submit_button").click();
+```
+
+`load(String)` checks the classpath first and then the file system.
+`load(Path)` and `load(InputStream, String)` are also available.
+
+**Strategies** — every element declares exactly one:
+`css`, `xpath`, `id`, `byName`, `className`, `text`, `label`, `placeholder`,
+`testId`, `altText`, `title`, `role`.
+
+**Modifiers**
+
+| Key | Applies to | Maps to |
+|---|---|---|
+| `accessibleName` | `role` | `withName(...)` |
+| `level` (1–6) | `role: heading` | `withLevel(...)` |
+| `exact` | `text`, `label`, `placeholder`, `altText`, `title`, `role` | `exact()` |
+| `nth` (0-based), `first`, `last` | any (at most one) | `nth(...)`, `first()`, `last()` |
+
+Use `byName` for the HTML `name` attribute and `accessibleName` for the
+accessible name of a role; they are different things.
+
+**Containers** — an element with `elements:` scopes its children with
+`within(...)` so you do not repeat the container selector. A container must use
+`css`, `xpath`, `id`, `byName` or `className`, takes no modifiers, and nests one
+level only. Children are addressed as `container.child`.
+
+**Fail-fast** — an unknown key, missing or conflicting strategies, an invalid
+value, a missing file, or an unknown element key throws `LocatorException`
+naming the file and element. There is no `${VAR}` substitution.
+
+> YAML reads unquoted `on`, `off`, `yes`, `no` and numbers as non-strings. Quote
+> such element names (`"off":`).
+
+The repository holds no driver state and can be shared across threads.
+`testId` uses the attribute configured under `locators.testIdAttribute` when the
+locator is resolved.
+
+---
+
 ## Escape hatch: `toBy()`
 
 Every semantic locator can hand back its synthesized Selenium `By` for interop
