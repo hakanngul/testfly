@@ -297,7 +297,7 @@ clock:
 
 # ── Network Interception ─────────────────────────────────────────────────────
 network:
-  interceptEnabled: false           # enable CDP network interception and route mocking
+  interceptEnabled: false           # reserved, no effect: interception starts with the first route, stub or blockUrls entry
   blockUrls:                        # URL patterns to abort globally (trackers, ads, etc.)
     - "*google-analytics.com*"
     - "*doubleclick.net*"
@@ -447,7 +447,7 @@ Each key is **tri-state**:
 | `ai` | `ai.enabled` — gates `act()`, `aiAssert()`, failure analysis, patch generation and AI locator healing | `true` |
 | `recording` | `recording.enabled` | `false` |
 | `tracing` | `tracing.enabled` — generates standalone HTML trace bundle (`target/traces/`) with step timeline and screenshots | `false` |
-| `network` | `network.interceptEnabled` | `false` |
+| `network` | `network.interceptEnabled` (reserved, currently no effect) | `false` |
 | `healing` | `locators.selfHealing` and `locators.aiHealing` | `false` |
 | `visual` | *no module flag* — visual regression is available unless switched off | `true` |
 | `performance` | `performance.captureOnEveryTest` | `false` |
@@ -889,7 +889,7 @@ testmanagement:
 
 * **`clock.injectHeader`**: Injects mock date HTTP header into browser requests (default `false`).
 * **`clock.headerName`**: Custom header name (default `"X-Mock-Date"`).
-* **`network.interceptEnabled`**: Activates Chrome DevTools Protocol network interception and stubbing (default `false`).
+* **`network.interceptEnabled`**: Reserved. It has no effect today: network interception starts with the first `mockRoute`, stub, or non-empty `network.blockUrls`, whatever this value is, and only on local Chrome or Edge (see [Browser Support](guides/browser-support)).
 * **`network.blockUrls`**: Glob URL patterns to abort network requests globally (e.g. trackers, ads) (default: `[]`).
 
 ---

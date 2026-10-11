@@ -18,7 +18,7 @@ import TabItem from '@theme/TabItem';
 
 - Java 21+
 - Maven 3.8+ **veya** Gradle 8.5+
-- Chrome, Firefox veya Edge yüklü
+- Chrome, Firefox veya Edge yüklü (ağ mock'lama, cihaz emülasyonu ve konum için Chrome veya Edge gerekir, bkz. [Tarayıcı Desteği](/docs/guides/browser-support))
 
 :::info
 WebDriver binary'leri gerekmez — Selenium Manager browser driver'larını otomatik indirir.

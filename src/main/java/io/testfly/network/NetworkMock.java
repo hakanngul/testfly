@@ -23,7 +23,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.WeakHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.logging.Logger;
@@ -70,6 +72,12 @@ public final class NetworkMock {
 
     // Recorded requests for NetworkAssert (1.6.0).
     private final List<RecordedRequest> recorded = new CopyOnWriteArrayList<>();
+
+    // One Fetch.requestPaused listener per DevTools connection, forwarding to the NetworkMock that
+    // currently owns it. Selenium cannot remove a single listener, so adding one per test would
+    // make every network event run through all earlier tests' listeners when the driver is reused
+    // (browser.lifecycle: per-suite).
+    private static final Map<DevTools, AtomicReference<NetworkMock>> DISPATCHERS = new WeakHashMap<>();
 
     private boolean cdpAttached = false;
     private volatile boolean blocklistActivated = false;
@@ -126,6 +134,7 @@ public final class NetworkMock {
         recorded.clear();
         blocklistActivated = false;
         if (devTools != null) {
+            unregisterDispatcher(devTools, this);
             try {
                 devTools.send(Fetch.disable());
             } catch (Exception ignored) {
@@ -279,11 +288,9 @@ public final class NetworkMock {
 
         WebDriver driver = DriverManager.getDriver();
         if (!(driver instanceof ChromiumDriver)) {
-            LOG.warning("[TestFly] Network interception requires Chrome/Edge. " +
-                    "Routes/stubs will be ignored on "
-                    + (driver == null ? "no active driver" : driver.getClass().getSimpleName())
-                    + ".");
-            cdpAttached = true; // prevents repeated warnings; no CDP calls attempted
+            io.testfly.browser.BrowserFeatures.warnOnce(driver,
+                    io.testfly.browser.BrowserFeatures.Feature.NETWORK_MOCK);
+            cdpAttached = true; // prevents repeated attempts; no CDP calls attempted
             return;
         }
 
@@ -300,7 +307,7 @@ public final class NetworkMock {
                     new RequestPattern(Optional.of("*"), Optional.empty(),
                             Optional.of(RequestStage.RESPONSE)));
             dt.send(Fetch.enable(Optional.of(patterns), Optional.empty()));
-            dt.addListener(Fetch.requestPaused(), event -> handlePaused(event));
+            registerDispatcher(dt, this);
 
             this.devTools = dt;
             cdpAttached = true;
@@ -318,6 +325,33 @@ public final class NetworkMock {
             LOG.warning("[TestFly] Network interception could not attach: " + e.getMessage());
             this.devTools = null;
             cdpAttached = true;
+        }
+    }
+
+    private static void registerDispatcher(DevTools dt, NetworkMock owner) {
+        synchronized (DISPATCHERS) {
+            AtomicReference<NetworkMock> ref = DISPATCHERS.get(dt);
+            if (ref == null) {
+                AtomicReference<NetworkMock> created = new AtomicReference<>();
+                dt.addListener(Fetch.requestPaused(), event -> {
+                    NetworkMock active = created.get();
+                    if (active != null) {
+                        active.handlePaused(event);
+                    }
+                });
+                DISPATCHERS.put(dt, created);
+                ref = created;
+            }
+            ref.set(owner);
+        }
+    }
+
+    private static void unregisterDispatcher(DevTools dt, NetworkMock owner) {
+        synchronized (DISPATCHERS) {
+            AtomicReference<NetworkMock> ref = DISPATCHERS.get(dt);
+            if (ref != null) {
+                ref.compareAndSet(owner, null);
+            }
         }
     }
 

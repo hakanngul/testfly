@@ -140,8 +140,10 @@ public class TestFlyExtension
             PreConditionRunner.run(context.getRequiredTestMethod(), false);
 
             TestFlyConfig.Recording rec = TestFlyContext.getConfig().getRecording();
-            if (rec != null && rec.isEnabled()) {
-                RecordingManager.start(DriverManager.getDriver(), rec.getFps(), rec.getMaxDurationSeconds());
+            // Same rule as the TestNG listener: honour recording.mode: off and recording.cdp.
+            if (rec != null && rec.shouldRecord()) {
+                RecordingManager.start(DriverManager.getDriver(), rec.getFps(), rec.getMaxDurationSeconds(),
+                        rec.isCdp());
             }
 
             if (ConsoleErrorCollector.isEnabled()) {
@@ -333,6 +335,7 @@ public class TestFlyExtension
             BrowserContext.clear();
             NetworkMock.cleanup();
             TestClock.autoReset();
+            io.testfly.browser.GeoLocation.autoReset();
             if (!noBrowser && DriverManager.shouldQuitAfterTest())
                 DriverManager.quitDriver();
             TestFlyContext.clearCurrentTest();

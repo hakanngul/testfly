@@ -45,6 +45,7 @@ const sidebars = {
         'guides/step-logging',
         'guides/tracing',
         'guides/browser-lifecycle',
+        'guides/browser-support',
         'guides/parallel',
         'guides/smart-locator',
         'guides/semantic-locators',

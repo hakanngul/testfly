@@ -67,6 +67,7 @@ public final class DeviceEmulator {
         if (isChromeOrEdge(driver)) {
             applyViaCdp((ChromiumDriver) driver, profile);
         } else {
+            BrowserFeatures.warnOnce(driver, BrowserFeatures.Feature.DEVICE_EMULATION);
             applyVisFallback(driver, profile);
         }
         LOG.info("[DeviceEmulator] Emulating: " + profile.getName() +
@@ -91,46 +92,53 @@ public final class DeviceEmulator {
     // Chromium CDP path
     // ------------------------------------------------------------------
 
+    /**
+     * The driver owns one DevTools connection that network mocking and screen recording share.
+     * It must never be closed here: closing it detaches the session, which drops the emulation
+     * override and breaks every other feature using the same connection.
+     */
+    private static DevTools sharedSession(ChromiumDriver driver) {
+        DevTools devTools = driver.getDevTools();
+        devTools.createSessionIfThereIsNotOne();
+        return devTools;
+    }
+
     private static void applyViaCdp(ChromiumDriver driver, DeviceProfile p) {
-        try (DevTools devTools = driver.getDevTools()) {
-            devTools.createSession();
-            devTools.send(Emulation.setDeviceMetricsOverride(
-                    p.getWidth(),
-                    p.getHeight(),
-                    p.getDeviceScaleFactor(),
-                    p.isMobile(),
-                    Optional.empty(), // scale
-                    Optional.empty(), // screenWidth
-                    Optional.empty(), // screenHeight
-                    Optional.empty(), // positionX
-                    Optional.empty(), // positionY
-                    Optional.empty(), // dontSetVisibleSize
-                    Optional.empty(), // screenOrientation
-                    Optional.empty(), // viewport
-                    Optional.empty(), // displayFeature
-                    Optional.empty(), // devicePosture
-                    Optional.empty(), // scrollbarType
-                    Optional.empty(), // screenOrientationLockEmulation
-                    Optional.empty() // viewportMeta (added in CDP v155)
-            ));
-            devTools.send(Emulation.setUserAgentOverride(
-                    p.getUserAgent(),
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty()));
-        }
+        DevTools devTools = sharedSession(driver);
+        devTools.send(Emulation.setDeviceMetricsOverride(
+                p.getWidth(),
+                p.getHeight(),
+                p.getDeviceScaleFactor(),
+                p.isMobile(),
+                Optional.empty(), // scale
+                Optional.empty(), // screenWidth
+                Optional.empty(), // screenHeight
+                Optional.empty(), // positionX
+                Optional.empty(), // positionY
+                Optional.empty(), // dontSetVisibleSize
+                Optional.empty(), // screenOrientation
+                Optional.empty(), // viewport
+                Optional.empty(), // displayFeature
+                Optional.empty(), // devicePosture
+                Optional.empty(), // scrollbarType
+                Optional.empty(), // screenOrientationLockEmulation
+                Optional.empty() // viewportMeta (added in CDP v155)
+        ));
+        devTools.send(Emulation.setUserAgentOverride(
+                p.getUserAgent(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty()));
     }
 
     private static void resetViaCdp(ChromiumDriver driver) {
-        try (DevTools devTools = driver.getDevTools()) {
-            devTools.createSession();
-            devTools.send(Emulation.clearDeviceMetricsOverride());
-            devTools.send(Emulation.setUserAgentOverride(
-                    "",
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty()));
-        }
+        DevTools devTools = sharedSession(driver);
+        devTools.send(Emulation.clearDeviceMetricsOverride());
+        devTools.send(Emulation.setUserAgentOverride(
+                "",
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty()));
     }
 
     // ------------------------------------------------------------------
@@ -140,9 +148,12 @@ public final class DeviceEmulator {
     private static void applyVisFallback(WebDriver driver, DeviceProfile p) {
         driver.manage().window().setSize(new Dimension(p.getWidth(), p.getHeight()));
         try {
+            // 'ua' is captured by the getter; 'arguments' inside the getter would be the
+            // getter's own (empty) arguments and navigator.userAgent would read undefined.
             ((JavascriptExecutor) driver).executeScript(
-                    "Object.defineProperty(navigator, 'userAgent', {" +
-                            "  get: function() { return arguments[0]; }," +
+                    "var ua = arguments[0];" +
+                            "Object.defineProperty(navigator, 'userAgent', {" +
+                            "  get: function() { return ua; }," +
                             "  configurable: true" +
                             "});",
                     p.getUserAgent());

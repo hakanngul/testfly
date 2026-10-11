@@ -288,6 +288,16 @@ public final class RecordingManager {
                 }
             }
 
+            if (preferCdp) {
+                if (driver instanceof HasDevTools) {
+                    LOG.warning("[RecordingManager] The DevTools screencast could not start; recording with "
+                            + "periodic screenshots instead.");
+                } else {
+                    io.testfly.browser.BrowserFeatures.warnOnce(driver,
+                            io.testfly.browser.BrowserFeatures.Feature.CDP_RECORDING);
+                }
+            }
+
             // Fallback: Periodic screenshot sampler
             if (!(driver instanceof TakesScreenshot))
                 return;

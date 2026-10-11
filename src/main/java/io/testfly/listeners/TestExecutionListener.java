@@ -203,6 +203,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         TestManagementReporter.getInstance().onTestResult(
                 result.getMethod().getConstructorOrMethod().getMethod(), "PASSED", null);
         TestClock.autoReset();
+        io.testfly.browser.GeoLocation.autoReset();
         if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest())
             DriverManager.quitDriver();
         MultiSessionManager.clearAll();
@@ -291,6 +292,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         TestManagementReporter.getInstance().onTestResult(
                 result.getMethod().getConstructorOrMethod().getMethod(), "FAILED", failureComment);
         TestClock.autoReset();
+        io.testfly.browser.GeoLocation.autoReset();
         if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest())
             DriverManager.quitDriver();
         MultiSessionManager.clearAll();
@@ -317,6 +319,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         TestManagementReporter.getInstance().onTestResult(
                 result.getMethod().getConstructorOrMethod().getMethod(), "SKIPPED", null);
         TestClock.autoReset();
+        io.testfly.browser.GeoLocation.autoReset();
         if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest())
             DriverManager.quitDriver();
         MultiSessionManager.clearAll();

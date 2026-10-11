@@ -275,6 +275,7 @@ public class CucumberHooks {
             BrowserContext.clear();
             NetworkMock.cleanup();
             TestClock.autoReset();
+            io.testfly.browser.GeoLocation.autoReset();
             CucumberContext.clear();
             TestFlyContext.clearCurrentTestId();
         }

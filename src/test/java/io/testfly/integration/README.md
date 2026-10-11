@@ -30,6 +30,9 @@ The default `mvn test` command skips these tests entirely — they live under
 | `locator/ActionabilityIntegrationTest` | Actionability | Real Chrome; click waits for an overlay and an animation to finish, scrolls off-screen buttons, names the blocking element on failure |
 | `accessibility/AriaSnapshotIntegrationTest` | ARIA assertions | Real Chrome; role, accessible name and description, ARIA snapshot output and template matching |
 | `tracing/TraceSnapshotIntegrationTest` | Step traces | Real Chrome; per-step ARIA and DOM snapshots, after-failure snapshot, the trace file opened in the browser, hostile page markup stays inert |
+| `browser/DeviceEmulatorIntegrationTest` | Device emulation | Real Chromium; viewport and user agent stick across navigation, network mocking keeps working, reset restores the browser |
+| `browser/ConsoleErrorIntegrationTest` | Console errors | Real browser; errors raised while loading, after load and on a page reached by a link are all reported |
+| `network/NetworkMockReuseIntegrationTest` | Network mocking | Real Chromium; five mock rounds on one reused driver each see only their own mock |
 | `testmanagement/TestRailIntegrationTest` | TestRail reporter | Local HTTP stub; Basic auth, payload mapping, status ID mapping, 401/500 error handling |
 
 ## Design principles

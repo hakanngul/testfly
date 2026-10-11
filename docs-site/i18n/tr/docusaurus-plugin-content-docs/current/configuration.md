@@ -278,7 +278,7 @@ clock:
 
 # ── Ağ Araya Girme (Network Interception) ────────────────────────────────────
 network:
-  interceptEnabled: false           # CDP üzerinden ağ trafiğine müdahale ve yanıt mock'lamayı etkinleştir
+  interceptEnabled: false           # ayrılmış, etkisi yok: müdahale ilk route, stub veya blockUrls girdisiyle başlar
   blockUrls:                        # global engellenecek URL kalıpları (izleyiciler, reklamlar vb.)
     - "*google-analytics.com*"
     - "*doubleclick.net*"
@@ -428,7 +428,7 @@ Her anahtar **üç durumlu**dur:
 | `ai` | `ai.enabled` — `act()`, `aiAssert()`, hata analizi, patch üretimi ve AI locator healing'i kapsar | `true` |
 | `recording` | `recording.enabled` | `false` |
 | `tracing` | `tracing.enabled` — adım adım ekran görüntüleri ve zaman tüneli içeren HTML izleme dosyası (`target/traces/`) üretir | `false` |
-| `network` | `network.interceptEnabled` | `false` |
+| `network` | `network.interceptEnabled` (ayrılmış, şu an etkisi yok) | `false` |
 | `healing` | `locators.selfHealing` ve `locators.aiHealing` | `false` |
 | `visual` | *modül bayrağı yok* — kapatılmadığı sürece görsel regresyon kullanılabilir | `true` |
 | `performance` | `performance.captureOnEveryTest` | `false` |
@@ -870,7 +870,7 @@ testmanagement:
 
 * **`clock.injectHeader`**: Tarayıcı isteklerine sahte tarih HTTP başlığı ekler (varsayılan `false`).
 * **`clock.headerName`**: Özel başlık adı (varsayılan `"X-Mock-Date"`).
-* **`network.interceptEnabled`**: Chrome DevTools Protokolü üzerinden ağ trafiğine müdahale ve stubbing'i açar (varsayılan `false`).
+* **`network.interceptEnabled`**: Ayrılmıştır. Bugün etkisi yoktur: ağ müdahalesi, bu değer ne olursa olsun, ilk `mockRoute`, stub veya boş olmayan `network.blockUrls` ile başlar ve yalnızca yerel Chrome veya Edge'de çalışır (bkz. [Tarayıcı Desteği](guides/browser-support)).
 * **`network.blockUrls`**: Eşleşen URL isteklerini ağ düzeyinde global olarak engeller (örn: reklamlar, izleyiciler) (varsayılan: `[]`).
 
 ---
