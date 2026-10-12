@@ -323,6 +323,74 @@ public class PageAssertTest {
         expectPage().hasWindowCount(2);
     }
 
+    // ------------------------------------------------------------------
+    // Negation
+    // ------------------------------------------------------------------
+
+    @Test
+    public void not_urlContains_passesWhenFragmentAbsent() {
+        when(mockDriver.getCurrentUrl()).thenReturn("https://example.com/inventory");
+        expectPage().not().urlContains("login");
+    }
+
+    @Test
+    public void not_urlContains_failsWhenFragmentPresent() {
+        when(mockDriver.getCurrentUrl()).thenReturn("https://example.com/login");
+        when(mockDriver.getTitle()).thenReturn("Login");
+
+        AssertionError e = org.testng.Assert.expectThrows(AssertionError.class,
+                () -> expectPage().not().urlContains("login"));
+        assertTrue(e.getMessage().contains("Expected NOT page URL to contain [login]"), e.getMessage());
+        assertTrue(e.getMessage().contains("condition still met"), e.getMessage());
+    }
+
+    @Test
+    public void not_hasTitle_passesWhenTitleDiffers() {
+        when(mockDriver.getTitle()).thenReturn("Dashboard");
+        expectPage().not().hasTitle("Login");
+    }
+
+    @Test
+    public void not_negatesOnlyTheNextAssertion() {
+        when(mockDriver.getTitle()).thenReturn("Dashboard");
+        when(mockDriver.getCurrentUrl()).thenReturn("https://example.com/inventory");
+
+        expectPage().not().hasTitle("Login").urlContains("inventory");
+        org.testng.Assert.expectThrows(AssertionError.class,
+                () -> expectPage().not().hasTitle("Login").hasTitle("Login"));
+    }
+
+    @Test
+    public void not_hasAlert_passesWhenNoAlert() {
+        when(targetLocator().alert()).thenThrow(new NoAlertPresentException());
+        expectPage().not().hasAlert();
+    }
+
+    @Test
+    public void not_hasCookie_failsWhenCookiePresent() {
+        when(options().getCookieNamed("session")).thenReturn(new Cookie("session", "abc"));
+        org.testng.Assert.expectThrows(AssertionError.class, () -> expectPage().not().hasCookie("session"));
+    }
+
+    @Test
+    public void not_softMode_collectsNegatedFailure() {
+        when(mockDriver.getCurrentUrl()).thenReturn("https://example.com/login");
+
+        expectPage().softly().not().urlContains("login");
+
+        assertTrue(SoftAssertions.get().hasFailed());
+        assertTrue(SoftAssertions.get().getFailures().get(0).contains("Expected NOT page URL to contain [login]"));
+    }
+
+    @Test
+    public void not_marksStepAsNegated() {
+        when(mockDriver.getCurrentUrl()).thenReturn("https://example.com/inventory");
+
+        expectPage().not().urlContains("login");
+
+        stepLoggerMock.verify(() -> StepLogger.step("[not] Assert page URL contains: login"));
+    }
+
     private static void assertEquals(Object actual, Object expected) {
         org.testng.Assert.assertEquals(actual, expected);
     }

@@ -90,7 +90,7 @@ Playwright-inspired, immutable auto-waiting locator API:
   - Count: `count(n)`, `countAtLeast(n)`, `countAtMost(n)`.
   - Playwright for Java names: `hasCount(n)`, `hasText(Pattern | String[] | Pattern[])`, `containsText(Pattern | String[])`, `hasValue(Pattern)`, `hasValues(...)`, `hasAttribute(name, Pattern)`, `hasClass(Pattern)`, `containsClass(String | List<String>)`, `hasCSS(name, String | Pattern)`, `hasId(Pattern)`, `hasJSProperty(name, value)`, `hasRole(Role)`, `hasAccessibleName(Pattern)`, `hasAccessibleDescription(...)`, `hasAccessibleErrorMessage(...)`. `Pattern` arguments match anywhere in the value.
   - Negation: `not()` negates the next assertion, like Playwright (`assertThat(x).not().hasText("Error")`, `not().isAttached()`). Most negated assertions also pass when no element matches.
-- **Page Assertions:** `assertThatPage()` (`hasTitle(title)`, `titleContains(text)`, `hasUrl(url)`, `urlContains(text)`, `urlMatches(regex)`, `hasAlert()`, `hasAlertText(text)`, `hasNoAlert()`, `hasCookie(name[, value])`, `doesNotHaveCookie(name)`, `hasLocalStorageItem(key[, value])`, `hasWindowCount(n)`).
+- **Page Assertions:** `assertThatPage()` (`hasTitle(title)`, `titleContains(text)`, `hasUrl(url)`, `urlContains(text)`, `urlMatches(regex)`, `hasAlert()`, `hasAlertText(text)`, `hasNoAlert()`, `hasCookie(name[, value])`, `doesNotHaveCookie(name)`, `hasLocalStorageItem(key[, value])`, `hasWindowCount(n)`, `not()` to negate the next page assertion).
 - **Soft Assertions:** `softAssert(locator)` / `softAssert(by)` thread-isolated collection.
 - **Assertion Boundary Decision:**
   > [!NOTE]
