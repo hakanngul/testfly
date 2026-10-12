@@ -83,12 +83,13 @@ Playwright-inspired, immutable auto-waiting locator API:
 #### Web-First Polling Assertions & Architectural Boundary
 - **Element Assertions:** `assertThat(locator)` / `assertThat(by)`:
   - Verified actions: `click()` (waits, scrolls, hovers, checks the element is not covered, clicks, and asserts the click event reached it), `fill(text)` and `clear()` (type or clear, then assert the value stuck; password values are never logged). They resolve the element like the matching `Locator` actions, including self-healing.
-  - State: `isVisible()`, `isHidden()`, `isEnabled()`, `isDisabled()`, `isChecked()`, `isNotChecked()`, `isSelected()`, `isFocused()`, `isEditable()`, `isReadOnly()`, `isRequired()`, `isInViewport()`, `exists()`, `doesNotExist()`.
+  - State: `isVisible()`, `isHidden()`, `isEnabled()`, `isDisabled()`, `isChecked()`, `isIndeterminate()`, `isSelected()`, `isFocused()`, `isEditable()`, `isReadOnly()`, `isRequired()`, `isInViewport()`, `isInViewport(ratio)`, `isEmpty()`, `isAttached()` / `exists()`.
   - Text: `hasText(text)`, `containsText(text)`, `hasTextMatching(regex)`, `hasTextIgnoringCase(text)`, `hasTexts(texts...)`, `containsTexts(texts...)`.
   - Value & form: `hasValue(val)`, `hasValue()`, `hasEmptyValue()`, `containsValue(text)`, `valueMatches(regex)`, `isPasswordHidden()`, `isPasswordVisible()`, `hasType(type)`, `hasPlaceholder(text)`, `hasMaxLength(n)`, `isValid()`, `isInvalid()`, `hasValidationMessage(text)`.
   - Attributes & selection: `hasAttribute(attr)`, `hasAttribute(attr, val)`, `hasCssValue(prop, val)`, `hasClass(cls)`, `hasId(id)`, `hasRole(role)`, `hasAccessibleName(name)`, `hasSelectedOption(text)`, `hasOptions(texts...)`.
   - Count: `count(n)`, `countAtLeast(n)`, `countAtMost(n)`.
-  - Negations (the element must exist): `doesNotHaveText`, `doesNotContainText`, `doesNotHaveValue`, `doesNotHaveClass`, `doesNotHaveAttribute(attr)`, `doesNotHaveAttribute(attr, val)`, `isNotFocused()`.
+  - Playwright for Java names: `hasCount(n)`, `hasText(Pattern | String[] | Pattern[])`, `containsText(Pattern | String[])`, `hasValue(Pattern)`, `hasValues(...)`, `hasAttribute(name, Pattern)`, `hasClass(Pattern)`, `containsClass(String | List<String>)`, `hasCSS(name, String | Pattern)`, `hasId(Pattern)`, `hasJSProperty(name, value)`, `hasRole(Role)`, `hasAccessibleName(Pattern)`, `hasAccessibleDescription(...)`, `hasAccessibleErrorMessage(...)`. `Pattern` arguments match anywhere in the value.
+  - Negation: `not()` negates the next assertion, like Playwright (`assertThat(x).not().hasText("Error")`, `not().isAttached()`). Most negated assertions also pass when no element matches.
 - **Page Assertions:** `assertThatPage()` (`hasTitle(title)`, `titleContains(text)`, `hasUrl(url)`, `urlContains(text)`, `urlMatches(regex)`, `hasAlert()`, `hasAlertText(text)`, `hasNoAlert()`, `hasCookie(name[, value])`, `doesNotHaveCookie(name)`, `hasLocalStorageItem(key[, value])`, `hasWindowCount(n)`).
 - **Soft Assertions:** `softAssert(locator)` / `softAssert(by)` thread-isolated collection.
 - **Assertion Boundary Decision:**

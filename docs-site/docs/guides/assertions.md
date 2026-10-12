@@ -180,7 +180,8 @@ assertThat($(".tag")).containsTexts("java", "selenium");
 ### Selection
 
 ```java
-assertThat(By.id("newsletter")).isNotChecked();
+assertThat(By.id("newsletter")).not().isChecked();
+assertThat(By.id("select-all")).isIndeterminate();
 assertThat(By.cssSelector("option[value='tr']")).isSelected();
 assertThat(By.id("country")).hasSelectedOption("Turkey");
 assertThat(By.id("country")).hasOptions("Germany", "Turkey", "USA");
@@ -194,20 +195,26 @@ assertThat(By.cssSelector("main > section")).hasId("results");
 assertThat(By.id("footer-cta")).isInViewport();
 ```
 
-### Negations
+### Negation with `not()`
 
-Each negation is its own method. A negation still needs the element to be there: only the property must not match. If the element is missing, the assertion keeps retrying and then fails. To assert that an element is absent, use `doesNotExist()` or `isHidden()`.
+`not()` negates the next assertion, like Playwright's `not()`:
 
 ```java
-assertThat(By.id("status")).doesNotHaveText("Error");
-assertThat(By.id("status")).doesNotContainText("failed");
-assertThat(By.name("username")).doesNotHaveValue("guest");
-assertThat(By.id("submit")).doesNotHaveClass("loading");
-assertThat(By.id("submit")).doesNotHaveAttribute("disabled");
-assertThat(By.id("email")).doesNotHaveAttribute("aria-invalid", "true");
-assertThat(By.id("search")).isNotFocused();
-assertThat(By.id("error-banner")).doesNotExist(); // no element in the DOM
+assertThat(By.id("status")).not().hasText("Error");
+assertThat(By.id("status")).not().containsText("failed");
+assertThat(By.name("username")).not().hasValue("guest");
+assertThat(By.id("submit")).not().containsClass("loading");
+assertThat(By.id("submit")).not().hasAttribute("disabled");
+assertThat(By.id("email")).not().hasAttribute("aria-invalid", "true");
+assertThat(By.id("search")).not().isFocused();
+assertThat(By.id("newsletter")).not().isChecked();
+assertThat(By.id("error-banner")).not().isAttached(); // no element in the DOM
 ```
+
+- `not()` applies only to the assertion right after it. In `assertThat(x).not().isVisible().hasText("a")`, `hasText` is not negated.
+- As in Playwright, most negated assertions also pass when no element matches. To require the element too, assert it first: `assertThat(status).isVisible().not().hasText("Error")`.
+- `not()` cannot be combined with `click()`, `fill()` or `clear()`.
+- Failure messages and report steps show the negation: `Expected NOT text [Error] for: ...`, `[not] Assert text 'Error' ...`.
 
 ### Element Count & Presence
 
@@ -216,11 +223,11 @@ assertThat(By.cssSelector("table tbody tr")).count(5);
 assertThat($(".card")).count(3);
 assertThat($(".card")).countAtLeast(1).countAtMost(10);
 
-assertThat(By.id("csrf-token")).exists();         // present, visible or not
-assertThat(By.id("error-banner")).doesNotExist(); // absent from the DOM
+assertThat(By.id("csrf-token")).isAttached();          // present, visible or not (alias: exists())
+assertThat(By.id("error-banner")).not().isAttached(); // absent from the DOM
 ```
 
-When you assert on a `Locator` (`$()`, `getByRole()`, ...), only visible elements are matched. So `count`, `exists` and `doesNotExist` ignore hidden elements. Pass a `By` if hidden elements must be counted.
+When you assert on a `Locator` (`$()`, `getByRole()`, ...), only visible elements are matched. So `count`, `hasCount`, `exists` and `isAttached` ignore hidden elements. Pass a `By` if hidden elements must be counted.
 
 ### Page & URL (PageAssert)
 
@@ -257,6 +264,43 @@ assertThatPage().hasWindowCount(2);
 ```
 
 ---
+
+## Playwright Parity
+
+TestFly's element assertions follow the names of Playwright for Java (`assertThat(locator).isVisible()`), not the JavaScript names (`expect(locator).toBeVisible()`):
+
+| Playwright JS | TestFly |
+|---|---|
+| `expect(l).toBeAttached()` | `assertThat(l).isAttached()` |
+| `toBeChecked()` / `toBeChecked({indeterminate: true})` | `isChecked()` / `isIndeterminate()` |
+| `toBeDisabled()` / `toBeEnabled()` / `toBeEditable()` | `isDisabled()` / `isEnabled()` / `isEditable()` |
+| `toBeEmpty()` | `isEmpty()` |
+| `toBeFocused()` | `isFocused()` |
+| `toBeHidden()` / `toBeVisible()` | `isHidden()` / `isVisible()` |
+| `toBeInViewport({ratio})` | `isInViewport()` / `isInViewport(ratio)` |
+| `toContainText(text \| regex \| array)` | `containsText(String \| Pattern \| String[])` |
+| `toContainClass(...)` | `containsClass(String \| List<String>)` |
+| `toHaveAccessibleName/Description/ErrorMessage` | `hasAccessibleName` / `hasAccessibleDescription` / `hasAccessibleErrorMessage` (`String` or `Pattern`) |
+| `toHaveAttribute(name, value \| regex)` | `hasAttribute(name, String \| Pattern)` |
+| `toHaveClass(regex)` | `hasClass(Pattern)` |
+| `toHaveCount(n)` | `hasCount(n)` |
+| `toHaveCSS(name, value \| regex)` | `hasCSS(name, String \| Pattern)` |
+| `toHaveId(...)` | `hasId(String \| Pattern)` |
+| `toHaveJSProperty(name, value)` | `hasJSProperty(name, value)` |
+| `toHaveRole(role)` | `hasRole(Role.BUTTON)` / `hasRole("button")` |
+| `toHaveText(text \| regex \| array)` | `hasText(String \| Pattern \| String[] \| Pattern[])` |
+| `toHaveValue(...)` / `toHaveValues([...])` | `hasValue(String \| Pattern)` / `hasValues(...)` |
+| `.not` | `.not()` |
+
+`isEmpty()` checks the value of `input`, `textarea` and `select` (a value of spaces is not empty) and the trimmed text content of any other element.
+
+`Pattern` arguments match anywhere in the value, as Playwright's regular expressions do. Use `^...$` for a full match: `hasText(Pattern.compile("^Order #\\d+$"))`.
+
+**Differences from Playwright:**
+
+- `hasClass(String)` checks a single class name, which is what Playwright calls `containsClass`. To match the whole `class` attribute, use `hasClass(Pattern)`.
+- Playwright's option objects have no counterpart. Use `within(...)` for `timeout`, `not()` for `visible: false` / `enabled: false` / `checked: false`, and `hasTextIgnoringCase(...)` for `ignoreCase`.
+- `toMatchAriaSnapshot` and element screenshots are not available. For page screenshots, see visual testing.
 
 ## Modifiers & Customization
 

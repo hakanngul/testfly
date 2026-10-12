@@ -180,7 +180,8 @@ assertThat($(".tag")).containsTexts("java", "selenium");
 ### Seçim (Selection)
 
 ```java
-assertThat(By.id("newsletter")).isNotChecked();
+assertThat(By.id("newsletter")).not().isChecked();
+assertThat(By.id("select-all")).isIndeterminate();
 assertThat(By.cssSelector("option[value='tr']")).isSelected();
 assertThat(By.id("country")).hasSelectedOption("Türkiye");
 assertThat(By.id("country")).hasOptions("Almanya", "Türkiye", "ABD");
@@ -194,20 +195,26 @@ assertThat(By.cssSelector("main > section")).hasId("results");
 assertThat(By.id("footer-cta")).isInViewport();
 ```
 
-### Olumsuz Doğrulamalar (Negations)
+### `not()` ile Olumsuzlama (Negation)
 
-Her olumsuz doğrulama ayrı bir metottur. Olumsuz doğrulamalar da elemanın sayfada olmasını ister, yalnızca özelliğin eşleşmemesi gerekir. Eleman yoksa doğrulama tekrar dener ve sonunda başarısız olur. Elemanın olmadığını doğrulamak için `doesNotExist()` veya `isHidden()` kullanın.
+`not()` bir sonraki doğrulamayı tersine çevirir, tıpkı Playwright'taki `not()` gibi:
 
 ```java
-assertThat(By.id("status")).doesNotHaveText("Hata");
-assertThat(By.id("status")).doesNotContainText("başarısız");
-assertThat(By.name("username")).doesNotHaveValue("guest");
-assertThat(By.id("submit")).doesNotHaveClass("loading");
-assertThat(By.id("submit")).doesNotHaveAttribute("disabled");
-assertThat(By.id("email")).doesNotHaveAttribute("aria-invalid", "true");
-assertThat(By.id("search")).isNotFocused();
-assertThat(By.id("error-banner")).doesNotExist(); // DOM'da eleman yok
+assertThat(By.id("status")).not().hasText("Hata");
+assertThat(By.id("status")).not().containsText("başarısız");
+assertThat(By.name("username")).not().hasValue("guest");
+assertThat(By.id("submit")).not().containsClass("loading");
+assertThat(By.id("submit")).not().hasAttribute("disabled");
+assertThat(By.id("email")).not().hasAttribute("aria-invalid", "true");
+assertThat(By.id("search")).not().isFocused();
+assertThat(By.id("newsletter")).not().isChecked();
+assertThat(By.id("error-banner")).not().isAttached(); // DOM'da eleman yok
 ```
+
+- `not()` yalnızca hemen arkasından gelen doğrulamaya uygulanır. `assertThat(x).not().isVisible().hasText("a")` zincirinde `hasText` tersine çevrilmez.
+- Playwright'taki gibi, olumsuzlanan doğrulamaların çoğu eşleşen eleman yoksa da geçer. Elemanın var olmasını da istiyorsanız önce onu doğrulayın: `assertThat(status).isVisible().not().hasText("Hata")`.
+- `not()`, `click()`, `fill()` veya `clear()` ile birlikte kullanılamaz.
+- Hata mesajları ve rapor adımları olumsuzlamayı gösterir: `Expected NOT text [Hata] for: ...`, `[not] Assert text 'Hata' ...`.
 
 ### Eleman Sayısı ve Varlık (Count & Presence)
 
@@ -216,11 +223,11 @@ assertThat(By.cssSelector("table tbody tr")).count(5);
 assertThat($(".card")).count(3);
 assertThat($(".card")).countAtLeast(1).countAtMost(10);
 
-assertThat(By.id("csrf-token")).exists();         // DOM'da var, görünür olsun ya da olmasın
-assertThat(By.id("error-banner")).doesNotExist(); // DOM'da yok
+assertThat(By.id("csrf-token")).isAttached();          // DOM'da var, görünür olsun ya da olmasın (diğer adı: exists())
+assertThat(By.id("error-banner")).not().isAttached(); // DOM'da yok
 ```
 
-Bir `Locator` (`$()`, `getByRole()`, ...) üzerinde doğrulama yaptığınızda yalnızca görünür elemanlar eşleşir. Bu yüzden `count`, `exists` ve `doesNotExist` gizli elemanları saymaz. Gizli elemanların da sayılması gerekiyorsa `By` verin.
+Bir `Locator` (`$()`, `getByRole()`, ...) üzerinde doğrulama yaptığınızda yalnızca görünür elemanlar eşleşir. Bu yüzden `count`, `hasCount`, `exists` ve `isAttached` gizli elemanları saymaz. Gizli elemanların da sayılması gerekiyorsa `By` verin.
 
 ### Sayfa ve URL Doğrulamaları (PageAssert)
 
@@ -257,6 +264,43 @@ assertThatPage().hasWindowCount(2);
 ```
 
 ---
+
+## Playwright Eşliği (Playwright Parity)
+
+TestFly'ın eleman doğrulamaları Playwright'ın JavaScript isimlerini (`expect(locator).toBeVisible()`) değil, Playwright for Java isimlerini (`assertThat(locator).isVisible()`) izler:
+
+| Playwright JS | TestFly |
+|---|---|
+| `expect(l).toBeAttached()` | `assertThat(l).isAttached()` |
+| `toBeChecked()` / `toBeChecked({indeterminate: true})` | `isChecked()` / `isIndeterminate()` |
+| `toBeDisabled()` / `toBeEnabled()` / `toBeEditable()` | `isDisabled()` / `isEnabled()` / `isEditable()` |
+| `toBeEmpty()` | `isEmpty()` |
+| `toBeFocused()` | `isFocused()` |
+| `toBeHidden()` / `toBeVisible()` | `isHidden()` / `isVisible()` |
+| `toBeInViewport({ratio})` | `isInViewport()` / `isInViewport(ratio)` |
+| `toContainText(text \| regex \| array)` | `containsText(String \| Pattern \| String[])` |
+| `toContainClass(...)` | `containsClass(String \| List<String>)` |
+| `toHaveAccessibleName/Description/ErrorMessage` | `hasAccessibleName` / `hasAccessibleDescription` / `hasAccessibleErrorMessage` (`String` veya `Pattern`) |
+| `toHaveAttribute(name, value \| regex)` | `hasAttribute(name, String \| Pattern)` |
+| `toHaveClass(regex)` | `hasClass(Pattern)` |
+| `toHaveCount(n)` | `hasCount(n)` |
+| `toHaveCSS(name, value \| regex)` | `hasCSS(name, String \| Pattern)` |
+| `toHaveId(...)` | `hasId(String \| Pattern)` |
+| `toHaveJSProperty(name, value)` | `hasJSProperty(name, value)` |
+| `toHaveRole(role)` | `hasRole(Role.BUTTON)` / `hasRole("button")` |
+| `toHaveText(text \| regex \| array)` | `hasText(String \| Pattern \| String[] \| Pattern[])` |
+| `toHaveValue(...)` / `toHaveValues([...])` | `hasValue(String \| Pattern)` / `hasValues(...)` |
+| `.not` | `.not()` |
+
+`isEmpty()`, `input`, `textarea` ve `select` için değeri (yalnızca boşluklardan oluşan değer boş sayılmaz), diğer elemanlar için kırpılmış metin içeriğini kontrol eder.
+
+`Pattern` argümanları, Playwright'taki regex'ler gibi değerin herhangi bir yerinde eşleşir. Tam eşleşme için `^...$` kullanın: `hasText(Pattern.compile("^Sipariş #\\d+$"))`.
+
+**Playwright'tan farklar:**
+
+- `hasClass(String)` tek bir class adına bakar; Playwright buna `containsClass` der. Tüm `class` attribute'unu eşleştirmek için `hasClass(Pattern)` kullanın.
+- Playwright'ın options nesnelerinin karşılığı yoktur. `timeout` için `within(...)`, `visible: false` / `enabled: false` / `checked: false` için `not()`, `ignoreCase` için `hasTextIgnoringCase(...)` kullanın.
+- `toMatchAriaSnapshot` ve eleman ekran görüntüleri yoktur. Sayfa ekran görüntüleri için görsel test bölümüne bakın.
 
 ## Özelleştirme ve Niteleyiciler
 

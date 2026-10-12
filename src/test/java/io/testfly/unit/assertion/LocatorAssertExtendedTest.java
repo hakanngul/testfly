@@ -27,7 +27,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
-import static org.testng.Assert.assertTrue;
 
 /**
  * Unit tests for the form, text, selection, accessibility and negation
@@ -296,26 +295,6 @@ public class LocatorAssertExtendedTest {
     // ---------------------------------------------------------------
 
     @Test
-    public void isNotChecked_unchecked_passes() {
-        found(FIELD, input(""));
-        expect(FIELD).isNotChecked();
-    }
-
-    @Test(expectedExceptions = AssertionError.class)
-    public void isNotChecked_checked_fails() {
-        WebElement el = input("");
-        when(el.isSelected()).thenReturn(true);
-        found(FIELD, el);
-        expect(FIELD).isNotChecked();
-    }
-
-    @Test(expectedExceptions = AssertionError.class)
-    public void isNotChecked_absent_fails() {
-        absent(FIELD);
-        expect(FIELD).isNotChecked();
-    }
-
-    @Test
     public void isSelected_selected_passes() {
         WebElement el = input("");
         when(el.isSelected()).thenReturn(true);
@@ -349,20 +328,6 @@ public class LocatorAssertExtendedTest {
     }
 
     @Test
-    public void doesNotExist_absent_passes() {
-        absent(FIELD);
-        expect(FIELD).doesNotExist();
-    }
-
-    @Test(expectedExceptions = AssertionError.class)
-    public void doesNotExist_presentButHidden_fails() {
-        WebElement el = input("");
-        when(el.isDisplayed()).thenReturn(false);
-        found(FIELD, el);
-        expect(FIELD).doesNotExist();
-    }
-
-    @Test
     public void isInViewport_scriptTrue_passes() {
         found(FIELD, input(""));
         jsReturns(true);
@@ -389,90 +354,5 @@ public class LocatorAssertExtendedTest {
         when(el.getAriaRole()).thenReturn("button");
         found(FIELD, el);
         expect(FIELD).hasRole("textbox");
-    }
-
-    // ---------------------------------------------------------------
-    // Negations
-    // ---------------------------------------------------------------
-
-    @Test
-    public void textNegations_pass() {
-        found(FIELD, withText("Welcome"));
-        expect(FIELD).doesNotHaveText("Error").doesNotContainText("fail");
-    }
-
-    @Test(expectedExceptions = AssertionError.class)
-    public void doesNotHaveText_matching_fails() {
-        found(FIELD, withText(" Error "));
-        expect(FIELD).doesNotHaveText("Error");
-    }
-
-    @Test(expectedExceptions = AssertionError.class)
-    public void doesNotHaveText_absent_fails() {
-        absent(FIELD);
-        expect(FIELD).doesNotHaveText("Error");
-    }
-
-    @Test
-    public void doesNotHaveValue_different_passes() {
-        found(FIELD, input("admin"));
-        expect(FIELD).doesNotHaveValue("root");
-    }
-
-    @Test(expectedExceptions = AssertionError.class)
-    public void doesNotHaveValue_same_fails() {
-        found(FIELD, input("admin"));
-        expect(FIELD).doesNotHaveValue("admin");
-    }
-
-    @Test
-    public void doesNotHaveClass_otherClasses_passes() {
-        WebElement el = input("");
-        when(el.getDomAttribute("class")).thenReturn("btn btn-primary");
-        found(FIELD, el);
-        expect(FIELD).doesNotHaveClass("disabled");
-    }
-
-    @Test(expectedExceptions = AssertionError.class)
-    public void doesNotHaveClass_present_fails() {
-        WebElement el = input("");
-        when(el.getDomAttribute("class")).thenReturn("btn disabled");
-        found(FIELD, el);
-        expect(FIELD).doesNotHaveClass("disabled");
-    }
-
-    @Test
-    public void doesNotHaveAttribute_pass() {
-        WebElement el = input("");
-        when(el.getDomAttribute("aria-invalid")).thenReturn("false");
-        found(FIELD, el);
-        expect(FIELD).doesNotHaveAttribute("disabled").doesNotHaveAttribute("aria-invalid", "true");
-    }
-
-    @Test(expectedExceptions = AssertionError.class)
-    public void doesNotHaveAttribute_present_fails() {
-        WebElement el = input("");
-        when(el.getDomAttribute("disabled")).thenReturn("true");
-        found(FIELD, el);
-        expect(FIELD).doesNotHaveAttribute("disabled");
-    }
-
-    @Test
-    public void isNotFocused_otherActive_passes() {
-        WebElement el = input("");
-        found(FIELD, el);
-        WebDriver.TargetLocator target = mock(WebDriver.TargetLocator.class);
-        when(mockDriver.switchTo()).thenReturn(target);
-        when(target.activeElement()).thenReturn(mock(WebElement.class));
-        expect(FIELD).isNotFocused();
-    }
-
-    @Test
-    public void softly_negationFailureRecordedWithoutThrowing() {
-        found(FIELD, withText("Error"));
-        expect(FIELD).softly().doesNotHaveText("Error");
-
-        assertTrue(SoftAssertions.get().hasFailed());
-        assertTrue(SoftAssertions.get().getFailures().get(0).contains("Expected text not to be [Error]"));
     }
 }

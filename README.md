@@ -626,9 +626,9 @@ assertThat(find("#password"))
     .hasValue()            // filled with any value
     .isPasswordHidden();   // type="password"
 
-// Negations need the element to exist; use doesNotExist() for absence
-assertThat(find("#status")).doesNotHaveText("Error");
-assertThat(find(".alert-danger")).doesNotExist();
+// not() negates the next assertion, like Playwright
+assertThat(find("#status")).not().hasText("Error");
+assertThat(find(".alert-danger")).not().isAttached();
 
 assertThat(getByRole(Role.CHECKBOX, "Subscribe to newsletter"))
     .isChecked();
