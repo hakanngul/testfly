@@ -184,6 +184,8 @@ execution:
   gridUrl: http://localhost:4444/wd/hub
 ```
 
+The Grid runs `browser.name` (or each `browser.matrix` entry): `chrome`, `edge`, `firefox`, or `safari`. Network mocking and other Chrome DevTools features currently need a local Chrome/Edge session.
+
 ### Run against BrowserStack
 
 ```yaml

@@ -18,6 +18,10 @@ browser:
   downloadDir: ./target/downloads   # varsayılan
 ```
 
+:::note Safari
+Safari `downloadDir` ayarını yok sayar ve dosyaları her zaman kullanıcının İndirilenler klasörüne kaydeder; WebDriver bunu değiştiremez. `DownloadManager` bir kez uyarır ve zaman aşımı mesajında bunu belirtir; Safari'de indirme kontrolleri desteklenmez.
+:::
+
 ---
 
 ## Belirli bir dosyayı bekleme

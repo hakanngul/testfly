@@ -490,6 +490,13 @@ Tarayıcı sağlama, çalıştırma modu, yetenekler ve süreç argümanlarını
 | `arguments` | `list<string>` | `[]` | Tarayıcı ikili dosyasına aktarılan komut satırı bayrakları (örn: `--incognito`, `--no-sandbox`). Safari komut satırı bayrağı kabul etmez; bayraklar uyarıyla yok sayılır. Pencere boyutu için `window.mode` kullanın. |
 | `capabilities` | `map` | `{}` | WebDriver seçeneklerine eklenen ham yetenekler (örn: `acceptInsecureCerts`, `pageLoadStrategy`). |
 
+### Tarayıcı davranış notları
+
+- **Alert'ler açık kalır.** Tüm yerleşik sağlayıcılar (local, Grid, BrowserStack, Sauce Labs) `unhandledPromptBehavior: ignore` ayarlar; alert, test onu ele alana kadar bekler. Farklı bir davranış gerekirse `browser.capabilities` ile geçersiz kılın.
+- **Safari kısıtları.** Safari'nin headless modu yoktur ve komut satırı `arguments` kabul etmez (ikisi de uyarıyla yok sayılır). Pencere boyutu için `window.mode` kullanın. Safari `downloadDir` ayarını yok sayar ve kullanıcının İndirilenler klasörüne kaydeder. Safari aynı anda tek oturum çalıştırır; tek thread kullanın. Safari Geliştirici ayarlarında *Uzaktan otomasyona izin ver* seçeneğini bir kez açın (`safaridriver --enable`).
+- **Matrix.** `browser.matrix` tarayıcıyı local, Grid ve cloud koşumlarında aynı şekilde seçer. `lifecycle: per-suite` ile başka bir matrix tarayıcısına geçen thread yeni bir oturum alır.
+
+
 ---
 
 ## Çalıştırma (Execution) {#execution}
@@ -500,7 +507,7 @@ Test dağıtımı, temel adresler, eşzamanlılık ve bulut ızgara (grid) sağl
 |---|---|---|---|
 | `mode` | `string` | **zorunlu** | Çalıştırma ortamı: `local`, `remote`, `browserstack` veya `saucelabs`. |
 | `baseUrl` | `string` | `null` | Web testleri için temel URL. `open("/home")` çağrıldığında bu adresin ardına eklenir. |
-| `gridUrl` | `string` | `null` | Uzak Selenium Grid adresi (`mode: remote` iken zorunludur). Örnek: `http://localhost:4444`. |
+| `gridUrl` | `string` | `null` | Uzak Selenium Grid adresi (`mode: remote` iken zorunludur). Örnek: `http://localhost:4444`. Grid'de desteklenen tarayıcılar: `chrome`, `edge`, `firefox`, `safari`. |
 | `parallel` | `string` | `none` | TestNG paralel dağıtım modu: `none`, `methods`, `classes`, `tests`, `instances`. |
 | `threadCount` | `int` | `1` | Paralel mod aktifken çalışacak iş parçacığı (worker thread) sayısı. |
 | `maxActiveSessions` | `int` | `5` | Eşzamanlı aktif tarayıcı oturumlarını sınırlayan semafor. Ekstra thread'ler yuva boşalana kadar kuyrukta bekler (bkz. `sessionWaitSeconds`). `MultiSessionManager` ile açılan adlandırılmış oturumlar da aynı sınıra sayılır. |

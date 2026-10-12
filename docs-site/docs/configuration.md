@@ -509,6 +509,13 @@ Controls WebDriver browser provisioning, execution mode, capabilities, and proce
 | `arguments` | `list<string>` | `[]` | Extra CLI flags passed directly to the browser binary (e.g. `--incognito`, `--no-sandbox`). Safari does not accept command-line flags; they are ignored with a warning. Use `window.mode` for window sizing. |
 | `capabilities` | `map` | `{}` | Raw capability key-values merged into WebDriver options (e.g. `acceptInsecureCerts`, `pageLoadStrategy`). |
 
+### Browser behavior notes
+
+- **Alerts stay open.** Every built-in provider (local, Grid, BrowserStack, Sauce Labs) sets `unhandledPromptBehavior: ignore`, so an alert waits until the test handles it. Override it through `browser.capabilities` if you need another behavior.
+- **Safari limits.** Safari has no headless mode and accepts no command-line `arguments` (both are ignored with a warning). Use `window.mode` for window sizing. Safari ignores `downloadDir` and saves to the user's Downloads folder. Safari runs one session at a time, so use a single thread. Enable *Allow remote automation* in Safari's Developer settings once (`safaridriver --enable`).
+- **Matrix.** `browser.matrix` selects the browser for local, Grid, and cloud runs alike. With `lifecycle: per-suite`, a thread that switches to another matrix browser gets a new session.
+
+
 ---
 
 ## Execution {#execution}
@@ -519,7 +526,7 @@ Governs test execution topology, base URLs, concurrency, and cloud grid provider
 |---|---|---|---|
 | `mode` | `string` | **required** | Execution environment: `local`, `remote`, `browserstack`, or `saucelabs`. |
 | `baseUrl` | `string` | `null` | Default web URL. When calling `open("/home")`, TestFly prefixes it with this URL. |
-| `gridUrl` | `string` | `null` | Hub endpoint for remote Selenium Grid (used when `mode: remote`). Example: `http://localhost:4444`. |
+| `gridUrl` | `string` | `null` | Hub endpoint for remote Selenium Grid (used when `mode: remote`). Example: `http://localhost:4444`. Supported Grid browsers: `chrome`, `edge`, `firefox`, `safari`. |
 | `parallel` | `string` | `none` | Parallel test distribution mode: `none`, `methods`, `classes`, `tests`, `instances`. Validated against TestNG `ParallelMode`. |
 | `threadCount` | `int` | `1` | Concurrency worker count when `parallel` is enabled. |
 | `maxActiveSessions` | `int` | `5` | Semaphore limiting concurrent WebDriver sessions. Extra threads queue until a slot is free (see `sessionWaitSeconds`). Named sessions from `MultiSessionManager` count against the same limit. |

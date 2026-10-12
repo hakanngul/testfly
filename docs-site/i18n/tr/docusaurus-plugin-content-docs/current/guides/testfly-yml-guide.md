@@ -184,6 +184,8 @@ execution:
   gridUrl: http://localhost:4444/wd/hub
 ```
 
+Grid, `browser.name` (veya her `browser.matrix` girdisi) tarayıcısını çalıştırır: `chrome`, `edge`, `firefox` veya `safari`. Ağ mock'lama ve diğer Chrome DevTools özellikleri şu an yerel bir Chrome/Edge oturumu gerektirir.
+
 ### BrowserStack'e karşı çalıştırma
 
 ```yaml

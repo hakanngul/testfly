@@ -1,11 +1,13 @@
 package io.testfly.browser;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.driver.DriverProviderFactory;
 import io.testfly.internal.TestFlyContext;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Utility for verifying file downloads during tests.
@@ -22,11 +24,18 @@ import java.nio.file.Paths;
  * DownloadManager.waitForFile("report.csv", 15);
  * DownloadManager.clearDownloads();
  * </pre>
+ *
+ * <p>Safari ignores {@code browser.downloadDir}: it always saves to the
+ * user's Downloads folder, which WebDriver cannot change, so waiting here
+ * times out on Safari.
  */
 @TestFlyApi(since = "0.8.0")
 public final class DownloadManager {
 
     private static final int POLL_INTERVAL_MS = 500;
+    private static final String SAFARI_HINT =
+            " Safari ignores browser.downloadDir and saves to the user's Downloads folder.";
+    private static final AtomicBoolean SAFARI_WARNED = new AtomicBoolean();
 
     private DownloadManager() {}
 
@@ -39,6 +48,7 @@ public final class DownloadManager {
      * @throws RuntimeException if the file does not appear within the timeout
      */
     public static File waitForFile(String filename, int timeoutSeconds) {
+        boolean safari = warnIfSafari();
         File dir = resolveDownloadDir();
         long deadline = System.currentTimeMillis() + (long) timeoutSeconds * 1000;
 
@@ -51,7 +61,7 @@ public final class DownloadManager {
         }
         throw new RuntimeException(
             "[DownloadManager] File '" + filename + "' did not appear in " +
-            dir.getAbsolutePath() + " within " + timeoutSeconds + " seconds."
+            dir.getAbsolutePath() + " within " + timeoutSeconds + " seconds." + (safari ? SAFARI_HINT : "")
         );
     }
 
@@ -63,6 +73,7 @@ public final class DownloadManager {
      * @throws RuntimeException if no file appears within the timeout
      */
     public static File waitForAnyFile(int timeoutSeconds) {
+        boolean safari = warnIfSafari();
         File dir = resolveDownloadDir();
         long deadline = System.currentTimeMillis() + (long) timeoutSeconds * 1000;
 
@@ -75,7 +86,7 @@ public final class DownloadManager {
         }
         throw new RuntimeException(
             "[DownloadManager] No file appeared in " + dir.getAbsolutePath() +
-            " within " + timeoutSeconds + " seconds."
+            " within " + timeoutSeconds + " seconds." + (safari ? SAFARI_HINT : "")
         );
     }
 
@@ -104,6 +115,21 @@ public final class DownloadManager {
         File dir = path.toFile();
         if (!dir.exists()) dir.mkdirs();
         return dir;
+    }
+
+    /** Returns whether the current session is Safari, warning once per run. */
+    private static boolean warnIfSafari() {
+        boolean safari;
+        try {
+            safari = "safari".equalsIgnoreCase(DriverProviderFactory.resolveBrowserName(TestFlyContext.getConfig()));
+        } catch (RuntimeException e) {
+            return false;
+        }
+        if (safari && SAFARI_WARNED.compareAndSet(false, true)) {
+            System.err.println("[DownloadManager]" + SAFARI_HINT
+                    + " Download checks against browser.downloadDir will not see Safari downloads.");
+        }
+        return safari;
     }
 
     /** Partial downloads from Chrome (.crdownload) and Firefox (.part). */
