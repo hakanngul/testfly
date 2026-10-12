@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpServer;
 import io.testfly.browser.ConsoleErrorCollector;
 import io.testfly.driver.DriverManager;
 import org.openqa.selenium.By;
+import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.WebDriver;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
@@ -14,6 +15,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 
 import static org.testng.Assert.assertTrue;
 
@@ -28,7 +30,9 @@ import static org.testng.Assert.assertTrue;
  * mvn verify -Preal-backends -Dit.test=ConsoleErrorIntegrationTest
  * </pre>
  *
- * <p>Self-skips when no browser can be created.
+ * <p>Self-skips when no browser can be created. The load-time and link-navigation cases also skip
+ * on non-Chromium browsers without {@code browser.bidi}, where TestFly documents that these errors
+ * are missed (see {@code ConsoleErrorBiDiIntegrationTest} for the BiDi path).
  */
 @Test(groups = {"integration"}, singleThreaded = true)
 public class ConsoleErrorIntegrationTest {
@@ -103,6 +107,20 @@ public class ConsoleErrorIntegrationTest {
         }
     }
 
+    /** Skips unless errors raised before the shim is injected can be captured: Chromium logs or BiDi. */
+    private void requireLoadTimeCapture() {
+        if (driver == null || ConsoleErrorCollector.isBiDiActive()) {
+            return;
+        }
+        String browser = driver instanceof HasCapabilities hc
+                ? hc.getCapabilities().getBrowserName().toLowerCase(Locale.ROOT)
+                : "";
+        if (!browser.equals("chrome") && !browser.contains("edge")) {
+            throw new SkipException("Load-time console errors are not captured on " + browser
+                    + " without browser.bidi (documented limitation).");
+        }
+    }
+
     private static boolean mentions(List<String> errors, String text) {
         return errors.stream().anyMatch(e -> e.contains(text));
     }
@@ -116,6 +134,7 @@ public class ConsoleErrorIntegrationTest {
 
     @Test
     public void uncaughtErrorWhileLoading_isReported() {
+        requireLoadTimeCapture();
         open("/uncaught");
         List<String> errors = ConsoleErrorCollector.collect();
         assertTrue(mentions(errors, "boom-at-load"), "uncaught load-time error missed: " + errors);
@@ -123,6 +142,7 @@ public class ConsoleErrorIntegrationTest {
 
     @Test
     public void consoleErrorWhileLoading_isReported() {
+        requireLoadTimeCapture();
         open("/logged");
         List<String> errors = ConsoleErrorCollector.collect();
         assertTrue(mentions(errors, "logged-at-load"), "load-time console.error missed: " + errors);
@@ -130,6 +150,7 @@ public class ConsoleErrorIntegrationTest {
 
     @Test
     public void errorOnPageReachedByClickingALink_isReported() {
+        requireLoadTimeCapture();
         open("/start");
         driver.findElement(By.id("go")).click();
         List<String> errors = ConsoleErrorCollector.collect();

@@ -155,6 +155,7 @@ jobs:
       - name: Run browser integration tests
         run: >
           mvn verify -Preal-backends --no-transfer-progress
+          -Djacoco.skip=true
           -Dtestfly.config=${{ matrix.config }}
           -Dtest=NoSuchTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false
           -Dit.test='ActionabilityIntegrationTest,AriaSnapshotIntegrationTest,TraceSnapshotIntegrationTest,DeviceEmulatorIntegrationTest,ConsoleErrorIntegrationTest,ConsoleErrorBiDiIntegrationTest,NetworkMockIntegrationTest,NetworkMockReuseIntegrationTest'
