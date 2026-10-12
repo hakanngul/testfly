@@ -3,10 +3,12 @@ package io.testfly.locator;
 import java.util.ArrayList;
 import java.util.List;
 import org.openqa.selenium.By;
+import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.WrapsDriver;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.Select;
 
@@ -383,6 +385,10 @@ public final class Locator extends By {
      * Command+A,
      * Windows/Linux Control+A) followed by native clear.
      *
+     * <p>Safari only gets the native clear: safaridriver keeps a modifier key
+     * pressed after a chord, so every later keystroke in the session would be
+     * sent as a shortcut and typing would silently do nothing.
+     *
      * @param el target WebElement to clear
      */
     public static void robustClear(WebElement el) {
@@ -390,11 +396,23 @@ public final class Locator extends By {
             return;
         }
         try {
-            el.sendKeys(Keys.chord(Keys.COMMAND, "a"), Keys.BACK_SPACE);
-            el.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.BACK_SPACE);
+            if (!isSafari(el)) {
+                el.sendKeys(Keys.chord(Keys.COMMAND, "a"), Keys.BACK_SPACE);
+                el.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.BACK_SPACE);
+            }
             el.clear();
         } catch (Exception e) {
             LOGGER.warn("Robust clear işlemi sırasında hata oluştu: {}", e.getMessage());
+        }
+    }
+
+    private static boolean isSafari(WebElement el) {
+        try {
+            return el instanceof WrapsDriver wraps
+                    && wraps.getWrappedDriver() instanceof HasCapabilities caps
+                    && "safari".equalsIgnoreCase(caps.getCapabilities().getBrowserName());
+        } catch (Exception e) {
+            return false;
         }
     }
 
