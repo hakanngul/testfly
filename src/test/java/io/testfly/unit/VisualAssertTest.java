@@ -4,6 +4,8 @@ import io.testfly.visual.VisualAssert;
 import io.testfly.visual.VisualAssert.DiffResult;
 import io.testfly.visual.VisualTolerance;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.awt.Color;
@@ -15,6 +17,29 @@ import java.io.File;
  * All tests are pure Java — no browser required.
  */
 public class VisualAssertTest {
+
+    private static final String[] UPDATE_PROPS = { "testfly.visual.updateBaselines", "updateBaselines" };
+    private final String[] savedUpdateProps = new String[UPDATE_PROPS.length];
+
+    // Comparison tests must not run in update mode, e.g. when invoked with -DupdateBaselines=true.
+    @BeforeClass
+    public void disableBaselineUpdates() {
+        for (int i = 0; i < UPDATE_PROPS.length; i++) {
+            savedUpdateProps[i] = System.getProperty(UPDATE_PROPS[i]);
+            System.setProperty(UPDATE_PROPS[i], "false");
+        }
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void restoreBaselineUpdates() {
+        for (int i = 0; i < UPDATE_PROPS.length; i++) {
+            if (savedUpdateProps[i] == null) {
+                System.clearProperty(UPDATE_PROPS[i]);
+            } else {
+                System.setProperty(UPDATE_PROPS[i], savedUpdateProps[i]);
+            }
+        }
+    }
 
     // ------------------------------------------------------------------
     // VisualTolerance
@@ -180,6 +205,41 @@ public class VisualAssertTest {
         } finally {
             baseline.delete();
             diffFile.delete();
+        }
+    }
+
+    @Test
+    public void compare_differentAspectRatio_failsWithSizeMismatch() {
+        String name = "test_aspect_" + System.nanoTime();
+        File baseline = new File("src/test/resources/baselines", name + ".png");
+        File actualFile = new File("target/visual-diffs", name + "-actual.png");
+        try {
+            VisualAssert.compare(name, solidImage(20, 10, Color.WHITE), VisualTolerance.exact());
+            try {
+                // Same content, different viewport shape — must not be stretched and diffed
+                VisualAssert.compare(name, solidImage(30, 10, Color.WHITE), VisualTolerance.of(100));
+                Assert.fail("Expected AssertionError for mismatched screenshot size");
+            } catch (AssertionError e) {
+                Assert.assertTrue(e.getMessage().contains("30x10"), e.getMessage());
+                Assert.assertTrue(e.getMessage().contains("20x10"), e.getMessage());
+                Assert.assertTrue(actualFile.exists(), "Current screenshot should be saved");
+            }
+        } finally {
+            baseline.delete();
+            actualFile.delete();
+        }
+    }
+
+    @Test
+    public void compare_sameAspectRatioScaled_passes() {
+        String name = "test_scaled_" + System.nanoTime();
+        File baseline = new File("src/test/resources/baselines", name + ".png");
+        try {
+            VisualAssert.compare(name, solidImage(20, 10, Color.CYAN), VisualTolerance.exact());
+            // 2x device pixel ratio — same aspect ratio, scaled down before diffing
+            VisualAssert.compare(name, solidImage(40, 20, Color.CYAN), VisualTolerance.exact());
+        } finally {
+            baseline.delete();
         }
     }
 

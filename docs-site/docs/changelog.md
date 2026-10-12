@@ -11,6 +11,18 @@ All notable changes to TestFly are documented here.
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Verified fill and clear `assertThat(...).fill(text)` / `assertThat(...).clear()`**: resolve the element like `Locator.fill()`, wait until it is editable, type, and assert that the value then equals the text and stays that way. Password values are never logged, only their length.
+- **Verified click `assertThat(...).click()`**: resolves the element like `Locator.click()` (including self-healing), waits until it is visible and enabled, scrolls it to the centre and hovers it, waits until nothing covers it, clicks, and asserts that the `click` event reached the element. Logs a passed `Clicked: ...` step; supports `as(...)`, `within(...)` and soft mode. `Locator.click()` is unchanged.
+- **Form and input assertions on `LocatorAssert`**: `hasValue()` (any non-empty value), `hasEmptyValue()`, `containsValue`, `valueMatches`, `isPasswordHidden()` / `isPasswordVisible()`, `hasType`, `hasPlaceholder`, `hasMaxLength`, `isEditable`, `isReadOnly`, `isRequired`, and HTML5 validation through `isValid()`, `isInvalid()` and `hasValidationMessage`.
+- **Playwright-style `not()` on `LocatorAssert`**: `assertThat(x).not().hasText("Error")` negates the next assertion. As in Playwright, most negated assertions also pass when no element matches. Cannot be combined with `click()`, `fill()` or `clear()`.
+- **Playwright for Java parity on `LocatorAssert`**: `isAttached`, `isEmpty`, `isIndeterminate`, `isInViewport(ratio)`, `hasCount`, `hasText(Pattern | String[] | Pattern[])`, `containsText(Pattern | String[])`, `hasValue(Pattern)`, `hasValues`, `hasAttribute(name, Pattern)`, `hasClass(Pattern)`, `containsClass`, `hasCSS`, `hasId(Pattern)`, `hasJSProperty`, `hasRole(Role)`, `hasAccessibleName(Pattern)`, `hasAccessibleDescription`, `hasAccessibleErrorMessage`. `Pattern` arguments match anywhere in the value, as in Playwright.
+- **More `LocatorAssert` matchers**: `hasTextMatching`, `hasTextIgnoringCase`, `hasTexts`, `containsTexts`, `isSelected`, `hasSelectedOption`, `hasOptions`, `countAtLeast`, `countAtMost`, `exists`, `isInViewport`, `hasRole`, `hasAccessibleName`, `hasId`.
+- **`Locator` actions and getters**: `getValue()` (reads an input's value; `getText()` is empty for inputs), `fill`, `check` / `uncheck` / `setChecked`, `selectByText` / `selectByValue` / `selectByIndex`, `getSelectedOption`, `doubleClick`, `rightClick`, `press`, `dragTo`, `upload` (works with hidden file inputs), `focus`, `blur`, `waitFor(Locator.State)`, `getCssValue`, `innerHTML`, `outerHTML`, `allTexts`, and the non-waiting checks `isChecked`, `isSelected`, `isDisabled`, `isEditable`, `isFocused`, `isPresent`.
+- **`PageAssert` matchers**: `hasAlert`, `hasAlertText`, `hasNoAlert`, `hasCookie`, `doesNotHaveCookie`, `hasLocalStorageItem`, `hasWindowCount`.
+
 ## [1.0.7] — 2026-10-09
 
 ### Added

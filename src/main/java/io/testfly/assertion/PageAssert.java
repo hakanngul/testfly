@@ -8,6 +8,9 @@ import io.testfly.internal.TestFlyContext;
 import io.testfly.steps.StepLogger;
 import io.testfly.wait.WaitEngine;
 
+import org.openqa.selenium.Cookie;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.NoAlertPresentException;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.ui.ExpectedCondition;
@@ -177,6 +180,142 @@ public final class PageAssert {
         poll(ExpectedConditions.urlMatches(regex),
                 "Expected page URL to match regex [" + regex + "]");
         return this;
+    }
+
+    // ------------------------------------------------------------------
+    // Alerts
+    // ------------------------------------------------------------------
+
+    /**
+     * Asserts a JavaScript alert/confirm/prompt is open — retries until timeout.
+     *
+     * @since 1.1.0
+     */
+    public PageAssert hasAlert() {
+        StepLogger.step("Assert alert is present");
+        poll(ExpectedConditions.alertIsPresent(), "Expected an alert to be present");
+        return this;
+    }
+
+    /**
+     * Asserts an open alert's text equals {@code expected} — retries until
+     * timeout. The alert is left open.
+     *
+     * @since 1.1.0
+     */
+    public PageAssert hasAlertText(String expected) {
+        StepLogger.step("Assert alert text: " + expected);
+        poll(d -> {
+            try {
+                return expected.equals(d.switchTo().alert().getText()) ? true : null;
+            } catch (NoAlertPresentException e) {
+                return null;
+            }
+        }, "Expected alert text [" + expected + "]");
+        return this;
+    }
+
+    /**
+     * Asserts no alert is open — retries until timeout.
+     *
+     * @since 1.1.0
+     */
+    public PageAssert hasNoAlert() {
+        StepLogger.step("Assert no alert is present");
+        poll(d -> {
+            try {
+                d.switchTo().alert();
+                return null;
+            } catch (NoAlertPresentException e) {
+                return true;
+            }
+        }, "Expected no alert to be present");
+        return this;
+    }
+
+    // ------------------------------------------------------------------
+    // Cookies, storage & windows
+    // ------------------------------------------------------------------
+
+    /**
+     * Asserts a cookie with the given name exists — retries until timeout.
+     *
+     * @since 1.1.0
+     */
+    public PageAssert hasCookie(String name) {
+        StepLogger.step("Assert cookie exists: " + name);
+        poll(d -> d.manage().getCookieNamed(name) != null ? true : null,
+                "Expected cookie [" + name + "] to exist");
+        return this;
+    }
+
+    /**
+     * Asserts a cookie with the given name has the given value — retries until
+     * timeout.
+     *
+     * @since 1.1.0
+     */
+    public PageAssert hasCookie(String name, String expectedValue) {
+        StepLogger.step("Assert cookie " + name + "=" + expectedValue);
+        poll(d -> {
+            Cookie cookie = d.manage().getCookieNamed(name);
+            return cookie != null && expectedValue.equals(cookie.getValue()) ? true : null;
+        }, "Expected cookie [" + name + "=" + expectedValue + "]");
+        return this;
+    }
+
+    /**
+     * Asserts no cookie with the given name exists — retries until timeout.
+     *
+     * @since 1.1.0
+     */
+    public PageAssert doesNotHaveCookie(String name) {
+        StepLogger.step("Assert cookie absent: " + name);
+        poll(d -> d.manage().getCookieNamed(name) == null ? true : null,
+                "Expected cookie [" + name + "] not to exist");
+        return this;
+    }
+
+    /**
+     * Asserts {@code localStorage} contains the given key — retries until timeout.
+     *
+     * @since 1.1.0
+     */
+    public PageAssert hasLocalStorageItem(String key) {
+        StepLogger.step("Assert localStorage item exists: " + key);
+        poll(d -> localStorageItem(d, key) != null ? true : null,
+                "Expected localStorage item [" + key + "] to exist");
+        return this;
+    }
+
+    /**
+     * Asserts the {@code localStorage} value for {@code key} equals
+     * {@code expectedValue} — retries until timeout.
+     *
+     * @since 1.1.0
+     */
+    public PageAssert hasLocalStorageItem(String key, String expectedValue) {
+        StepLogger.step("Assert localStorage " + key + "=" + expectedValue);
+        poll(d -> expectedValue.equals(localStorageItem(d, key)) ? true : null,
+                "Expected localStorage item [" + key + "=" + expectedValue + "]");
+        return this;
+    }
+
+    /**
+     * Asserts the browser has exactly {@code expected} open windows/tabs — retries
+     * until timeout.
+     *
+     * @since 1.1.0
+     */
+    public PageAssert hasWindowCount(int expected) {
+        StepLogger.step("Assert window count: " + expected);
+        poll(ExpectedConditions.numberOfWindowsToBe(expected),
+                "Expected " + expected + " open window(s)");
+        return this;
+    }
+
+    private static Object localStorageItem(WebDriver d, String key) {
+        return ((JavascriptExecutor) d).executeScript("return window.localStorage.getItem(arguments[0]);", key);
     }
 
     // ------------------------------------------------------------------

@@ -11,6 +11,18 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 
 ---
 
+## [Unreleased]
+
+### Eklenenler
+- **Doğrulanmış yazma ve temizleme `assertThat(...).fill(text)` / `assertThat(...).clear()`**: elemanı `Locator.fill()` gibi bulur, düzenlenebilir olana kadar bekler, yazar ve değerin metne eşit olup öyle kaldığını doğrular. Şifre değerleri asla loglanmaz, yalnızca uzunlukları yazılır.
+- **Doğrulanmış tıklama `assertThat(...).click()`**: elemanı `Locator.click()` gibi bulur (self-healing dahil), görünür ve etkin olana kadar bekler, ekranın ortasına kaydırıp üzerine gelir, üstünü kapatan bir şey kalmayana kadar bekler, tıklar ve `click` event'inin elemana ulaştığını doğrular. Rapora geçen bir `Clicked: ...` adımı yazar; `as(...)`, `within(...)` ve soft modu destekler. `Locator.click()` değişmedi.
+- **`LocatorAssert` için form ve input doğrulamaları**: `hasValue()` (boş olmayan herhangi bir değer), `hasEmptyValue()`, `containsValue`, `valueMatches`, `isPasswordHidden()` / `isPasswordVisible()`, `hasType`, `hasPlaceholder`, `hasMaxLength`, `isEditable`, `isReadOnly`, `isRequired` ve `isValid()`, `isInvalid()`, `hasValidationMessage` ile HTML5 doğrulaması.
+- **`LocatorAssert` için Playwright tarzı `not()`**: `assertThat(x).not().hasText("Hata")` bir sonraki doğrulamayı tersine çevirir. Playwright'taki gibi, olumsuzlanan doğrulamaların çoğu eşleşen eleman yoksa da geçer. `click()`, `fill()` veya `clear()` ile birlikte kullanılamaz.
+- **`LocatorAssert` için Playwright for Java eşliği**: `isAttached`, `isEmpty`, `isIndeterminate`, `isInViewport(ratio)`, `hasCount`, `hasText(Pattern | String[] | Pattern[])`, `containsText(Pattern | String[])`, `hasValue(Pattern)`, `hasValues`, `hasAttribute(name, Pattern)`, `hasClass(Pattern)`, `containsClass`, `hasCSS`, `hasId(Pattern)`, `hasJSProperty`, `hasRole(Role)`, `hasAccessibleName(Pattern)`, `hasAccessibleDescription`, `hasAccessibleErrorMessage`. `Pattern` argümanları, Playwright'taki gibi değerin herhangi bir yerinde eşleşir.
+- **Ek `LocatorAssert` matcher'ları**: `hasTextMatching`, `hasTextIgnoringCase`, `hasTexts`, `containsTexts`, `isSelected`, `hasSelectedOption`, `hasOptions`, `countAtLeast`, `countAtMost`, `exists`, `isInViewport`, `hasRole`, `hasAccessibleName`, `hasId`.
+- **`Locator` aksiyonları ve getter'ları**: `getValue()` (input değerini okur; `getText()` input'larda boştur), `fill`, `check` / `uncheck` / `setChecked`, `selectByText` / `selectByValue` / `selectByIndex`, `getSelectedOption`, `doubleClick`, `rightClick`, `press`, `dragTo`, `upload` (gizli file input'larla da çalışır), `focus`, `blur`, `waitFor(Locator.State)`, `getCssValue`, `innerHTML`, `outerHTML`, `allTexts` ve beklemeyen `isChecked`, `isSelected`, `isDisabled`, `isEditable`, `isFocused`, `isPresent` kontrolleri.
+- **`PageAssert` matcher'ları**: `hasAlert`, `hasAlertText`, `hasNoAlert`, `hasCookie`, `doesNotHaveCookie`, `hasLocalStorageItem`, `hasWindowCount`.
+
 ## [1.0.7] — 2026-10-09
 
 ### Eklenenler

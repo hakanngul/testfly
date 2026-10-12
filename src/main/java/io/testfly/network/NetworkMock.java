@@ -273,16 +273,29 @@ public final class NetworkMock {
     // CDP wiring
     // ------------------------------------------------------------------
 
+    private static String describeSession(WebDriver driver) {
+        if (driver == null) {
+            return "no active driver";
+        }
+        if (driver instanceof org.openqa.selenium.HasCapabilities caps) {
+            try {
+                return caps.getCapabilities().getBrowserName() + " (" + driver.getClass().getSimpleName() + ")";
+            } catch (RuntimeException ignored) {
+                // fall through to the class name
+            }
+        }
+        return driver.getClass().getSimpleName();
+    }
+
     private void ensureCdpAttached() {
         if (cdpAttached)
             return;
 
         WebDriver driver = DriverManager.getDriver();
         if (!(driver instanceof ChromiumDriver)) {
-            LOG.warning("[TestFly] Network interception requires Chrome/Edge. " +
-                    "Routes/stubs will be ignored on "
-                    + (driver == null ? "no active driver" : driver.getClass().getSimpleName())
-                    + ".");
+            LOG.warning("[TestFly] Network interception requires a local Chrome/Edge session"
+                    + " (Selenium Grid and cloud sessions are not supported yet). Routes/stubs will be ignored on "
+                    + describeSession(driver) + ".");
             cdpAttached = true; // prevents repeated warnings; no CDP calls attempted
             return;
         }

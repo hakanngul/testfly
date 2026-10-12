@@ -1,9 +1,12 @@
 package io.testfly.driver;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.browser.BrowserContext;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
+import org.openqa.selenium.NoSuchWindowException;
+import org.openqa.selenium.UnhandledAlertException;
 import org.openqa.selenium.WebDriver;
 
 import java.time.Duration;
@@ -26,6 +29,12 @@ import java.util.concurrent.TimeUnit;
 public final class DriverManager {
 
     private static final ThreadLocal<WebDriver> DRIVER = ThreadLocal.withInitial(() -> null);
+
+    /**
+     * {@link BrowserContext} (matrix browser) the current thread's driver was
+     * created for, so a reused per-suite driver is not handed to another browser.
+     */
+    private static final ThreadLocal<String> DRIVER_BROWSER_CONTEXT = new ThreadLocal<>();
 
     /**
      * Session dashboard URL set after driver creation for cloud providers
@@ -68,13 +77,29 @@ public final class DriverManager {
     }
 
     private static void registerShutdownHook() {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        Runtime.getRuntime().addShutdownHook(new Thread(DriverManager::quitAllTrackedDrivers,
+                "testfly-driver-shutdown"));
+    }
+
+    /**
+     * Quits every driver this class still tracks, on any thread. The shutdown
+     * hook runs on its own thread, so thread-bound teardown alone would leave
+     * per-test browsers of worker threads running when a run is aborted
+     * (Ctrl+C, System.exit). Each driver is quit at most once.
+     */
+    static void quitAllTrackedDrivers() {
+        java.util.Set<WebDriver> drivers = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        drivers.addAll(PERMIT_HOLDERS);
+        drivers.addAll(SUITE_DRIVERS);
+        for (WebDriver driver : drivers) {
             try {
-                quitAllSuiteDrivers();
-                forceQuitDriver();
+                driver.quit();
             } catch (Throwable ignored) {
+            } finally {
+                SUITE_DRIVERS.remove(driver);
+                releasePermitOf(driver);
             }
-        }, "testfly-driver-shutdown"));
+        }
     }
 
     private static Semaphore getOrInitSemaphore() {
@@ -115,6 +140,7 @@ public final class DriverManager {
         SUITE_DRIVERS.clear();
         PERMIT_HOLDERS.clear();
         DRIVER.remove();
+        DRIVER_BROWSER_CONTEXT.remove();
         CLOUD_SESSION_URL.remove();
         SESSION_STACK.remove();
     }
@@ -147,6 +173,16 @@ public final class DriverManager {
         }
     }
 
+    private static void applyWindow(WebDriver driver) {
+        TestFlyConfig.Browser browser;
+        try {
+            browser = TestFlyContext.getConfig().getBrowser();
+        } catch (Exception e) {
+            return;
+        }
+        BrowserWindowConfigurer.apply(driver, browser);
+    }
+
     /**
      * Returns {@code true} when the framework should quit the driver after
      * each test method (default {@code per-test} lifecycle).
@@ -167,7 +203,14 @@ public final class DriverManager {
     public static void createDriver() {
 
         if (DRIVER.get() != null) {
-            return; // retry-safe — semaphore permit already held by this thread
+            String boundTo = DRIVER_BROWSER_CONTEXT.get();
+            String requested = BrowserContext.get();
+            if (java.util.Objects.equals(boundTo, requested)) {
+                return; // retry-safe — semaphore permit already held by this thread
+            }
+            System.out.println("[TestFly] Matrix browser changed on this thread (" + boundTo + " -> " + requested
+                    + "); replacing the reused driver.");
+            forceQuitDriver();
         }
 
         if (isLoadTestActive()) {
@@ -198,6 +241,9 @@ public final class DriverManager {
             PERMIT_HOLDERS.add(driver);
             permitOwned = true;
             DRIVER.set(driver);
+            DRIVER_BROWSER_CONTEXT.set(BrowserContext.get());
+
+            applyWindow(driver);
 
             // Capture cloud session URL for BrowserStack / Sauce Labs
             try {
@@ -337,6 +383,24 @@ public final class DriverManager {
     // ==========================================================
 
     /**
+     * Returns {@code true} when the current thread has a driver (or an active
+     * named-session override), without the health check that
+     * {@link #getDriver()} performs and without throwing. Lets failure and
+     * reporting paths skip browser work when driver creation itself failed, so
+     * the original error is not masked.
+     *
+     * @since 1.1.0
+     */
+    public static boolean hasDriver() {
+        java.util.Deque<WebDriver> stack = SESSION_STACK.get();
+        if (stack.isEmpty()) {
+            SESSION_STACK.remove();
+            return DRIVER.get() != null;
+        }
+        return true;
+    }
+
+    /**
      * Get WebDriver bound to current thread.
      * When a named-session override is active (via {@code withSession()}), returns
      * that driver.
@@ -395,6 +459,9 @@ public final class DriverManager {
 
     /**
      * Lightweight session health check.
+     * An open alert or a closed current window makes {@code getTitle()} fail
+     * while the session itself is fine, so those count as alive; recreating
+     * the driver there would silently drop the alert or the remaining windows.
      */
     public static boolean isDriverAlive() {
 
@@ -406,6 +473,8 @@ public final class DriverManager {
 
         try {
             driver.getTitle(); // lightweight call
+            return true;
+        } catch (UnhandledAlertException | NoSuchWindowException e) {
             return true;
         } catch (Exception e) {
             return false;
@@ -456,6 +525,7 @@ public final class DriverManager {
         } finally {
             releasePermitOf(driver);
             DRIVER.remove();
+            DRIVER_BROWSER_CONTEXT.remove();
             CLOUD_SESSION_URL.remove();
         }
     }
@@ -494,6 +564,7 @@ public final class DriverManager {
             }
         });
         DRIVER.remove();
+        DRIVER_BROWSER_CONTEXT.remove();
         CLOUD_SESSION_URL.remove();
         System.out.println("[TestFly] All suite drivers quit in parallel. Released " + released.get()
                 + " session slot(s).");

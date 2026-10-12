@@ -11,7 +11,6 @@ import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.safari.SafariOptions;
 
 import java.net.URI;
-import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -48,7 +47,7 @@ public class SauceLabsProvider implements DriverProvider {
         String username = BrowserStackProvider.resolveEnv(sl.getUsername());
         String accessKey = BrowserStackProvider.resolveEnv(sl.getAccessKey());
         String region = sl.getRegion() != null ? sl.getRegion() : "us-west-1";
-        String browser = sl.getBrowser() != null ? sl.getBrowser() : "chrome";
+        String browser = DriverProviderFactory.resolveCloudBrowserName(sl.getBrowser());
         String testId = TestFlyContext.getCurrentTestId();
 
         if (isBlank(username))
@@ -72,16 +71,24 @@ public class SauceLabsProvider implements DriverProvider {
 
         try {
             WebDriver driver = new RemoteWebDriver(URI.create(hubUrl).toURL(), options);
-            driver.manage().timeouts().implicitlyWait(Duration.ZERO);
-            driver.manage().timeouts().pageLoadTimeout(
-                    Duration.ofSeconds(cfg.getTimeouts().getPageLoad()));
+            DriverSetup.configureTimeouts(driver, cfg);
             return driver;
         } catch (Exception e) {
             throw new IllegalStateException("[SauceLabs] Failed to create session: " + e.getMessage(), e);
         }
     }
 
-    private static AbstractDriverOptions<?> buildOptions(
+    /**
+     * Builds the cloud session options. Exposed so it can be unit-tested without
+     * a cloud account. Alerts stay open until the test handles them, as locally.
+     */
+    public static AbstractDriverOptions<?> buildOptions(String browser, String browserVersion, String platformName, Map<String, Object> sauceOptions) {
+        AbstractDriverOptions<?> options = baseOptions(browser, browserVersion, platformName, sauceOptions);
+        options.setCapability("unhandledPromptBehavior", "ignore");
+        return options;
+    }
+
+    private static AbstractDriverOptions<?> baseOptions(
             String browser, String browserVersion, String platformName,
             Map<String, Object> sauceOptions) {
         switch (browser.toLowerCase()) {

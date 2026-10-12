@@ -101,6 +101,71 @@ getByPlaceholder("Arama").type(null);
 
 ---
 
+## YAML ile locator tanımlama
+
+`LocatorRepository`, adlandırılmış locator'ları bir YAML dosyasından yükler.
+Böylece seçiciler tek yerde durur ve page object'ler ile testler arasında
+paylaşılır:
+
+```yaml
+# src/test/resources/locators/register.yaml
+page: register
+elements:
+  register_form:
+    css: "#register-form"
+    elements:
+      email:
+        css: "input[type=email]"
+      submit_button:
+        role: button
+        accessibleName: "Register"
+        exact: true
+  login_link:
+    text: "Already have an account?"
+```
+
+```java
+LocatorRepository repo = LocatorRepository.load("locators/register.yaml");
+repo.get("register_form.email").type("a@b.com");
+repo.get("register_form.submit_button").click();
+```
+
+`load(String)` önce classpath'e, sonra dosya sistemine bakar. `load(Path)` ve
+`load(InputStream, String)` de kullanılabilir.
+
+**Stratejiler** — her eleman tam olarak birini tanımlar:
+`css`, `xpath`, `id`, `byName`, `className`, `text`, `label`, `placeholder`,
+`testId`, `altText`, `title`, `role`.
+
+**Değiştiriciler**
+
+| Anahtar | Geçerli olduğu yer | Karşılığı |
+|---|---|---|
+| `accessibleName` | `role` | `withName(...)` |
+| `level` (1–6) | `role: heading` | `withLevel(...)` |
+| `exact` | `text`, `label`, `placeholder`, `altText`, `title`, `role` | `exact()` |
+| `nth` (0 tabanlı), `first`, `last` | hepsi (en fazla biri) | `nth(...)`, `first()`, `last()` |
+
+HTML `name` niteliği için `byName`, bir rolün erişilebilir adı için
+`accessibleName` kullanın; bunlar farklı şeylerdir.
+
+**Kapsayıcılar** — `elements:` içeren bir eleman, çocuklarını `within(...)` ile
+kapsar; böylece kapsayıcı seçicisini tekrar yazmazsınız. Kapsayıcı `css`,
+`xpath`, `id`, `byName` veya `className` kullanmalı, değiştirici almaz ve yalnızca
+tek seviye iç içe olabilir. Çocuklara `kapsayici.cocuk` biçiminde erişilir.
+
+**Hızlı hata** — bilinmeyen anahtar, eksik veya çakışan strateji, geçersiz değer,
+bulunamayan dosya ya da bilinmeyen eleman anahtarı, dosyayı ve elemanı belirten bir
+`LocatorException` fırlatır. `${VAR}` ikamesi yoktur.
+
+> YAML, tırnaksız `on`, `off`, `yes`, `no` ve sayıları metin olarak okumaz. Bu tür
+> eleman adlarını tırnak içine alın (`"off":`).
+
+Repository driver durumu tutmaz ve thread'ler arasında paylaşılabilir. `testId`,
+locator çözümlenirken `locators.testIdAttribute` altındaki niteliği kullanır.
+
+---
+
 ## Kaçış kapağı: `toBy()`
 
 Her semantik locator, ham Selenium veya [`SmartLocator`](./smart-locator) ile birlikte çalışma için sentezlenmiş Selenium `By` nesnesini geri verebilir:

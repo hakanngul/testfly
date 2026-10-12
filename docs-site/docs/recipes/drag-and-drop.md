@@ -11,6 +11,19 @@ HTML5 drag-and-drop is one of the most implementation-dependent interactions in 
 
 ---
 
+## Shortcut: `Locator.dragTo()`
+
+For the common case, drag one locator onto another. `dragTo()` waits for the source to be visible and uses `Actions.dragAndDrop()` underneath:
+
+```java
+find("#card-42").dragTo(find("#done"));
+assertThat(find("#done #card-42")).isVisible();
+```
+
+If the app does not react, use one of the approaches below.
+
+---
+
 ## Standard Actions drag-and-drop
 
 Start here. It works for most native HTML5 draggable implementations:

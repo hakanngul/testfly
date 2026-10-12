@@ -1,0 +1,24 @@
+page: register
+elements:
+  register_form:
+    css: "#register-form"
+    elements:
+      first_name:
+        role: textbox
+        accessibleName: "First name"
+      email:
+        css: "input[type=email]"
+      password:
+        css: "#password"
+      terms_checkbox:
+        role: checkbox
+        accessibleName: "I accept the terms"
+      submit_button:
+        role: button
+        accessibleName: "Register"
+        exact: true
+  page_title:
+    role: heading
+    level: 1
+  login_link:
+    text: "Already have an account?"

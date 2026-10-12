@@ -168,9 +168,21 @@ public final class VisualAssert {
             throw new AssertionError("[VisualAssert] Failed to read baseline '" + name + "': " + e.getMessage());
         }
 
-        // Resize current to match baseline dimensions if they differ (handles minor
-        // viewport fluctuations — controlled by tolerance)
+        // Differing dimensions: scale only when the aspect ratio matches (e.g. a
+        // device-pixel-ratio change). A different aspect ratio means a different
+        // viewport, so the layout reflows and a stretched pixel diff is meaningless.
         if (current.getWidth() != base.getWidth() || current.getHeight() != base.getHeight()) {
+            if (!sameAspectRatio(base, current)) {
+                File actualFile = actualFile(name);
+                saveDiff(actualFile, current);
+                throw new AssertionError(String.format(
+                        "[VisualAssert] '%s' screenshot size %dx%d does not match baseline %dx%d. " +
+                                "The browser viewport differs from the one used to record the baseline; " +
+                                "use a fixed window size (e.g. --window-size) or re-record the baseline. " +
+                                "Current screenshot: %s",
+                        name, current.getWidth(), current.getHeight(), base.getWidth(), base.getHeight(),
+                        actualFile.getAbsolutePath()));
+            }
             current = resize(current, base.getWidth(), base.getHeight());
         }
 
@@ -277,6 +289,18 @@ public final class VisualAssert {
         String dir = diffDir();
         new File(dir).mkdirs();
         return new File(dir, sanitize(name) + "-diff.png");
+    }
+
+    private static File actualFile(String name) {
+        String dir = diffDir();
+        new File(dir).mkdirs();
+        return new File(dir, sanitize(name) + "-actual.png");
+    }
+
+    private static boolean sameAspectRatio(BufferedImage a, BufferedImage b) {
+        double ratioA = (double) a.getWidth() / a.getHeight();
+        double ratioB = (double) b.getWidth() / b.getHeight();
+        return Math.abs(ratioA - ratioB) / ratioA <= 0.01;
     }
 
     private static void saveBaseline(File file, BufferedImage image) {
