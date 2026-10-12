@@ -133,6 +133,10 @@ public final class SeleniumAssert {
             this.locator = locator;
         }
 
+        Locator locator() {
+            return locator;
+        }
+
         @Override
         public java.util.List<org.openqa.selenium.WebElement> findElements(
                 org.openqa.selenium.SearchContext context) {

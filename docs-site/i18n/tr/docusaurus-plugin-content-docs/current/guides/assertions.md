@@ -68,7 +68,7 @@ assertThat(submitButton).as("Siparişi gönder").click();
 
 Arka planda şunları yapar:
 
-1. Eleman görünür ve etkin olana kadar bekler.
+1. Elemanı tam olarak `locator.click()` gibi bulur: chain filtreleri (`nth`, `filter`, `withText`) ve self-healing dahil. Ardından görünür ve etkin olana kadar bekler.
 2. Elemanı ekranın ortasına kaydırır ve mouse'u üzerine götürür. Uzun bir formun en altındaki submit butonu önce görünür hale getirilir.
 3. Üstünü kapatan bir şey (cookie banner, modal, sticky header) kalmayana kadar bekler.
 4. Tıklar ve `click` event'inin elemana ulaştığını kontrol eder.
@@ -77,14 +77,46 @@ Arka planda şunları yapar:
 Bir adım başarısız olursa hata mesajı hangisi olduğunu söyler, örneğin:
 
 ```text
-Click not performed: element not visible and enabled: By.id: login (timeout: 10s)
+Click not performed: element not visible and enabled: By.id: login (No element found for: By.id: login)
 Click not performed: By.id: login is covered by <div class='cookie-banner'> (timeout: 10s)
 Click did not reach By.id: login (no click event was received)
 ```
 
+Elemanı bulma adımı, `locator.click()` gibi `timeouts.explicit` süresini kullanır. `within(...)` sonraki adımlara uygulanır, örneğin üstü kapatan elemanın kalkmasını beklemeye.
+
 Soft modda (`softly()` / `softAssert(...)`) hata kaydedilir ve test devam eder. Tıklama başka bir sayfaya geçerse ya da alert açarsa tıklama ulaşmış sayılır ve alert açık bırakılır.
 
 `assertThat(...).click()` yalnızca tıklamanın elemana ulaştığını kanıtlar. Uygulamanın tepki verdiğini kanıtlamak için sonucu doğrulayın, örneğin `assertThatPage().urlContains("/login")` veya `assertThat(loginModal).isVisible()`. Normal `locator.click()` aksiyonu değişmedi.
+
+### Doğrulanmış Yazma ve Temizleme (Verified Fill & Clear)
+
+`assertThat(...).fill(text)` alana yazar ve değerin gerçekten oturduğunu doğrular. `assertThat(...).clear()` aynısını boş değer için yapar:
+
+```java
+assertThat(userNameField).fill("admin");
+assertThat(passwordField).fill(System.getenv("APP_PASSWORD"));
+assertThat(searchField).clear();
+```
+
+Arka planda şunları yapar:
+
+1. Elemanı `locator.fill()` gibi bulur (chain filtreleri, self-healing) ve görünür ve etkin olana kadar bekler.
+2. `readonly` olmayana kadar bekler, sonra elemanı ekranın ortasına kaydırır.
+3. Alanı temizler ve metni yazar, tıpkı `locator.fill()` gibi.
+4. Değer metne eşit olana kadar bekler ve kısa bir süre sonra tekrar kontrol eder. Böylece `maxlength`, input maskesi ya da uygulamanın kendi state'i (React, Vue, ...) yüzünden yazıldıktan sonra değişen veya silinen değerler yakalanır.
+5. Rapora geçen bir `Filled: ... with [admin]` veya `Cleared: ...` adımı yazar.
+
+Örnek hata mesajları:
+
+```text
+Fill not performed: element is read-only: By.id: username (timeout: 10s)
+Fill did not stick for By.id: code: expected value [abcdef] but was [abc] (timeout: 10s)
+Fill did not stick for By.id: password: expected 7 characters but got 0 (password value hidden) (timeout: 10s)
+```
+
+`type="password"` alanlarda değer ne raporda ne de hata mesajlarında görünür, yalnızca uzunluğu yazılır.
+
+Değer birebir eşleşmelidir. Girdiyi yeniden biçimlendiren bir alan, örneğin `5321234567` değerini `(532) 123 45 67` yapan bir telefon maskesi, bu doğrulamada başarısız olur. Böyle alanlarda `locator.fill(...)` kullanıp ardından `assertThat(field).hasValue("(532) 123 45 67")` ile doğrulayın.
 
 ### Nitelikler & CSS (Attributes & CSS)
 

@@ -52,6 +52,7 @@ public class LocatorAssertClickTest {
     private MockedStatic<DriverManager> driverManagerMock;
     private MockedStatic<TestFlyContext> contextMock;
     private MockedStatic<StepLogger> stepLoggerMock;
+    private TestFlyConfig config;
 
     @BeforeMethod
     public void setUp() {
@@ -61,10 +62,14 @@ public class LocatorAssertClickTest {
 
         TestFlyConfig.Timeouts timeouts = new TestFlyConfig.Timeouts();
         timeouts.setExplicit(1);
-        TestFlyConfig config = new TestFlyConfig();
+        config = new TestFlyConfig();
         config.setTimeouts(timeouts);
+        TestFlyConfig.Locators locators = new TestFlyConfig.Locators();
+        locators.setSelfHealing(false);
+        config.setLocators(locators);
         contextMock = mockStatic(TestFlyContext.class);
         contextMock.when(TestFlyContext::getConfig).thenReturn(config);
+        contextMock.when(TestFlyContext::getCurrentTestId).thenReturn("test-1");
 
         stepLoggerMock = mockStatic(StepLogger.class);
         SoftAssertions.clear();
@@ -172,6 +177,31 @@ public class LocatorAssertClickTest {
         verify((JavascriptExecutor) driver, never()).executeScript(
                 argThat((String s) -> s != null && s.contains("__testflyClicked === true")), any());
         stepLoggerMock.verify(() -> StepLogger.step("Clicked: " + LOGIN, StepStatus.PASS));
+    }
+
+    @Test
+    public void click_locatorChain_clicksTheElementTheChainSelects() {
+        WebElement second = mock(WebElement.class);
+        lenient().when(second.isDisplayed()).thenReturn(true);
+        lenient().when(second.isEnabled()).thenReturn(true);
+        when(driver.findElements(LOGIN)).thenReturn(List.of(button, second));
+
+        SeleniumAssert.assertThat(io.testfly.locator.Locator.of(LOGIN).nth(1)).click();
+
+        verify(second).click();
+        verify(button, never()).click();
+    }
+
+    @Test
+    public void click_selfHealing_findsElementLikeLocatorClick() {
+        config.getLocators().setSelfHealing(true);
+        By broken = By.cssSelector("#login-btn");
+        when(driver.findElements(broken)).thenReturn(Collections.emptyList());
+        when(driver.findElements(By.id("login-btn"))).thenReturn(List.of(button));
+
+        expect(broken).click();
+
+        verify(button).click();
     }
 
     @Test

@@ -82,7 +82,7 @@ Playwright-inspired, immutable auto-waiting locator API:
 
 #### Web-First Polling Assertions & Architectural Boundary
 - **Element Assertions:** `assertThat(locator)` / `assertThat(by)`:
-  - Verified click: `click()` (waits, scrolls, hovers, checks the element is not covered, clicks, and asserts the click event reached it).
+  - Verified actions: `click()` (waits, scrolls, hovers, checks the element is not covered, clicks, and asserts the click event reached it), `fill(text)` and `clear()` (type or clear, then assert the value stuck; password values are never logged). They resolve the element like the matching `Locator` actions, including self-healing.
   - State: `isVisible()`, `isHidden()`, `isEnabled()`, `isDisabled()`, `isChecked()`, `isNotChecked()`, `isSelected()`, `isFocused()`, `isEditable()`, `isReadOnly()`, `isRequired()`, `isInViewport()`, `exists()`, `doesNotExist()`.
   - Text: `hasText(text)`, `containsText(text)`, `hasTextMatching(regex)`, `hasTextIgnoringCase(text)`, `hasTexts(texts...)`, `containsTexts(texts...)`.
   - Value & form: `hasValue(val)`, `hasValue()`, `hasEmptyValue()`, `containsValue(text)`, `valueMatches(regex)`, `isPasswordHidden()`, `isPasswordVisible()`, `hasType(type)`, `hasPlaceholder(text)`, `hasMaxLength(n)`, `isValid()`, `isInvalid()`, `hasValidationMessage(text)`.

@@ -4,7 +4,9 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.driver.DriverManager;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.locator.Locator;
+import io.testfly.locator.LocatorException;
 import io.testfly.steps.StepLogger;
+import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptException;
 import org.openqa.selenium.JavascriptExecutor;
@@ -449,18 +451,8 @@ public final class LocatorAssert {
         StepLogger.step("Click (verified): " + description);
         WebDriver driver = DriverManager.getDriver();
 
-        // 1. Visible and enabled
-        WebElement el = await(d -> {
-            try {
-                List<WebElement> els = d.findElements(by);
-                if (els.isEmpty())
-                    return null;
-                WebElement first = els.getFirst();
-                return first.isDisplayed() && first.isEnabled() ? first : null;
-            } catch (StaleElementReferenceException e) {
-                return null;
-            }
-        }, () -> "Click not performed: element not visible and enabled: " + description);
+        // 1. Visible and enabled (resolved like Locator.click(), incl. self-healing)
+        WebElement el = resolveForAction("Click");
         if (el == null)
             return this;
 
@@ -514,6 +506,110 @@ public final class LocatorAssert {
         }
 
         StepLogger.step("Clicked: " + description, StepStatus.PASS);
+        return this;
+    }
+
+    /**
+     * Clears the field, types {@code text}, and asserts that the field's value
+     * then equals {@code text} exactly.
+     *
+     * <ol>
+     * <li>Resolves the element like {@link Locator#fill(String)} (waiting and
+     * self-healing) and waits until it is visible and enabled.</li>
+     * <li>Waits until it is not {@code readonly}, then scrolls it to the centre of
+     * the viewport.</li>
+     * <li>Clears it and types the text, exactly as {@link Locator#type(String)}
+     * does.</li>
+     * <li>Waits until the value equals {@code text}. This catches values that
+     * {@code maxlength}, input masks, or framework state (React, Vue…) changed or
+     * reset after typing.</li>
+     * </ol>
+     *
+     * <p>
+     * On success a {@code PASS} step "Filled: …" is logged. For
+     * {@code type="password"} fields the value is never written to logs or
+     * failure messages; only its length is. Fields that reformat their input
+     * (e.g. phone masks) fail this assertion; use {@link Locator#fill(String)}
+     * followed by {@link #hasValue(String)} with the formatted value instead.
+     *
+     * <pre>
+     * assertThat(userNameField).fill("admin");
+     * assertThat(passwordField).fill(password);
+     * </pre>
+     *
+     * @param text the text to type; {@code null} or empty clears the field
+     * @return this assertion for chaining
+     * @since 1.1.0
+     */
+    public LocatorAssert fill(String text) {
+        StepLogger.step("Fill (verified): " + description);
+        return fillAndVerify(text == null ? "" : text, "Fill", "Filled");
+    }
+
+    /**
+     * Clears the field and asserts that its value is then empty. Same checks as
+     * {@link #fill(String)} with an empty text.
+     *
+     * <pre>
+     * assertThat(searchField).clear();
+     * </pre>
+     *
+     * @return this assertion for chaining
+     * @since 1.1.0
+     */
+    public LocatorAssert clear() {
+        StepLogger.step("Clear (verified): " + description);
+        return fillAndVerify("", "Clear", "Cleared");
+    }
+
+    private LocatorAssert fillAndVerify(String text, String action, String pastTense) {
+        WebDriver driver = DriverManager.getDriver();
+
+        // 1. Visible and enabled
+        WebElement el = resolveForAction(action);
+        if (el == null)
+            return this;
+        boolean secret = isPasswordField(el);
+
+        // 2. Not read-only, then into view
+        Boolean writable = await(d -> {
+            try {
+                return el.getDomAttribute("readonly") == null ? true : null;
+            } catch (StaleElementReferenceException e) {
+                return null;
+            }
+        }, () -> action + " not performed: element is read-only: " + description);
+        if (writable == null)
+            return this;
+
+        // 3. Clear and type, like Locator.type()
+        try {
+            ((JavascriptExecutor) driver).executeScript(SCROLL_TO_CENTER_JS, el);
+            Locator.robustClear(el);
+            if (!text.isEmpty()) {
+                el.sendKeys(text);
+            }
+        } catch (WebDriverException e) {
+            report(action + " not performed on " + description + ": " + firstLine(e), e);
+            return this;
+        }
+
+        // 4. The value stuck (re-reads the field if it was re-rendered)
+        String[] actual = new String[1];
+        Boolean stuck = await(d -> {
+            actual[0] = currentValue(d, el);
+            if (!text.equals(actual[0]))
+                return null;
+            // Re-read after a short pause so a value the app resets asynchronously is caught.
+            WaitEngine.waitMillis(VALUE_SETTLE_MILLIS);
+            actual[0] = currentValue(d, el);
+            return text.equals(actual[0]) ? true : null;
+        }, () -> action + " did not stick for " + description + ": "
+                + describeMismatch(text, actual[0], secret));
+        if (stuck == null)
+            return this;
+
+        StepLogger.step(pastTense + ": " + description + describeFilled(text, secret), StepStatus.PASS);
         return this;
     }
 
@@ -1104,7 +1200,10 @@ public final class LocatorAssert {
     // Internal poll
     // ------------------------------------------------------------------
 
-    private static final String SCROLL_TO_CENTER_JS = "arguments[0].scrollIntoView({block: 'center', inline: 'center'});";
+    /** How long a filled value must stay unchanged to count as stuck. */
+    private static final long VALUE_SETTLE_MILLIS = 150;
+
+    private static final String SCROLL_TO_CENTER_JS ="arguments[0].scrollIntoView({block: 'center', inline: 'center'});";
 
     /**
      * Returns null when the element (or a descendant) is topmost at its centre,
@@ -1128,6 +1227,68 @@ public final class LocatorAssert {
             + "}, true);";
 
     private static final String READ_CLICK_PROBE_JS = "return arguments[0].__testflyClicked === true;";
+
+    /** The {@link Locator} behind this assertion, wrapping a plain {@link By} if needed. */
+    private Locator toLocator() {
+        if (by instanceof Locator locator)
+            return locator;
+        if (by instanceof SeleniumAssert.LocatorBy locatorBy)
+            return locatorBy.locator();
+        return Locator.of(by);
+    }
+
+    /**
+     * Resolves the element the same way {@link Locator}'s actions do (waiting up
+     * to {@code timeouts.explicit}, with self-healing) and waits until it is
+     * visible and enabled. Reports the failure and returns {@code null} if not.
+     */
+    private WebElement resolveForAction(String action) {
+        try {
+            return WaitEngine.waitForClickable(toLocator().element());
+        } catch (LocatorException | WebDriverException e) {
+            report(action + " not performed: element not visible and enabled: " + description
+                    + " (" + firstLine(e) + ")", e);
+            return null;
+        }
+    }
+
+    private static boolean isPasswordField(WebElement el) {
+        try {
+            return "password".equalsIgnoreCase(el.getDomProperty("type"));
+        } catch (WebDriverException e) {
+            return false;
+        }
+    }
+
+    /** Current value of the field, re-finding it if it was re-rendered. */
+    private String currentValue(WebDriver driver, WebElement el) {
+        try {
+            return valueOrText(el);
+        } catch (StaleElementReferenceException e) {
+            List<WebElement> els = driver.findElements(by);
+            return els.isEmpty() ? null : valueOrText(els.getFirst());
+        }
+    }
+
+    /** {@code value} for form controls, visible text for e.g. contenteditable elements. */
+    private static String valueOrText(WebElement el) {
+        String value = el.getDomProperty("value");
+        return value != null ? value : el.getText();
+    }
+
+    private static String describeMismatch(String expected, String actual, boolean secret) {
+        if (secret) {
+            return "expected " + expected.length() + " characters but got "
+                    + (actual == null ? "none" : actual.length() + "") + " (password value hidden)";
+        }
+        return "expected value [" + expected + "] but was [" + actual + "]";
+    }
+
+    private static String describeFilled(String text, boolean secret) {
+        if (text.isEmpty())
+            return "";
+        return secret ? " (" + text.length() + " characters)" : " with [" + text + "]";
+    }
 
     /** Checks for an open alert without dismissing it. */
     private static boolean alertOpen(WebDriver driver) {

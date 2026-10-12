@@ -68,7 +68,7 @@ assertThat(submitButton).as("Submit order").click();
 
 Behind the scenes it:
 
-1. Waits until the element is visible and enabled.
+1. Finds the element exactly like `locator.click()` does, including chain filters (`nth`, `filter`, `withText`) and self-healing, and waits until it is visible and enabled.
 2. Scrolls it to the centre of the viewport and moves the mouse onto it. A submit button at the bottom of a long form is brought into view first.
 3. Waits until nothing covers it, such as a cookie banner, a modal or a sticky header.
 4. Clicks it and checks that the `click` event was delivered to the element.
@@ -77,14 +77,46 @@ Behind the scenes it:
 If a step fails, the error says which one, for example:
 
 ```text
-Click not performed: element not visible and enabled: By.id: login (timeout: 10s)
+Click not performed: element not visible and enabled: By.id: login (No element found for: By.id: login)
 Click not performed: By.id: login is covered by <div class='cookie-banner'> (timeout: 10s)
 Click did not reach By.id: login (no click event was received)
 ```
 
+Finding the element uses `timeouts.explicit`, like `locator.click()`. `within(...)` applies to the later steps, such as waiting for a covering element to go away.
+
 In soft mode (`softly()` / `softAssert(...)`) the failure is recorded and the test continues. If the click navigates away or opens an alert, it counts as delivered and the alert is left open.
 
 `assertThat(...).click()` only proves that the click reached the element. To prove the app reacted, assert on the result, for example `assertThatPage().urlContains("/login")` or `assertThat(loginModal).isVisible()`. The plain `locator.click()` action is unchanged.
+
+### Verified Fill & Clear
+
+`assertThat(...).fill(text)` types into a field and asserts that the value really stuck. `assertThat(...).clear()` does the same for an empty value:
+
+```java
+assertThat(userNameField).fill("admin");
+assertThat(passwordField).fill(System.getenv("APP_PASSWORD"));
+assertThat(searchField).clear();
+```
+
+Behind the scenes it:
+
+1. Finds the element like `locator.fill()` does (chain filters, self-healing) and waits until it is visible and enabled.
+2. Waits until it is not `readonly`, then scrolls it to the centre of the viewport.
+3. Clears it and types the text, exactly like `locator.fill()`.
+4. Waits until the value equals the text, and checks again after a short pause. This catches values that `maxlength`, an input mask, or the app's own state (React, Vue, ...) changed or reset after typing.
+5. Logs a passed `Filled: ... with [admin]` or `Cleared: ...` step.
+
+Example failures:
+
+```text
+Fill not performed: element is read-only: By.id: username (timeout: 10s)
+Fill did not stick for By.id: code: expected value [abcdef] but was [abc] (timeout: 10s)
+Fill did not stick for By.id: password: expected 7 characters but got 0 (password value hidden) (timeout: 10s)
+```
+
+For `type="password"` fields the value never appears in the report or in failure messages; only its length does.
+
+The value must match exactly. A field that reformats its input, such as a phone mask that turns `5321234567` into `(532) 123 45 67`, fails this assertion. For such fields use `locator.fill(...)` and then `assertThat(field).hasValue("(532) 123 45 67")`.
 
 ### Attributes & CSS
 
