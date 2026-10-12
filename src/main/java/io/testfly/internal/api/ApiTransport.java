@@ -16,7 +16,8 @@ import java.util.concurrent.Semaphore;
 /** Managed JDK clients; no JVM SSL or connection-pool properties are mutated. */
 public final class ApiTransport {
     private ApiTransport() {}
-    private static final Map<Integer, HttpClient> DEFAULTS = new HashMap<>();
+    private record ClientKey(int connectSeconds, ProxySelection proxy) {}
+    private static final Map<ClientKey, HttpClient> DEFAULTS = new HashMap<>();
     private static final Map<ApiExecution.Scope, List<Profile>> SCOPED = new IdentityHashMap<>();
     private static final Set<ApiExecution.Scope> WARNED = Collections.newSetFromMap(new IdentityHashMap<>());
     private static Semaphore limiter;
@@ -42,9 +43,54 @@ public final class ApiTransport {
                     && Objects.equals(type, other.type) && Arrays.equals(password, other.password);
         }
     }
-    public record Profile(HttpClient client, SslSelection ssl, int connectSeconds, Semaphore permits) {}
+    /**
+     * HTTP proxy selection. A {@code null} host means direct connections (used by
+     * {@code ApiClient.noProxy()} to override a configured proxy).
+     */
+    public record ProxySelection(String host, int port, List<String> nonProxyHosts) {
+        public ProxySelection {
+            nonProxyHosts = nonProxyHosts == null ? List.of() : List.copyOf(nonProxyHosts);
+            if (host != null && host.isBlank()) host = null;
+            if (host != null && (port < 1 || port > 65535)) throw new IllegalArgumentException("Proxy port must be 1..65535");
+        }
+        public static ProxySelection direct() { return new ProxySelection(null, 0, List.of()); }
+        public static ProxySelection of(String host, int port) {
+            Objects.requireNonNull(host, "proxy host");
+            if (host.isBlank()) throw new IllegalArgumentException("Proxy host must not be blank");
+            return new ProxySelection(host, port, List.of());
+        }
+        public boolean isDirect() { return host == null; }
+        /** True when requests to {@code targetHost} must bypass the proxy. */
+        public boolean bypasses(String targetHost) {
+            if (host == null || targetHost == null) return true;
+            String target = targetHost.startsWith("[") && targetHost.endsWith("]")
+                    ? targetHost.substring(1, targetHost.length() - 1) : targetHost;
+            for (String pattern : nonProxyHosts) {
+                if (pattern == null || pattern.isBlank()) continue;
+                String regex = ("\\Q" + pattern.trim() + "\\E").replace("*", "\\E.*\\Q");
+                if (java.util.regex.Pattern.compile(regex, java.util.regex.Pattern.CASE_INSENSITIVE).matcher(target).matches()) return true;
+            }
+            return false;
+        }
+        static ProxySelection fromConfig(TestFlyConfig.Api api) {
+            if (api == null || api.getProxy() == null) return null;
+            var proxy = api.getProxy();
+            if (proxy.getHost() == null || proxy.getHost().isBlank()) return null;
+            return new ProxySelection(proxy.getHost().trim(), proxy.getPort(), proxy.getNonProxyHosts());
+        }
+    }
 
-    public static synchronized Profile prepare(ApiExecution.Scope scope, TestFlyConfig.Api api, SslSelection override) {
+    public record Profile(HttpClient client, SslSelection ssl, int connectSeconds, Semaphore permits, ProxySelection proxy) {}
+
+    public static Profile prepare(ApiExecution.Scope scope, TestFlyConfig.Api api, SslSelection override) {
+        return prepare(scope, api, override, null);
+    }
+
+    /**
+     * @param proxyOverride {@code null} uses {@code api.proxy}; {@link ProxySelection#direct()} forces direct connections
+     */
+    public static synchronized Profile prepare(ApiExecution.Scope scope, TestFlyConfig.Api api, SslSelection override,
+                                               ProxySelection proxyOverride) {
         int connect = api == null ? 30 : api.getConnectTimeoutSeconds();
         int max = api == null ? 0 : api.getMaxConcurrentRequests();
         if (connect <= 0 || max < 0) throw new IllegalArgumentException("Invalid API connect timeout/concurrency");
@@ -56,20 +102,36 @@ public final class ApiTransport {
             else if (store != null) selection = SslSelection.store(Path.of(Objects.requireNonNull(store.getPath(), "truststore path")),
                     store.getPassword() == null ? null : store.getPassword().toCharArray(), store.getType());
         }
+        ProxySelection proxySelection = proxyOverride != null ? proxyOverride : ProxySelection.fromConfig(api);
+        final ProxySelection proxy = proxySelection == null || proxySelection.isDirect() ? null : proxySelection;
         if (limit == null) { limit = max; limiter = max == 0 ? null : new Semaphore(max, true); }
         else if (limit != max) throw new IllegalArgumentException("API concurrency configuration cannot change while test scopes are active");
         List<Profile> profiles = SCOPED.computeIfAbsent(scope, ignored -> new ArrayList<>());
-        for (Profile p : profiles) if (p.connectSeconds == connect && (selection == null ? p.ssl == null : selection.same(p.ssl))) return p;
+        for (Profile p : profiles) if (p.connectSeconds == connect && Objects.equals(p.proxy, proxy)
+                && (selection == null ? p.ssl == null : selection.same(p.ssl))) return p;
         HttpClient client;
-        if (selection == null) client = DEFAULTS.computeIfAbsent(connect, ignored -> builder(connect).build());
+        if (selection == null) client = DEFAULTS.computeIfAbsent(new ClientKey(connect, proxy), ignored -> builder(connect, proxy).build());
         else {
-            try { client = builder(connect).sslContext(context(selection)).build(); }
+            try { client = builder(connect, proxy).sslContext(context(selection)).build(); }
             catch (Exception error) { throw new IllegalArgumentException("Cannot initialize API truststore/SSL profile", error); }
         }
-        Profile profile = new Profile(client, selection, connect, limiter); profiles.add(profile); return profile;
+        Profile profile = new Profile(client, selection, connect, limiter, proxy); profiles.add(profile); return profile;
     }
-    private static HttpClient.Builder builder(int connect) {
-        return HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(connect)).followRedirects(HttpClient.Redirect.NORMAL);
+    private static HttpClient.Builder builder(int connect, ProxySelection proxy) {
+        HttpClient.Builder builder = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(connect))
+                .followRedirects(HttpClient.Redirect.NORMAL);
+        if (proxy != null) builder.proxy(selector(proxy));
+        return builder;
+    }
+    private static java.net.ProxySelector selector(ProxySelection selection) {
+        java.net.Proxy proxy = new java.net.Proxy(java.net.Proxy.Type.HTTP,
+                java.net.InetSocketAddress.createUnresolved(selection.host(), selection.port()));
+        return new java.net.ProxySelector() {
+            @Override public List<java.net.Proxy> select(java.net.URI uri) {
+                return selection.bypasses(uri.getHost()) ? List.of(java.net.Proxy.NO_PROXY) : List.of(proxy);
+            }
+            @Override public void connectFailed(java.net.URI uri, java.net.SocketAddress address, java.io.IOException error) { }
+        };
     }
     private static SSLContext context(SslSelection selection) throws Exception {
         TrustManager[] managers;

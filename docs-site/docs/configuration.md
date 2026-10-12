@@ -701,8 +701,11 @@ Configuration for the built-in fluent REST client (`ApiClient` & `BaseApiTest`).
 | `api.ssl.trustStore.path` | `string` | — | Path to a custom truststore; replaces the default JDK truststore for this profile. Required whenever the `trustStore` block is present. |
 | `api.ssl.trustStore.type` | `string` | `PKCS12` | `PKCS12` or `JKS`; any other value is rejected. |
 | `api.ssl.trustStore.password` | `string` | `null` | Supply via `${TESTFLY_TRUSTSTORE_PASSWORD}`; never commit it. |
+| `api.proxy.host` | `string` | `null` | HTTP proxy host for API calls; unset means direct connections. Proxy authentication is not supported. |
+| `api.proxy.port` | `int` | `0` | Proxy port, required (1..65535) when `host` is set. |
+| `api.proxy.nonProxyHosts` | `list<string>` | `[]` | Hosts that bypass the proxy; case-insensitive, `*` wildcards (`localhost`, `*.internal`, `10.*`). |
 
-Setting `trustAll: true` together with a `trustStore` block fails with `Conflicting SSL selection`. Request-level `.trustStore(...)` or `.trustAllCerts()` replaces the entire YAML SSL selection for that request. `.requestTimeout(Duration)` and the existing `.timeout(int)` set the per-request timeout; the last call wins. This is not a socket read-idle timeout. The batch limit controls logical calls; the global transport limit controls real sends.
+Setting `trustAll: true` together with a `trustStore` block fails with `Conflicting SSL selection`. Request-level `.trustStore(...)` or `.trustAllCerts()` replaces the entire YAML SSL selection for that request. `.proxy(host, port)` and `.noProxy()` override `api.proxy` for one request. `.requestTimeout(Duration)` and the existing `.timeout(int)` set the per-request timeout; the last call wins. This is not a socket read-idle timeout. The batch limit controls logical calls; the global transport limit controls real sends.
 
 See [SSL Configuration](guides/api-ssl.md) and [Timeouts & Performance](guides/api-performance.md).
 
@@ -720,9 +723,11 @@ api:
     retryOnException: true
 ```
 
+A request can override the policy with `.retry(attempts)`, `.retry(attempts, backoff)`, `.retryOn(statuses...)`, `.retryOnException(boolean)` or `.noRetry()`. An explicit override enables retry for that request even when `enabled` is `false`.
+
 #### `api.auth`
 
-Named authentication profiles referenced in tests via `@UseAuth("name")` or `apiClient().withAuth("name")`:
+Named authentication profiles applied to a test method or class with `@UseAuth("name")`. Types: `bearer`, `basic`, `oauth2`, `oauth2_password`, `oauth2-refresh` (`refreshToken`), `apiKey`, `apikey-query`, `digest`, `hmac` (deprecated) and `hmac-signed` (`apiKey`, `secret`, optional `algorithm`, `keyHeader`, `signatureHeader`, `timestampHeader`, `encoding`). See [API Authentication](guides/api-auth.md).
 
 ```yaml
 api:

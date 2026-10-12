@@ -11,3 +11,20 @@ Worker auth/cookie/test bağlamını kurar ve `finally` içinde temizler; uygula
 Test bitmeden future’ları bekleyin. Test temizliği tamamlanmamış future’ları iptal eder ve kapalı bağlamdan gelen geç adımları bastırır. `cancel(true)` worker’ı interrupt eder ve sonraki gönderim/retry’leri önler; sunucuda işlenmiş bir işlemi geri alamaz. API executor suite/engine sonunda kapanır, sonraki suite için yeniden oluşturulur.
 
 Zincir örnekleri için [Interceptor Zinciri](api-interceptors.md) sayfasına bakın.
+
+### Kısmi batch sonuçları
+
+`execute()` bir istek başarısız olduğu anda başarısız olur. `executeAll()` tüm istekleri bekler ve her birinin yanıtını veya hatasını gönderim sırasıyla döndürür:
+
+```java
+ApiBatchResult result = ApiBatchRunner.fire(50).concurrently(10)
+        .request(() -> apiPost("/api/orders").body(order))
+        .executeAll();
+
+assertEquals(result.failureCount(), 0);
+assertTrue(result.countStatus(429) <= 5);
+result.failures().forEach(f -> System.out.println(f.index() + " -> " + f.error()));
+result.assertAllSucceeded();   // ilk başarısız indeksi belirten ApiException
+```
+
+HTTP hata durumu yine başarılı bir sonuçtur (yanıt alınmıştır). Hatalar; transport hataları, iptaller ve interceptor'lardan veya istek üreticisinden gelen istisnalardır.

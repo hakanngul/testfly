@@ -53,8 +53,8 @@ import java.util.stream.Collectors;
  * apiClient().post("/upload").multipart("file", Path.of("avatar.png")).send();
  *
  * // Different base URL / service
- * ApiResponse health = ApiClient.to("https://other-service.com").get("/health").send();
- * ApiResponse pay = ApiClient.toService("payment").get("/charges").send();
+ * ApiResponse health = ApiClient.to("https://other-service.com").path("/health").get().send();
+ * ApiResponse pay = ApiClient.toService("payment").path("/charges").get().send();
  * </pre>
  */
 @TestFlyApi(since = "1.0.0")
@@ -73,20 +73,25 @@ public class ApiClient {
      * Thread-local cookie jar — shared across requests on the same thread when
      * cookies are enabled.
      */
-    private static final ThreadLocal<Map<String, String>> COOKIE_JAR = ThreadLocal.withInitial(ConcurrentHashMap::new);
+    private static final ThreadLocal<CookieJar> COOKIE_JAR = ThreadLocal.withInitial(CookieJar::new);
 
-    /** Global request interceptors — applied to every request. */
+    /** JVM-global request interceptors — applied to every request on every thread; never cleared automatically. */
     private static final List<RequestInterceptor> REQUEST_INTERCEPTORS = new CopyOnWriteArrayList<>();
 
-    /** Global response interceptors — applied to every response. */
+    /** JVM-global response interceptors — applied to every response on every thread; never cleared automatically. */
     private static final List<ResponseInterceptor> RESPONSE_INTERCEPTORS = new CopyOnWriteArrayList<>();
 
-    /** Global request spec — applied to every request on any thread. */
+    /** JVM-global request spec — applied to every request on any thread; never cleared automatically. */
     private static volatile ApiRequestSpec GLOBAL_SPEC;
 
+    /** Test-scoped request spec — current test thread only; cleared after each test. */
+    private static final ThreadLocal<ApiRequestSpec> TEST_SPEC = new ThreadLocal<>();
+
     /**
-     * Set once (e.g. in {@code @BeforeSuite}) — all requests on this thread use it
-     * automatically.
+     * Sets the default auth for the <b>current test thread</b>. The framework clears it after
+     * every test, so set it in {@code @BeforeMethod} (or inside the test), not in
+     * {@code @BeforeSuite} / {@code @BeforeClass}: those run once and possibly on another thread.
+     * For suite-wide defaults use {@link #setGlobalSpec(ApiRequestSpec)} or {@code @UseAuth}.
      */
     public static void setGlobalAuth(ApiAuth auth) {
         GLOBAL_AUTH.set(auth);
@@ -105,13 +110,32 @@ public class ApiClient {
         COOKIE_JAR.remove();
     }
 
-    /** Register a request interceptor — applied to every request before sending. */
+    /** Per-test Digest challenges keyed by origin; shared with the test's async calls. */
+    private static final ThreadLocal<Map<String, DigestAuth.Challenge>> AUTH_CHALLENGES =
+            ThreadLocal.withInitial(ConcurrentHashMap::new);
+
+    static Map<String, DigestAuth.Challenge> challengeCache() {
+        return AUTH_CHALLENGES.get();
+    }
+
+    /** Forgets cached authentication challenges (Digest nonces) of this thread. Called after each test. */
+    @TestFlyApi(since = "1.1.0")
+    public static void clearAuthChallenges() {
+        AUTH_CHALLENGES.remove();
+    }
+
+    /**
+     * Registers a JVM-global request hook applied to every request on every thread. It is not
+     * cleared between tests; register it once and remove it with {@link #clearInterceptors()}.
+     * For test-scoped middleware use {@link #addInterceptor(ApiInterceptor)}.
+     */
     public static void addRequestInterceptor(RequestInterceptor interceptor) {
         REQUEST_INTERCEPTORS.add(interceptor);
     }
 
     /**
-     * Register a response interceptor — applied to every response after receiving.
+     * Registers a JVM-global response hook applied to every response on every thread. It is not
+     * cleared between tests; register it once and remove it with {@link #clearInterceptors()}.
      */
     public static void addResponseInterceptor(ResponseInterceptor interceptor) {
         RESPONSE_INTERCEPTORS.add(interceptor);
@@ -124,7 +148,12 @@ public class ApiClient {
         clearChainInterceptors();
     }
 
-    /** Set a global request spec applied to every request. */
+    /**
+     * Sets a JVM-global request spec applied to every request on every thread. Values already
+     * set on the request win. It is not cleared between tests; call {@link #clearGlobalSpec()}
+     * to remove it. For a spec that applies to the current test only use
+     * {@link #setTestSpec(ApiRequestSpec)}.
+     */
     public static void setGlobalSpec(ApiRequestSpec spec) {
         GLOBAL_SPEC = spec;
     }
@@ -134,11 +163,29 @@ public class ApiClient {
         GLOBAL_SPEC = null;
     }
 
+    /**
+     * Sets a request spec for the current test thread only. It is applied before the global
+     * spec (values already set on the request still win) and is cleared after each test.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public static void setTestSpec(ApiRequestSpec spec) {
+        if (spec == null) TEST_SPEC.remove();
+        else TEST_SPEC.set(spec);
+    }
+
+    /** Removes the test-scoped request spec of the current thread. */
+    @TestFlyApi(since = "1.1.0")
+    public static void clearTestSpec() {
+        TEST_SPEC.remove();
+    }
+
     private String baseUrl;
     private String method;
     private String path;
     private final Map<String, String> headers = new LinkedHashMap<>();
     private final Map<String, String> queryParams = new LinkedHashMap<>();
+    /** Additional values for repeated query keys ({@code ?id=1&id=2}); the first value lives in {@link #queryParams}. */
+    private final Map<String, List<String>> extraQueryValues = new LinkedHashMap<>();
     private final Map<String, String> pathParams = new LinkedHashMap<>();
     private final Map<String, String> formParams = new LinkedHashMap<>();
     private final Map<String, Path> fileParams = new LinkedHashMap<>();
@@ -166,6 +213,21 @@ public class ApiClient {
     private ApiAuth auth;
     private Duration timeoutOverride;
     private io.testfly.internal.api.ApiTransport.SslSelection sslOverride;
+    private io.testfly.internal.api.ApiTransport.ProxySelection proxyOverride;
+
+    /** Sends this request through an HTTP proxy, overriding {@code api.proxy}. */
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient proxy(String host, int port) {
+        proxyOverride = io.testfly.internal.api.ApiTransport.ProxySelection.of(host, port);
+        return this;
+    }
+
+    /** Connects directly for this request even when {@code api.proxy} is configured. */
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient noProxy() {
+        proxyOverride = io.testfly.internal.api.ApiTransport.ProxySelection.direct();
+        return this;
+    }
     private boolean sslConflict;
     private final List<ApiMockRule> mockRules = new ArrayList<>();
     private static final ThreadLocal<List<ApiMockRule>> MOCK_RULES = ThreadLocal.withInitial(ArrayList::new);
@@ -194,6 +256,57 @@ public class ApiClient {
         timeoutOverride = value; return this;
     }
     private boolean cookiesEnabled;
+    private Integer retryAttemptsOverride;
+    private Long retryBackoffOverride;
+    private List<Integer> retryStatusesOverride;
+    private Boolean retryExceptionsOverride;
+
+    /**
+     * Retries this request up to {@code maxAttempts} times in total, using the configured
+     * {@code api.retry} statuses/backoff (or their defaults: 502/503/504, 500 ms, transport errors).
+     * Enables retry for this request even when {@code api.retry.enabled} is false.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient retry(int maxAttempts) {
+        if (maxAttempts < 1) throw new IllegalArgumentException("maxAttempts must be >= 1");
+        retryAttemptsOverride = maxAttempts;
+        return this;
+    }
+
+    /** Like {@link #retry(int)} with a per-request linear backoff base ({@code backoff * attempt}). */
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient retry(int maxAttempts, Duration backoff) {
+        if (backoff == null || backoff.isNegative()) throw new IllegalArgumentException("backoff must be >= 0");
+        retry(maxAttempts);
+        retryBackoffOverride = backoff.toMillis();
+        return this;
+    }
+
+    /** Retries this request on the given statuses (replaces {@code api.retry.retryOnStatus}); enables retry. */
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient retryOn(int... statuses) {
+        List<Integer> list = new ArrayList<>();
+        for (int s : statuses) list.add(s);
+        retryStatusesOverride = List.copyOf(list);
+        return this;
+    }
+
+    /** Whether transport failures (connection reset, timeout) are retried for this request; enables retry. */
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient retryOnException(boolean retry) {
+        retryExceptionsOverride = retry;
+        return this;
+    }
+
+    /** Disables retry for this request even when {@code api.retry.enabled} is true. */
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient noRetry() {
+        retryAttemptsOverride = 1;
+        retryBackoffOverride = null;
+        retryStatusesOverride = null;
+        retryExceptionsOverride = null;
+        return this;
+    }
 
     private ApiClient() {
     }
@@ -225,7 +338,22 @@ public class ApiClient {
         return method("DELETE", path);
     }
 
-    /** Override base URL for this request only. */
+    @TestFlyApi(since = "1.1.0")
+    public static ApiClient head(String path) {
+        return method("HEAD", path);
+    }
+
+    @TestFlyApi(since = "1.1.0")
+    public static ApiClient options(String path) {
+        return method("OPTIONS", path);
+    }
+
+    /**
+     * Override base URL for this request only. Continue with {@code path(..)} and an instance
+     * verb: {@code ApiClient.to(url).path("/health").get().send()}. Do not chain the static
+     * {@code get(String)}/{@code post(String)} factories here: they create a new client and drop
+     * this base URL.
+     */
     public static ApiClient to(String baseUrl) {
         ApiClient c = new ApiClient();
         c.baseUrl = baseUrl;
@@ -280,6 +408,18 @@ public class ApiClient {
         return this;
     }
 
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient head() {
+        this.method = "HEAD";
+        return this;
+    }
+
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient options() {
+        this.method = "OPTIONS";
+        return this;
+    }
+
     public ApiClient path(String path) {
         this.path = path;
         return this;
@@ -301,8 +441,20 @@ public class ApiClient {
         return header("Content-Type", contentType);
     }
 
+    /**
+     * Request body: a {@code String} is sent as-is, a {@code byte[]} is sent raw
+     * ({@code application/octet-stream} unless a Content-Type is set), anything else is
+     * serialised to JSON.
+     */
     public ApiClient body(Object payload) {
         this.body = payload;
+        return this;
+    }
+
+    /** Raw binary request body ({@code application/octet-stream} unless a Content-Type is set). */
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient body(byte[] payload) {
+        this.body = payload == null ? null : payload.clone();
         return this;
     }
 
@@ -316,15 +468,34 @@ public class ApiClient {
         return requestTimeout(Duration.ofSeconds(seconds));
     }
 
-    /** Add a query parameter (URL-encoded automatically). */
+    /**
+     * Sets a query parameter (URL-encoded automatically), replacing earlier values of the same
+     * name. Use {@link #addQueryParam(String, Object)} for repeated keys.
+     */
     public ApiClient queryParam(String name, Object value) {
         queryParams.put(name, String.valueOf(value));
+        extraQueryValues.remove(name);
         return this;
     }
 
-    /** Add multiple query parameters at once. */
+    /** Add multiple query parameters at once (each replaces earlier values of the same name). */
     public ApiClient queryParams(Map<String, ?> params) {
-        params.forEach((k, v) -> queryParams.put(k, String.valueOf(v)));
+        params.forEach(this::queryParam);
+        return this;
+    }
+
+    /** Appends a query parameter value, keeping earlier values: {@code ?id=1&id=2}. */
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient addQueryParam(String name, Object value) {
+        if (!queryParams.containsKey(name)) queryParams.put(name, String.valueOf(value));
+        else extraQueryValues.computeIfAbsent(name, k -> new ArrayList<>()).add(String.valueOf(value));
+        return this;
+    }
+
+    /** Appends one value per element: {@code addQueryParams("id", List.of(1, 2))} gives {@code ?id=1&id=2}. */
+    @TestFlyApi(since = "1.1.0")
+    public ApiClient addQueryParams(String name, Iterable<?> values) {
+        for (Object value : values) addQueryParam(name, value);
         return this;
     }
 
@@ -384,7 +555,7 @@ public class ApiClient {
     }
 
     boolean hasHeader(String name) {
-        return headers.containsKey(name);
+        return headers.keySet().stream().anyMatch(k -> k.equalsIgnoreCase(name));
     }
 
     boolean hasQueryParam(String name) {
@@ -397,7 +568,8 @@ public class ApiClient {
 
     /**
      * Enable cookie jar for this request — captures Set-Cookie and sends them on
-     * subsequent requests.
+     * subsequent requests of the same test. Cookies are scoped by host/Domain, Path,
+     * Secure and Max-Age/Expires (a cookie without Path applies to {@code /}).
      */
     public ApiClient withCookies() {
         this.cookiesEnabled = true;
@@ -435,31 +607,77 @@ public class ApiClient {
      */
     public ApiResponse pollUntil(java.util.function.Predicate<ApiResponse> condition, Duration maxTimeout,
             Duration pollInterval) {
+        return pollUntil(condition, ApiPolling.within(maxTimeout).interval(pollInterval));
+    }
+
+    /**
+     * Repeatedly executes this API request until {@code condition} returns true, using the
+     * given {@link ApiPolling} options (timeout, interval, fail-fast statuses, attempt limit,
+     * predicate error handling).
+     *
+     * @throws ApiException on timeout, attempt limit, a fail-fast status, or (when enabled)
+     *                      a predicate error; the last failure is attached as the cause
+     */
+    @TestFlyApi(since = "1.1.0")
+    public ApiResponse pollUntil(java.util.function.Predicate<ApiResponse> condition, ApiPolling polling) {
+        Objects.requireNonNull(condition, "condition");
+        Objects.requireNonNull(polling, "polling");
         long start = System.currentTimeMillis();
-        long maxMs = maxTimeout.toMillis();
-        long intervalMs = Math.max(50, pollInterval.toMillis());
+        long maxMs = polling.timeout().toMillis();
+        long intervalMs = Math.max(50, polling.interval().toMillis());
         int attempt = 0;
         ApiResponse lastResponse = null;
+        RuntimeException lastError = null;
+        String target = method + " " + (path != null ? path : "");
 
-        StepLogger.step("[API Polling] Started polling " + method + " " + (path != null ? path : "") + " (timeout: "
-                + maxTimeout.getSeconds() + "s)");
+        StepLogger.step("[API Polling] Started polling " + target + " (timeout: "
+                + polling.timeout().getSeconds() + "s)");
 
         while ((System.currentTimeMillis() - start) < maxMs) {
             attempt++;
+            ApiResponse current = null;
             try {
-                lastResponse = send();
-                if (condition.test(lastResponse)) {
-                    StepLogger.step("[API Polling] Condition satisfied on attempt " + attempt + " ("
-                            + (System.currentTimeMillis() - start) + "ms)");
-                    return lastResponse;
-                }
+                current = send();
+                lastResponse = current;
+                lastError = null;
             } catch (CancellationException e) {
                 throw e;
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
+                lastError = e;
                 StepLogger.step("[API Polling] Attempt " + attempt + " failed with error: " + e.getMessage(),
                         StepStatus.WARN);
             }
+            if (current != null) {
+                if (polling.failFastStatuses().contains(current.status())) {
+                    String msg = "[ApiClient] Polling aborted on attempt " + attempt + ": fail-fast status "
+                            + current.status() + " for " + target;
+                    StepLogger.step(msg, StepStatus.FAIL);
+                    throw new ApiException(current.requestMethod(), current.requestUrl(), current.status(),
+                            current.body(), msg);
+                }
+                try {
+                    if (condition.test(current)) {
+                        StepLogger.step("[API Polling] Condition satisfied on attempt " + attempt + " ("
+                                + (System.currentTimeMillis() - start) + "ms)");
+                        return current;
+                    }
+                } catch (CancellationException e) {
+                    throw e;
+                } catch (RuntimeException e) {
+                    if (polling.rethrowsPredicateErrors()) {
+                        String msg = "[ApiClient] Polling condition threw on attempt " + attempt + " for " + target
+                                + ": " + e;
+                        StepLogger.step(msg, StepStatus.FAIL);
+                        throw new ApiException(current.requestMethod(), current.requestUrl(), current.status(),
+                                current.body(), msg, e);
+                    }
+                    lastError = e;
+                    StepLogger.step("[API Polling] Attempt " + attempt + " condition error: " + e,
+                            StepStatus.WARN);
+                }
+            }
 
+            if (polling.maxAttempts() > 0 && attempt >= polling.maxAttempts()) break;
             long elapsed = System.currentTimeMillis() - start;
             if (elapsed + intervalMs >= maxMs) {
                 break;
@@ -468,14 +686,18 @@ public class ApiClient {
         }
 
         long totalElapsed = System.currentTimeMillis() - start;
-        String errMsg = "[ApiClient] Polling timeout exceeded (" + totalElapsed + "ms, " + attempt + " attempts) for "
-                + method + " " + (path != null ? path : "")
+        boolean limited = polling.maxAttempts() > 0 && attempt >= polling.maxAttempts();
+        String errMsg = "[ApiClient] Polling " + (limited ? "attempt limit reached" : "timeout exceeded")
+                + " (" + totalElapsed + "ms, " + attempt + " attempts) for " + target
                 + (lastResponse != null
                         ? " — Last status: " + lastResponse.status() + ", body: " + truncate(lastResponse.body(), 200)
-                        : "");
+                        : "")
+                + (lastError != null ? " — Last error: " + lastError : "");
         StepLogger.step(errMsg, StepStatus.FAIL);
-        throw new ApiException(method, buildUrl(), lastResponse != null ? lastResponse.status() : 0,
-                lastResponse != null ? lastResponse.body() : null, errMsg);
+        String url;
+        try { url = buildUrl(); } catch (RuntimeException e) { url = path; }
+        throw new ApiException(method, url, lastResponse != null ? lastResponse.status() : 0,
+                lastResponse != null ? lastResponse.body() : null, errMsg, lastError);
     }
 
     // ── Execute ───────────────────────────────────────────────────────────────
@@ -495,6 +717,7 @@ public class ApiClient {
         return ApiExecution.submit(call.scope, () -> {
             GLOBAL_AUTH.set(call.auth);
             COOKIE_JAR.set(call.cookies);
+            AUTH_CHALLENGES.set(call.challenges);
             CHAIN_INTERCEPTORS.set(new ArrayList<>(call.testInterceptors));
             MOCK_RULES.set(new ArrayList<>(call.testMockRules));
             boolean acquired = false;
@@ -509,6 +732,7 @@ public class ApiClient {
                 if (acquired) limit.release();
                 GLOBAL_AUTH.remove();
                 COOKIE_JAR.remove();
+                AUTH_CHALLENGES.remove();
                 CHAIN_INTERCEPTORS.remove();
                 MOCK_RULES.remove();
             }
@@ -517,7 +741,10 @@ public class ApiClient {
 
     private Call prepare() {
         if (sslConflict) throw new IllegalArgumentException("Conflicting SSL selection");
-        if (GLOBAL_SPEC != null) GLOBAL_SPEC.applyToIfAbsent(this);
+        ApiRequestSpec testSpec = TEST_SPEC.get();
+        if (testSpec != null) testSpec.applyToIfAbsent(this);
+        ApiRequestSpec globalSpec = GLOBAL_SPEC;
+        if (globalSpec != null) globalSpec.applyToIfAbsent(this);
         ApiAuth effectiveAuth = auth != null ? auth : GLOBAL_AUTH.get();
         if (effectiveAuth != null) effectiveAuth.applyToClient(this);
         ApiRequest request;
@@ -527,30 +754,36 @@ public class ApiClient {
         List<ApiInterceptor> test = List.copyOf(CHAIN_INTERCEPTORS.get());
         List<ApiInterceptor> all = new ArrayList<>(test);
         all.addAll(interceptors);
+        // Challenge/signing auth runs innermost so it sees (and may re-send) the exact request.
+        if (effectiveAuth instanceof ApiInterceptor authInterceptor) all.add(authInterceptor);
         int attempts = 1;
         long backoff = 500;
         List<Integer> statuses = List.of();
         boolean exceptions = false;
         TestFlyConfig.Api api = null;
         if (TestFlyContext.isInitialized()) api = TestFlyContext.getConfig().getApi();
-        if (api != null && api.getRetry() != null && api.getRetry().isEnabled()) {
-            var retry = api.getRetry();
-            attempts = retry.getMaxAttempts();
-            backoff = retry.getBackoffMs();
-            statuses = List.copyOf(retry.getRetryOnStatus());
-            exceptions = retry.isRetryOnException();
+        boolean configured = api != null && api.getRetry() != null && api.getRetry().isEnabled();
+        boolean overridden = retryAttemptsOverride != null || retryBackoffOverride != null
+                || retryStatusesOverride != null || retryExceptionsOverride != null;
+        if (configured || overridden) {
+            var retry = api != null && api.getRetry() != null ? api.getRetry() : new TestFlyConfig.Api.RetryConfig();
+            attempts = retryAttemptsOverride != null ? retryAttemptsOverride : retry.getMaxAttempts();
+            backoff = retryBackoffOverride != null ? retryBackoffOverride : retry.getBackoffMs();
+            statuses = retryStatusesOverride != null ? retryStatusesOverride : List.copyOf(retry.getRetryOnStatus());
+            exceptions = retryExceptionsOverride != null ? retryExceptionsOverride : retry.isRetryOnException();
             if (attempts < 1 || backoff < 0) throw new IllegalArgumentException("Invalid API retry attempts/backoff");
         }
         List<ApiMockRule> rules = new ArrayList<>(mockRules);
         rules.addAll(MOCK_RULES.get());
         ApiExecution.Scope scope = ApiExecution.scope();
-        var profile = io.testfly.internal.api.ApiTransport.prepare(scope, api, sslOverride);
-        return new Call(request, effectiveAuth, COOKIE_JAR.get(), cookiesEnabled,
+        var profile = io.testfly.internal.api.ApiTransport.prepare(scope, api, sslOverride, proxyOverride);
+        return new Call(request, effectiveAuth, COOKIE_JAR.get(), AUTH_CHALLENGES.get(), cookiesEnabled,
                 test, List.copyOf(all), List.copyOf(REQUEST_INTERCEPTORS), List.copyOf(RESPONSE_INTERCEPTORS),
                 attempts, backoff, statuses, exceptions, LogSettings.capture(api), scope, List.copyOf(rules), List.copyOf(MOCK_RULES.get()), profile);
     }
 
-    private record Call(ApiRequest request, ApiAuth auth, Map<String, String> cookies, boolean cookiesEnabled,
+    private record Call(ApiRequest request, ApiAuth auth, CookieJar cookies,
+                        Map<String, DigestAuth.Challenge> challenges, boolean cookiesEnabled,
                         List<ApiInterceptor> testInterceptors, List<ApiInterceptor> interceptors,
                         List<RequestInterceptor> requestHooks, List<ResponseInterceptor> responseHooks,
                         int attempts, long backoff, List<Integer> retryStatuses, boolean retryExceptions,
@@ -612,9 +845,9 @@ public class ApiClient {
             if (rule.matches(request)) return rule.respond(request);
         }
         HttpRequest.Builder builder = HttpRequest.newBuilder(request.toHttpRequest(), (k, v) -> true);
-        if (call.cookiesEnabled && !call.cookies.isEmpty()) {
-            builder.header("Cookie", call.cookies.entrySet().stream()
-                    .map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("; ")));
+        if (call.cookiesEnabled) {
+            String cookieHeader = call.cookies.headerFor(request.uri());
+            if (cookieHeader != null) builder.header("Cookie", cookieHeader);
         }
         for (RequestInterceptor hook : call.requestHooks) hook.intercept(builder);
         // Preserve the legacy builder hook contract: method/body are assigned after hooks.
@@ -628,16 +861,16 @@ public class ApiClient {
         int exchange = ++exchanges[0];
         try {
             ApiExecution.check(call.scope);
-            HttpResponse<String> raw;
+            HttpResponse<byte[]> raw;
             try (var permit = io.testfly.internal.api.ApiTransport.acquire(call.profile, call.scope)) {
                 ApiExecution.check(call.scope);
                 io.testfly.internal.api.ApiTransport.warnTrustAll(call.profile, call.scope, http.uri());
                 started = System.nanoTime();
-                raw = call.profile.client().send(http, HttpResponse.BodyHandlers.ofString());
+                raw = call.profile.client().send(http, HttpResponse.BodyHandlers.ofByteArray());
             }
             ApiExecution.check(call.scope);
-            if (call.cookiesEnabled) captureCookies(raw, call.cookies);
-            ApiResponse response = new ApiResponse(raw, elapsed(started), sent.method(), sent.uri().toString()).withRequest(sent);
+            if (call.cookiesEnabled) call.cookies.capture(http.uri(), raw.headers().allValues("set-cookie"));
+            ApiResponse response = ApiResponse.fromBytes(raw, elapsed(started), sent.method(), sent.uri().toString()).withRequest(sent);
             call.scope.log(() -> StepLogger.step("[API] Exchange " + exchange + " " + sent.method() + " " + sent.uri()
                     + " → " + response.status() + " (" + response.durationMs() + "ms)", StepStatus.INFO));
             return response;
@@ -667,6 +900,9 @@ public class ApiClient {
                             + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
                     .collect(Collectors.joining("&"));
             contentTypeOverride = "application/x-www-form-urlencoded";
+        } else if (body instanceof byte[] raw) {
+            bodyBytes = raw.clone();
+            contentTypeOverride = "application/octet-stream";
         } else {
             bodyStr = serializeBody();
         }
@@ -701,13 +937,18 @@ public class ApiClient {
                         + (resolvedPath != null && resolvedPath.startsWith("/") ? resolvedPath : "/" + resolvedPath);
 
         if (!queryParams.isEmpty()) {
-            String query = queryParams.entrySet().stream()
-                    .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8)
-                            + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
-                    .collect(Collectors.joining("&"));
-            base += (base.contains("?") ? "&" : "?") + query;
+            List<String> pairs = new ArrayList<>();
+            queryParams.forEach((k, v) -> {
+                pairs.add(encodeQuery(k, v));
+                extraQueryValues.getOrDefault(k, List.of()).forEach(extra -> pairs.add(encodeQuery(k, extra)));
+            });
+            base += (base.contains("?") ? "&" : "?") + String.join("&", pairs);
         }
         return base;
+    }
+
+    private static String encodeQuery(String key, String value) {
+        return URLEncoder.encode(key, StandardCharsets.UTF_8) + "=" + URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     private String resolveBaseUrl() {
@@ -800,19 +1041,6 @@ public class ApiClient {
         return new MultipartBody(all, contentType);
     }
 
-    // ── Cookie management ─────────────────────────────────────────────────────
-
-    private static void captureCookies(HttpResponse<String> response, Map<String, String> jar) {
-        response.headers().allValues("set-cookie").forEach(cookie -> {
-            int eq = cookie.indexOf('=');
-            if (eq > 0) {
-                String value = cookie.substring(eq + 1);
-                int semi = value.indexOf(';');
-                jar.put(cookie.substring(0, eq), semi >= 0 ? value.substring(0, semi) : value);
-            }
-        });
-    }
-
     // ── Logging ───────────────────────────────────────────────────────────────
 
     private record LogSettings(boolean body, boolean pretty, boolean curl, int limit, Set<String> masked) {
@@ -844,8 +1072,27 @@ public class ApiClient {
             }
             log.append("\n  Body: ").append(truncate(value, settings.limit));
         }
+        if (settings.body && sent != null && sent.body().length > 0) {
+            log.append("\n  Request body: ").append(describeRequestBody(sent, settings));
+        }
         if (settings.curl && sent != null) log.append("\n  curl: ").append(toCurl(sent, settings));
         scope.log(() -> StepLogger.step(log.toString(), response.status() >= 400 ? StepStatus.FAIL : StepStatus.PASS));
+    }
+
+    /** Text bodies are logged (truncated); binary and multipart bodies only as a size summary. */
+    private String describeRequestBody(ApiRequest request, LogSettings settings) {
+        byte[] bytes = request.body();
+        String type = request.header("Content-Type");
+        String lower = type == null ? "" : type.toLowerCase(java.util.Locale.ROOT);
+        boolean text = lower.startsWith("text/") || lower.contains("json") || lower.contains("xml")
+                || lower.startsWith("application/x-www-form-urlencoded");
+        if (!text) return "<binary, " + bytes.length + " bytes" + (type == null ? "" : ", " + type) + ">";
+        String value = new String(bytes, StandardCharsets.UTF_8);
+        if (settings.pretty && lower.contains("json")) {
+            try { value = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(MAPPER.readTree(value)); }
+            catch (Exception ignored) { }
+        }
+        return truncate(value, settings.limit);
     }
 
     private String toCurl(ApiRequest request, LogSettings settings) {

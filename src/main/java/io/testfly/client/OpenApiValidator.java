@@ -57,7 +57,8 @@ public class OpenApiValidator {
             String details = report.getMessages().stream()
                     .map(msg -> msg.getMessage())
                     .collect(Collectors.joining("\n  - ", "\n  - ", ""));
-            throw new AssertionError("[ApiResponse] OpenAPI validation failed against '" + specPath + "':" + details);
+            throw new ApiAssertionError(response.requestMethod(), response.requestUrl(), response.status(), response.body(),
+                    "[ApiResponse] OpenAPI validation failed against '" + specPath + "':" + details);
         }
     }
 

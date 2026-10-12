@@ -459,7 +459,7 @@ ApiClient.get("/api/orders")
         .send();
 
 // Different base URL for one request
-ApiClient.to("https://other-service.com").get("/health").send();
+ApiClient.to("https://other-service.com").path("/health").get().send();
 ```
 
 Configure the default base URL in `testfly.yml`:
@@ -491,6 +491,8 @@ res.assertStatus(200)
    .assertSchema("schemas/user.json");
 ```
 
+More: `assertStatusIn(200, 201)`, `assertJsonEquals("{...}")` (key order ignored), `assertJsonArrayContains("$.ids", 42)`, wildcard paths such as `res.jsonList("$.items[*].id", Integer.class)`, and `res.asBytes()` / `res.saveTo(path)` for binary downloads. Requests support `head`/`options`, repeated query keys (`addQueryParam`), `body(byte[])`, per-request `retry(n)`, `proxy(host, port)` and `pollUntil(..., ApiPolling...)`. Auth includes RFC 7616 Digest, `ApiAuth.hmacSigner()` request signing and OAuth2 refresh tokens. See the [API guides](docs-site/docs/guides/api-testing.md).
+
 ### Authentication
 
 **Bearer token:**
@@ -507,9 +509,9 @@ ApiClient.get("/api/admin")
         .send();
 ```
 
-**Set auth once for the entire suite** — all requests use it automatically:
+**Set auth for every test** — all requests of the test use it automatically. Global auth belongs to the current test thread and is cleared after each test, so set it in `@BeforeMethod`, not `@BeforeSuite`:
 ```java
-@BeforeSuite
+@BeforeMethod
 public void authenticate() {
     ApiResponse login = ApiClient.post("/api/auth/login")
             .body(Map.of("username", "admin", "password", "pass"))
