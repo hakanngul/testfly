@@ -523,6 +523,52 @@
         </profile>
 
         <!--
+            Local deploy profile: deploys to a file-based Maven repository on this
+            machine instead of Maven Central. No GPG key or Central token needed.
+                mvn deploy -Plocal-deploy -DskipTests
+            Override the target directory with -Dlocal.deploy.dir=/some/path.
+            central-publishing-maven-plugin replaces maven-deploy-plugin unless it already
+            has an explicit execution; the unbound (phase "none") execution below makes it
+            back off, so the standard deploy plugin runs and nothing is uploaded to Central.
+            Consumers add the directory as a repository:
+                <repository><id>testfly-local</id><url>file://${user.home}/.m2/testfly-local-repo</url></repository>
+        -->
+        <profile>
+            <id>local-deploy</id>
+            <properties>
+                <local.deploy.dir>${user.home}/.m2/testfly-local-repo</local.deploy.dir>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <configuration>
+                            <skipPublishing>true</skipPublishing>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>disable-central-injection</id>
+                                <phase>none</phase>
+                                <goals>
+                                    <goal>publish</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <version>3.1.3</version>
+                        <configuration>
+                            <altDeploymentRepository>testfly-local::file://${local.deploy.dir}</altDeploymentRepository>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!--
             Runs tests that need real external backends (DeepSeek, ReportPortal,
             live APIs, real browsers). Activate with:
                 mvn verify -Preal-backends
