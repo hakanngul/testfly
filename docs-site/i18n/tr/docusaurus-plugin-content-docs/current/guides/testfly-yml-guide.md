@@ -50,8 +50,9 @@ Diğer her şey isteğe bağlıdır.
 browser:
   name: chrome
   headless: true
+  window:
+    mode: maximized
   arguments:
-    - --start-maximized
     - --disable-notifications
     - --remote-allow-origins=*
   capabilities:
@@ -63,7 +64,8 @@ browser:
 |-----|--------------|
 | `name` | Başlatılacak tarayıcı: `chrome`, `firefox`, `edge` veya `safari`. |
 | `headless` | Tarayıcıyı görünür bir pencere olmadan çalıştırır. TestFly bir CI ortamı algıladığında otomatik olarak `true` yapılır. |
-| `arguments` | Tarayıcı yürütülebilir dosyasına iletilen ek komut satırı bayrakları. |
+| `window` | Tüm tarayıcılar için pencere boyutu. `mode: maximized` veya `fullscreen` gerçek ekranı izler ve `width`/`height` almaz. `mode: size` kesin bir pencere boyutu ayarlar; `width` ve `height` birlikte zorunludur. Headless koşumda `maximized`/`fullscreen` 1920x1080 kullanır. |
+| `arguments` | Tarayıcı yürütülebilir dosyasına iletilen ek komut satırı bayrakları. Hiç bayrak kabul etmeyen Safari bunları yok sayar. |
 | `capabilities` | Ham Selenium capability geçersiz kılmaları, örn. kendinden imzalı sertifikalar için `acceptInsecureCerts`. |
 
 ```yaml

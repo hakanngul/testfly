@@ -129,6 +129,19 @@ public final class TestFlyConfig {
         private boolean failOnConsoleErrors = false;
         private List<String> matrix = Collections.emptyList();
         private String device; // optional device profile name, e.g. "iPhone 14"
+        private Window window = new Window();
+
+        /**
+         * Window sizing applied right after the browser session starts.
+         * Never {@code null}; defaults to {@code mode: default}.
+         */
+        public Window getWindow() {
+            return window;
+        }
+
+        public void setWindow(Window window) {
+            this.window = window != null ? window : new Window();
+        }
 
         public String getDevice() {
             return device;
@@ -209,6 +222,47 @@ public final class TestFlyConfig {
 
         public void setLifecycle(String lifecycle) {
             this.lifecycle = lifecycle;
+        }
+    }
+
+    /**
+     * Browser window sizing ({@code browser.window} in testfly.yml).
+     * <ul>
+     * <li>{@code default} — leave the window as the browser opens it</li>
+     * <li>{@code maximized} — maximize to the current screen; no width/height</li>
+     * <li>{@code fullscreen} — switch to full screen; no width/height</li>
+     * <li>{@code size} — exact {@code width} x {@code height}; both required</li>
+     * </ul>
+     * Headless sessions have no screen, so {@code maximized} and
+     * {@code fullscreen} fall back to a built-in 1920x1080 window there.
+     */
+    public static final class Window {
+        private String mode = "default";
+        private Integer width;
+        private Integer height;
+
+        public String getMode() {
+            return mode;
+        }
+
+        public void setMode(String mode) {
+            this.mode = mode != null ? mode : "default";
+        }
+
+        public Integer getWidth() {
+            return width;
+        }
+
+        public void setWidth(Integer width) {
+            this.width = width;
+        }
+
+        public Integer getHeight() {
+            return height;
+        }
+
+        public void setHeight(Integer height) {
+            this.height = height;
         }
     }
 

@@ -50,8 +50,9 @@ Everything else is optional.
 browser:
   name: chrome
   headless: true
+  window:
+    mode: maximized
   arguments:
-    - --start-maximized
     - --disable-notifications
     - --remote-allow-origins=*
   capabilities:
@@ -63,7 +64,8 @@ browser:
 |-----|--------------|
 | `name` | Browser to launch: `chrome`, `firefox`, `edge`, or `safari`. |
 | `headless` | Runs the browser without a visible window. Forced to `true` automatically when TestFly detects a CI environment. |
-| `arguments` | Extra command-line flags passed to the browser executable. |
+| `window` | Window sizing for every browser. `mode: maximized` or `fullscreen` follows the real screen and takes no `width`/`height`. `mode: size` sets an exact window and requires both `width` and `height`. Headless runs use 1920x1080 for `maximized`/`fullscreen`. |
+| `arguments` | Extra command-line flags passed to the browser executable. Ignored by Safari, which accepts none. |
 | `capabilities` | Raw Selenium capability overrides, e.g. `acceptInsecureCerts` for self-signed certificates. |
 
 ```yaml

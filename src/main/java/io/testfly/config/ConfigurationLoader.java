@@ -1,6 +1,7 @@
 package io.testfly.config;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.driver.BrowserWindowConfigurer;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -303,6 +304,8 @@ public final class ConfigurationLoader {
             throw new IllegalStateException(
                     "browser.name must be specified (or use browser.matrix for multi-browser runs)");
         }
+
+        BrowserWindowConfigurer.validate(config.getBrowser().getWindow());
 
         if (config.getExecution() == null || config.getExecution().getMode() == null) {
             throw new IllegalStateException("Execution mode must be specified");

@@ -147,6 +147,16 @@ public final class DriverManager {
         }
     }
 
+    private static void applyWindow(WebDriver driver) {
+        TestFlyConfig.Browser browser;
+        try {
+            browser = TestFlyContext.getConfig().getBrowser();
+        } catch (Exception e) {
+            return;
+        }
+        BrowserWindowConfigurer.apply(driver, browser);
+    }
+
     /**
      * Returns {@code true} when the framework should quit the driver after
      * each test method (default {@code per-test} lifecycle).
@@ -198,6 +208,8 @@ public final class DriverManager {
             PERMIT_HOLDERS.add(driver);
             permitOwned = true;
             DRIVER.set(driver);
+
+            applyWindow(driver);
 
             // Capture cloud session URL for BrowserStack / Sauce Labs
             try {

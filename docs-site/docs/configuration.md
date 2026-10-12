@@ -123,8 +123,11 @@ browser:
   failOnConsoleErrors: false        # fail test if severe console errors are detected
   device:                           # optional mobile emulation profile (e.g. "iPhone 14")
   matrix: []                        # multi-browser matrix execution (e.g. [chrome, firefox])
+  window:
+    mode: maximized                 # default | maximized | fullscreen | size (works on every browser)
+    # width: 1366                   # mode: size only — width and height are both required
+    # height: 768
   arguments:                        # extra command-line flags passed to browser executable
-    - --start-maximized
     - --disable-notifications
     - --remote-allow-origins=*
   capabilities:                     # raw WebDriver capability overrides
@@ -501,7 +504,9 @@ Controls WebDriver browser provisioning, execution mode, capabilities, and proce
 | `failOnConsoleErrors` | `boolean` | `false` | When `true`, automatically fails the test if any `SEVERE` browser console errors occurred. |
 | `device` | `string` | `null` | Emulate a specific mobile device viewport and user agent (e.g. `"iPhone 14"`, `"Pixel 7"`). |
 | `matrix` | `list<string>` | `[]` | Multi-browser matrix execution list (e.g. `[chrome, firefox]`). |
-| `arguments` | `list<string>` | `[]` | Extra CLI flags passed directly to the browser binary (e.g. `--incognito`, `--no-sandbox`). |
+| `window.mode` | `string` | `default` | Window sizing applied after the session starts, the same way on every browser and execution mode: `default` (leave as opened), `maximized`, `fullscreen`, or `size`. In headless runs there is no screen, so `maximized` and `fullscreen` use 1920x1080. |
+| `window.width` / `window.height` | `int` | — | Exact window size in pixels. Required with `mode: size`; rejected with any other mode, so `maximized` always follows the real screen. |
+| `arguments` | `list<string>` | `[]` | Extra CLI flags passed directly to the browser binary (e.g. `--incognito`, `--no-sandbox`). Safari does not accept command-line flags; they are ignored with a warning. Use `window.mode` for window sizing. |
 | `capabilities` | `map` | `{}` | Raw capability key-values merged into WebDriver options (e.g. `acceptInsecureCerts`, `pageLoadStrategy`). |
 
 ---

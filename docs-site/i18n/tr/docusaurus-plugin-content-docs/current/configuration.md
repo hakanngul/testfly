@@ -104,8 +104,11 @@ browser:
   failOnConsoleErrors: false        # SEVERE konsol hatası varsa testi başarısız say
   device:                           # isteğe bağlı mobil emülasyon profili (örn: "iPhone 14")
   matrix: []                        # çoklu tarayıcı matrisi (örn: [chrome, firefox])
+  window:
+    mode: maximized                 # default | maximized | fullscreen | size (tüm tarayıcılarda çalışır)
+    # width: 1366                   # yalnızca mode: size — width ve height birlikte zorunlu
+    # height: 768
   arguments:                        # tarayıcı çalıştırılabilirine iletilecek ek bayraklar
-    - --start-maximized
     - --disable-notifications
     - --remote-allow-origins=*
   capabilities:                     # doğrudan WebDriver capability geçersiz kılmaları
@@ -482,7 +485,9 @@ Tarayıcı sağlama, çalıştırma modu, yetenekler ve süreç argümanlarını
 | `failOnConsoleErrors` | `boolean` | `false` | `true` ise test sırasında `SEVERE` düzeyinde konsol hatası oluştuğunda testi başarısız sayar. |
 | `device` | `string` | `null` | Mobil emülasyon profili adı (örn: `"iPhone 14"`, `"Pixel 7"`). |
 | `matrix` | `list<string>` | `[]` | Çoklu tarayıcı test koşumu için tarayıcı listesi (örn: `[chrome, firefox]`). |
-| `arguments` | `list<string>` | `[]` | Tarayıcı ikili dosyasına aktarılan komut satırı bayrakları (örn: `--incognito`, `--no-sandbox`). |
+| `window.mode` | `string` | `default` | Oturum açıldıktan sonra uygulanan pencere boyutu; tüm tarayıcı ve çalıştırma modlarında aynı şekilde çalışır: `default` (açıldığı gibi bırak), `maximized`, `fullscreen` veya `size`. Headless koşumda ekran olmadığı için `maximized` ve `fullscreen` 1920x1080 kullanır. |
+| `window.width` / `window.height` | `int` | — | Piksel cinsinden kesin pencere boyutu. `mode: size` ile zorunludur; diğer modlarda verilirse hata verir, böylece `maximized` her zaman gerçek ekranı izler. |
+| `arguments` | `list<string>` | `[]` | Tarayıcı ikili dosyasına aktarılan komut satırı bayrakları (örn: `--incognito`, `--no-sandbox`). Safari komut satırı bayrağı kabul etmez; bayraklar uyarıyla yok sayılır. Pencere boyutu için `window.mode` kullanın. |
 | `capabilities` | `map` | `{}` | WebDriver seçeneklerine eklenen ham yetenekler (örn: `acceptInsecureCerts`, `pageLoadStrategy`). |
 
 ---
