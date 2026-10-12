@@ -1877,6 +1877,28 @@ public final class TestFlyConfig {
         public void setMaxConcurrentRequests(int value) { maxConcurrentRequests = value; }
         public Ssl getSsl() { return ssl; }
         public void setSsl(Ssl value) { ssl = value; }
+        private Proxy proxy = new Proxy();
+        /** HTTP proxy for API calls ({@code api.proxy.host/port/nonProxyHosts}). */
+        public Proxy getProxy() { return proxy; }
+        public void setProxy(Proxy value) { proxy = value; }
+        /**
+         * HTTP proxy for API calls. Unset host means direct connections. Proxy authentication is
+         * not supported. {@code nonProxyHosts} entries match host names case-insensitively and may
+         * use {@code *} wildcards, e.g. {@code localhost}, {@code *.internal}, {@code 10.*}.
+         */
+        public static final class Proxy {
+            private String host;
+            private int port;
+            private java.util.List<String> nonProxyHosts = new java.util.ArrayList<>();
+            public String getHost() { return host; }
+            public void setHost(String value) { host = value; }
+            public int getPort() { return port; }
+            public void setPort(int value) { port = value; }
+            public java.util.List<String> getNonProxyHosts() { return nonProxyHosts; }
+            public void setNonProxyHosts(java.util.List<String> value) {
+                nonProxyHosts = value != null ? value : new java.util.ArrayList<>();
+            }
+        }
         public static final class Ssl {
             private boolean trustAll;
             private TrustStore trustStore;
@@ -2050,7 +2072,7 @@ public final class TestFlyConfig {
         }
 
         public static final class AuthStrategy {
-            private String type; // bearer | basic | oauth2 | apiKey | hmac | digest
+            private String type; // bearer | basic | oauth2 | oauth2_password | oauth2-refresh | apiKey | apikey-query | digest | hmac | hmac-signed
             private String token; // bearer
             private String username; // basic / digest
             private String password; // basic / digest
@@ -2149,6 +2171,23 @@ public final class TestFlyConfig {
             public void setAlgorithm(String v) {
                 this.algorithm = v;
             }
+
+            private String refreshToken; // oauth2-refresh
+            private String keyHeader; // hmac-signed (default X-Api-Key)
+            private String signatureHeader; // hmac-signed (default X-Signature)
+            private String timestampHeader; // hmac-signed (default X-Timestamp; "none" disables)
+            private String encoding; // hmac-signed: base64 | hex
+
+            public String getRefreshToken() { return refreshToken; }
+            public void setRefreshToken(String v) { this.refreshToken = v; }
+            public String getKeyHeader() { return keyHeader; }
+            public void setKeyHeader(String v) { this.keyHeader = v; }
+            public String getSignatureHeader() { return signatureHeader; }
+            public void setSignatureHeader(String v) { this.signatureHeader = v; }
+            public String getTimestampHeader() { return timestampHeader; }
+            public void setTimestampHeader(String v) { this.timestampHeader = v; }
+            public String getEncoding() { return encoding; }
+            public void setEncoding(String v) { this.encoding = v; }
         }
     }
 

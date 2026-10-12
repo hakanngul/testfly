@@ -64,11 +64,14 @@ public final class ApiExecution {
         ApiClient.clearMockRules();
         ApiClient.clearGlobalAuth();
         ApiClient.clearCookies();
+        ApiClient.clearTestSpec();
+        ApiClient.clearAuthChallenges();
     }
     public static synchronized void shutdown() {
         for (Scope scope : List.copyOf(SCOPES)) scope.close();
         CURRENT.remove();
         ApiTransport.shutdown();
+        ApiAuth.clearTokenCache();
         if (executor != null) { executor.shutdownNow(); executor = null; }
     }
     private static synchronized ExecutorService executor() {

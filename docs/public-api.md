@@ -108,12 +108,17 @@ Chrome DevTools Protocol (CDP v155) network control:
 
 ---
 
-### 5. Unified REST API Testing Client (`api()`)
+### 5. REST API Client (`ApiClient`, `ApiResponse`, `ApiAuth`)
 
-- `api().baseUrl(url).path(endpoint)`
-- HTTP verbs: `get()`, `post(body)`, `put(body)`, `delete()`, `patch(body)`
-- `ApiResponse`: `assertThat().statusCode(int)`, `jsonPath(path)`, `durationLessThan(ms)`, `matchesSchema(schema)`
-- Async Polling: `api().poll().until(...)`
+Entry points: `apiClient()`, `apiGet/apiPost/apiPut/apiPatch/apiDelete/apiHead/apiOptions(path)`, `apiTo(baseUrl)` and `apiToService(name)` from `ApiSupport` (implemented by `BaseTest`, `BaseApiTest`, `BaseJUnit5ApiTest`, `BaseCucumberSteps`), or the static `ApiClient` factories of the same names.
+
+- Request builder: `path`, `header(s)`, `contentType`, `body(Object | byte[])`, `queryParam(s)` (replace), `addQueryParam(s)` (repeat), `pathParam(s)`, `formParam(s)`, `multipart`, `field`, `auth(ApiAuth)`, `spec(ApiRequestSpec)`, `timeout(int)` / `requestTimeout(Duration)`, `retry(..)` / `retryOn(..)` / `retryOnException(..)` / `noRetry()`, `proxy(host, port)` / `noProxy()`, `trustAllCerts()` / `trustStore(..)`, `withCookies()`, `interceptor(ApiInterceptor)`, `mockRule(ApiMockRule)`.
+- Execution: `send()`, `sendAsync()`, `pollUntil(condition, timeout[, interval])`, `pollUntil(condition, ApiPolling)`; batches through `ApiBatchRunner.fire(n).concurrently(k).request(..).execute()` / `executeAll()` (`ApiBatchResult`).
+- Thread and global state: `ApiClient.setGlobalAuth` / `setTestSpec` / `addInterceptor` / `addMockRule` are per test thread and cleared after each test; `setGlobalSpec` and the legacy `addRequestInterceptor` / `addResponseInterceptor` hooks are JVM-global.
+- `ApiResponse`: `status()`, `body()`, `asBytes()`, `saveTo(Path)`, `header(s)`, `headerValues`, `contentType()`, `charset()`, `isSuccessful()`, `durationMs()`, `json(path[, type])`, `jsonList`, `jsonNode`, `asObject`, `asList`, `prettyBody()`; JSONPath subset `$`, `.a`, `['a.b']`, `[0]`, `[*]`, `.*`.
+- Assertions (fluent, throw `ApiException`): `assertStatus`, `assertStatusIn`, `assertStatusRange`, `assertSuccessful`, `assertBodyContains`, `assertBodyMatches`, `assertHeader`, `assertHeaderPresent`, `assertJson`, `assertJsonEquals`, `assertJsonArrayContains`, `assertJsonArraySize`, `assertJsonExists`, `assertJsonNull`, `assertJsonTrue/False`, `assertJsonGreaterThan/LessThan`, `assertJsonContains`, `assertDurationLessThan`, soft variants `assertStatusSoft` / `assertJsonSoft` / `assertHeaderSoft`, `expect(ApiResponseSpec)`. Contract checks `assertSchema(path)` and `assertOpenApi(spec)` throw `ApiAssertionError` (an `AssertionError`); both error types implement `ApiFailure`.
+- Auth (`ApiAuth`): `bearerToken`, `basicAuth`, `apiKey`, `apiKeyQuery`, `digest` (RFC 7616), `hmacSigner()` (`ApiHmacSigner`), deprecated `hmac`, `oauth2`, `oauth2Password`, `oauth2Refresh`, `clearTokenCache()`; custom challenge/signing schemes implement `ApiAuth.Intercepting`. Config-based strategies: `@UseAuth("name")` with `api.auth.<name>`.
+- Middleware and mocking: `ApiInterceptor` / `ApiRequest`, `ApiMockRule`, WireMock-based `ApiMockServer` (`MockSupport.mockServer()`).
 
 ---
 

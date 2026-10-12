@@ -682,8 +682,11 @@ Yerleşik REST istemcisi (`ApiClient` & `BaseApiTest`) yapılandırması.
 | `api.ssl.trustStore.path` | `string` | — | Özel güven deposunun dosya yolu; bu profil için varsayılan JDK deposunun yerini alır. `trustStore` bloğu yazıldığında zorunludur. |
 | `api.ssl.trustStore.type` | `string` | `PKCS12` | `PKCS12` veya `JKS`; başka değerler reddedilir. |
 | `api.ssl.trustStore.password` | `string` | `null` | Parolayı `${TESTFLY_TRUSTSTORE_PASSWORD}` ile sağlayın; asla commit'lemeyin. |
+| `api.proxy.host` | `string` | `null` | API çağrıları için HTTP proxy host'u; ayarlanmazsa doğrudan bağlanılır. Proxy kimlik doğrulaması desteklenmez. |
+| `api.proxy.port` | `int` | `0` | Proxy portu; `host` ayarlıysa zorunludur (1..65535). |
+| `api.proxy.nonProxyHosts` | `list<string>` | `[]` | Proxy'yi atlayan host'lar; büyük/küçük harfe duyarsız, `*` joker karakterli (`localhost`, `*.internal`, `10.*`). |
 
-`trustAll: true` ile birlikte bir `trustStore` bloğu tanımlamak `Conflicting SSL selection` hatası verir. İstek üzerindeki `.trustStore(...)` veya `.trustAllCerts()` o istek için YAML SSL seçiminin tamamını geçersiz kılar. `.requestTimeout(Duration)` veya mevcut `.timeout(int)` istek başına zaman aşımını değiştirir; son çağrı kazanır. Bu bir socket read-idle timeout değildir. Batch limiti mantıksal çağrıları, global limit gerçek gönderimleri sınırlar.
+`trustAll: true` ile birlikte bir `trustStore` bloğu tanımlamak `Conflicting SSL selection` hatası verir. İstek üzerindeki `.trustStore(...)` veya `.trustAllCerts()` o istek için YAML SSL seçiminin tamamını geçersiz kılar. `.proxy(host, port)` ve `.noProxy()` tek bir istek için `api.proxy` ayarını geçersiz kılar. `.requestTimeout(Duration)` veya mevcut `.timeout(int)` istek başına zaman aşımını değiştirir; son çağrı kazanır. Bu bir socket read-idle timeout değildir. Batch limiti mantıksal çağrıları, global limit gerçek gönderimleri sınırlar.
 
 [SSL yapılandırması](guides/api-ssl.md) ve [Timeouts & Performance](guides/api-performance.md) sayfalarına bakın.
 
@@ -701,9 +704,11 @@ api:
     retryOnException: true
 ```
 
+Bir istek bu politikayı `.retry(attempts)`, `.retry(attempts, backoff)`, `.retryOn(statuses...)`, `.retryOnException(boolean)` veya `.noRetry()` ile geçersiz kılabilir. Açık bir override, `enabled` `false` olsa bile o istek için retry'ı etkinleştirir.
+
 #### `api.auth`
 
-Testlerde `@UseAuth("ad")` veya `apiClient().withAuth("ad")` ile çağrılan adlandırılmış kimlik doğrulama profilleri:
+Test metoduna veya sınıfına `@UseAuth("ad")` ile uygulanan adlandırılmış kimlik doğrulama profilleri. Tipler: `bearer`, `basic`, `oauth2`, `oauth2_password`, `oauth2-refresh` (`refreshToken`), `apiKey`, `apikey-query`, `digest`, `hmac` (deprecated) ve `hmac-signed` (`apiKey`, `secret`, opsiyonel `algorithm`, `keyHeader`, `signatureHeader`, `timestampHeader`, `encoding`). Bkz. [API Kimlik Doğrulama](guides/api-auth.md).
 
 ```yaml
 api:

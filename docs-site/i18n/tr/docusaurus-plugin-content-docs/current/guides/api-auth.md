@@ -41,7 +41,7 @@ ApiClient.setGlobalAuth(ApiAuth.oauth2(
 ));
 ```
 
-Framework, `grant_type=client_credentials` ile bir `POST` gönderir ve dönen `access_token` değerini son kullanma süresine kadar (yanıttaki `expires_in` alanını kullanarak) önbelleğe alır.
+Framework, `grant_type=client_credentials` ile bir `POST` gönderir ve dönen `access_token` değerini son kullanma süresine kadar (yanıttaki `expires_in` alanını kullanarak) önbelleğe alır. Token yanıtı `refresh_token` içeriyorsa süresi dolan token önce refresh-token grant ile yenilenir (değişen refresh token bir sonraki seferde kullanılır); bu başarısız olursa orijinal grant tekrar çalışır. Önbellek tüm JVM'de paylaşılır ve suite sonunda temizlenir; yeni token almaya zorlamak için `ApiAuth.clearTokenCache()` çağırın. Token istekleri `api.proxy` veya `api.ssl` truststore ayarlarını kullanmaz.
 
 ---
 
@@ -50,11 +50,45 @@ Framework, `grant_type=client_credentials` ile bir `POST` gönderir ve dönen `a
 ```java
 ApiAuth.apiKey("X-Api-Key", System.getenv("API_KEY"));
 ApiAuth.apiKeyQuery("api_key", System.getenv("API_KEY"));
-ApiAuth.hmac(System.getenv("API_KEY"), System.getenv("API_SECRET"), "HmacSHA256");
 ApiAuth.oauth2Password(tokenUrl, clientId, clientSecret, username, password);
+ApiAuth.oauth2Refresh(tokenUrl, clientId, clientSecret, System.getenv("REFRESH_TOKEN"));
+ApiAuth.digest("user", System.getenv("DIGEST_PASSWORD"));
+ApiAuth.hmacSigner().apiKey(System.getenv("API_KEY")).secret(System.getenv("API_SECRET")).build();
 ```
 
-`ApiAuth.digest(username, password)` yalnızca `Digest` önekiyle Basic benzeri bir payload gönderir; RFC challenge/response akışını uygulamaz. Tam Digest kimlik doğrulaması için özel interceptor kullanın. HMAC fabrikası API anahtarı değerini imzalayıp `X-Api-Key` ve `X-Signature` ekler; genel amaçlı istek-gövdesi imzalama mekanizması değildir.
+### Digest kimlik doğrulama
+
+`ApiAuth.digest(username, password)` RFC 7616 challenge/response akışını uygular: MD5, SHA-256 ve SHA-512-256 (`-sess` varyantlarıyla), `qop=auth` ve `qop=auth-int`. Bir origin'e giden ilk istek kimlik bilgisi olmadan gönderilir. `WWW-Authenticate: Digest` içeren `401` gelirse istek `Authorization` header'ıyla bir kez daha gönderilir. Challenge, mevcut test için origin bazında önbelleğe alınır (testin `sendAsync` çağrılarıyla paylaşılır); sonraki istekler artan nonce sayacıyla doğrudan kimlik doğrular. Bayat (stale) veya değişen nonce bir kez yeniden kimlik doğrulamaya yol açar. Yanlış kimlik bilgilerinde son `401` yanıtı assertion'larınıza bırakılır. Önbellek her test sonunda temizlenir.
+
+### HMAC istek imzalama
+
+`ApiAuth.hmacSigner()` gerçekten gönderilen isteği imzalar. Varsayılan kanonik metin dört satırdır: metod, query dahil path, zaman damgası (epoch saniye) ve gövdenin hex SHA-256 değeri.
+
+```java
+ApiClient.setGlobalAuth(ApiAuth.hmacSigner()
+        .apiKey(System.getenv("API_KEY"))          // X-Api-Key içinde gönderilir (keyHeader)
+        .secret(System.getenv("API_SECRET"))
+        .algorithm("HmacSHA256")                   // varsayılan
+        .signatureHeader("X-Signature")            // varsayılan
+        .timestampHeader("X-Timestamp")            // varsayılan; null verilirse eklenmez
+        .encoding(ApiHmacSigner.Encoding.HEX)      // varsayılan BASE64
+        .canonical(ctx -> ctx.method() + "\n" + ctx.pathAndQuery() + "\n" + ctx.timestamp())
+        .build());
+```
+
+İmzalayıcı en içteki interceptor olarak çalışır; bu yüzden legacy `RequestInterceptor` hook'larının eklediği header'lar imzaya dahil değildir. `ApiAuth.hmac(apiKey, secret, algorithm)` deprecated'dır: yalnızca API anahtarı değerini imzalar, isteği imzalamaz. Uyumluluk için gönderdiği header'lar değişmedi.
+
+### Özel challenge veya imzalama şemaları
+
+Bir auth şeması son isteğe veya yanıta ihtiyaç duyuyorsa `ApiAuth.Intercepting` uygulayın. `ApiClient` bunu en içteki interceptor olarak kurar ve `chain.proceed(...)` birden fazla kez çağrılabilir.
+
+```java
+ApiAuth retryOn401 = (ApiAuth.Intercepting) chain -> {
+    ApiResponse first = chain.proceed(chain.request());
+    if (first.status() != 401) return first;
+    return chain.proceed(chain.request().newBuilder().header("Authorization", "Bearer " + refreshToken()).build());
+};
+```
 
 ---
 
@@ -123,7 +157,27 @@ api:
       tokenUrl: https://auth.example.com/token
       clientId: ${CLIENT_ID}
       clientSecret: ${CLIENT_SECRET}
+
+    legacyApp:
+      type: digest
+      username: app
+      password: ${DIGEST_PASSWORD}
+
+    partnerApi:
+      type: hmac-signed            # istek imzalama; "hmac" yalnızca anahtarı imzalayan deprecated varyant
+      apiKey: ${PARTNER_KEY}
+      secret: ${PARTNER_SECRET}
+      signatureHeader: X-Signature # opsiyonel; keyHeader, timestampHeader ("none" kapatır), encoding (base64|hex), algorithm
+
+    longLived:
+      type: oauth2-refresh
+      tokenUrl: https://auth.example.com/token
+      clientId: ${CLIENT_ID}
+      clientSecret: ${CLIENT_SECRET}
+      refreshToken: ${REFRESH_TOKEN}
 ```
+
+Desteklenen tipler: `bearer`, `basic`, `oauth2`, `oauth2_password`, `oauth2-refresh`, `apiKey`, `apikey-query`, `digest`, `hmac` (deprecated), `hmac-signed`. `@UseAuth` TestNG listener'ı ve JUnit 5 extension'ı tarafından uygulanır; Cucumber adımlarında auth kod içinde ayarlanır.
 
 Token değerleri `${ENV_VAR}` interpolasyonunu destekler — çalışma zamanında ortam değişkenlerinden veya sistem özelliklerinden çözümlenir.
 
