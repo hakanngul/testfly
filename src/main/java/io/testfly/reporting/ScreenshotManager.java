@@ -32,6 +32,11 @@ public final class ScreenshotManager {
      * of the saved file, or {@code null} if capture failed.
      */
     public static String capture(String testName) {
+        if (!DriverManager.hasDriver()) {
+            // Driver creation failed or the session is already closed; keep the original error visible.
+            System.err.println("[ScreenshotManager] No browser session; skipping screenshot for test: " + testName);
+            return null;
+        }
         WebDriver driver = DriverManager.getDriver();
 
         if (!(driver instanceof TakesScreenshot)) {
@@ -68,6 +73,9 @@ public final class ScreenshotManager {
      * Used by {@code StepLogger} for step-level screenshots.
      */
     public static String captureAsBase64() {
+        if (!DriverManager.hasDriver()) {
+            return null;
+        }
         WebDriver driver = DriverManager.getDriver();
         if (!(driver instanceof TakesScreenshot)) {
             return null;

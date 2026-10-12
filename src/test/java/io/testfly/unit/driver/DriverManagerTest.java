@@ -32,6 +32,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotSame;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertSame;
@@ -231,6 +232,31 @@ public class DriverManagerTest {
         assertEquals(provider.providerCalls(), 2);
         verify(dead).quit();
         assertEquals(DriverManager.activeSessions(), 1, "replacement must not leak or double-release a permit");
+    }
+
+    @Test
+    public void hasDriver_tracksBindingWithoutHealthCheck() {
+        assertFalse(DriverManager.hasDriver());
+
+        DriverManager.createDriver();
+        WebDriver driver = provider.first();
+        assertTrue(DriverManager.hasDriver());
+        verify(driver, never()).getTitle();
+
+        DriverManager.quitDriver();
+        assertFalse(DriverManager.hasDriver());
+    }
+
+    @Test
+    public void hasDriver_trueWhileNamedSessionOverrideIsActive() {
+        WebDriver named = org.mockito.Mockito.mock(WebDriver.class);
+        DriverManager.pushSessionOverride(named);
+        try {
+            assertTrue(DriverManager.hasDriver());
+        } finally {
+            DriverManager.popSessionOverride();
+        }
+        assertFalse(DriverManager.hasDriver());
     }
 
     @Test

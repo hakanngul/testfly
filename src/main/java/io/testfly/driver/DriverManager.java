@@ -351,6 +351,24 @@ public final class DriverManager {
     // ==========================================================
 
     /**
+     * Returns {@code true} when the current thread has a driver (or an active
+     * named-session override), without the health check that
+     * {@link #getDriver()} performs and without throwing. Lets failure and
+     * reporting paths skip browser work when driver creation itself failed, so
+     * the original error is not masked.
+     *
+     * @since 1.1.0
+     */
+    public static boolean hasDriver() {
+        java.util.Deque<WebDriver> stack = SESSION_STACK.get();
+        if (stack.isEmpty()) {
+            SESSION_STACK.remove();
+            return DRIVER.get() != null;
+        }
+        return true;
+    }
+
+    /**
      * Get WebDriver bound to current thread.
      * When a named-session override is active (via {@code withSession()}), returns
      * that driver.
