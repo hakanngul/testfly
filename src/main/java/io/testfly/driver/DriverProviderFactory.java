@@ -9,11 +9,6 @@ public final class DriverProviderFactory {
 
     public static DriverProvider getProvider() {
         TestFlyConfig config = TestFlyContext.getConfig();
-        // BrowserContext override (set by BrowserMatrixListener) takes precedence over YAML browser.name
-        String contextBrowser = BrowserContext.get();
-        String browser = (contextBrowser != null && !contextBrowser.isEmpty())
-                ? contextBrowser
-                : config.getBrowser().getName();
         String executionMode = config.getExecution().getMode();
 
         if ("remote".equalsIgnoreCase(executionMode)) {
@@ -27,6 +22,8 @@ public final class DriverProviderFactory {
         if ("saucelabs".equalsIgnoreCase(executionMode)) {
             return new SauceLabsProvider();
         }
+
+        String browser = resolveBrowserName(config);
 
         // Custom providers registered via SPI or programmatically take precedence
         DriverProvider custom = DriverProviderRegistry.find(browser);
@@ -54,5 +51,24 @@ public final class DriverProviderFactory {
             "Unsupported browser: " + browser +
             ". Register a NamedDriverProvider via SPI or DriverProviderRegistry.register()."
         );
+    }
+
+    /**
+     * Browser for the current thread: the {@link BrowserContext} override (set for
+     * {@code browser.matrix} runs) wins over YAML {@code browser.name}.
+     *
+     * @throws IllegalStateException when neither is set
+     */
+    public static String resolveBrowserName(TestFlyConfig config) {
+        String contextBrowser = BrowserContext.get();
+        if (contextBrowser != null && !contextBrowser.isBlank()) {
+            return contextBrowser;
+        }
+        String name = config.getBrowser().getName();
+        if (name == null || name.isBlank()) {
+            throw new IllegalStateException(
+                    "No browser selected: set browser.name, or run through browser.matrix.");
+        }
+        return name;
     }
 }
