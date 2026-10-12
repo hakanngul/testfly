@@ -11,6 +11,15 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 
 ---
 
+## [Unreleased]
+
+### Eklenenler
+- **`LocatorAssert` için form ve input doğrulamaları**: `hasValue()` (boş olmayan herhangi bir değer), `hasEmptyValue()`, `containsValue`, `valueMatches`, `isPasswordHidden()` / `isPasswordVisible()`, `hasType`, `hasPlaceholder`, `hasMaxLength`, `isEditable`, `isReadOnly`, `isRequired` ve `isValid()`, `isInvalid()`, `hasValidationMessage` ile HTML5 doğrulaması.
+- **`LocatorAssert` için olumsuz doğrulamalar**: `isNotChecked`, `doesNotHaveText`, `doesNotContainText`, `doesNotHaveValue`, `doesNotHaveClass`, `doesNotHaveAttribute`, `isNotFocused` ve `doesNotExist`. `doesNotExist` dışındakiler elemanın var olmasını ister.
+- **Ek `LocatorAssert` matcher'ları**: `hasTextMatching`, `hasTextIgnoringCase`, `hasTexts`, `containsTexts`, `isSelected`, `hasSelectedOption`, `hasOptions`, `countAtLeast`, `countAtMost`, `exists`, `isInViewport`, `hasRole`, `hasAccessibleName`, `hasId`.
+- **`Locator` aksiyonları ve getter'ları**: `getValue()` (input değerini okur; `getText()` input'larda boştur), `fill`, `check` / `uncheck` / `setChecked`, `selectByText` / `selectByValue` / `selectByIndex`, `getSelectedOption`, `doubleClick`, `rightClick`, `press`, `dragTo`, `upload` (gizli file input'larla da çalışır), `focus`, `blur`, `waitFor(Locator.State)`, `getCssValue`, `innerHTML`, `outerHTML`, `allTexts` ve beklemeyen `isChecked`, `isSelected`, `isDisabled`, `isEditable`, `isFocused`, `isPresent` kontrolleri.
+- **`PageAssert` matcher'ları**: `hasAlert`, `hasAlertText`, `hasNoAlert`, `hasCookie`, `doesNotHaveCookie`, `hasLocalStorageItem`, `hasWindowCount`.
+
 ## [1.0.7] — 2026-10-09
 
 ### Eklenenler

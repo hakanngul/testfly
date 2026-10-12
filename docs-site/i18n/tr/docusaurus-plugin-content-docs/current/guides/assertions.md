@@ -74,12 +74,92 @@ assertThat(By.id("error-toast")).hasCssValue("color", "rgb(255, 0, 0)");
 assertThat(By.id("item")).hasClass("active");
 ```
 
-### Eleman Sayısı (Count)
+### Form Alanları ve Doğrulama (Form Inputs & Validation)
+
+Input alanlarının görünür metni yoktur, bu yüzden `hasText()` onlarda çalışmaz. Bunun yerine değeri doğrulayın:
+
+```java
+// Değer kontrolleri
+assertThat(passwordField).hasValue();          // boş olmayan herhangi bir değer
+assertThat(searchField).hasEmptyValue();
+assertThat(emailField).containsValue("@example.com");
+assertThat(phoneField).valueMatches("\\+90 \\d{3} \\d{3} \\d{4}");
+
+// Şifre maskeleme ("şifreyi göster" düğmesi)
+assertThat(passwordField).isPasswordHidden();  // type="password"
+showPasswordToggle.click();
+assertThat(passwordField).isPasswordVisible(); // type artık "password" değil
+
+// Input nitelikleri
+assertThat(usernameField).hasType("text").hasPlaceholder("Kullanıcı adı").hasMaxLength(20);
+assertThat(usernameField).isRequired();        // required veya aria-required="true"
+assertThat(usernameField).isEditable();        // görünür, etkin, readonly değil
+assertThat(referenceField).isReadOnly();
+
+// HTML5 kısıt doğrulaması
+assertThat(emailField).isInvalid().hasValidationMessage("@");
+assertThat(emailField).isValid();
+```
+
+`hasValidationMessage()` tarayıcının kendi mesajını kontrol eder. Bu mesaj tarayıcıya ve tarayıcının diline göre değişir.
+
+Kodunuzda bir input'un değerini okumak için `locator.getValue()` kullanın. `getText()` input'larda her zaman `""` döndürür.
+
+### Metin Kalıpları ve Listeler (Text Patterns & Lists)
+
+```java
+assertThat(By.id("order")).hasTextMatching("Sipariş #\\d+ alındı");
+assertThat(By.id("status")).hasTextIgnoringCase("aktif");
+
+// Eşleşen tüm elemanlar: sıralı / sırasız
+assertThat($(".breadcrumb li")).hasTexts("Ana Sayfa", "Ürünler", "Ayakkabı");
+assertThat($(".tag")).containsTexts("java", "selenium");
+```
+
+### Seçim (Selection)
+
+```java
+assertThat(By.id("newsletter")).isNotChecked();
+assertThat(By.cssSelector("option[value='tr']")).isSelected();
+assertThat(By.id("country")).hasSelectedOption("Türkiye");
+assertThat(By.id("country")).hasOptions("Almanya", "Türkiye", "ABD");
+```
+
+### Erişilebilirlik ve Kimlik (Accessibility & Identity)
+
+```java
+assertThat(By.id("search")).hasRole("searchbox").hasAccessibleName("Ürün ara");
+assertThat(By.cssSelector("main > section")).hasId("results");
+assertThat(By.id("footer-cta")).isInViewport();
+```
+
+### Olumsuz Doğrulamalar (Negations)
+
+Her olumsuz doğrulama ayrı bir metottur. Olumsuz doğrulamalar da elemanın sayfada olmasını ister, yalnızca özelliğin eşleşmemesi gerekir. Eleman yoksa doğrulama tekrar dener ve sonunda başarısız olur. Elemanın olmadığını doğrulamak için `doesNotExist()` veya `isHidden()` kullanın.
+
+```java
+assertThat(By.id("status")).doesNotHaveText("Hata");
+assertThat(By.id("status")).doesNotContainText("başarısız");
+assertThat(By.name("username")).doesNotHaveValue("guest");
+assertThat(By.id("submit")).doesNotHaveClass("loading");
+assertThat(By.id("submit")).doesNotHaveAttribute("disabled");
+assertThat(By.id("email")).doesNotHaveAttribute("aria-invalid", "true");
+assertThat(By.id("search")).isNotFocused();
+assertThat(By.id("error-banner")).doesNotExist(); // DOM'da eleman yok
+```
+
+### Eleman Sayısı ve Varlık (Count & Presence)
 
 ```java
 assertThat(By.cssSelector("table tbody tr")).count(5);
 assertThat($(".card")).count(3);
+assertThat($(".card")).countAtLeast(1).countAtMost(10);
+
+assertThat(By.id("csrf-token")).exists();         // DOM'da var, görünür olsun ya da olmasın
+assertThat(By.id("error-banner")).doesNotExist(); // DOM'da yok
 ```
+
+Bir `Locator` (`$()`, `getByRole()`, ...) üzerinde doğrulama yaptığınızda yalnızca görünür elemanlar eşleşir. Bu yüzden `count`, `exists` ve `doesNotExist` gizli elemanları saymaz. Gizli elemanların da sayılması gerekiyorsa `By` verin.
 
 ### Sayfa ve URL Doğrulamaları (PageAssert)
 
@@ -101,6 +181,18 @@ assertThat(getDriver())
     .as("Giriş sonrası panele yönlenmeli")
     .within(Duration.ofSeconds(5))
     .urlContains("/dashboard");
+
+// Alert'ler (alert açık bırakılır)
+assertThatPage().hasAlert().hasAlertText("Başarıyla kaydedildi");
+assertThatPage().hasNoAlert();
+
+// Cookie'ler ve localStorage
+assertThatPage().hasCookie("session").hasCookie("locale", "tr");
+assertThatPage().doesNotHaveCookie("tracking");
+assertThatPage().hasLocalStorageItem("theme", "dark");
+
+// Pencereler / sekmeler
+assertThatPage().hasWindowCount(2);
 ```
 
 ---

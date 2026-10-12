@@ -74,12 +74,92 @@ assertThat(By.id("error-toast")).hasCssValue("color", "rgb(255, 0, 0)");
 assertThat(By.id("item")).hasClass("active");
 ```
 
-### Element Count
+### Form Inputs & Validation
+
+Input fields have no visible text, so `hasText()` does not work on them. Assert on their value instead:
+
+```java
+// Value checks
+assertThat(passwordField).hasValue();          // any non-empty value
+assertThat(searchField).hasEmptyValue();
+assertThat(emailField).containsValue("@example.com");
+assertThat(phoneField).valueMatches("\\+90 \\d{3} \\d{3} \\d{4}");
+
+// Password masking ("show password" toggle)
+assertThat(passwordField).isPasswordHidden();  // type="password"
+showPasswordToggle.click();
+assertThat(passwordField).isPasswordVisible(); // type is no longer "password"
+
+// Input attributes
+assertThat(usernameField).hasType("text").hasPlaceholder("Username").hasMaxLength(20);
+assertThat(usernameField).isRequired();        // required or aria-required="true"
+assertThat(usernameField).isEditable();        // visible, enabled, not readonly
+assertThat(referenceField).isReadOnly();
+
+// HTML5 constraint validation
+assertThat(emailField).isInvalid().hasValidationMessage("@");
+assertThat(emailField).isValid();
+```
+
+`hasValidationMessage()` checks the browser's own message, which depends on the browser and its locale.
+
+To read an input's value in your code, use `locator.getValue()`. `getText()` always returns `""` for inputs.
+
+### Text Patterns & Lists
+
+```java
+assertThat(By.id("order")).hasTextMatching("Order #\\d+ placed");
+assertThat(By.id("status")).hasTextIgnoringCase("active");
+
+// All matching elements, in order / in any order
+assertThat($(".breadcrumb li")).hasTexts("Home", "Products", "Shoes");
+assertThat($(".tag")).containsTexts("java", "selenium");
+```
+
+### Selection
+
+```java
+assertThat(By.id("newsletter")).isNotChecked();
+assertThat(By.cssSelector("option[value='tr']")).isSelected();
+assertThat(By.id("country")).hasSelectedOption("Turkey");
+assertThat(By.id("country")).hasOptions("Germany", "Turkey", "USA");
+```
+
+### Accessibility & Identity
+
+```java
+assertThat(By.id("search")).hasRole("searchbox").hasAccessibleName("Search products");
+assertThat(By.cssSelector("main > section")).hasId("results");
+assertThat(By.id("footer-cta")).isInViewport();
+```
+
+### Negations
+
+Each negation is its own method. A negation still needs the element to be there: only the property must not match. If the element is missing, the assertion keeps retrying and then fails. To assert that an element is absent, use `doesNotExist()` or `isHidden()`.
+
+```java
+assertThat(By.id("status")).doesNotHaveText("Error");
+assertThat(By.id("status")).doesNotContainText("failed");
+assertThat(By.name("username")).doesNotHaveValue("guest");
+assertThat(By.id("submit")).doesNotHaveClass("loading");
+assertThat(By.id("submit")).doesNotHaveAttribute("disabled");
+assertThat(By.id("email")).doesNotHaveAttribute("aria-invalid", "true");
+assertThat(By.id("search")).isNotFocused();
+assertThat(By.id("error-banner")).doesNotExist(); // no element in the DOM
+```
+
+### Element Count & Presence
 
 ```java
 assertThat(By.cssSelector("table tbody tr")).count(5);
 assertThat($(".card")).count(3);
+assertThat($(".card")).countAtLeast(1).countAtMost(10);
+
+assertThat(By.id("csrf-token")).exists();         // present, visible or not
+assertThat(By.id("error-banner")).doesNotExist(); // absent from the DOM
 ```
+
+When you assert on a `Locator` (`$()`, `getByRole()`, ...), only visible elements are matched. So `count`, `exists` and `doesNotExist` ignore hidden elements. Pass a `By` if hidden elements must be counted.
 
 ### Page & URL (PageAssert)
 
@@ -101,6 +181,18 @@ assertThat(getDriver())
     .as("Should land on dashboard after login")
     .within(Duration.ofSeconds(5))
     .urlContains("/dashboard");
+
+// Alerts (the alert is left open)
+assertThatPage().hasAlert().hasAlertText("Saved successfully");
+assertThatPage().hasNoAlert();
+
+// Cookies & localStorage
+assertThatPage().hasCookie("session").hasCookie("locale", "tr");
+assertThatPage().doesNotHaveCookie("tracking");
+assertThatPage().hasLocalStorageItem("theme", "dark");
+
+// Windows / tabs
+assertThatPage().hasWindowCount(2);
 ```
 
 ---

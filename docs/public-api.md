@@ -72,11 +72,23 @@ Playwright-inspired, immutable auto-waiting locator API:
   - `.within(By container)` / `.within(Locator container)`
   - `.first()` / `.last()` / `.nth(int index)`
 - **Actions (Auto-waiting & Null-safe):**
-  - `click()`, `doubleClick()`, `fill(text)`, `type(text)`, `append(text)` *(passing null/empty gracefully clears without NPE)*, `hover()`, `press(key)`, `clear()`, `scrollIntoView()`.
+  - `click()`, `doubleClick()`, `fill(text)`, `type(text)`, `append(text)` *(passing null/empty gracefully clears without NPE)*, `hover()`, `press(keys...)`, `clear()`, `scrollIntoView()`.
+  - `rightClick()`, `jsClick()`, `focus()`, `blur()`, `dragTo(Locator target)`, `upload(paths...)` *(does not wait for visibility; file inputs are often hidden)*.
+  - Checkbox / select: `check()`, `uncheck()`, `setChecked(boolean)`, `selectByText(text)`, `selectByValue(value)`, `selectByIndex(index)`.
+  - `waitFor(Locator.State)` with `VISIBLE`, `HIDDEN`, `ATTACHED`, `DETACHED`.
+- **Getters:**
+  - Auto-waiting: `getText()`, `getValue()` / `inputValue()` *(use these for inputs; `getText()` is `""` there)*, `getAttribute(name)`, `getSelectedOption()`, `getCssValue(name)`, `innerHTML()`, `outerHTML()`.
+  - Non-waiting: `isVisible()`, `isHidden()`, `isEnabled()`, `isDisabled()`, `isChecked()`, `isSelected()`, `isEditable()`, `isFocused()`, `isPresent()`, `count()`, `allTexts()`.
 
 #### Web-First Polling Assertions & Architectural Boundary
-- **Element Assertions:** `assertThat(locator)` / `assertThat(by)` (`isVisible()`, `isHidden()`, `hasText(text)`, `containsText(text)`, `hasAttribute(attr, val)`, `hasValue(val)`, `isEnabled()`, `isDisabled()`, `isChecked()`).
-- **Page Assertions:** `assertThatPage()` (`hasTitle(title)`, `titleContains(text)`, `hasUrl(url)`, `urlContains(text)`, `urlMatches(regex)`).
+- **Element Assertions:** `assertThat(locator)` / `assertThat(by)`:
+  - State: `isVisible()`, `isHidden()`, `isEnabled()`, `isDisabled()`, `isChecked()`, `isNotChecked()`, `isSelected()`, `isFocused()`, `isEditable()`, `isReadOnly()`, `isRequired()`, `isInViewport()`, `exists()`, `doesNotExist()`.
+  - Text: `hasText(text)`, `containsText(text)`, `hasTextMatching(regex)`, `hasTextIgnoringCase(text)`, `hasTexts(texts...)`, `containsTexts(texts...)`.
+  - Value & form: `hasValue(val)`, `hasValue()`, `hasEmptyValue()`, `containsValue(text)`, `valueMatches(regex)`, `isPasswordHidden()`, `isPasswordVisible()`, `hasType(type)`, `hasPlaceholder(text)`, `hasMaxLength(n)`, `isValid()`, `isInvalid()`, `hasValidationMessage(text)`.
+  - Attributes & selection: `hasAttribute(attr)`, `hasAttribute(attr, val)`, `hasCssValue(prop, val)`, `hasClass(cls)`, `hasId(id)`, `hasRole(role)`, `hasAccessibleName(name)`, `hasSelectedOption(text)`, `hasOptions(texts...)`.
+  - Count: `count(n)`, `countAtLeast(n)`, `countAtMost(n)`.
+  - Negations (the element must exist): `doesNotHaveText`, `doesNotContainText`, `doesNotHaveValue`, `doesNotHaveClass`, `doesNotHaveAttribute(attr)`, `doesNotHaveAttribute(attr, val)`, `isNotFocused()`.
+- **Page Assertions:** `assertThatPage()` (`hasTitle(title)`, `titleContains(text)`, `hasUrl(url)`, `urlContains(text)`, `urlMatches(regex)`, `hasAlert()`, `hasAlertText(text)`, `hasNoAlert()`, `hasCookie(name[, value])`, `doesNotHaveCookie(name)`, `hasLocalStorageItem(key[, value])`, `hasWindowCount(n)`).
 - **Soft Assertions:** `softAssert(locator)` / `softAssert(by)` thread-isolated collection.
 - **Assertion Boundary Decision:**
   > [!NOTE]

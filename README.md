@@ -613,13 +613,22 @@ String userId = suiteCtx().get("createdUserId");      // in test 2
 
 TestFly provides Playwright-inspired, auto-waiting assertions that automatically poll until the condition is met or the timeout expires:
 
-### Element Assertions (`ElementAssert`)
+### Element Assertions (`LocatorAssert`)
 ```java
 // Fluent element assertions with automatic retry and polling
 assertThat(find("#submit-button"))
     .isVisible()
     .isEnabled()
     .hasText("Place Order");
+
+// Form inputs: assert the value, not the text
+assertThat(find("#password"))
+    .hasValue()            // filled with any value
+    .isPasswordHidden();   // type="password"
+
+// Negations need the element to exist; use doesNotExist() for absence
+assertThat(find("#status")).doesNotHaveText("Error");
+assertThat(find(".alert-danger")).doesNotExist();
 
 assertThat(getByRole(Role.CHECKBOX, "Subscribe to newsletter"))
     .isChecked();
@@ -633,7 +642,7 @@ assertThat(find(".alert-danger"))
 // Assert page-level state without manual driver polling
 assertThatPage()
     .hasTitle("TestFly - Dashboard")
-    .hasUrlContains("/dashboard")
+    .urlContains("/dashboard")
     .urlMatches("https://.*\\.example\\.com/dashboard");
 ```
 

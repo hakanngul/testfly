@@ -11,6 +11,15 @@ All notable changes to TestFly are documented here.
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Form and input assertions on `LocatorAssert`**: `hasValue()` (any non-empty value), `hasEmptyValue()`, `containsValue`, `valueMatches`, `isPasswordHidden()` / `isPasswordVisible()`, `hasType`, `hasPlaceholder`, `hasMaxLength`, `isEditable`, `isReadOnly`, `isRequired`, and HTML5 validation through `isValid()`, `isInvalid()` and `hasValidationMessage`.
+- **Negation assertions on `LocatorAssert`**: `isNotChecked`, `doesNotHaveText`, `doesNotContainText`, `doesNotHaveValue`, `doesNotHaveClass`, `doesNotHaveAttribute`, `isNotFocused` and `doesNotExist`. Except for `doesNotExist`, they need the element to exist.
+- **More `LocatorAssert` matchers**: `hasTextMatching`, `hasTextIgnoringCase`, `hasTexts`, `containsTexts`, `isSelected`, `hasSelectedOption`, `hasOptions`, `countAtLeast`, `countAtMost`, `exists`, `isInViewport`, `hasRole`, `hasAccessibleName`, `hasId`.
+- **`Locator` actions and getters**: `getValue()` (reads an input's value; `getText()` is empty for inputs), `fill`, `check` / `uncheck` / `setChecked`, `selectByText` / `selectByValue` / `selectByIndex`, `getSelectedOption`, `doubleClick`, `rightClick`, `press`, `dragTo`, `upload` (works with hidden file inputs), `focus`, `blur`, `waitFor(Locator.State)`, `getCssValue`, `innerHTML`, `outerHTML`, `allTexts`, and the non-waiting checks `isChecked`, `isSelected`, `isDisabled`, `isEditable`, `isFocused`, `isPresent`.
+- **`PageAssert` matchers**: `hasAlert`, `hasAlertText`, `hasNoAlert`, `hasCookie`, `doesNotHaveCookie`, `hasLocalStorageItem`, `hasWindowCount`.
+
 ## [1.0.7] — 2026-10-09
 
 ### Added

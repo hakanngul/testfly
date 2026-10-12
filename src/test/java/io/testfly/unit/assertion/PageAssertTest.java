@@ -8,6 +8,10 @@ import io.testfly.driver.DriverManager;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.steps.StepLogger;
 import org.mockito.MockedStatic;
+import org.openqa.selenium.Alert;
+import org.openqa.selenium.Cookie;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.NoAlertPresentException;
 import org.openqa.selenium.WebDriver;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -17,7 +21,9 @@ import java.time.Duration;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
@@ -36,7 +42,7 @@ public class PageAssertTest {
 
     @BeforeMethod
     public void setUp() {
-        mockDriver = mock(WebDriver.class);
+        mockDriver = mock(WebDriver.class, withSettings().extraInterfaces(JavascriptExecutor.class));
 
         driverManagerMock = mockStatic(DriverManager.class);
         driverManagerMock.when(DriverManager::getDriver).thenReturn(mockDriver);
@@ -227,6 +233,94 @@ public class PageAssertTest {
 
         PageAssert assertion = SeleniumAssert.assertThatPage().hasTitle("Sauce Demo");
         assertNotNull(assertion);
+    }
+
+    // ------------------------------------------------------------------
+    // Alerts, cookies, storage, windows
+    // ------------------------------------------------------------------
+
+    private PageAssert expectPage() {
+        return SeleniumAssert.assertThat(mockDriver).within(Duration.ofMillis(300));
+    }
+
+    private WebDriver.TargetLocator targetLocator() {
+        WebDriver.TargetLocator target = mock(WebDriver.TargetLocator.class);
+        when(mockDriver.switchTo()).thenReturn(target);
+        return target;
+    }
+
+    private WebDriver.Options options() {
+        WebDriver.Options options = mock(WebDriver.Options.class);
+        when(mockDriver.manage()).thenReturn(options);
+        return options;
+    }
+
+    @Test
+    public void hasAlert_and_hasAlertText_passWhenAlertOpen() {
+        Alert alert = mock(Alert.class);
+        when(alert.getText()).thenReturn("Saved!");
+        when(targetLocator().alert()).thenReturn(alert);
+
+        expectPage().hasAlert().hasAlertText("Saved!");
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void hasAlert_failsWhenNoAlert() {
+        when(targetLocator().alert()).thenThrow(new NoAlertPresentException());
+        expectPage().hasAlert();
+    }
+
+    @Test
+    public void hasNoAlert_passesWhenNoAlert() {
+        when(targetLocator().alert()).thenThrow(new NoAlertPresentException());
+        expectPage().hasNoAlert();
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void hasNoAlert_failsWhenAlertOpen() {
+        when(targetLocator().alert()).thenReturn(mock(Alert.class));
+        expectPage().hasNoAlert();
+    }
+
+    @Test
+    public void cookieAssertions_pass() {
+        WebDriver.Options options = options();
+        when(options.getCookieNamed("session")).thenReturn(new Cookie("session", "abc"));
+        when(options.getCookieNamed("tracking")).thenReturn(null);
+
+        expectPage().hasCookie("session").hasCookie("session", "abc").doesNotHaveCookie("tracking");
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void hasCookie_wrongValue_fails() {
+        when(options().getCookieNamed("session")).thenReturn(new Cookie("session", "abc"));
+        expectPage().hasCookie("session", "xyz");
+    }
+
+    @Test
+    public void hasLocalStorageItem_passesWhenValueMatches() {
+        when(((JavascriptExecutor) mockDriver).executeScript(anyString(), org.mockito.ArgumentMatchers.<Object>any()))
+                .thenReturn("dark");
+        expectPage().hasLocalStorageItem("theme").hasLocalStorageItem("theme", "dark");
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void hasLocalStorageItem_failsWhenMissing() {
+        when(((JavascriptExecutor) mockDriver).executeScript(anyString(), org.mockito.ArgumentMatchers.<Object>any()))
+                .thenReturn(null);
+        expectPage().hasLocalStorageItem("theme");
+    }
+
+    @Test
+    public void hasWindowCount_passesWhenCountMatches() {
+        when(mockDriver.getWindowHandles()).thenReturn(java.util.Set.of("a", "b"));
+        expectPage().hasWindowCount(2);
+    }
+
+    @Test(expectedExceptions = AssertionError.class)
+    public void hasWindowCount_failsWhenCountDiffers() {
+        when(mockDriver.getWindowHandles()).thenReturn(java.util.Set.of("a"));
+        expectPage().hasWindowCount(2);
     }
 
     private static void assertEquals(Object actual, Object expected) {
