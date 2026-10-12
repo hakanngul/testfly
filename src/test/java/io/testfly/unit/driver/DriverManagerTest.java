@@ -235,6 +235,26 @@ public class DriverManagerTest {
     }
 
     @Test
+    public void shutdownTeardown_quitsDriversOfEveryThread() throws Exception {
+        DriverManager.createDriver();
+        onOtherThread(() -> {
+            DriverManager.createDriver();
+            return null;
+        });
+        assertEquals(DriverManager.activeSessions(), 2);
+
+        java.lang.reflect.Method quitAll = DriverManager.class.getDeclaredMethod("quitAllTrackedDrivers");
+        quitAll.setAccessible(true);
+        quitAll.invoke(null);
+        quitAll.invoke(null); // second run (e.g. hook after normal teardown) must not double-quit
+
+        for (WebDriver driver : provider.created()) {
+            verify(driver, times(1)).quit();
+        }
+        assertEquals(DriverManager.activeSessions(), 0);
+    }
+
+    @Test
     public void hasDriver_tracksBindingWithoutHealthCheck() {
         assertFalse(DriverManager.hasDriver());
 

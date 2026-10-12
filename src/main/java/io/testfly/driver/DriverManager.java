@@ -70,13 +70,29 @@ public final class DriverManager {
     }
 
     private static void registerShutdownHook() {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        Runtime.getRuntime().addShutdownHook(new Thread(DriverManager::quitAllTrackedDrivers,
+                "testfly-driver-shutdown"));
+    }
+
+    /**
+     * Quits every driver this class still tracks, on any thread. The shutdown
+     * hook runs on its own thread, so thread-bound teardown alone would leave
+     * per-test browsers of worker threads running when a run is aborted
+     * (Ctrl+C, System.exit). Each driver is quit at most once.
+     */
+    static void quitAllTrackedDrivers() {
+        java.util.Set<WebDriver> drivers = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        drivers.addAll(PERMIT_HOLDERS);
+        drivers.addAll(SUITE_DRIVERS);
+        for (WebDriver driver : drivers) {
             try {
-                quitAllSuiteDrivers();
-                forceQuitDriver();
+                driver.quit();
             } catch (Throwable ignored) {
+            } finally {
+                SUITE_DRIVERS.remove(driver);
+                releasePermitOf(driver);
             }
-        }, "testfly-driver-shutdown"));
+        }
     }
 
     private static Semaphore getOrInitSemaphore() {
