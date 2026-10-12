@@ -4,6 +4,8 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
+import org.openqa.selenium.NoSuchWindowException;
+import org.openqa.selenium.UnhandledAlertException;
 import org.openqa.selenium.WebDriver;
 
 import java.time.Duration;
@@ -407,6 +409,9 @@ public final class DriverManager {
 
     /**
      * Lightweight session health check.
+     * An open alert or a closed current window makes {@code getTitle()} fail
+     * while the session itself is fine, so those count as alive; recreating
+     * the driver there would silently drop the alert or the remaining windows.
      */
     public static boolean isDriverAlive() {
 
@@ -418,6 +423,8 @@ public final class DriverManager {
 
         try {
             driver.getTitle(); // lightweight call
+            return true;
+        } catch (UnhandledAlertException | NoSuchWindowException e) {
             return true;
         } catch (Exception e) {
             return false;

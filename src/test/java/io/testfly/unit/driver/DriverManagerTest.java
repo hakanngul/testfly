@@ -6,6 +6,9 @@ import io.testfly.driver.DriverManager;
 import io.testfly.driver.DriverProviderRegistry;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.loadtest.LoadTest;
+import org.openqa.selenium.NoSuchSessionException;
+import org.openqa.selenium.NoSuchWindowException;
+import org.openqa.selenium.UnhandledAlertException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
 import org.testng.annotations.AfterMethod;
@@ -228,6 +231,38 @@ public class DriverManagerTest {
         assertEquals(provider.providerCalls(), 2);
         verify(dead).quit();
         assertEquals(DriverManager.activeSessions(), 1, "replacement must not leak or double-release a permit");
+    }
+
+    @Test
+    public void getDriver_openAlertKeepsSession() {
+        DriverManager.createDriver();
+        WebDriver driver = provider.first();
+        when(driver.getTitle()).thenThrow(new UnhandledAlertException("unexpected alert open", "hi"));
+
+        assertSame(DriverManager.getDriver(), driver, "an open alert must not recreate the session");
+        assertEquals(provider.providerCalls(), 1);
+        verify(driver, never()).quit();
+    }
+
+    @Test
+    public void getDriver_closedCurrentWindowKeepsSession() {
+        DriverManager.createDriver();
+        WebDriver driver = provider.first();
+        when(driver.getTitle()).thenThrow(new NoSuchWindowException("window already closed"));
+
+        assertSame(DriverManager.getDriver(), driver, "a closed tab must not recreate the session");
+        assertEquals(provider.providerCalls(), 1);
+    }
+
+    @Test
+    public void getDriver_lostSessionIsRecreated() {
+        DriverManager.createDriver();
+        WebDriver dead = provider.first();
+        when(dead.getTitle()).thenThrow(new NoSuchSessionException("invalid session id"));
+
+        assertNotSame(DriverManager.getDriver(), dead);
+        assertEquals(provider.providerCalls(), 2);
+        assertEquals(DriverManager.activeSessions(), 1);
     }
 
     @Test
