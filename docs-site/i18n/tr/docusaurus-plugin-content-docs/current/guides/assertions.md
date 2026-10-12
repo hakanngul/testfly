@@ -269,7 +269,13 @@ assertThatPage().hasLocalStorageItem("theme", "dark");
 
 // Pencereler / sekmeler
 assertThatPage().hasWindowCount(2);
+
+// Olumsuzlama: not() bir sonraki sayfa doğrulamasını tersine çevirir
+assertThatPage().not().urlContains("/login");
+assertThatPage().not().hasTitle("Hata");
 ```
+
+`LocatorAssert`'te olduğu gibi `not()` yalnızca bir sonraki doğrulamaya uygulanır. Olumsuzlanan doğrulama koşul sağlanmadığı anda geçer; bu yüzden sayfa değiştiren bir tıklamadan hemen sonra yalnızca `not().urlContains("/login")` yerine önce yeni durumu doğrulayın (`urlContains("/inventory")`).
 
 ---
 

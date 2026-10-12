@@ -269,7 +269,13 @@ assertThatPage().hasLocalStorageItem("theme", "dark");
 
 // Windows / tabs
 assertThatPage().hasWindowCount(2);
+
+// Negation: not() negates the next page assertion
+assertThatPage().not().urlContains("/login");
+assertThatPage().not().hasTitle("Error");
 ```
+
+As with `LocatorAssert`, `not()` applies only to the next assertion. A negated assertion passes as soon as the condition is not met, so right after a click that navigates, assert the new state first (`urlContains("/inventory")`) instead of only `not().urlContains("/login")`.
 
 ---
 

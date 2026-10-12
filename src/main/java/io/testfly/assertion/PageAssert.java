@@ -46,6 +46,7 @@ public final class PageAssert {
     private Duration customTimeout;
     private String customMessage;
     private boolean soft;
+    private boolean negated;
     private final SoftAssertionCollector collector;
 
     PageAssert(WebDriver driver) {
@@ -122,6 +123,30 @@ public final class PageAssert {
         return this;
     }
 
+    /**
+     * Negates the <b>next</b> assertion in the chain, like Playwright's
+     * {@code not()}.
+     *
+     * <pre>
+     * assertThatPage().not().urlContains("/login");
+     * assertThatPage().not().hasTitle("Error");
+     * </pre>
+     *
+     * <p>
+     * Only the assertion directly after {@code not()} is negated:
+     * {@code assertThatPage().not().urlContains("/login").hasTitle("Home")} checks
+     * "URL does not contain /login", then "title is Home". A negated assertion
+     * passes as soon as the condition is not met, so after a navigation assert
+     * the expected new state first when the old state may still be showing.
+     *
+     * @return this assertion for chaining
+     * @since 1.1.0
+     */
+    public PageAssert not() {
+        this.negated = true;
+        return this;
+    }
+
     // ------------------------------------------------------------------
     // Title Assertions
     // ------------------------------------------------------------------
@@ -131,7 +156,7 @@ public final class PageAssert {
      * timeout.
      */
     public PageAssert hasTitle(String expectedTitle) {
-        StepLogger.step("Assert page title is: " + expectedTitle);
+        step("Assert page title is: " + expectedTitle);
         poll(ExpectedConditions.titleIs(expectedTitle),
                 "Expected page title to be [" + expectedTitle + "]");
         return this;
@@ -141,7 +166,7 @@ public final class PageAssert {
      * Asserts the page title contains {@code fragment} — retries until timeout.
      */
     public PageAssert titleContains(String fragment) {
-        StepLogger.step("Assert page title contains: " + fragment);
+        step("Assert page title contains: " + fragment);
         poll(ExpectedConditions.titleContains(fragment),
                 "Expected page title to contain [" + fragment + "]");
         return this;
@@ -156,7 +181,7 @@ public final class PageAssert {
      * timeout.
      */
     public PageAssert hasUrl(String expectedUrl) {
-        StepLogger.step("Assert page URL is: " + expectedUrl);
+        step("Assert page URL is: " + expectedUrl);
         poll(ExpectedConditions.urlToBe(expectedUrl),
                 "Expected page URL to be [" + expectedUrl + "]");
         return this;
@@ -166,7 +191,7 @@ public final class PageAssert {
      * Asserts the page URL contains {@code fragment} — retries until timeout.
      */
     public PageAssert urlContains(String fragment) {
-        StepLogger.step("Assert page URL contains: " + fragment);
+        step("Assert page URL contains: " + fragment);
         poll(ExpectedConditions.urlContains(fragment),
                 "Expected page URL to contain [" + fragment + "]");
         return this;
@@ -176,7 +201,7 @@ public final class PageAssert {
      * Asserts the page URL matches the given regex pattern — retries until timeout.
      */
     public PageAssert urlMatches(String regex) {
-        StepLogger.step("Assert page URL matches: " + regex);
+        step("Assert page URL matches: " + regex);
         poll(ExpectedConditions.urlMatches(regex),
                 "Expected page URL to match regex [" + regex + "]");
         return this;
@@ -192,7 +217,7 @@ public final class PageAssert {
      * @since 1.1.0
      */
     public PageAssert hasAlert() {
-        StepLogger.step("Assert alert is present");
+        step("Assert alert is present");
         poll(ExpectedConditions.alertIsPresent(), "Expected an alert to be present");
         return this;
     }
@@ -204,7 +229,7 @@ public final class PageAssert {
      * @since 1.1.0
      */
     public PageAssert hasAlertText(String expected) {
-        StepLogger.step("Assert alert text: " + expected);
+        step("Assert alert text: " + expected);
         poll(d -> {
             try {
                 return expected.equals(d.switchTo().alert().getText()) ? true : null;
@@ -221,7 +246,7 @@ public final class PageAssert {
      * @since 1.1.0
      */
     public PageAssert hasNoAlert() {
-        StepLogger.step("Assert no alert is present");
+        step("Assert no alert is present");
         poll(d -> {
             try {
                 d.switchTo().alert();
@@ -243,7 +268,7 @@ public final class PageAssert {
      * @since 1.1.0
      */
     public PageAssert hasCookie(String name) {
-        StepLogger.step("Assert cookie exists: " + name);
+        step("Assert cookie exists: " + name);
         poll(d -> d.manage().getCookieNamed(name) != null ? true : null,
                 "Expected cookie [" + name + "] to exist");
         return this;
@@ -256,7 +281,7 @@ public final class PageAssert {
      * @since 1.1.0
      */
     public PageAssert hasCookie(String name, String expectedValue) {
-        StepLogger.step("Assert cookie " + name + "=" + expectedValue);
+        step("Assert cookie " + name + "=" + expectedValue);
         poll(d -> {
             Cookie cookie = d.manage().getCookieNamed(name);
             return cookie != null && expectedValue.equals(cookie.getValue()) ? true : null;
@@ -270,7 +295,7 @@ public final class PageAssert {
      * @since 1.1.0
      */
     public PageAssert doesNotHaveCookie(String name) {
-        StepLogger.step("Assert cookie absent: " + name);
+        step("Assert cookie absent: " + name);
         poll(d -> d.manage().getCookieNamed(name) == null ? true : null,
                 "Expected cookie [" + name + "] not to exist");
         return this;
@@ -282,7 +307,7 @@ public final class PageAssert {
      * @since 1.1.0
      */
     public PageAssert hasLocalStorageItem(String key) {
-        StepLogger.step("Assert localStorage item exists: " + key);
+        step("Assert localStorage item exists: " + key);
         poll(d -> localStorageItem(d, key) != null ? true : null,
                 "Expected localStorage item [" + key + "] to exist");
         return this;
@@ -295,7 +320,7 @@ public final class PageAssert {
      * @since 1.1.0
      */
     public PageAssert hasLocalStorageItem(String key, String expectedValue) {
-        StepLogger.step("Assert localStorage " + key + "=" + expectedValue);
+        step("Assert localStorage " + key + "=" + expectedValue);
         poll(d -> expectedValue.equals(localStorageItem(d, key)) ? true : null,
                 "Expected localStorage item [" + key + "=" + expectedValue + "]");
         return this;
@@ -308,7 +333,7 @@ public final class PageAssert {
      * @since 1.1.0
      */
     public PageAssert hasWindowCount(int expected) {
-        StepLogger.step("Assert window count: " + expected);
+        step("Assert window count: " + expected);
         poll(ExpectedConditions.numberOfWindowsToBe(expected),
                 "Expected " + expected + " open window(s)");
         return this;
@@ -336,8 +361,8 @@ public final class PageAssert {
      * @return this assertion for chaining
      */
     public PageAssert satisfiesAi(String expectedCondition) {
-        StepLogger.step("Assert page satisfies condition (AI): " + expectedCondition);
-        evaluateAi(expectedCondition, true);
+        step("Assert page satisfies condition (AI): " + expectedCondition);
+        evaluateAi(expectedCondition, !consumeNegation());
         return this;
     }
 
@@ -350,8 +375,8 @@ public final class PageAssert {
      * @return this assertion for chaining
      */
     public PageAssert violatesAi(String forbiddenCondition) {
-        StepLogger.step("Assert page does not violate condition (AI): " + forbiddenCondition);
-        evaluateAi(forbiddenCondition, false);
+        step("Assert page does not violate condition (AI): " + forbiddenCondition);
+        evaluateAi(forbiddenCondition, consumeNegation());
         return this;
     }
 
@@ -395,17 +420,19 @@ public final class PageAssert {
     // ------------------------------------------------------------------
 
     private <T> void poll(ExpectedCondition<T> condition, String failMessage) {
+        boolean negate = consumeNegation();
         Duration timeout = customTimeout != null
                 ? customTimeout
                 : (TestFlyContext.getConfig() != null && TestFlyContext.getConfig().getTimeouts() != null
                         ? Duration.ofSeconds(TestFlyContext.getConfig().getTimeouts().getExplicit())
                         : Duration.ofSeconds(10));
         WebDriver currentDriver = driver != null ? driver : DriverManager.getDriver();
+        String message = negate ? negateMessage(failMessage) : failMessage;
         String fullMessage = customMessage != null && !customMessage.isBlank()
-                ? "[" + customMessage + "] " + failMessage
-                : failMessage;
+                ? "[" + customMessage + "] " + message
+                : message;
         try {
-            new WebDriverWait(currentDriver, timeout).until(condition);
+            new WebDriverWait(currentDriver, timeout).until(negate ? negated(condition) : condition);
         } catch (TimeoutException e) {
             String actualTitle = "";
             String actualUrl = "";
@@ -417,8 +444,8 @@ public final class PageAssert {
             String timeoutStr = timeout.toMillis() >= 1000 && timeout.toMillis() % 1000 == 0
                     ? timeout.toSeconds() + "s"
                     : timeout.toMillis() + "ms";
-            String err = fullMessage + " (actual title: [" + actualTitle + "], actual url: [" + actualUrl
-                    + "], timeout: " + timeoutStr + ")";
+            String err = fullMessage + " (" + (negate ? "condition still met, " : "") + "actual title: ["
+                    + actualTitle + "], actual url: [" + actualUrl + "], timeout: " + timeoutStr + ")";
             if (soft) {
                 SoftAssertionCollector target = collector != null ? collector : SoftAssertions.get();
                 target.that(false, err);
@@ -426,5 +453,34 @@ public final class PageAssert {
                 throw new AssertionError(err, e);
             }
         }
+    }
+
+    /**
+     * Inverts a condition: met while {@code condition} yields {@code null} or
+     * {@code false}, the values {@link WebDriverWait} treats as "not yet".
+     */
+    private static <T> ExpectedCondition<Boolean> negated(ExpectedCondition<T> condition) {
+        return d -> {
+            T result = condition.apply(d);
+            return result == null || Boolean.FALSE.equals(result) ? Boolean.TRUE : null;
+        };
+    }
+
+    /** Logs an assertion step, marking it when the assertion is negated. */
+    private void step(String message) {
+        StepLogger.step(negated ? "[not] " + message : message);
+    }
+
+    /** Returns whether the current assertion is negated and resets the flag. */
+    private boolean consumeNegation() {
+        boolean wasNegated = negated;
+        negated = false;
+        return wasNegated;
+    }
+
+    private static String negateMessage(String failMessage) {
+        return failMessage.startsWith("Expected ")
+                ? "Expected NOT " + failMessage.substring("Expected ".length())
+                : "NOT: " + failMessage;
     }
 }
