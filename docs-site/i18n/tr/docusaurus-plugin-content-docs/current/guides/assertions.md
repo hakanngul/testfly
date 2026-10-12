@@ -57,6 +57,35 @@ assertThat(By.id("terms-checkbox")).isChecked();
 assertThat(By.id("search-input")).isFocused();
 ```
 
+### Doğrulanmış Tıklama (Verified Click)
+
+`assertThat(...).click()` elemana tıklar ve tıklamanın gerçekten elemana ulaştığını doğrular:
+
+```java
+assertThat(headerLoginButton).click();
+assertThat(submitButton).as("Siparişi gönder").click();
+```
+
+Arka planda şunları yapar:
+
+1. Eleman görünür ve etkin olana kadar bekler.
+2. Elemanı ekranın ortasına kaydırır ve mouse'u üzerine götürür. Uzun bir formun en altındaki submit butonu önce görünür hale getirilir.
+3. Üstünü kapatan bir şey (cookie banner, modal, sticky header) kalmayana kadar bekler.
+4. Tıklar ve `click` event'inin elemana ulaştığını kontrol eder.
+5. Rapora geçen (PASS) bir `Clicked: ...` adımı yazar.
+
+Bir adım başarısız olursa hata mesajı hangisi olduğunu söyler, örneğin:
+
+```text
+Click not performed: element not visible and enabled: By.id: login (timeout: 10s)
+Click not performed: By.id: login is covered by <div class='cookie-banner'> (timeout: 10s)
+Click did not reach By.id: login (no click event was received)
+```
+
+Soft modda (`softly()` / `softAssert(...)`) hata kaydedilir ve test devam eder. Tıklama başka bir sayfaya geçerse ya da alert açarsa tıklama ulaşmış sayılır ve alert açık bırakılır.
+
+`assertThat(...).click()` yalnızca tıklamanın elemana ulaştığını kanıtlar. Uygulamanın tepki verdiğini kanıtlamak için sonucu doğrulayın, örneğin `assertThatPage().urlContains("/login")` veya `assertThat(loginModal).isVisible()`. Normal `locator.click()` aksiyonu değişmedi.
+
 ### Nitelikler & CSS (Attributes & CSS)
 
 ```java

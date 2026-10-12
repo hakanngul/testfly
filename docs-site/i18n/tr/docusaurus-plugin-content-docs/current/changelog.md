@@ -14,6 +14,7 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 ## [Unreleased]
 
 ### Eklenenler
+- **Doğrulanmış tıklama `assertThat(...).click()`**: eleman görünür ve etkin olana kadar bekler, ekranın ortasına kaydırıp üzerine gelir, üstünü kapatan bir şey kalmayana kadar bekler, tıklar ve `click` event'inin elemana ulaştığını doğrular. Rapora geçen bir `Clicked: ...` adımı yazar; `as(...)`, `within(...)` ve soft modu destekler. `Locator.click()` değişmedi.
 - **`LocatorAssert` için form ve input doğrulamaları**: `hasValue()` (boş olmayan herhangi bir değer), `hasEmptyValue()`, `containsValue`, `valueMatches`, `isPasswordHidden()` / `isPasswordVisible()`, `hasType`, `hasPlaceholder`, `hasMaxLength`, `isEditable`, `isReadOnly`, `isRequired` ve `isValid()`, `isInvalid()`, `hasValidationMessage` ile HTML5 doğrulaması.
 - **`LocatorAssert` için olumsuz doğrulamalar**: `isNotChecked`, `doesNotHaveText`, `doesNotContainText`, `doesNotHaveValue`, `doesNotHaveClass`, `doesNotHaveAttribute`, `isNotFocused` ve `doesNotExist`. `doesNotExist` dışındakiler elemanın var olmasını ister.
 - **Ek `LocatorAssert` matcher'ları**: `hasTextMatching`, `hasTextIgnoringCase`, `hasTexts`, `containsTexts`, `isSelected`, `hasSelectedOption`, `hasOptions`, `countAtLeast`, `countAtMost`, `exists`, `isInViewport`, `hasRole`, `hasAccessibleName`, `hasId`.

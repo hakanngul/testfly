@@ -57,6 +57,35 @@ assertThat(By.id("terms-checkbox")).isChecked();
 assertThat(By.id("search-input")).isFocused();
 ```
 
+### Verified Click
+
+`assertThat(...).click()` clicks the element and asserts that the click really reached it:
+
+```java
+assertThat(headerLoginButton).click();
+assertThat(submitButton).as("Submit order").click();
+```
+
+Behind the scenes it:
+
+1. Waits until the element is visible and enabled.
+2. Scrolls it to the centre of the viewport and moves the mouse onto it. A submit button at the bottom of a long form is brought into view first.
+3. Waits until nothing covers it, such as a cookie banner, a modal or a sticky header.
+4. Clicks it and checks that the `click` event was delivered to the element.
+5. Logs a passed `Clicked: ...` step in the report.
+
+If a step fails, the error says which one, for example:
+
+```text
+Click not performed: element not visible and enabled: By.id: login (timeout: 10s)
+Click not performed: By.id: login is covered by <div class='cookie-banner'> (timeout: 10s)
+Click did not reach By.id: login (no click event was received)
+```
+
+In soft mode (`softly()` / `softAssert(...)`) the failure is recorded and the test continues. If the click navigates away or opens an alert, it counts as delivered and the alert is left open.
+
+`assertThat(...).click()` only proves that the click reached the element. To prove the app reacted, assert on the result, for example `assertThatPage().urlContains("/login")` or `assertThat(loginModal).isVisible()`. The plain `locator.click()` action is unchanged.
+
 ### Attributes & CSS
 
 ```java

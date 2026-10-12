@@ -8,8 +8,14 @@ import io.testfly.steps.StepLogger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptException;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.NoAlertPresentException;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.UnhandledAlertException;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
+import io.testfly.steps.StepStatus;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
@@ -406,6 +412,108 @@ public final class LocatorAssert {
         StepLogger.step("Assert does not exist: " + description);
         poll(driver -> driver.findElements(by).isEmpty() ? true : null,
                 "Expected element not to exist: " + description);
+        return this;
+    }
+
+    // ------------------------------------------------------------------
+    // Verified click
+    // ------------------------------------------------------------------
+
+    /**
+     * Clicks the element and asserts that the click really reached it.
+     *
+     * <ol>
+     * <li>Waits until the element is visible and enabled.</li>
+     * <li>Scrolls it to the centre of the viewport and moves the mouse onto
+     * it.</li>
+     * <li>Waits until no other element (cookie banner, modal, sticky header…)
+     * covers its centre.</li>
+     * <li>Clicks it and verifies that the {@code click} event was dispatched to
+     * the element or one of its descendants.</li>
+     * </ol>
+     *
+     * <p>
+     * On success a {@code PASS} step "Clicked: …" is logged. On failure an
+     * {@link AssertionError} explains which step failed (in soft mode the failure
+     * is recorded and the test continues). If the click navigates away or opens
+     * an alert before the event can be read back, the click counts as delivered.
+     *
+     * <pre>
+     * assertThat(loginButton).click();
+     * </pre>
+     *
+     * @return this assertion for chaining
+     * @since 1.1.0
+     */
+    public LocatorAssert click() {
+        StepLogger.step("Click (verified): " + description);
+        WebDriver driver = DriverManager.getDriver();
+
+        // 1. Visible and enabled
+        WebElement el = await(d -> {
+            try {
+                List<WebElement> els = d.findElements(by);
+                if (els.isEmpty())
+                    return null;
+                WebElement first = els.getFirst();
+                return first.isDisplayed() && first.isEnabled() ? first : null;
+            } catch (StaleElementReferenceException e) {
+                return null;
+            }
+        }, () -> "Click not performed: element not visible and enabled: " + description);
+        if (el == null)
+            return this;
+
+        // 2. Scroll to centre and hover, like a real user
+        try {
+            ((JavascriptExecutor) driver).executeScript(SCROLL_TO_CENTER_JS, el);
+            new Actions(driver).moveToElement(el).perform();
+        } catch (WebDriverException e) {
+            report("Click not performed: could not move to element " + description + ": " + firstLine(e), e);
+            return this;
+        }
+
+        // 3. Nothing covers it
+        String[] coveredBy = new String[1];
+        Boolean uncovered = await(d -> {
+            try {
+                Object hit = ((JavascriptExecutor) d).executeScript(COVERING_ELEMENT_JS, el);
+                coveredBy[0] = hit == null ? null : hit.toString();
+                return hit == null ? true : null;
+            } catch (StaleElementReferenceException e) {
+                coveredBy[0] = "(element became stale)";
+                return null;
+            }
+        }, () -> "Click not performed: " + description + " is covered by " + coveredBy[0]);
+        if (uncovered == null)
+            return this;
+
+        // 4. Click with a one-shot listener installed
+        try {
+            ((JavascriptExecutor) driver).executeScript(INSTALL_CLICK_PROBE_JS, el);
+            el.click();
+        } catch (WebDriverException e) {
+            report("Click not performed on " + description + ": " + firstLine(e), e);
+            return this;
+        }
+
+        // 5. The click event reached the element
+        boolean reached;
+        if (alertOpen(driver)) {
+            reached = true; // running a script now would dismiss the alert the click opened
+        } else {
+            try {
+                reached = Boolean.TRUE.equals(((JavascriptExecutor) driver).executeScript(READ_CLICK_PROBE_JS, el));
+            } catch (StaleElementReferenceException | NoSuchElementException | UnhandledAlertException e) {
+                reached = true; // the click navigated away, re-rendered, or opened an alert
+            }
+        }
+        if (!reached) {
+            report("Click did not reach " + description + " (no click event was received)", null);
+            return this;
+        }
+
+        StepLogger.step("Clicked: " + description, StepStatus.PASS);
         return this;
     }
 
@@ -996,7 +1104,50 @@ public final class LocatorAssert {
     // Internal poll
     // ------------------------------------------------------------------
 
-    private static final String IN_VIEWPORT_JS = "const r = arguments[0].getBoundingClientRect();"
+    private static final String SCROLL_TO_CENTER_JS = "arguments[0].scrollIntoView({block: 'center', inline: 'center'});";
+
+    /**
+     * Returns null when the element (or a descendant) is topmost at its centre,
+     * otherwise a short description of the element covering it.
+     */
+    private static final String COVERING_ELEMENT_JS = "const e = arguments[0];"
+            + "const r = e.getBoundingClientRect();"
+            + "const x = r.left + r.width / 2, y = r.top + r.height / 2;"
+            + "const hit = document.elementFromPoint(x, y);"
+            + "if (!hit) return 'nothing (centre is outside the viewport)';"
+            + "if (hit === e || e.contains(hit)) return null;"
+            + "let d = '<' + hit.tagName.toLowerCase();"
+            + "if (hit.id) d += \" id='\" + hit.id + \"'\";"
+            + "if (typeof hit.className === 'string' && hit.className.trim()) d += \" class='\" + hit.className.trim() + \"'\";"
+            + "return d + '>';";
+
+    private static final String INSTALL_CLICK_PROBE_JS = "const e = arguments[0];"
+            + "e.__testflyClicked = false;"
+            + "e.addEventListener('click', function probe() {"
+            + "  e.__testflyClicked = true; e.removeEventListener('click', probe, true);"
+            + "}, true);";
+
+    private static final String READ_CLICK_PROBE_JS = "return arguments[0].__testflyClicked === true;";
+
+    /** Checks for an open alert without dismissing it. */
+    private static boolean alertOpen(WebDriver driver) {
+        try {
+            WebDriver.TargetLocator target = driver.switchTo();
+            return target != null && target.alert() != null;
+        } catch (NoAlertPresentException e) {
+            return false;
+        }
+    }
+
+    private static String firstLine(Throwable e) {
+        String msg = e.getMessage();
+        if (msg == null)
+            return e.getClass().getSimpleName();
+        int nl = msg.indexOf('\n');
+        return nl >= 0 ? msg.substring(0, nl) : msg;
+    }
+
+    private static final String IN_VIEWPORT_JS ="const r = arguments[0].getBoundingClientRect();"
             + "const h = window.innerHeight || document.documentElement.clientHeight;"
             + "const w = window.innerWidth || document.documentElement.clientWidth;"
             + "return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 && r.top < h && r.left < w;";
@@ -1045,26 +1196,43 @@ public final class LocatorAssert {
     }
 
     private <T> void poll(ExpectedCondition<T> condition, String failMessage) {
-        Duration timeout = customTimeout != null
-                ? customTimeout
-                : Duration.ofSeconds(TestFlyContext.getConfig().getTimeouts().getExplicit());
+        await(condition, () -> failMessage);
+    }
+
+    /**
+     * Waits for {@code condition} and returns its value. On timeout the failure is
+     * reported (thrown, or collected in soft mode) and {@code null} is returned.
+     */
+    private <T> T await(ExpectedCondition<T> condition, java.util.function.Supplier<String> failMessage) {
+        Duration timeout = timeout();
         WebDriver driver = DriverManager.getDriver();
-        String fullMessage = customMessage != null && !customMessage.isBlank()
-                ? "[" + customMessage + "] " + failMessage
-                : failMessage;
         try {
-            new WebDriverWait(driver, timeout).until(condition);
+            return new WebDriverWait(driver, timeout).until(condition);
         } catch (TimeoutException e) {
             String timeoutStr = timeout.toMillis() >= 1000 && timeout.toMillis() % 1000 == 0
                     ? timeout.toSeconds() + "s"
                     : timeout.toMillis() + "ms";
-            String err = fullMessage + " (timeout: " + timeoutStr + ")";
-            if (soft) {
-                SoftAssertionCollector target = collector != null ? collector : SoftAssertions.get();
-                target.that(false, err);
-            } else {
-                throw new AssertionError(err, e);
-            }
+            report(failMessage.get() + " (timeout: " + timeoutStr + ")", e);
+            return null;
+        }
+    }
+
+    private Duration timeout() {
+        return customTimeout != null
+                ? customTimeout
+                : Duration.ofSeconds(TestFlyContext.getConfig().getTimeouts().getExplicit());
+    }
+
+    /** Throws an {@link AssertionError}, or records the failure in soft mode. */
+    private void report(String failMessage, Throwable cause) {
+        String err = customMessage != null && !customMessage.isBlank()
+                ? "[" + customMessage + "] " + failMessage
+                : failMessage;
+        if (soft) {
+            SoftAssertionCollector target = collector != null ? collector : SoftAssertions.get();
+            target.that(false, err);
+        } else {
+            throw cause != null ? new AssertionError(err, cause) : new AssertionError(err);
         }
     }
 }
