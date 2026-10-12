@@ -235,6 +235,35 @@ public class DriverManagerTest {
     }
 
     @Test
+    public void perSuite_matrixBrowserSwitchOnSameThread_startsTheRequestedBrowser() {
+        configure(5, "per-suite");
+        FakeDriverProvider other = new FakeDriverProvider(BROWSER + "-other");
+        DriverProviderRegistry.register(other);
+
+        BrowserContext.set(BROWSER);
+        DriverManager.createDriver();
+        WebDriver first = provider.first();
+
+        // Next matrix entry runs on the same worker thread with another browser.
+        BrowserContext.set(BROWSER + "-other");
+        DriverManager.createDriver();
+
+        assertSame(DriverManager.getDriver(), other.first(), "per-suite reuse must not hand out the previous browser");
+        verify(first).quit();
+        assertEquals(DriverManager.activeSessions(), 1);
+    }
+
+    @Test
+    public void perSuite_sameMatrixBrowser_reusesDriver() {
+        configure(5, "per-suite");
+        BrowserContext.set(BROWSER);
+        DriverManager.createDriver();
+        DriverManager.createDriver();
+
+        assertEquals(provider.providerCalls(), 1);
+    }
+
+    @Test
     public void shutdownTeardown_quitsDriversOfEveryThread() throws Exception {
         DriverManager.createDriver();
         onOtherThread(() -> {

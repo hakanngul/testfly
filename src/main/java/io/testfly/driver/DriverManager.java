@@ -1,6 +1,7 @@
 package io.testfly.driver;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.browser.BrowserContext;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
@@ -28,6 +29,12 @@ import java.util.concurrent.TimeUnit;
 public final class DriverManager {
 
     private static final ThreadLocal<WebDriver> DRIVER = ThreadLocal.withInitial(() -> null);
+
+    /**
+     * {@link BrowserContext} (matrix browser) the current thread's driver was
+     * created for, so a reused per-suite driver is not handed to another browser.
+     */
+    private static final ThreadLocal<String> DRIVER_BROWSER_CONTEXT = new ThreadLocal<>();
 
     /**
      * Session dashboard URL set after driver creation for cloud providers
@@ -133,6 +140,7 @@ public final class DriverManager {
         SUITE_DRIVERS.clear();
         PERMIT_HOLDERS.clear();
         DRIVER.remove();
+        DRIVER_BROWSER_CONTEXT.remove();
         CLOUD_SESSION_URL.remove();
         SESSION_STACK.remove();
     }
@@ -195,7 +203,14 @@ public final class DriverManager {
     public static void createDriver() {
 
         if (DRIVER.get() != null) {
-            return; // retry-safe — semaphore permit already held by this thread
+            String boundTo = DRIVER_BROWSER_CONTEXT.get();
+            String requested = BrowserContext.get();
+            if (java.util.Objects.equals(boundTo, requested)) {
+                return; // retry-safe — semaphore permit already held by this thread
+            }
+            System.out.println("[TestFly] Matrix browser changed on this thread (" + boundTo + " -> " + requested
+                    + "); replacing the reused driver.");
+            forceQuitDriver();
         }
 
         if (isLoadTestActive()) {
@@ -226,6 +241,7 @@ public final class DriverManager {
             PERMIT_HOLDERS.add(driver);
             permitOwned = true;
             DRIVER.set(driver);
+            DRIVER_BROWSER_CONTEXT.set(BrowserContext.get());
 
             applyWindow(driver);
 
@@ -509,6 +525,7 @@ public final class DriverManager {
         } finally {
             releasePermitOf(driver);
             DRIVER.remove();
+            DRIVER_BROWSER_CONTEXT.remove();
             CLOUD_SESSION_URL.remove();
         }
     }
@@ -547,6 +564,7 @@ public final class DriverManager {
             }
         });
         DRIVER.remove();
+        DRIVER_BROWSER_CONTEXT.remove();
         CLOUD_SESSION_URL.remove();
         System.out.println("[TestFly] All suite drivers quit in parallel. Released " + released.get()
                 + " session slot(s).");
