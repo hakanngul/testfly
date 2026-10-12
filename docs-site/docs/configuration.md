@@ -120,6 +120,7 @@ browser:
   lifecycle: per-test               # per-test (clean isolation) | per-suite (reuse session per thread)
   downloadDir: ./target/downloads   # target directory for browser file downloads
   captureConsoleErrors: false       # collect browser console (JS) error logs
+  bidi: false                       # open a WebDriver BiDi connection; console errors then include load-time errors on Firefox
   failOnConsoleErrors: false        # fail test if severe console errors are detected
   device:                           # optional mobile emulation profile (e.g. "iPhone 14")
   matrix: []                        # multi-browser matrix execution (e.g. [chrome, firefox])
@@ -192,6 +193,14 @@ locators:
   aiHealing: false                  # fallback to LLM when static heuristics fail
   maxDomTokens: 8000                # token limit for DOM pruning
   testIdAttribute: data-testid      # attribute queried by getByTestId()
+  strict: false                     # fail when an action locator matches >1 visible element
+
+# ── Actionability ────────────────────────────────────────────────────────────
+actionability:
+  enabled: true                     # wait until the element is stable and not covered before click/hover/type
+  stabilityIntervalMs: 100          # polling interval (10-5000) while waiting for the element to settle
+  hitTargetCheck: true              # fail while another element covers the click point
+  autoScroll: true                  # scroll the element into view when it is off-screen or covered
 
 # ── AI Failure Analysis & Agentic Testing ─────────────────────────────────────
 ai:
@@ -251,6 +260,9 @@ recording:
 tracing:
   enabled: false                    # generate standalone HTML trace bundle with step timeline and screenshots
   captureOnPass: false              # include passing tests in trace bundle
+  snapshots: aria                   # per-step page snapshot: none | aria | dom | both
+  snapshotMaxKb: 256                # longest snapshot kept per step
+  snapshotOnFailureAfter: true      # failed tests also record the page after the last step
 
 # ── Visual Regression ────────────────────────────────────────────────────────
 visual:
@@ -289,7 +301,7 @@ clock:
 
 # ── Network Interception ─────────────────────────────────────────────────────
 network:
-  interceptEnabled: false           # enable CDP network interception and route mocking
+  interceptEnabled: false           # reserved, no effect: interception starts with the first route, stub or blockUrls entry
   blockUrls:                        # URL patterns to abort globally (trackers, ads, etc.)
     - "*google-analytics.com*"
     - "*doubleclick.net*"
@@ -439,7 +451,7 @@ Each key is **tri-state**:
 | `ai` | `ai.enabled` — gates `act()`, `aiAssert()`, failure analysis, patch generation and AI locator healing | `true` |
 | `recording` | `recording.enabled` | `false` |
 | `tracing` | `tracing.enabled` — generates standalone HTML trace bundle (`target/traces/`) with step timeline and screenshots | `false` |
-| `network` | `network.interceptEnabled` | `false` |
+| `network` | `network.interceptEnabled` (reserved, currently no effect) | `false` |
 | `healing` | `locators.selfHealing` and `locators.aiHealing` | `false` |
 | `visual` | *no module flag* — visual regression is available unless switched off | `true` |
 | `performance` | `performance.captureOnEveryTest` | `false` |
@@ -501,6 +513,7 @@ Controls WebDriver browser provisioning, execution mode, capabilities, and proce
 | `lifecycle` | `string` | `per-test` | Lifecycle scope for WebDriver instances: `per-test` (closes browser after each test method) or `per-suite` (retains browser per thread across tests). |
 | `downloadDir` | `string` | `./target/downloads` | Path where downloaded files are saved. Auto-configured in browser options. |
 | `captureConsoleErrors` | `boolean` | `false` | When `true`, intercepts browser `console.error` entries during execution. |
+| `bidi` | `boolean` | `false` | Starts the browser with a WebDriver BiDi connection (local Chrome, Edge, Firefox). Console error capture then listens to BiDi log events from the start of every page load, which Firefox needs to see load-time errors. See [Console Errors](guides/console-errors#using-bidi). |
 | `failOnConsoleErrors` | `boolean` | `false` | When `true`, automatically fails the test if any `SEVERE` browser console errors occurred. |
 | `device` | `string` | `null` | Emulate a specific mobile device viewport and user agent (e.g. `"iPhone 14"`, `"Pixel 7"`). |
 | `matrix` | `list<string>` | `[]` | Multi-browser matrix execution list (e.g. `[chrome, firefox]`). |
@@ -594,6 +607,21 @@ Smart locator synthesis and resilience settings.
 | `aiHealing` | `boolean` | `false` | When enabled, uses LLM reasoning to synthesize resilient fallback locators when static regex strategies fail. |
 | `maxDomTokens` | `int` | `8000` | Maximum token budget for DOM pruning when sending DOM to LLM. |
 | `testIdAttribute` | `string` | `data-testid` | The HTML attribute targeted by `getByTestId("submit-btn")`. Can be configured to `data-qa`, `data-test`, etc. |
+| `strict` | `boolean` | `false` | When `true`, an action (or `isVisible()`/`isEnabled()`) on a locator that matches more than one **visible** element fails with a strict mode violation, unless the locator is narrowed with `first()`, `nth()` or `last()`. |
+
+---
+
+## Actionability {#actionability}
+
+Before `click`, `hover`, `type`, `clear` and `append`, the element must be ready for
+that interaction. See [Actionability](/docs/guides/wait-engine#actionability).
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `boolean` | `true` | Master switch. `false` restores the earlier waits (visible and enabled only). |
+| `stabilityIntervalMs` | `int` | `100` | Polling interval while waiting for the element to stop moving. Must be between 10 and 5000. |
+| `hitTargetCheck` | `boolean` | `true` | Wait while another element covers the click point. Does not apply to typing. |
+| `autoScroll` | `boolean` | `true` | Scroll the element into view when its centre is off-screen or covered. |
 
 ---
 
@@ -701,8 +729,11 @@ Configuration for the built-in fluent REST client (`ApiClient` & `BaseApiTest`).
 | `api.ssl.trustStore.path` | `string` | — | Path to a custom truststore; replaces the default JDK truststore for this profile. Required whenever the `trustStore` block is present. |
 | `api.ssl.trustStore.type` | `string` | `PKCS12` | `PKCS12` or `JKS`; any other value is rejected. |
 | `api.ssl.trustStore.password` | `string` | `null` | Supply via `${TESTFLY_TRUSTSTORE_PASSWORD}`; never commit it. |
+| `api.proxy.host` | `string` | `null` | HTTP proxy host for API calls; unset means direct connections. Proxy authentication is not supported. |
+| `api.proxy.port` | `int` | `0` | Proxy port, required (1..65535) when `host` is set. |
+| `api.proxy.nonProxyHosts` | `list<string>` | `[]` | Hosts that bypass the proxy; case-insensitive, `*` wildcards (`localhost`, `*.internal`, `10.*`). |
 
-Setting `trustAll: true` together with a `trustStore` block fails with `Conflicting SSL selection`. Request-level `.trustStore(...)` or `.trustAllCerts()` replaces the entire YAML SSL selection for that request. `.requestTimeout(Duration)` and the existing `.timeout(int)` set the per-request timeout; the last call wins. This is not a socket read-idle timeout. The batch limit controls logical calls; the global transport limit controls real sends.
+Setting `trustAll: true` together with a `trustStore` block fails with `Conflicting SSL selection`. Request-level `.trustStore(...)` or `.trustAllCerts()` replaces the entire YAML SSL selection for that request. `.proxy(host, port)` and `.noProxy()` override `api.proxy` for one request. `.requestTimeout(Duration)` and the existing `.timeout(int)` set the per-request timeout; the last call wins. This is not a socket read-idle timeout. The batch limit controls logical calls; the global transport limit controls real sends.
 
 See [SSL Configuration](guides/api-ssl.md) and [Timeouts & Performance](guides/api-performance.md).
 
@@ -720,9 +751,11 @@ api:
     retryOnException: true
 ```
 
+A request can override the policy with `.retry(attempts)`, `.retry(attempts, backoff)`, `.retryOn(statuses...)`, `.retryOnException(boolean)` or `.noRetry()`. An explicit override enables retry for that request even when `enabled` is `false`.
+
 #### `api.auth`
 
-Named authentication profiles referenced in tests via `@UseAuth("name")` or `apiClient().withAuth("name")`:
+Named authentication profiles applied to a test method or class with `@UseAuth("name")`. Types: `bearer`, `basic`, `oauth2`, `oauth2_password`, `oauth2-refresh` (`refreshToken`), `apiKey`, `apikey-query`, `digest`, `hmac` (deprecated) and `hmac-signed` (`apiKey`, `secret`, optional `algorithm`, `keyHeader`, `signatureHeader`, `timestampHeader`, `encoding`). See [API Authentication](guides/api-auth.md).
 
 ```yaml
 api:
@@ -816,6 +849,9 @@ Session capture for debugging, failure analysis, and audit compliance. See the f
 | `recording.cdp` | `boolean` | `true` | When true, uses CDP screencast on Chrome/Edge without blocking execution. |
 | `tracing.enabled` | `boolean` | `false` | Generates a self-contained HTML trace file containing step timeline, per-step screenshots, and failure snapshot (`target/traces/{ClassName}/{testMethod}-trace.html`). |
 | `tracing.captureOnPass` | `boolean` | `false` | Also capture traces for passing tests. |
+| `tracing.snapshots` | `string` | `aria` | What each step records for the trace: `none`, `aria` (accessibility tree), `dom` (pruned page HTML) or `both`. See [Step Traces](guides/tracing). |
+| `tracing.snapshotMaxKb` | `int` | `256` | Longest snapshot kept per step, in kilobytes. Longer ones are cut with a `… truncated` marker. |
+| `tracing.snapshotOnFailureAfter` | `boolean` | `true` | For a failed test, also record an accessibility snapshot after its last step, with a diff against the page before it. |
 
 ---
 
@@ -872,7 +908,7 @@ testmanagement:
 
 * **`clock.injectHeader`**: Injects mock date HTTP header into browser requests (default `false`).
 * **`clock.headerName`**: Custom header name (default `"X-Mock-Date"`).
-* **`network.interceptEnabled`**: Activates Chrome DevTools Protocol network interception and stubbing (default `false`).
+* **`network.interceptEnabled`**: Reserved. It has no effect today: network interception starts with the first `mockRoute`, stub, or non-empty `network.blockUrls`, whatever this value is, and only on local Chrome or Edge (see [Browser Support](guides/browser-support)).
 * **`network.blockUrls`**: Glob URL patterns to abort network requests globally (e.g. trackers, ads) (default: `[]`).
 
 ---

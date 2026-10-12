@@ -31,6 +31,49 @@ WaitEngine.waitForInvisible(By.cssSelector(".spinner"));  // wait for loaders to
 WaitEngine.waitForClickable(By.id("submit"));
 ```
 
+### Actionability
+
+`Locator` actions (`click`, `hover`, `type`, `clear`, `append`) wait until the
+element is ready for that interaction, like Playwright's actionability checks.
+You can also call it directly:
+
+```java
+WaitEngine.waitForActionable(By.id("submit"));                       // CLICK
+WaitEngine.waitForActionable(By.id("email"), ActionKind.EDIT);
+```
+
+| Check | `CLICK` | `HOVER` | `EDIT` |
+|---|:-:|:-:|:-:|
+| Visible | yes | yes | yes |
+| Enabled | yes | no | yes |
+| Stable (bounding box unchanged between two polls) | yes | yes | yes |
+| Receives events (not covered by another element) | yes | yes | no |
+
+The element is scrolled into view when its centre is off-screen or covered. If
+it never becomes actionable, the failure names the element and the reason:
+
+```
+NotActionableException: Element <button#submit> is not actionable for CLICK after 10s:
+obscured by <div.modal-backdrop>
+```
+
+When the page re-renders between resolving and acting, or an overlay appears
+after the check, the locator chain is resolved again (up to three attempts).
+
+Escape hatches, from least to most invasive:
+
+- `find("#x").force().click()` skips the stable and not-covered checks. The
+  element must still be visible and enabled.
+- `find("#x").jsClick()` clicks through JavaScript, even when covered.
+- `actionability.enabled: false` restores the previous waits (visible and enabled only).
+
+The checks fail open: if the script cannot run, the action proceeds. They add
+about one polling interval (`actionability.stabilityIntervalMs`, 100 ms) per
+action.
+
+Not covered: `BasePage.jsType`, `upload` (file inputs are often hidden) and
+`withinFrame`.
+
 ### Enabled / disabled
 
 ```java
@@ -126,6 +169,10 @@ new WebDriverWait(getDriver(), Duration.ofSeconds(30))
 timeouts:
   explicit: 10   # seconds — default for all WaitEngine calls
   pageLoad: 30   # seconds — browser page load timeout
+
+actionability:
+  enabled: true              # stable + not-covered checks before click/hover/type
+  stabilityIntervalMs: 100   # polling interval while waiting for the element to settle
 ```
 
 ---

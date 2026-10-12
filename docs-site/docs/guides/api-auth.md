@@ -41,7 +41,7 @@ ApiClient.setGlobalAuth(ApiAuth.oauth2(
 ));
 ```
 
-The framework sends a `POST` with `grant_type=client_credentials` and caches the returned `access_token` until it expires (using the `expires_in` field from the response).
+The framework sends a `POST` with `grant_type=client_credentials` and caches the returned `access_token` until it expires (using the `expires_in` field from the response). When the token response contains a `refresh_token`, an expired token is renewed with the refresh-token grant first (a rotated refresh token is used next time); if that fails, the original grant runs again. The cache is shared by the whole JVM and cleared at suite end; call `ApiAuth.clearTokenCache()` to force a new token. Token requests do not use `api.proxy` or the `api.ssl` truststore.
 
 ---
 
@@ -50,11 +50,45 @@ The framework sends a `POST` with `grant_type=client_credentials` and caches the
 ```java
 ApiAuth.apiKey("X-Api-Key", System.getenv("API_KEY"));
 ApiAuth.apiKeyQuery("api_key", System.getenv("API_KEY"));
-ApiAuth.hmac(System.getenv("API_KEY"), System.getenv("API_SECRET"), "HmacSHA256");
 ApiAuth.oauth2Password(tokenUrl, clientId, clientSecret, username, password);
+ApiAuth.oauth2Refresh(tokenUrl, clientId, clientSecret, System.getenv("REFRESH_TOKEN"));
+ApiAuth.digest("user", System.getenv("DIGEST_PASSWORD"));
+ApiAuth.hmacSigner().apiKey(System.getenv("API_KEY")).secret(System.getenv("API_SECRET")).build();
 ```
 
-`ApiAuth.digest(username, password)` only emits a Basic-like payload with a `Digest` prefix; it does not implement the RFC challenge/response flow. Use a custom interceptor when full Digest authentication is required. The HMAC factory signs the API-key value and adds `X-Api-Key` and `X-Signature`; it is not a general request-body signing scheme.
+### Digest authentication
+
+`ApiAuth.digest(username, password)` implements RFC 7616 challenge/response: MD5, SHA-256 and SHA-512-256 (with `-sess` variants), `qop=auth` and `qop=auth-int`. The first request to an origin goes out without credentials. On `401` with `WWW-Authenticate: Digest` it is re-sent once with an `Authorization` header. The challenge is then cached per origin for the current test (shared with its `sendAsync` calls), so later requests authenticate up front with an increasing nonce count. A stale or rotated nonce triggers one re-authentication. Wrong credentials leave the final `401` response to your assertions. The cache is cleared after each test.
+
+### HMAC request signing
+
+`ApiAuth.hmacSigner()` signs the request that is actually sent. The default canonical string is four lines: method, path with query, timestamp (epoch seconds) and the hex SHA-256 of the body.
+
+```java
+ApiClient.setGlobalAuth(ApiAuth.hmacSigner()
+        .apiKey(System.getenv("API_KEY"))          // sent in X-Api-Key (keyHeader)
+        .secret(System.getenv("API_SECRET"))
+        .algorithm("HmacSHA256")                   // default
+        .signatureHeader("X-Signature")            // default
+        .timestampHeader("X-Timestamp")            // default; null omits it
+        .encoding(ApiHmacSigner.Encoding.HEX)      // default BASE64
+        .canonical(ctx -> ctx.method() + "\n" + ctx.pathAndQuery() + "\n" + ctx.timestamp())
+        .build());
+```
+
+The signer runs as the innermost interceptor, so headers added by legacy `RequestInterceptor` hooks are not part of the signature. `ApiAuth.hmac(apiKey, secret, algorithm)` is deprecated: it signs only the API key value, never the request. Its headers are unchanged for compatibility.
+
+### Custom challenge or signing schemes
+
+Implement `ApiAuth.Intercepting` when an auth scheme needs the final request or the response. `ApiClient` installs it as the innermost interceptor, and it may call `chain.proceed(...)` more than once.
+
+```java
+ApiAuth retryOn401 = (ApiAuth.Intercepting) chain -> {
+    ApiResponse first = chain.proceed(chain.request());
+    if (first.status() != 401) return first;
+    return chain.proceed(chain.request().newBuilder().header("Authorization", "Bearer " + refreshToken()).build());
+};
+```
 
 ---
 
@@ -123,7 +157,27 @@ api:
       tokenUrl: https://auth.example.com/token
       clientId: ${CLIENT_ID}
       clientSecret: ${CLIENT_SECRET}
+
+    legacyApp:
+      type: digest
+      username: app
+      password: ${DIGEST_PASSWORD}
+
+    partnerApi:
+      type: hmac-signed            # request signing; "hmac" is the deprecated key-only variant
+      apiKey: ${PARTNER_KEY}
+      secret: ${PARTNER_SECRET}
+      signatureHeader: X-Signature # optional; keyHeader, timestampHeader ("none" disables), encoding (base64|hex), algorithm
+
+    longLived:
+      type: oauth2-refresh
+      tokenUrl: https://auth.example.com/token
+      clientId: ${CLIENT_ID}
+      clientSecret: ${CLIENT_SECRET}
+      refreshToken: ${REFRESH_TOKEN}
 ```
+
+Supported types: `bearer`, `basic`, `oauth2`, `oauth2_password`, `oauth2-refresh`, `apiKey`, `apikey-query`, `digest`, `hmac` (deprecated), `hmac-signed`. `@UseAuth` is applied by the TestNG listener and the JUnit 5 extension; Cucumber steps set auth in code.
 
 Token values support `${ENV_VAR}` interpolation — resolved from environment variables or system properties at runtime.
 

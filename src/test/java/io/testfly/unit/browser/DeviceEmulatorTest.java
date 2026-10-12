@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -81,9 +82,12 @@ public class DeviceEmulatorTest {
         DeviceEmulator.emulate(profile);
 
         verify(mockChromeDriver).getDevTools();
-        verify(mockDevTools).createSession();
+        verify(mockDevTools).createSessionIfThereIsNotOne();
         // setDeviceMetricsOverride + setUserAgentOverride = 2 send calls
         verify(mockDevTools, atLeast(2)).send(any());
+        // The connection is shared with network mocking and screen recording: closing it would
+        // detach the session, drop the emulation and break those features.
+        verify(mockDevTools, never()).close();
     }
 
     @Test
@@ -104,9 +108,10 @@ public class DeviceEmulatorTest {
         DeviceEmulator.reset();
 
         verify(mockChromeDriver).getDevTools();
-        verify(mockDevTools).createSession();
+        verify(mockDevTools).createSessionIfThereIsNotOne();
         // clearDeviceMetricsOverride + setUserAgentOverride("") = 2 send calls
         verify(mockDevTools, atLeast(2)).send(any());
+        verify(mockDevTools, never()).close();
     }
 
     // ---------------------------------------------------------------

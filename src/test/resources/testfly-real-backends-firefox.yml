@@ -1,0 +1,54 @@
+# TestFly configuration for real-backend integration tests on Firefox.
+# Used by the experimental Firefox leg of the "Browser Integration" CI job:
+#   mvn verify -Preal-backends -Dtestfly.config=src/test/resources/testfly-real-backends-firefox.yml
+# Same as testfly-real-backends.yml, but without the Chrome-only launch arguments.
+
+browser:
+  name: firefox
+  headless: true
+  capabilities:
+    acceptInsecureCerts: true
+    pageLoadStrategy: eager
+
+execution:
+  mode: local
+  baseUrl: https://www.saucedemo.com/
+  gridUrl: http://localhost:4444/wd/hub
+  parallel: none
+  threadCount: 1
+  maxActiveSessions: 1
+
+api:
+  baseUrl: https://fakeapi.net
+  timeoutSeconds: 30
+  logBody: false
+
+retry:
+  enabled: false
+  maxAttempts: 2
+
+timeouts:
+  explicit: 10
+  pageLoad: 30
+
+reporting:
+  allureEnabled: true
+  reportPortal:
+    enabled: false
+    endpoint: ${REPORTPORTAL_ENDPOINT:-https://reportportal.example.com}
+    apiKey: ${REPORTPORTAL_API_KEY}
+    project: demo-web
+    launch: "Demo Web - Dev"
+    description: "Automated test execution powered by TestFly"
+    attributes: "env:dev"
+    type: auto
+    mode: default
+
+ai:
+  failureAnalysis: true
+  provider: openai-compatible
+  baseUrl: https://api.deepseek.com
+  apiKey: ${AI_API_KEY}
+  model: deepseek-v4-flash
+  language: tr
+  timeoutSeconds: 20

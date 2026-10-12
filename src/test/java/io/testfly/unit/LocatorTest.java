@@ -167,6 +167,10 @@ public class LocatorTest {
     // ----------------------------------------------------------
 
     private MockedStatic<?>[] setupHealingMocks(boolean selfHealingEnabled) {
+        return setupMocks(selfHealingEnabled, false);
+    }
+
+    private MockedStatic<?>[] setupMocks(boolean selfHealingEnabled, boolean strict) {
         WebDriver mockDriver = mock(WebDriver.class,
                 Mockito.withSettings().extraInterfaces(JavascriptExecutor.class));
         lastMockDriver = mockDriver;
@@ -176,6 +180,7 @@ public class LocatorTest {
 
         TestFlyConfig.Locators locators = new TestFlyConfig.Locators();
         locators.setSelfHealing(selfHealingEnabled);
+        locators.setStrict(strict);
 
         TestFlyConfig.Timeouts timeouts = new TestFlyConfig.Timeouts();
         timeouts.setExplicit(2);
@@ -414,5 +419,217 @@ public class LocatorTest {
     public void byText_keepsParent_whenTextSpansChildElements() throws Exception {
         String html = "<html><body><p>Click <b>Sign</b> In</p></body></html>";
         assertEquals(matchedNodeNames(Locator.byText("sign in"), html), List.of("p"));
+    }
+
+    // ----------------------------------------------------------
+    // Strict mode (locators.strict)
+    // ----------------------------------------------------------
+
+    private WebElement strictEl(boolean displayed, String id) {
+        WebElement el = mock(WebElement.class);
+        when(el.isDisplayed()).thenReturn(displayed);
+        when(el.isEnabled()).thenReturn(true);
+        when(el.getTagName()).thenReturn("button");
+        when(el.getAttribute("id")).thenReturn(id);
+        return el;
+    }
+
+    @Test
+    public void strict_multipleVisible_throwsListingCandidates() {
+        MockedStatic<?>[] mocks = setupMocks(false, true);
+        try {
+            By by = By.cssSelector(".btn");
+            WebElement a = strictEl(true, "a");
+            WebElement b = strictEl(true, "b");
+            WebElement c = strictEl(true, "c");
+            WebElement d = strictEl(true, "d");
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(a, b, c, d));
+
+            long start = System.nanoTime();
+            LocatorException ex = expectThrows(LocatorException.class, () -> Locator.of(by).click());
+            long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+
+            assertTrue(ex.getMessage().contains("Strict mode violation"), ex.getMessage());
+            assertTrue(ex.getMessage().contains("4 visible elements"), ex.getMessage());
+            assertTrue(ex.getMessage().contains("first()/nth()/last()"), ex.getMessage());
+            assertTrue(ex.getMessage().contains("<button#a>"), ex.getMessage());
+            assertTrue(ex.getMessage().contains("(+1 more)"), ex.getMessage());
+            assertTrue(elapsedMs < 1500, "must fail fast, took " + elapsedMs + "ms");
+            org.mockito.Mockito.verify(a, org.mockito.Mockito.never()).click();
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void strict_oneVisibleAmongHidden_picksTheVisibleOne() {
+        MockedStatic<?>[] mocks = setupMocks(false, true);
+        try {
+            By by = By.cssSelector(".nav");
+            WebElement hidden = strictEl(false, "mobile");
+            WebElement visible = strictEl(true, "desktop");
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(hidden, visible));
+
+            Locator.of(by).click();
+
+            org.mockito.Mockito.verify(visible).click();
+            org.mockito.Mockito.verify(hidden, org.mockito.Mockito.never()).click();
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void strict_firstLastAndNth_bypassTheViolation() {
+        MockedStatic<?>[] mocks = setupMocks(false, true);
+        try {
+            By by = By.cssSelector(".row");
+            WebElement a = strictEl(true, "a");
+            WebElement b = strictEl(true, "b");
+            WebElement c = strictEl(true, "c");
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(a, b, c));
+
+            Locator.of(by).first().click();
+            Locator.of(by).last().click();
+            Locator.of(by).nth(1).click();
+
+            org.mockito.Mockito.verify(a).click();
+            org.mockito.Mockito.verify(c).click();
+            org.mockito.Mockito.verify(b).click();
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void strict_disabled_keepsLegacyFirstMatch() {
+        MockedStatic<?>[] mocks = setupMocks(false, false);
+        try {
+            By by = By.cssSelector(".btn");
+            WebElement a = strictEl(true, "a");
+            WebElement b = strictEl(true, "b");
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(a, b));
+
+            Locator.of(by).click();
+
+            org.mockito.Mockito.verify(a).click();
+            org.mockito.Mockito.verify(b, org.mockito.Mockito.never()).click();
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void strict_isVisible_alsoRejectsAmbiguousLocator() {
+        MockedStatic<?>[] mocks = setupMocks(false, true);
+        try {
+            By by = By.cssSelector(".btn");
+            WebElement a = strictEl(true, "a");
+            WebElement b = strictEl(true, "b");
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(a, b));
+
+            LocatorException ex = expectThrows(LocatorException.class, () -> Locator.of(by).isVisible());
+            assertTrue(ex.getMessage().contains("Strict mode violation"), ex.getMessage());
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void strict_countAndElements_areUnaffected() {
+        MockedStatic<?>[] mocks = setupMocks(false, true);
+        try {
+            By by = By.cssSelector(".btn");
+            WebElement a = strictEl(true, "a");
+            WebElement b = strictEl(true, "b");
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(a, b));
+
+            assertEquals(Locator.of(by).count(), 2);
+            assertEquals(Locator.of(by).elements().size(), 2);
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void strict_configDefaultsToFalse() {
+        assertFalse(new TestFlyConfig.Locators().isStrict());
+    }
+
+    // ----------------------------------------------------------
+    // Actionability: retry and force()
+    // ----------------------------------------------------------
+
+    private WebElement clickableEl() {
+        WebElement el = mock(WebElement.class);
+        when(el.isDisplayed()).thenReturn(true);
+        when(el.isEnabled()).thenReturn(true);
+        return el;
+    }
+
+    private long scriptCalls() {
+        return Mockito.mockingDetails(lastMockDriver).getInvocations().stream()
+                .filter(i -> i.getMethod().getName().equals("executeScript")).count();
+    }
+
+    @Test
+    public void click_interceptedOnce_resolvesAgainAndRetries() {
+        MockedStatic<?>[] mocks = setupMocks(false, false);
+        try {
+            By by = By.cssSelector("#btn");
+            WebElement el = clickableEl();
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(el));
+            Mockito.doThrow(new org.openqa.selenium.ElementClickInterceptedException("covered"))
+                    .doNothing().when(el).click();
+
+            Locator.of(by).click();
+
+            Mockito.verify(el, Mockito.times(2)).click();
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void click_keepsGoingStale_failsAfterThreeAttempts() {
+        MockedStatic<?>[] mocks = setupMocks(false, false);
+        try {
+            By by = By.cssSelector("#btn");
+            WebElement el = clickableEl();
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(el));
+            Mockito.doThrow(new org.openqa.selenium.StaleElementReferenceException("stale")).when(el).click();
+
+            LocatorException ex = expectThrows(LocatorException.class, () -> Locator.of(by).click());
+
+            Mockito.verify(el, Mockito.times(3)).click();
+            assertTrue(ex.getMessage().contains("3 attempts"), ex.getMessage());
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void click_runsActionabilityScript_butForceSkipsIt() {
+        MockedStatic<?>[] mocks = setupMocks(false, false);
+        try {
+            By by = By.cssSelector("#btn");
+            WebElement el = clickableEl();
+            when(lastMockDriver.findElements(by)).thenReturn(List.of(el));
+
+            Locator.of(by).click();
+            assertTrue(scriptCalls() >= 1, "normal click must run the actionability script");
+
+            Mockito.clearInvocations(lastMockDriver);
+            Locator.of(by).force().click();
+            assertEquals(scriptCalls(), 0, "force() must skip the actionability script");
+        } finally {
+            closeMocks(mocks);
+        }
+    }
+
+    @Test
+    public void force_isShownInDescription() {
+        assertTrue(Locator.cssSelector(".a").force().toString().contains(".force()"));
+        assertFalse(Locator.cssSelector(".a").toString().contains(".force()"));
     }
 }

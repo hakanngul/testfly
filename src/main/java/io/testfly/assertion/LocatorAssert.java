@@ -1,11 +1,14 @@
 package io.testfly.assertion;
 
+import io.testfly.accessibility.AriaSnapshot;
 import io.testfly.api.TestFlyApi;
+import io.testfly.internal.A11yProbe;
+import io.testfly.locator.Role;
 import io.testfly.driver.DriverManager;
+import io.testfly.config.TestFlyConfig;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.locator.Locator;
 import io.testfly.locator.LocatorException;
-import io.testfly.locator.Role;
 import io.testfly.steps.StepLogger;
 import io.testfly.wait.WaitEngine;
 import org.openqa.selenium.By;
@@ -20,7 +23,6 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
 import io.testfly.steps.StepStatus;
 import org.openqa.selenium.support.ui.ExpectedCondition;
-import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.StaleElementReferenceException;
@@ -30,8 +32,11 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import io.testfly.ai.DomPruner;
 import io.testfly.assertion.ai.AiAssertEngine;
@@ -177,7 +182,7 @@ public final class LocatorAssert {
     /** Asserts element is present and visible — retries until timeout. */
     public LocatorAssert isVisible() {
         step("Assert visible: " + description);
-        poll(ExpectedConditions.visibilityOfElementLocated(by),
+        poll(d -> d.findElement(by).isDisplayed() ? Check.pass() : Check.fail("not displayed"),
                 "Expected element to be visible: " + description);
         return this;
     }
@@ -185,8 +190,13 @@ public final class LocatorAssert {
     /** Asserts element is absent or not visible — retries until timeout. */
     public LocatorAssert isHidden() {
         step("Assert hidden: " + description);
-        poll(ExpectedConditions.invisibilityOfElementLocated(by),
-                "Expected element to be hidden: " + description);
+        poll(d -> {
+            try {
+                return d.findElement(by).isDisplayed() ? Check.fail("displayed") : Check.pass();
+            } catch (NoSuchElementException e) {
+                return Check.pass();
+            }
+        }, "Expected element to be hidden: " + description);
         return this;
     }
 
@@ -197,16 +207,13 @@ public final class LocatorAssert {
     /** Asserts element is present, visible, and enabled — retries until timeout. */
     public LocatorAssert isEnabled() {
         step("Assert enabled: " + description);
-        poll(driver -> {
-            try {
-                List<WebElement> els = driver.findElements(by);
-                if (els.isEmpty())
-                    return null;
-                WebElement el = els.getFirst();
-                return el.isDisplayed() && el.isEnabled() ? true : null;
-            } catch (StaleElementReferenceException e) {
-                return null;
-            }
+        poll(d -> {
+            WebElement el = target(d);
+            if (el == null)
+                return Check.fail("not found");
+            if (!el.isDisplayed())
+                return Check.fail("not displayed");
+            return el.isEnabled() ? Check.pass() : Check.fail("disabled");
         }, "Expected element to be enabled: " + description);
         return this;
     }
@@ -214,16 +221,13 @@ public final class LocatorAssert {
     /** Asserts element is present but disabled — retries until timeout. */
     public LocatorAssert isDisabled() {
         step("Assert disabled: " + description);
-        poll(driver -> {
-            try {
-                List<WebElement> els = driver.findElements(by);
-                if (els.isEmpty())
-                    return null;
-                WebElement el = els.getFirst();
-                return el.isDisplayed() && !el.isEnabled() ? true : null;
-            } catch (StaleElementReferenceException e) {
-                return null;
-            }
+        poll(d -> {
+            WebElement el = target(d);
+            if (el == null)
+                return Check.fail("not found");
+            if (!el.isDisplayed())
+                return Check.fail("not displayed");
+            return !el.isEnabled() ? Check.pass() : Check.fail("enabled");
         }, "Expected element to be disabled: " + description);
         return this;
     }
@@ -231,15 +235,11 @@ public final class LocatorAssert {
     /** Asserts a checkbox or radio button is checked — retries until timeout. */
     public LocatorAssert isChecked() {
         step("Assert checked: " + description);
-        poll(driver -> {
-            try {
-                List<WebElement> els = driver.findElements(by);
-                if (els.isEmpty())
-                    return null;
-                return els.getFirst().isSelected() ? true : null;
-            } catch (StaleElementReferenceException e) {
-                return null;
-            }
+        poll(d -> {
+            WebElement el = target(d);
+            if (el == null)
+                return Check.fail("not found");
+            return el.isSelected() ? Check.pass() : Check.fail("not selected");
         }, "Expected element to be checked: " + description);
         return this;
     }
@@ -254,8 +254,11 @@ public final class LocatorAssert {
      */
     public LocatorAssert hasText(String expected) {
         step("Assert text '" + expected + "' for: " + description);
-        poll(ExpectedConditions.textToBe(by, expected),
-                "Expected text [" + expected + "] for: " + description);
+        poll(d -> {
+            String text = d.findElement(by).getText();
+            String trimmed = text != null ? text.trim() : null;
+            return trimmed != null && trimmed.equals(expected) ? Check.pass() : Check.fail(quote(text));
+        }, "Expected text [" + expected + "] for: " + description);
         return this;
     }
 
@@ -265,8 +268,11 @@ public final class LocatorAssert {
      */
     public LocatorAssert containsText(String fragment) {
         step("Assert contains text '" + fragment + "' for: " + description);
-        poll(ExpectedConditions.textToBePresentInElementLocated(by, fragment),
-                "Expected text to contain [" + fragment + "] for: " + description);
+        poll(d -> {
+            String text = d.findElement(by).getText();
+            return text != null && fragment != null && text.contains(fragment) ? Check.pass()
+                    : Check.fail(quote(text));
+        }, "Expected text to contain [" + fragment + "] for: " + description);
         return this;
     }
 
@@ -280,8 +286,10 @@ public final class LocatorAssert {
      */
     public LocatorAssert hasValue(String expected) {
         step("Assert value '" + expected + "' for: " + description);
-        poll(ExpectedConditions.attributeToBe(by, "value", expected),
-                "Expected value [" + expected + "] for: " + description);
+        poll(d -> {
+            String value = d.findElement(by).getAttribute("value");
+            return value != null && value.equals(expected) ? Check.pass() : Check.fail(quote(value));
+        }, "Expected value [" + expected + "] for: " + description);
         return this;
     }
 
@@ -290,8 +298,12 @@ public final class LocatorAssert {
      */
     public LocatorAssert hasAttribute(String attribute, String expected) {
         step("Assert attribute " + attribute + "=" + expected + " for: " + description);
-        poll(ExpectedConditions.attributeToBe(by, attribute, expected),
-                "Expected attribute [" + attribute + "=" + expected + "] for: " + description);
+        poll(d -> {
+            String value = d.findElement(by).getAttribute(attribute);
+            if (value == null)
+                return Check.fail("attribute '" + attribute + "' absent");
+            return value.equals(expected) ? Check.pass() : Check.fail(attribute + "=" + quote(value));
+        }, "Expected attribute [" + attribute + "=" + expected + "] for: " + description);
         return this;
     }
 
@@ -301,15 +313,12 @@ public final class LocatorAssert {
      */
     public LocatorAssert hasAttribute(String attribute) {
         step("Assert attribute '" + attribute + "' exists for: " + description);
-        poll(driver -> {
-            try {
-                List<WebElement> els = driver.findElements(by);
-                if (els.isEmpty())
-                    return null;
-                return els.getFirst().getAttribute(attribute) != null ? true : null;
-            } catch (StaleElementReferenceException e) {
-                return null;
-            }
+        poll(d -> {
+            WebElement el = target(d);
+            if (el == null)
+                return Check.fail("not found");
+            return el.getAttribute(attribute) != null ? Check.pass()
+                    : Check.fail("attribute '" + attribute + "' absent");
         }, "Expected attribute [" + attribute + "] to exist for: " + description);
         return this;
     }
@@ -320,16 +329,13 @@ public final class LocatorAssert {
      */
     public LocatorAssert hasCssValue(String propertyName, String expectedValue) {
         step("Assert CSS " + propertyName + "='" + expectedValue + "' for: " + description);
-        poll(driver -> {
-            try {
-                List<WebElement> els = driver.findElements(by);
-                if (els.isEmpty())
-                    return null;
-                String val = els.getFirst().getCssValue(propertyName);
-                return expectedValue != null && expectedValue.equals(val) ? true : null;
-            } catch (StaleElementReferenceException e) {
-                return null;
-            }
+        poll(d -> {
+            WebElement el = target(d);
+            if (el == null)
+                return Check.fail("not found");
+            String val = el.getCssValue(propertyName);
+            return expectedValue != null && expectedValue.equals(val) ? Check.pass()
+                    : Check.fail(propertyName + "=" + quote(val));
         }, "Expected CSS property [" + propertyName + "='" + expectedValue + "'] for: " + description);
         return this;
     }
@@ -340,16 +346,14 @@ public final class LocatorAssert {
      */
     public LocatorAssert isFocused() {
         step("Assert focused: " + description);
-        poll(driver -> {
-            try {
-                List<WebElement> els = driver.findElements(by);
-                if (els.isEmpty())
-                    return null;
-                WebElement active = driver.switchTo().activeElement();
-                return els.getFirst().equals(active) ? true : null;
-            } catch (StaleElementReferenceException e) {
-                return null;
-            }
+        poll(d -> {
+            WebElement el = target(d);
+            if (el == null)
+                return Check.fail("not found");
+            WebDriver.TargetLocator target = d.switchTo();
+            WebElement active = target != null ? target.activeElement() : null;
+            return el.equals(active) ? Check.pass()
+                    : Check.fail("focused element: " + describeElement(active));
         }, "Expected element to be focused: " + description);
         return this;
     }
@@ -357,22 +361,18 @@ public final class LocatorAssert {
     /** Asserts the element has the given CSS class — retries until timeout. */
     public LocatorAssert hasClass(String className) {
         step("Assert has class '" + className + "' for: " + description);
-        poll(driver -> {
-            try {
-                List<WebElement> els = driver.findElements(by);
-                if (els.isEmpty())
-                    return null;
-                String classes = els.getFirst().getAttribute("class");
-                if (classes == null)
-                    return null;
+        poll(d -> {
+            WebElement el = target(d);
+            if (el == null)
+                return Check.fail("not found");
+            String classes = el.getAttribute("class");
+            if (classes != null) {
                 for (String cls : classes.split("\\s+")) {
                     if (cls.equals(className))
-                        return true;
+                        return Check.pass();
                 }
-                return null;
-            } catch (StaleElementReferenceException e) {
-                return null;
             }
+            return Check.fail("class=" + quote(classes));
         }, "Expected element to have class [" + className + "]: " + description);
         return this;
     }
@@ -387,8 +387,10 @@ public final class LocatorAssert {
      */
     public LocatorAssert count(int expected) {
         step("Assert count " + expected + " for: " + description);
-        poll(ExpectedConditions.numberOfElementsToBe(by, expected),
-                "Expected " + expected + " element(s) for: " + description);
+        poll(d -> {
+            int actual = d.findElements(by).size();
+            return actual == expected ? Check.pass() : Check.fail(actual + " element(s)");
+        }, "Expected " + expected + " element(s) for: " + description);
         return this;
     }
 
@@ -399,7 +401,10 @@ public final class LocatorAssert {
      */
     public LocatorAssert countAtLeast(int min) {
         step("Assert count >= " + min + " for: " + description);
-        poll(driver -> driver.findElements(by).size() >= min ? true : null,
+        poll(d -> {
+            int actual = d.findElements(by).size();
+            return actual >= min ? Check.pass() : Check.fail(actual + " element(s)");
+        },
                 "Expected at least " + min + " element(s) for: " + description);
         return this;
     }
@@ -411,7 +416,10 @@ public final class LocatorAssert {
      */
     public LocatorAssert countAtMost(int max) {
         step("Assert count <= " + max + " for: " + description);
-        poll(driver -> driver.findElements(by).size() <= max ? true : null,
+        poll(d -> {
+            int actual = d.findElements(by).size();
+            return actual <= max ? Check.pass() : Check.fail(actual + " element(s)");
+        },
                 "Expected at most " + max + " element(s) for: " + description);
         return this;
     }
@@ -429,7 +437,7 @@ public final class LocatorAssert {
      */
     public LocatorAssert exists() {
         step("Assert exists: " + description);
-        poll(driver -> driver.findElements(by).isEmpty() ? null : true,
+        poll(d -> d.findElements(by).isEmpty() ? Check.fail("not found") : Check.pass(),
                 "Expected element to exist: " + description);
         return this;
     }
@@ -891,12 +899,9 @@ public final class LocatorAssert {
     public LocatorAssert hasTexts(String... expected) {
         List<String> wanted = Arrays.asList(expected);
         step("Assert texts " + wanted + " for: " + description);
-        poll(driver -> {
-            try {
-                return wanted.equals(textsOf(driver.findElements(by))) ? true : null;
-            } catch (StaleElementReferenceException e) {
-                return null;
-            }
+        poll(d -> {
+            List<String> texts = textsOf(d.findElements(by));
+            return wanted.equals(texts) ? Check.pass() : Check.fail(shorten(texts.toString()));
         }, "Expected texts " + wanted + " for: " + description);
         return this;
     }
@@ -910,12 +915,9 @@ public final class LocatorAssert {
     public LocatorAssert containsTexts(String... expected) {
         List<String> wanted = Arrays.asList(expected);
         step("Assert contains texts " + wanted + " for: " + description);
-        poll(driver -> {
-            try {
-                return textsOf(driver.findElements(by)).containsAll(wanted) ? true : null;
-            } catch (StaleElementReferenceException e) {
-                return null;
-            }
+        poll(d -> {
+            List<String> texts = textsOf(d.findElements(by));
+            return texts.containsAll(wanted) ? Check.pass() : Check.fail(shorten(texts.toString()));
         }, "Expected texts to contain " + wanted + " for: " + description);
         return this;
     }
@@ -985,35 +987,6 @@ public final class LocatorAssert {
     // ------------------------------------------------------------------
 
     /**
-     * Asserts the element's computed ARIA role equals {@code expected} — retries
-     * until timeout.
-     *
-     * @since 1.1.0
-     */
-    public LocatorAssert hasRole(String expected) {
-        pollFirst("Assert role '" + expected + "' for: " + description,
-                el -> expected.equalsIgnoreCase(el.getAriaRole()),
-                "Expected role [" + expected + "] for: " + description);
-        return this;
-    }
-
-    /**
-     * Asserts the element's computed accessible name equals {@code expected}
-     * (trimmed) — retries until timeout.
-     *
-     * @since 1.1.0
-     */
-    public LocatorAssert hasAccessibleName(String expected) {
-        pollFirst("Assert accessible name '" + expected + "' for: " + description,
-                el -> {
-                    String name = el.getAccessibleName();
-                    return name != null && expected.equals(name.trim());
-                },
-                "Expected accessible name [" + expected + "] for: " + description);
-        return this;
-    }
-
-    /**
      * Asserts the element's {@code id} equals {@code expected} — retries until
      * timeout.
      *
@@ -1040,7 +1013,7 @@ public final class LocatorAssert {
      */
     public LocatorAssert isAttached() {
         step("Assert attached: " + description);
-        poll(driver -> driver.findElements(by).isEmpty() ? null : true,
+        poll(d -> d.findElements(by).isEmpty() ? Check.fail("not found") : Check.pass(),
                 "Expected element to be attached: " + description);
         return this;
     }
@@ -1134,12 +1107,9 @@ public final class LocatorAssert {
     public LocatorAssert hasText(Pattern[] patterns) {
         List<Pattern> wanted = Arrays.asList(patterns);
         step("Assert texts match " + wanted + " for: " + description);
-        poll(driver -> {
-            try {
-                return allMatch(textsOf(driver.findElements(by)), wanted) ? true : null;
-            } catch (StaleElementReferenceException e) {
-                return null;
-            }
+        poll(d -> {
+            List<String> texts = textsOf(d.findElements(by));
+            return allMatch(texts, wanted) ? Check.pass() : Check.fail(shorten(texts.toString()));
         }, "Expected texts to match " + wanted + " for: " + description);
         return this;
     }
@@ -1164,12 +1134,9 @@ public final class LocatorAssert {
     public LocatorAssert containsText(String[] expected) {
         List<String> wanted = Arrays.asList(expected);
         step("Assert texts contain " + wanted + " in order for: " + description);
-        poll(driver -> {
-            try {
-                return containsInOrder(textsOf(driver.findElements(by)), wanted) ? true : null;
-            } catch (StaleElementReferenceException e) {
-                return null;
-            }
+        poll(d -> {
+            List<String> texts = textsOf(d.findElements(by));
+            return containsInOrder(texts, wanted) ? Check.pass() : Check.fail(shorten(texts.toString()));
         }, "Expected texts to contain " + wanted + " in order for: " + description);
         return this;
     }
@@ -1277,19 +1244,17 @@ public final class LocatorAssert {
      */
     public LocatorAssert containsClass(List<String> classNamesPerElement) {
         step("Assert elements contain classes " + classNamesPerElement + " for: " + description);
-        poll(driver -> {
-            try {
-                List<WebElement> els = driver.findElements(by);
-                if (els.size() != classNamesPerElement.size())
-                    return null;
-                for (int i = 0; i < els.size(); i++) {
-                    if (!hasAllClasses(els.get(i), classNamesPerElement.get(i)))
-                        return null;
-                }
-                return true;
-            } catch (StaleElementReferenceException e) {
-                return null;
+        poll(d -> {
+            List<WebElement> els = d.findElements(by);
+            List<String> classes = new ArrayList<>(els.size());
+            boolean all = els.size() == classNamesPerElement.size();
+            for (int i = 0; i < els.size(); i++) {
+                classes.add(els.get(i).getDomAttribute("class"));
+                if (all && !hasAllClasses(els.get(i), classNamesPerElement.get(i)))
+                    all = false;
             }
+            return all ? Check.pass()
+                    : Check.fail(els.size() + " element(s), classes: " + shorten(classes.toString()));
         }, "Expected elements to contain classes " + classNamesPerElement + " for: " + description);
         return this;
     }
@@ -1356,43 +1321,22 @@ public final class LocatorAssert {
     }
 
     /**
-     * Asserts the element's computed ARIA role equals {@code role} — retries until
-     * timeout.
-     *
-     * @since 1.1.0
-     */
-    public LocatorAssert hasRole(Role role) {
-        return hasRole(role.ariaName());
-    }
-
-    /**
-     * Asserts the element's computed accessible name matches {@code pattern} —
-     * retries until timeout.
+     * Asserts the element's accessible name matches {@code pattern} — retries until
+     * timeout. Use {@code Pattern.compile("(?i)submit")} for a case-insensitive
+     * "contains" check.
      *
      * @since 1.1.0
      */
     public LocatorAssert hasAccessibleName(Pattern pattern) {
-        pollFirst("Assert accessible name matches /" + pattern + "/ for: " + description,
-                el -> {
-                    String name = el.getAccessibleName();
-                    return name != null && pattern.matcher(name.trim()).find();
-                },
-                "Expected accessible name to match [" + pattern + "] for: " + description);
-        return this;
-    }
-
-    /**
-     * Asserts the element's accessible description equals {@code expected}
-     * (whitespace-normalized) — retries until timeout. The description comes from
-     * {@code aria-describedby}, then {@code aria-description}, then
-     * {@code title}.
-     *
-     * @since 1.1.0
-     */
-    public LocatorAssert hasAccessibleDescription(String expected) {
-        pollFirst("Assert accessible description '" + expected + "' for: " + description,
-                el -> normalizeSpace(expected).equals(jsText(el, ACCESSIBLE_DESCRIPTION_JS)),
-                "Expected accessible description [" + expected + "] for: " + description);
+        Objects.requireNonNull(pattern, "pattern");
+        step("Assert accessible name matches /" + pattern + "/ for: " + description);
+        poll(d -> {
+            A11yProbe.NodeInfo info = probeFirst(d);
+            if (info == null)
+                return Check.fail("not found");
+            return info.name() != null && pattern.matcher(info.name()).find() ? Check.pass()
+                    : Check.fail(quote(info.name()));
+        }, "Expected accessible name to match [" + pattern + "] for: " + description);
         return this;
     }
 
@@ -1403,9 +1347,15 @@ public final class LocatorAssert {
      * @since 1.1.0
      */
     public LocatorAssert hasAccessibleDescription(Pattern pattern) {
-        pollFirst("Assert accessible description matches /" + pattern + "/ for: " + description,
-                el -> pattern.matcher(jsText(el, ACCESSIBLE_DESCRIPTION_JS)).find(),
-                "Expected accessible description to match [" + pattern + "] for: " + description);
+        Objects.requireNonNull(pattern, "pattern");
+        step("Assert accessible description matches /" + pattern + "/ for: " + description);
+        poll(d -> {
+            A11yProbe.NodeInfo info = probeFirst(d);
+            if (info == null)
+                return Check.fail("not found");
+            return info.description() != null && pattern.matcher(info.description()).find() ? Check.pass()
+                    : Check.fail(quote(info.description()));
+        }, "Expected accessible description to match [" + pattern + "] for: " + description);
         return this;
     }
 
@@ -1435,6 +1385,117 @@ public final class LocatorAssert {
                 el -> pattern.matcher(jsText(el, ACCESSIBLE_ERROR_MESSAGE_JS)).find(),
                 "Expected accessible error message to match [" + pattern + "] for: " + description);
         return this;
+    }
+
+    // ------------------------------------------------------------------
+    // Accessibility (deterministic)
+    // ------------------------------------------------------------------
+
+    /**
+     * Asserts the element's role — the explicit {@code role} attribute, or the implicit role of
+     * its HTML tag — equals {@code role}. Retries until timeout.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LocatorAssert hasRole(Role role) {
+        Objects.requireNonNull(role, "role");
+        return hasRole(role.ariaName());
+    }
+
+    /**
+     * Asserts the element's role — the explicit {@code role} attribute, or the implicit role of
+     * its HTML tag — equals {@code expected}, ignoring case. Retries until timeout.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LocatorAssert hasRole(String expected) {
+        Objects.requireNonNull(expected, "expected");
+        step("Assert role '" + expected + "' for: " + description);
+        poll(d -> {
+            A11yProbe.NodeInfo info = probeFirst(d);
+            if (info == null)
+                return Check.fail("not found");
+            return expected.equalsIgnoreCase(info.role()) ? Check.pass()
+                    : Check.fail(info.role() == null ? "generic (no role)" : info.role());
+        }, "Expected element to have role [" + expected + "]: " + description);
+        return this;
+    }
+
+    /**
+     * Asserts the element's accessible name equals {@code expected}, with whitespace collapsed —
+     * the same name {@code Locator.withName(...)} matches on. Retries until timeout. For a partial
+     * or case-insensitive match use {@link #hasAccessibleName(Pattern)}.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LocatorAssert hasAccessibleName(String expected) {
+        Objects.requireNonNull(expected, "expected");
+        step("Assert accessible name '" + expected + "' for: " + description);
+        poll(d -> {
+            A11yProbe.NodeInfo info = probeFirst(d);
+            if (info == null)
+                return Check.fail("not found");
+            return collapse(expected).equals(info.name()) ? Check.pass() : Check.fail(quote(info.name()));
+        }, "Expected accessible name [" + expected + "] for: " + description);
+        return this;
+    }
+
+    /**
+     * Asserts the element's accessible description (aria-describedby, aria-description or title)
+     * equals {@code expected}, with whitespace collapsed. Retries until timeout. For a partial or
+     * case-insensitive match use {@link #hasAccessibleDescription(Pattern)}.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LocatorAssert hasAccessibleDescription(String expected) {
+        Objects.requireNonNull(expected, "expected");
+        step("Assert accessible description '" + expected + "' for: " + description);
+        poll(d -> {
+            A11yProbe.NodeInfo info = probeFirst(d);
+            if (info == null)
+                return Check.fail("not found");
+            return collapse(expected).equals(info.description()) ? Check.pass()
+                    : Check.fail(quote(info.description()));
+        }, "Expected accessible description [" + expected + "] for: " + description);
+        return this;
+    }
+
+    /**
+     * Asserts the accessibility tree under the element matches a YAML template. See
+     * {@link AriaSnapshot} for the template syntax and matching rules. A malformed template fails
+     * immediately with {@link IllegalArgumentException}, without waiting for the timeout. On
+     * failure the message includes the template and the captured snapshot.
+     *
+     * <pre>
+     * assertThat(By.tagName("nav")).matchesAriaSnapshot("""
+     *     - link "Home"
+     *     - link "Docs"
+     *     """);
+     * </pre>
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LocatorAssert matchesAriaSnapshot(String template) {
+        Objects.requireNonNull(template, "template");
+        List<AriaSnapshot.AriaNode> expected = AriaSnapshot.parseTemplate(template);
+        step("Assert ARIA snapshot for: " + description);
+        AtomicReference<String> detail = new AtomicReference<>("");
+        poll(d -> {
+            List<WebElement> els = d.findElements(by);
+            if (els.isEmpty())
+                return Check.fail("not found");
+            List<AriaSnapshot.AriaNode> actual = AriaSnapshot.capture(d, els.getFirst());
+            AriaSnapshot.MatchResult result = AriaSnapshot.match(actual, expected);
+            if (result.matches())
+                return Check.pass();
+            detail.set(result.diff());
+            return Check.fail(shorten(result.diff().lines().skip(1).findFirst().orElse("mismatch")));
+        }, "Expected element to match ARIA snapshot: " + description, detail::get);
+        return this;
+    }
+
+    private A11yProbe.NodeInfo probeFirst(WebDriver d) {
+        WebElement el = target(d);
+        return el == null ? null : A11yProbe.probe(d, el);
+    }
+
+    private static String collapse(String s) {
+        return s.replaceAll("\\s+", " ").trim();
     }
 
     // ------------------------------------------------------------------
@@ -1477,41 +1538,31 @@ public final class LocatorAssert {
 
     private void evaluateAi(String condition, boolean expectSatisfaction) {
         WebDriver driver = DriverManager.getDriver();
-        List<WebElement> els = driver.findElements(by);
-        if (els.isEmpty()) {
-            String prefix = customMessage != null && !customMessage.isBlank() ? "[" + customMessage + "] " : "";
-            String err = prefix + "Cannot evaluate AI condition: element not found for " + description;
-            if (soft) {
-                SoftAssertionCollector target = collector != null ? collector : SoftAssertions.get();
-                target.that(false, err);
-            } else {
-                throw new AssertionError(err);
-            }
+        WebElement el;
+        try {
+            el = target(driver);
+        } catch (NoSuchElementException | LocatorException e) {
+            el = null;
+        }
+        if (el == null) {
+            report("Cannot evaluate AI condition: element not found for " + description, null);
             return;
         }
 
         String rawHtml;
         try {
-            rawHtml = els.getFirst().getAttribute("outerHTML");
+            rawHtml = el.getAttribute("outerHTML");
         } catch (Exception e) {
-            rawHtml = els.getFirst().getText();
+            rawHtml = el.getText();
         }
 
         String pruned = DomPruner.prune(rawHtml);
         AiAssertEngine.AiAssertionResult result = AiAssertEngine.verify(driver, pruned, condition, expectSatisfaction);
 
         if (!result.isPassed()) {
-            String prefix = customMessage != null && !customMessage.isBlank() ? "[" + customMessage + "] " : "";
             String modeStr = expectSatisfaction ? "satisfy" : "not violate";
-            String err = prefix + "Expected element [" + description + "] to " + modeStr + " AI condition: \""
-                    + condition + "\". Reason: " + result.reason();
-
-            if (soft) {
-                SoftAssertionCollector target = collector != null ? collector : SoftAssertions.get();
-                target.that(false, err);
-            } else {
-                throw new AssertionError(err);
-            }
+            report("Expected element [" + description + "] to " + modeStr + " AI condition: \""
+                    + condition + "\". Reason: " + result.reason(), null);
         }
     }
 
@@ -1670,17 +1721,12 @@ public final class LocatorAssert {
      */
     private void pollFirst(String stepMessage, Predicate<WebElement> check, String failMessage) {
         step(stepMessage);
-        boolean negate = consumeNegation();
-        await(driver -> {
-            try {
-                List<WebElement> els = driver.findElements(by);
-                if (els.isEmpty())
-                    return negate ? true : null;
-                return check.test(els.getFirst()) != negate ? true : null;
-            } catch (StaleElementReferenceException e) {
-                return null;
-            }
-        }, () -> negate ? negateMessage(failMessage) : failMessage);
+        poll(d -> {
+            WebElement el = target(d);
+            if (el == null)
+                return Check.fail("not found");
+            return check.test(el) ? Check.pass() : Check.fail("condition not met on " + describeElement(el));
+        }, failMessage);
     }
 
     /** Logs an assertion step, marking it when the assertion is negated. */
@@ -1802,11 +1848,66 @@ public final class LocatorAssert {
         return Objects.equals(actual, expected);
     }
 
-    private <T> void poll(ExpectedCondition<T> condition, String failMessage) {
-        if (consumeNegation()) {
-            await(ExpectedConditions.not(condition), () -> negateMessage(failMessage));
-        } else {
-            await(condition, () -> failMessage);
+    /** Outcome of one probe: whether it passed and what was observed. */
+    private record Check(boolean passed, String actual) {
+        static Check pass() {
+            return new Check(true, "ok");
+        }
+
+        static Check fail(String actual) {
+            return new Check(false, actual);
+        }
+    }
+
+    /**
+     * The element single-element matchers inspect, or {@code null} when nothing matches. A
+     * {@code Locator} picks its first visible match (see {@code SeleniumAssert.LocatorBy}); a plain
+     * {@code By} keeps its first match.
+     */
+    private WebElement target(WebDriver d) {
+        if (by instanceof SeleniumAssert.LocatorBy) {
+            return d.findElement(by);
+        }
+        List<WebElement> els = d.findElements(by);
+        return els.isEmpty() ? null : els.getFirst();
+    }
+
+    private static Check safeProbe(Function<WebDriver, Check> probe, WebDriver driver) {
+        try {
+            return probe.apply(driver);
+        } catch (NoSuchElementException e) {
+            return Check.fail("not found");
+        } catch (StaleElementReferenceException e) {
+            return Check.fail("element went stale");
+        } catch (LocatorException e) {
+            return Check.fail("locator failed: " + shorten(e.getMessage()));
+        }
+    }
+
+    private void poll(Function<WebDriver, Check> probe, String failMessage) {
+        poll(probe, failMessage, null);
+    }
+
+    /** {@code detail}, when not null, is appended on new lines after the one-line failure message. */
+    private void poll(Function<WebDriver, Check> probe, String failMessage, Supplier<String> detail) {
+        boolean negate = consumeNegation();
+        Duration timeout = timeout();
+        WebDriver driver = DriverManager.getDriver();
+        AtomicReference<String> lastActual = new AtomicReference<>("not evaluated");
+        try {
+            new WebDriverWait(driver, timeout).until(d -> {
+                Check c = safeProbe(probe, d);
+                lastActual.set(c.actual());
+                return c.passed() != negate ? Boolean.TRUE : null;
+            });
+        } catch (TimeoutException e) {
+            String timeoutStr = timeout.toMillis() >= 1000 && timeout.toMillis() % 1000 == 0
+                    ? timeout.toSeconds() + "s"
+                    : timeout.toMillis() + "ms";
+            String message = negate ? negateMessage(failMessage) : failMessage;
+            String actual = negate ? "condition still met" : "actual: [" + lastActual.get() + "]";
+            String extra = detail == null || detail.get().isEmpty() ? "" : "\n" + detail.get();
+            report(message + " (" + actual + ", timeout: " + timeoutStr + ")" + extra, e);
         }
     }
 
@@ -1829,9 +1930,12 @@ public final class LocatorAssert {
     }
 
     private Duration timeout() {
-        return customTimeout != null
-                ? customTimeout
-                : Duration.ofSeconds(TestFlyContext.getConfig().getTimeouts().getExplicit());
+        if (customTimeout != null)
+            return customTimeout;
+        TestFlyConfig config = TestFlyContext.getConfig();
+        return config != null && config.getTimeouts() != null
+                ? Duration.ofSeconds(config.getTimeouts().getExplicit())
+                : Duration.ofSeconds(10);
     }
 
     /** Throws an {@link AssertionError}, or records the failure in soft mode. */
@@ -1844,6 +1948,38 @@ public final class LocatorAssert {
             target.that(false, err);
         } else {
             throw cause != null ? new AssertionError(err, cause) : new AssertionError(err);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Formatting helpers — keep every "actual" on a single line so soft
+    // failures joined with '\n' stay readable.
+    // ------------------------------------------------------------------
+
+    private static String quote(String s) {
+        return s == null ? "null" : "\"" + shorten(s) + "\"";
+    }
+
+    private static String shorten(String s) {
+        if (s == null)
+            return "null";
+        String oneLine = s.replace("\r\n", "\\n").replace("\n", "\\n").replace("\r", "\\n");
+        return oneLine.length() > 200 ? oneLine.substring(0, 200) + "…" : oneLine;
+    }
+
+    private static String describeElement(WebElement el) {
+        if (el == null)
+            return "unknown";
+        try {
+            StringBuilder sb = new StringBuilder("<");
+            String tag = el.getTagName();
+            sb.append(tag != null ? tag : "element");
+            String id = el.getAttribute("id");
+            if (id != null && !id.isBlank())
+                sb.append('#').append(id);
+            return sb.append('>').toString();
+        } catch (Exception e) {
+            return "unknown";
         }
     }
 }

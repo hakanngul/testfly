@@ -27,6 +27,13 @@ The default `mvn test` command skips these tests entirely — they live under
 | `ai/AiFailureAnalyzerIntegrationTest` | AI failure analysis | Real DeepSeek API call; requires `AI_API_KEY` env var |
 | `db/DbClientIntegrationTest` | Database assertions | H2 in-memory DB; connection factory, query execution, row assertions, connection cleanup |
 | `email/MailhogIntegrationTest` | Email (Mailhog) | Local HTTP stub; message parsing, request construction, error handling (5xx, connection refused) |
+| `locator/ActionabilityIntegrationTest` | Actionability | Real Chrome; click waits for an overlay and an animation to finish, scrolls off-screen buttons, names the blocking element on failure |
+| `accessibility/AriaSnapshotIntegrationTest` | ARIA assertions | Real Chrome; role, accessible name and description, ARIA snapshot output and template matching |
+| `tracing/TraceSnapshotIntegrationTest` | Step traces | Real Chrome; per-step ARIA and DOM snapshots, after-failure snapshot, the trace file opened in the browser, hostile page markup stays inert |
+| `browser/DeviceEmulatorIntegrationTest` | Device emulation | Real Chromium; viewport and user agent stick across navigation, network mocking keeps working, reset restores the browser |
+| `browser/ConsoleErrorIntegrationTest` | Console errors | Real browser; errors raised while loading, after load and on a page reached by a link are all reported |
+| `browser/ConsoleErrorBiDiIntegrationTest` | Console errors over BiDi | Real browser with `browser.bidi: true`; load-time, link-navigation and late errors are caught with no shim, and a new test starts clean |
+| `network/NetworkMockReuseIntegrationTest` | Network mocking | Real Chromium; five mock rounds on one reused driver each see only their own mock |
 | `testmanagement/TestRailIntegrationTest` | TestRail reporter | Local HTTP stub; Basic auth, payload mapping, status ID mapping, 401/500 error handling |
 
 ## Design principles

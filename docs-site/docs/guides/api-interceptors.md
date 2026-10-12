@@ -109,3 +109,7 @@ public final class ApiInterceptorExamples {
 ```
 
 See [Async Calls & Batch](api-async-batch.md) for context and cancellation, and [Logging & Reporting](api-reporting.md) for output rules.
+
+### Authentication in the chain
+
+Auth strategies that implement `ApiAuth.Intercepting` (Digest, `ApiAuth.hmacSigner()`, custom ones) are appended after all test and request interceptors, immediately before the transport. They therefore see the final request and may re-send it, for example after a Digest challenge. Header-only strategies such as bearer or basic are applied before the chain starts.

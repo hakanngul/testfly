@@ -108,6 +108,12 @@ public class LocatorAssertExtendedTest {
         when(((JavascriptExecutor) mockDriver).executeScript(anyString(), any(Object[].class))).thenReturn(result);
     }
 
+    /** JSON the accessibility probe returns for one element. */
+    private static String a11yNode(String role, String name, String description) {
+        return "{\"role\":\"" + role + "\",\"name\":\"" + name + "\",\"description\":\"" + description
+                + "\",\"attrs\":{}}";
+    }
+
     // ---------------------------------------------------------------
     // Value
     // ---------------------------------------------------------------
@@ -341,18 +347,17 @@ public class LocatorAssertExtendedTest {
     @Test
     public void role_accessibleName_id_pass() {
         WebElement el = input("");
-        when(el.getAriaRole()).thenReturn("textbox");
-        when(el.getAccessibleName()).thenReturn(" Username ");
         when(el.getDomAttribute("id")).thenReturn("user");
         found(FIELD, el);
+        jsReturns(a11yNode("textbox", "Username", ""));
         expect(FIELD).hasRole("textbox").hasAccessibleName("Username").hasId("user");
     }
 
     @Test(expectedExceptions = AssertionError.class)
     public void hasRole_mismatch_fails() {
         WebElement el = input("");
-        when(el.getAriaRole()).thenReturn("button");
         found(FIELD, el);
+        jsReturns(a11yNode("button", "", ""));
         expect(FIELD).hasRole("textbox");
     }
 }

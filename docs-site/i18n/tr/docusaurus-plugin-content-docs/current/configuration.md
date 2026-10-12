@@ -101,6 +101,7 @@ browser:
   lifecycle: per-test               # per-test (her teste temiz oturum) | per-suite (thread başına oturum koruma)
   downloadDir: ./target/downloads   # indirilen dosyaların kaydedileceği dizin
   captureConsoleErrors: false       # tarayıcı console.error loglarını topla
+  bidi: false                       # WebDriver BiDi bağlantısı aç; Firefox'ta konsol hataları yükleme anı hatalarını da içerir
   failOnConsoleErrors: false        # SEVERE konsol hatası varsa testi başarısız say
   device:                           # isteğe bağlı mobil emülasyon profili (örn: "iPhone 14")
   matrix: []                        # çoklu tarayıcı matrisi (örn: [chrome, firefox])
@@ -173,6 +174,14 @@ locators:
   aiHealing: false                  # statik sezgiseller yetersiz kaldığında LLM ile seçici onarımı
   maxDomTokens: 8000                # AI seçici onarımı için DOM budama belirteç (token) limiti
   testIdAttribute: data-testid      # getByTestId() tarafından sorgulanacak HTML özniteliği
+  strict: false                     # aksiyon locator'ı birden fazla görünür elemanla eşleşirse hata ver
+
+# ── Actionability (Etkileşime Hazır Olma) ────────────────────────────────────
+actionability:
+  enabled: true                     # click/hover/type öncesi öğenin kararlı ve örtülmemiş olmasını bekle
+  stabilityIntervalMs: 100          # öğenin oturmasını beklerken yoklama aralığı (10-5000)
+  hitTargetCheck: true              # tıklama noktası başka bir öğe tarafından örtülüyken hata ver
+  autoScroll: true                  # öğe ekran dışındaysa veya örtülüyse görünür alana kaydır
 
 # ── AI Failure Analysis (AI Hata Analizi) ────────────────────────────────────
 ai:
@@ -232,6 +241,9 @@ recording:
 tracing:
   enabled: false                    # adım adım ekran görüntüleri ve zaman tüneli içeren HTML izleme dosyası üret
   captureOnPass: false              # başarılı testler için de izleme kaydet
+  snapshots: aria                   # adım başına sayfa snapshot'ı: none | aria | dom | both
+  snapshotMaxKb: 256                # adım başına tutulan en uzun snapshot
+  snapshotOnFailureAfter: true      # başarısız testler son adımdan sonraki sayfayı da kaydeder
 
 # ── Görsel Karşılaştırma (Visual Regression) ─────────────────────────────────
 visual:
@@ -270,7 +282,7 @@ clock:
 
 # ── Ağ Araya Girme (Network Interception) ────────────────────────────────────
 network:
-  interceptEnabled: false           # CDP üzerinden ağ trafiğine müdahale ve yanıt mock'lamayı etkinleştir
+  interceptEnabled: false           # ayrılmış, etkisi yok: müdahale ilk route, stub veya blockUrls girdisiyle başlar
   blockUrls:                        # global engellenecek URL kalıpları (izleyiciler, reklamlar vb.)
     - "*google-analytics.com*"
     - "*doubleclick.net*"
@@ -420,7 +432,7 @@ Her anahtar **üç durumlu**dur:
 | `ai` | `ai.enabled` — `act()`, `aiAssert()`, hata analizi, patch üretimi ve AI locator healing'i kapsar | `true` |
 | `recording` | `recording.enabled` | `false` |
 | `tracing` | `tracing.enabled` — adım adım ekran görüntüleri ve zaman tüneli içeren HTML izleme dosyası (`target/traces/`) üretir | `false` |
-| `network` | `network.interceptEnabled` | `false` |
+| `network` | `network.interceptEnabled` (ayrılmış, şu an etkisi yok) | `false` |
 | `healing` | `locators.selfHealing` ve `locators.aiHealing` | `false` |
 | `visual` | *modül bayrağı yok* — kapatılmadığı sürece görsel regresyon kullanılabilir | `true` |
 | `performance` | `performance.captureOnEveryTest` | `false` |
@@ -482,6 +494,7 @@ Tarayıcı sağlama, çalıştırma modu, yetenekler ve süreç argümanlarını
 | `lifecycle` | `string` | `per-test` | WebDriver yaşam döngüsü: `per-test` (her testten sonra kapatır) veya `per-suite` (thread başına oturumu testler boyunca açık tutar). |
 | `downloadDir` | `string` | `./target/downloads` | İndirilen dosyaların kaydedileceği yerel dizin. |
 | `captureConsoleErrors` | `boolean` | `false` | `true` ise yürütme sırasında tarayıcı `console.error` loglarını yakalar. |
+| `bidi` | `boolean` | `false` | Tarayıcıyı bir WebDriver BiDi bağlantısıyla başlatır (yerel Chrome, Edge, Firefox). Konsol hata yakalama bu durumda her sayfa yüklemesinin başından itibaren BiDi log olaylarını dinler. Firefox'un yükleme anı hatalarını görmesi için gereklidir. Bkz. [Konsol Hataları](guides/console-errors#bidi-kullanımı). |
 | `failOnConsoleErrors` | `boolean` | `false` | `true` ise test sırasında `SEVERE` düzeyinde konsol hatası oluştuğunda testi başarısız sayar. |
 | `device` | `string` | `null` | Mobil emülasyon profili adı (örn: `"iPhone 14"`, `"Pixel 7"`). |
 | `matrix` | `list<string>` | `[]` | Çoklu tarayıcı test koşumu için tarayıcı listesi (örn: `[chrome, firefox]`). |
@@ -575,6 +588,21 @@ Akıllı seçici sentezi ve dayanıklılık ayarları.
 | `aiHealing` | `boolean` | `false` | Standart sezgiseller yetersiz kaldığında LLM ile seçici sentezlemeyi açar. |
 | `maxDomTokens` | `int` | `8000` | AI seçici onarımında modele gönderilecek budanmış DOM token bütçesi. |
 | `testIdAttribute` | `string` | `data-testid` | `getByTestId("submit-btn")` çağrısının hedeflediği HTML niteliği (`data-qa`, `data-test` vb. olarak değiştirilebilir). |
+| `strict` | `boolean` | `false` | `true` olduğunda, birden fazla **görünür** elemanla eşleşen bir locator üzerinde aksiyon (veya `isVisible()`/`isEnabled()`) `first()`, `nth()` ya da `last()` ile daraltılmadıkça strict mode ihlaliyle başarısız olur. |
+
+---
+
+## Actionability (Etkileşime Hazır Olma) {#actionability}
+
+`click`, `hover`, `type`, `clear` ve `append` öncesinde öğe, o etkileşime hazır
+olmalıdır. Bkz. [Actionability](/docs/guides/wait-engine#actionability-etkileşime-hazır-olma).
+
+| Özellik | Tür | Varsayılan | Açıklama |
+|---|---|---|---|
+| `enabled` | `boolean` | `true` | Ana anahtar. `false` önceki beklemeleri geri getirir (yalnızca görünür ve etkin). |
+| `stabilityIntervalMs` | `int` | `100` | Öğenin hareketinin durmasını beklerken yoklama aralığı. 10 ile 5000 arasında olmalıdır. |
+| `hitTargetCheck` | `boolean` | `true` | Tıklama noktası başka bir öğe tarafından örtülüyken bekler. Yazmaya uygulanmaz. |
+| `autoScroll` | `boolean` | `true` | Öğenin merkezi ekran dışındaysa veya örtülüyse öğeyi görünür alana kaydırır. |
 
 ---
 
@@ -682,8 +710,11 @@ Yerleşik REST istemcisi (`ApiClient` & `BaseApiTest`) yapılandırması.
 | `api.ssl.trustStore.path` | `string` | — | Özel güven deposunun dosya yolu; bu profil için varsayılan JDK deposunun yerini alır. `trustStore` bloğu yazıldığında zorunludur. |
 | `api.ssl.trustStore.type` | `string` | `PKCS12` | `PKCS12` veya `JKS`; başka değerler reddedilir. |
 | `api.ssl.trustStore.password` | `string` | `null` | Parolayı `${TESTFLY_TRUSTSTORE_PASSWORD}` ile sağlayın; asla commit'lemeyin. |
+| `api.proxy.host` | `string` | `null` | API çağrıları için HTTP proxy host'u; ayarlanmazsa doğrudan bağlanılır. Proxy kimlik doğrulaması desteklenmez. |
+| `api.proxy.port` | `int` | `0` | Proxy portu; `host` ayarlıysa zorunludur (1..65535). |
+| `api.proxy.nonProxyHosts` | `list<string>` | `[]` | Proxy'yi atlayan host'lar; büyük/küçük harfe duyarsız, `*` joker karakterli (`localhost`, `*.internal`, `10.*`). |
 
-`trustAll: true` ile birlikte bir `trustStore` bloğu tanımlamak `Conflicting SSL selection` hatası verir. İstek üzerindeki `.trustStore(...)` veya `.trustAllCerts()` o istek için YAML SSL seçiminin tamamını geçersiz kılar. `.requestTimeout(Duration)` veya mevcut `.timeout(int)` istek başına zaman aşımını değiştirir; son çağrı kazanır. Bu bir socket read-idle timeout değildir. Batch limiti mantıksal çağrıları, global limit gerçek gönderimleri sınırlar.
+`trustAll: true` ile birlikte bir `trustStore` bloğu tanımlamak `Conflicting SSL selection` hatası verir. İstek üzerindeki `.trustStore(...)` veya `.trustAllCerts()` o istek için YAML SSL seçiminin tamamını geçersiz kılar. `.proxy(host, port)` ve `.noProxy()` tek bir istek için `api.proxy` ayarını geçersiz kılar. `.requestTimeout(Duration)` veya mevcut `.timeout(int)` istek başına zaman aşımını değiştirir; son çağrı kazanır. Bu bir socket read-idle timeout değildir. Batch limiti mantıksal çağrıları, global limit gerçek gönderimleri sınırlar.
 
 [SSL yapılandırması](guides/api-ssl.md) ve [Timeouts & Performance](guides/api-performance.md) sayfalarına bakın.
 
@@ -701,9 +732,11 @@ api:
     retryOnException: true
 ```
 
+Bir istek bu politikayı `.retry(attempts)`, `.retry(attempts, backoff)`, `.retryOn(statuses...)`, `.retryOnException(boolean)` veya `.noRetry()` ile geçersiz kılabilir. Açık bir override, `enabled` `false` olsa bile o istek için retry'ı etkinleştirir.
+
 #### `api.auth`
 
-Testlerde `@UseAuth("ad")` veya `apiClient().withAuth("ad")` ile çağrılan adlandırılmış kimlik doğrulama profilleri:
+Test metoduna veya sınıfına `@UseAuth("ad")` ile uygulanan adlandırılmış kimlik doğrulama profilleri. Tipler: `bearer`, `basic`, `oauth2`, `oauth2_password`, `oauth2-refresh` (`refreshToken`), `apiKey`, `apikey-query`, `digest`, `hmac` (deprecated) ve `hmac-signed` (`apiKey`, `secret`, opsiyonel `algorithm`, `keyHeader`, `signatureHeader`, `timestampHeader`, `encoding`). Bkz. [API Kimlik Doğrulama](guides/api-auth.md).
 
 ```yaml
 api:
@@ -797,6 +830,9 @@ Hata ayıklama, kök neden analizi ve denetim uyumluluğu için tarayıcı oturu
 | `recording.cdp` | `boolean` | `true` | True olduğunda Chrome/Edge üzerinde CDP screencast kullanarak test hızını düşürmeden kayıt alır. |
 | `tracing.enabled` | `boolean` | `false` | Zaman tüneli, tıklanabilir adım ekran görüntüleri ve hata anı görseli içeren bağımsız HTML izleme dosyası üretir (`target/traces/{Class}/{method}-trace.html`). |
 | `tracing.captureOnPass` | `boolean` | `false` | Başarılı testlerde de izleme kaydeder. |
+| `tracing.snapshots` | `string` | `aria` | Her adımın iz için kaydettiği: `none`, `aria` (erişilebilirlik ağacı), `dom` (budanmış sayfa HTML'i) veya `both`. Bkz. [Adım İzleri](guides/tracing). |
+| `tracing.snapshotMaxKb` | `int` | `256` | Adım başına tutulan en uzun snapshot, kilobayt olarak. Daha uzunları `… truncated` işaretiyle kesilir. |
+| `tracing.snapshotOnFailureAfter` | `boolean` | `true` | Başarısız test için son adımdan sonra bir erişilebilirlik snapshot'ı da kaydeder ve öncesiyle fark gösterir. |
 
 ---
 
@@ -853,7 +889,7 @@ testmanagement:
 
 * **`clock.injectHeader`**: Tarayıcı isteklerine sahte tarih HTTP başlığı ekler (varsayılan `false`).
 * **`clock.headerName`**: Özel başlık adı (varsayılan `"X-Mock-Date"`).
-* **`network.interceptEnabled`**: Chrome DevTools Protokolü üzerinden ağ trafiğine müdahale ve stubbing'i açar (varsayılan `false`).
+* **`network.interceptEnabled`**: Ayrılmıştır. Bugün etkisi yoktur: ağ müdahalesi, bu değer ne olursa olsun, ilk `mockRoute`, stub veya boş olmayan `network.blockUrls` ile başlar ve yalnızca yerel Chrome veya Edge'de çalışır (bkz. [Tarayıcı Desteği](guides/browser-support)).
 * **`network.blockUrls`**: Eşleşen URL isteklerini ağ düzeyinde global olarak engeller (örn: reklamlar, izleyiciler) (varsayılan: `[]`).
 
 ---

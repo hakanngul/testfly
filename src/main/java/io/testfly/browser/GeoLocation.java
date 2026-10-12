@@ -15,8 +15,8 @@ import org.openqa.selenium.chromium.ChromiumDriver;
  * {@code navigator.geolocation.getCurrentPosition} as a fallback.
  *
  * <p>
- * Always call {@link #clear()} or rely on the auto-clear in
- * {@link io.testfly.listeners.TestExecutionListener} after each test.
+ * Always call {@link #clear()} or rely on the framework, which calls
+ * {@link #autoReset()} after each test.
  *
  * <pre>
  * mockLocation().set(51.5074, -0.1278); // London
@@ -28,7 +28,27 @@ import org.openqa.selenium.chromium.ChromiumDriver;
 @TestFlyApi(since = "1.5.0")
 public final class GeoLocation {
 
+    /** True while this thread has an override in place, so the framework knows to undo it. */
+    private static final ThreadLocal<Boolean> OVERRIDE_ACTIVE = new ThreadLocal<>();
+
     private GeoLocation() {
+    }
+
+    /**
+     * Framework-internal: removes the override if this thread set one. Called after every test, so
+     * a location mocked in one test cannot leak into the next test on a reused browser. Never throws.
+     */
+    public static void autoReset() {
+        if (OVERRIDE_ACTIVE.get() == null) {
+            return;
+        }
+        try {
+            new GeoLocation().clear();
+        } catch (RuntimeException ignored) {
+            // The browser may already be gone; there is nothing left to reset.
+        } finally {
+            OVERRIDE_ACTIVE.remove();
+        }
     }
 
     /** Returns the GeoLocation helper for the current thread's driver. */
@@ -65,8 +85,10 @@ public final class GeoLocation {
                             "accuracy", 1));
         } else {
             // Firefox / other: JS override
+            BrowserFeatures.warnOnce(driver, BrowserFeatures.Feature.GEOLOCATION);
             injectJsOverride(driver, latitude, longitude, altitude);
         }
+        OVERRIDE_ACTIVE.set(Boolean.TRUE);
     }
 
     /**
@@ -87,6 +109,7 @@ public final class GeoLocation {
                             "  delete window.__testFlyGeoBackup;" +
                             "}");
         }
+        OVERRIDE_ACTIVE.remove();
     }
 
     // ------------------------------------------------------------------

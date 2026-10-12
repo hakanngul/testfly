@@ -1,6 +1,8 @@
 package io.testfly.wait;
 
 import io.testfly.api.TestFlyApi;
+import io.testfly.config.TestFlyConfig;
+import io.testfly.internal.ElementDescriber;
 import io.testfly.driver.DriverManager;
 import io.testfly.healing.SelfHealingLocator;
 import io.testfly.internal.TestFlyContext;
@@ -20,6 +22,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -42,6 +45,11 @@ public final class WaitEngine {
     }
 
     private static FluentWait<WebDriver> createWait(WebDriver driver) {
+        return new WebDriverWait(driver, Duration.ofSeconds(resolveTimeoutSeconds()))
+                .ignoring(StaleElementReferenceException.class);
+    }
+
+    private static int resolveTimeoutSeconds() {
         int timeoutSeconds = 10;
         try {
             if (TestFlyContext.getConfig() != null && TestFlyContext.getConfig().getTimeouts() != null) {
@@ -49,8 +57,7 @@ public final class WaitEngine {
             }
         } catch (Exception ignored) {
         }
-        return new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds))
-                .ignoring(StaleElementReferenceException.class);
+        return timeoutSeconds;
     }
 
     // ----------------------------------------------------------
@@ -148,6 +155,227 @@ public final class WaitEngine {
      */
     public static WebElement waitForClickable(WebElement element) {
         return createWait().until(ExpectedConditions.elementToBeClickable(element));
+    }
+
+    // ----------------------------------------------------------
+    // Actionability (Playwright-style)
+    // ----------------------------------------------------------
+
+    /**
+     * Single script that reports whether the element is still attached, where it is,
+     * and what receives a click at its centre. Scrolls the element into view when
+     * its centre is off-screen or covered, so a sticky header does not count as an
+     * obstruction.
+     */
+    private static final String ACTIONABILITY_JS = """
+            const el = arguments[0], doScroll = arguments[1], hitTest = arguments[2];
+            if (!el || !el.isConnected) return {attached: false};
+            function desc(n) {
+              if (!n || !n.tagName) return String(n);
+              let s = n.tagName.toLowerCase();
+              if (n.id) s += '#' + n.id;
+              if (n.classList && n.classList.length) s += '.' + Array.from(n.classList).slice(0, 3).join('.');
+              return s;
+            }
+            function within(n) {
+              while (n) { if (n === el) return true; n = n.parentNode || n.host || null; }
+              return false;
+            }
+            function measure() {
+              const r = el.getBoundingClientRect();
+              return {r: r, cx: r.left + r.width / 2, cy: r.top + r.height / 2};
+            }
+            function hit(cx, cy) {
+              let h = document.elementFromPoint(cx, cy);
+              while (h && h.shadowRoot) {
+                const inner = h.shadowRoot.elementFromPoint(cx, cy);
+                if (!inner || inner === h) break;
+                h = inner;
+              }
+              return h;
+            }
+            function receives(h) {
+              return !!h && (within(h) || (h.tagName === 'LABEL' && h.control === el));
+            }
+            let m = measure();
+            const offscreen = () => m.cx < 0 || m.cy < 0 || m.cx > window.innerWidth || m.cy > window.innerHeight;
+            if (doScroll && offscreen()) {
+              try { el.scrollIntoView({block: 'center', inline: 'center', behavior: 'instant'}); }
+              catch (e) { el.scrollIntoView(true); }
+              m = measure();
+            }
+            let ok = true, blocker = null;
+            if (hitTest) {
+              let h = hit(m.cx, m.cy);
+              if (!receives(h) && doScroll) {
+                try { el.scrollIntoView({block: 'center', inline: 'center', behavior: 'instant'}); } catch (e) {}
+                m = measure();
+                h = hit(m.cx, m.cy);
+              }
+              ok = receives(h);
+              if (!ok) blocker = h ? desc(h) : 'nothing (point outside the viewport)';
+            }
+            return {attached: true, x: m.r.left, y: m.r.top, w: m.r.width, h: m.r.height,
+                    hit: ok, blocker: blocker, target: desc(el)};
+            """;
+
+    /** Mutable per-wait state: previous bounding box, last reason and element label. */
+    private static final class ActionState {
+        double[] lastRect;
+        String reason = "not evaluated";
+        String target;
+    }
+
+    private static TestFlyConfig.Actionability actionabilityConfig() {
+        try {
+            TestFlyConfig config = TestFlyContext.getConfig();
+            if (config != null && config.getActionability() != null) {
+                return config.getActionability();
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return new TestFlyConfig.Actionability();
+    }
+
+    /** Waits until the element can be clicked: visible, enabled, stable and not covered. */
+    @TestFlyApi(since = "1.1.0")
+    public static WebElement waitForActionable(WebElement element) {
+        return waitForActionable(element, ActionKind.CLICK);
+    }
+
+    /**
+     * Waits until an already-resolved element is ready for the given interaction.
+     * When {@code actionability.enabled} is false this falls back to the legacy
+     * waits (clickable for {@link ActionKind#CLICK}, visible otherwise).
+     *
+     * @throws NotActionableException if the element never became actionable; the
+     *                                message names the element and the reason
+     * @throws StaleElementReferenceException if the element was detached, so the caller can re-resolve it
+     */
+    @TestFlyApi(since = "1.1.0")
+    public static WebElement waitForActionable(WebElement element, ActionKind kind) {
+        TestFlyConfig.Actionability cfg = actionabilityConfig();
+        if (!cfg.isEnabled()) {
+            return kind == ActionKind.CLICK ? waitForClickable(element) : waitForVisible(element);
+        }
+        WebDriver driver = DriverManager.getDriver();
+        ActionState state = new ActionState();
+        try {
+            return newActionabilityWait(driver, cfg, false)
+                    .until(d -> checkOnce(d, element, kind, cfg, state) ? element : null);
+        } catch (TimeoutException e) {
+            throw notActionable(kind, state, element, e);
+        }
+    }
+
+    /** Locator variant: re-finds the element on every poll and self-heals on timeout. */
+    @TestFlyApi(since = "1.1.0")
+    public static WebElement waitForActionable(By locator) {
+        return waitForActionable(locator, ActionKind.CLICK);
+    }
+
+    @TestFlyApi(since = "1.1.0")
+    public static WebElement waitForActionable(By locator, ActionKind kind) {
+        TestFlyConfig.Actionability cfg = actionabilityConfig();
+        if (!cfg.isEnabled()) {
+            return kind == ActionKind.CLICK ? waitForClickable(locator) : waitForVisible(locator);
+        }
+        WebDriver driver = DriverManager.getDriver();
+        ActionState state = new ActionState();
+        try {
+            return newActionabilityWait(driver, cfg, true).until(d -> {
+                WebElement el = d.findElement(locator);
+                return checkOnce(d, el, kind, cfg, state) ? el : null;
+            });
+        } catch (TimeoutException | NoSuchElementException e) {
+            WebElement healed = tryHeal(locator);
+            if (healed != null)
+                return healed;
+            if (e instanceof NoSuchElementException) {
+                throw e;
+            }
+            throw notActionable(kind, state, null, (TimeoutException) e);
+        }
+    }
+
+    private static FluentWait<WebDriver> newActionabilityWait(WebDriver driver, TestFlyConfig.Actionability cfg,
+            boolean ignoreStale) {
+        FluentWait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(resolveTimeoutSeconds()))
+                .pollingEvery(Duration.ofMillis(cfg.getStabilityIntervalMs()));
+        // A stale element must reach the caller so it can re-resolve; only the By variant
+        // re-finds the element itself on every poll.
+        return ignoreStale ? wait.ignoring(StaleElementReferenceException.class) : wait;
+    }
+
+    private static NotActionableException notActionable(ActionKind kind, ActionState state, WebElement element,
+            TimeoutException cause) {
+        String label = state.target != null ? "<" + state.target + ">"
+                : element != null ? ElementDescriber.describe(element) : "Element";
+        return new NotActionableException("Element " + label + " is not actionable for " + kind + " after "
+                + resolveTimeoutSeconds() + "s: " + state.reason, cause);
+    }
+
+    /**
+     * One actionability evaluation. Fails open: a driver without JavaScript, a
+     * script error or an unexpected script result counts as actionable, so the
+     * check can only add waiting, never a new kind of failure.
+     */
+    private static boolean checkOnce(WebDriver d, WebElement el, ActionKind kind, TestFlyConfig.Actionability cfg,
+            ActionState s) {
+        if (!el.isDisplayed()) {
+            s.reason = "not visible";
+            return false;
+        }
+        if (kind.requiresEnabled() && !el.isEnabled()) {
+            s.reason = "not enabled";
+            return false;
+        }
+        if (!(d instanceof JavascriptExecutor js)) {
+            return true;
+        }
+        boolean hitTest = kind.requiresHitTarget() && cfg.isHitTargetCheck();
+        Object result;
+        try {
+            result = js.executeScript(ACTIONABILITY_JS, el, cfg.isAutoScroll(), hitTest);
+        } catch (StaleElementReferenceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            return true;
+        }
+        if (!(result instanceof Map<?, ?> m)) {
+            return true;
+        }
+        if (Boolean.FALSE.equals(m.get("attached"))) {
+            throw new StaleElementReferenceException("Element was detached while waiting for it to be actionable");
+        }
+        if (m.get("target") != null) {
+            s.target = String.valueOf(m.get("target"));
+        }
+        double[] rect = { num(m.get("x")), num(m.get("y")), num(m.get("w")), num(m.get("h")) };
+        boolean stable = s.lastRect != null && sameRect(s.lastRect, rect);
+        s.lastRect = rect;
+        if (!stable) {
+            s.reason = "not stable (bounding box is still changing)";
+            return false;
+        }
+        if (hitTest && Boolean.FALSE.equals(m.get("hit"))) {
+            s.reason = "obscured by <" + m.get("blocker") + ">";
+            return false;
+        }
+        return true;
+    }
+
+    private static double num(Object o) {
+        return o instanceof Number n ? n.doubleValue() : 0d;
+    }
+
+    private static boolean sameRect(double[] a, double[] b) {
+        for (int i = 0; i < 4; i++) {
+            if (Math.abs(a[i] - b[i]) > 0.5) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static boolean waitForStaleness(WebElement element) {

@@ -124,6 +124,50 @@ jobs:
           fail-on-error: false
           fail-on-empty: false
 
+  browser-integration-tests:
+    name: Browser Integration (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    # Firefox is experimental: several features use the Chrome DevTools Protocol and degrade there
+    # (see docs: Browser support). A red Firefox leg shows where; it does not block the build.
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chrome
+            config: src/test/resources/testfly-real-backends.yml
+            experimental: false
+          - browser: firefox
+            config: src/test/resources/testfly-real-backends-firefox.yml
+            experimental: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Run browser integration tests
+        run: >
+          mvn verify -Preal-backends --no-transfer-progress
+          -Dtestfly.config=${{ matrix.config }}
+          -Dtest=NoSuchTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false
+          -Dit.test='ActionabilityIntegrationTest,AriaSnapshotIntegrationTest,TraceSnapshotIntegrationTest,DeviceEmulatorIntegrationTest,ConsoleErrorIntegrationTest,ConsoleErrorBiDiIntegrationTest,NetworkMockIntegrationTest,NetworkMockReuseIntegrationTest'
+
+      - name: Upload Failsafe reports
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: browser-integration-results-${{ matrix.browser }}
+          path: '**/target/failsafe-reports/'
+          if-no-files-found: ignore
+          retention-days: 14
+
   integration-tests:
     name: Consumer Integration Tests
     runs-on: ubuntu-latest

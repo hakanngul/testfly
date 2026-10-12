@@ -42,7 +42,10 @@ public class ApiBatchRunner {
         return this;
     }
 
-    /** Executes the batch and returns a list of responses (maintaining order). */
+    /**
+     * Executes the batch and returns a list of responses (maintaining order).
+     * The first failed request fails the whole batch; use {@link #executeAll()} to keep partial results.
+     */
     public List<ApiResponse> execute() {
         if (requestSupplier == null) {
             throw new IllegalStateException("requestSupplier must be configured via .request()");
@@ -57,6 +60,45 @@ public class ApiBatchRunner {
                 futures.add(client.sendAsync(limit));
             }
             return futures.stream().map(CompletableFuture::join).collect(Collectors.toList());
+        } finally {
+            futures.forEach(future -> { if (!future.isDone()) future.cancel(true); });
+        }
+    }
+
+    /**
+     * Executes the batch and waits for every request, returning each response or error in
+     * submission order. A failing request does not cancel the others.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public ApiBatchResult executeAll() {
+        if (requestSupplier == null) {
+            throw new IllegalStateException("requestSupplier must be configured via .request()");
+        }
+        java.util.concurrent.Semaphore limit = concurrencyLimit > 0
+                ? new java.util.concurrent.Semaphore(concurrencyLimit) : null;
+        List<CompletableFuture<ApiResponse>> futures = new ArrayList<>(requestCount);
+        try {
+            for (int i = 0; i < requestCount; i++) {
+                ApiClient client;
+                try {
+                    client = java.util.Objects.requireNonNull(requestSupplier.get(), "requestSupplier result");
+                } catch (RuntimeException error) {
+                    futures.add(CompletableFuture.failedFuture(error));
+                    continue;
+                }
+                futures.add(client.sendAsync(limit));
+            }
+            List<ApiBatchResult.Outcome> outcomes = new ArrayList<>(requestCount);
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    outcomes.add(new ApiBatchResult.Outcome(i, futures.get(i).join(), null));
+                } catch (java.util.concurrent.CompletionException error) {
+                    outcomes.add(new ApiBatchResult.Outcome(i, null, error.getCause() != null ? error.getCause() : error));
+                } catch (java.util.concurrent.CancellationException error) {
+                    outcomes.add(new ApiBatchResult.Outcome(i, null, error));
+                }
+            }
+            return new ApiBatchResult(outcomes);
         } finally {
             futures.forEach(future -> { if (!future.isDone()) future.cancel(true); });
         }

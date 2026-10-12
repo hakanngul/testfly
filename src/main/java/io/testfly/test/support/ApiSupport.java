@@ -42,6 +42,18 @@ public interface ApiSupport {
         return ApiClient.delete(path);
     }
 
+    /** Shortcut for {@code ApiClient.head(path)}. */
+    @TestFlyApi(since = "1.1.0")
+    default ApiClient apiHead(String path) {
+        return ApiClient.head(path);
+    }
+
+    /** Shortcut for {@code ApiClient.options(path)}. */
+    @TestFlyApi(since = "1.1.0")
+    default ApiClient apiOptions(String path) {
+        return ApiClient.options(path);
+    }
+
     /** Shortcut for {@code ApiClient.to(baseUrl)}. */
     default ApiClient apiTo(String baseUrl) {
         return ApiClient.to(baseUrl);

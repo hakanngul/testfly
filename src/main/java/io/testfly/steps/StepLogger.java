@@ -4,6 +4,7 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.reporting.ScreenshotManager;
+import io.testfly.tracing.StepSnapshotCapture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +70,9 @@ public final class StepLogger {
         }
         long startTime = ExecutionMetrics.getTestStartTime(testId);
         long offsetMs  = startTime > 0 ? System.currentTimeMillis() - startTime : 0L;
-        ExecutionMetrics.recordStep(testId, new StepRecord(name, offsetMs, status.name(), base64));
+        StepSnapshotCapture.Snapshots snapshots = StepSnapshotCapture.captureForStep();
+        ExecutionMetrics.recordStep(testId,
+                new StepRecord(name, offsetMs, status.name(), base64, snapshots.aria(), snapshots.dom()));
         LOGGER.info(formatStep(name, status, offsetMs));
     }
 
@@ -93,7 +96,9 @@ public final class StepLogger {
             base64 = ScreenshotManager.captureAsBase64();
         }
 
-        ExecutionMetrics.recordStep(testId, new StepRecord(name, offsetMs, status.name(), base64));
+        StepSnapshotCapture.Snapshots snapshots = StepSnapshotCapture.captureForStep();
+        ExecutionMetrics.recordStep(testId,
+                new StepRecord(name, offsetMs, status.name(), base64, snapshots.aria(), snapshots.dom()));
         LOGGER.info(formatStep(name, status, offsetMs));
     }
 

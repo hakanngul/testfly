@@ -103,10 +103,9 @@ public final class SeleniumAssert {
     }
 
     /**
-     * Extracts the underlying {@link By} from a {@link Locator} instance
-     * by parsing its toString. This is a lightweight bridge — for complex
-     * chains (filter, nth, withText) use the Locator's own isVisible() / isHidden()
-     * terminal methods before asserting on the result.
+     * Wraps a {@link Locator} as a {@link By} so the whole chain is re-resolved on
+     * every poll. {@code count()} sees every match; single-element matchers inspect
+     * the first visible match.
      */
     static By extractBy(Locator locator) {
         // Locator.toString() = "Locator[css=.foo]" — parse out the By string.
@@ -137,10 +136,29 @@ public final class SeleniumAssert {
             return locator;
         }
 
+        /** Every match of the chain, visible or not — the same set {@link Locator#count()} sees. */
         @Override
         public java.util.List<org.openqa.selenium.WebElement> findElements(
                 org.openqa.selenium.SearchContext context) {
-            return locator.elements();
+            return locator.findElements(context);
+        }
+
+        /**
+         * The element single-element matchers inspect: the first visible match, or the
+         * first match when none is visible (hidden inputs, absent-vs-hidden checks).
+         */
+        @Override
+        public org.openqa.selenium.WebElement findElement(org.openqa.selenium.SearchContext context) {
+            java.util.List<org.openqa.selenium.WebElement> all = findElements(context);
+            if (all.isEmpty()) {
+                throw new org.openqa.selenium.NoSuchElementException("No element found for: " + locator);
+            }
+            for (org.openqa.selenium.WebElement el : all) {
+                if (el.isDisplayed()) {
+                    return el;
+                }
+            }
+            return all.getFirst();
         }
 
         @Override

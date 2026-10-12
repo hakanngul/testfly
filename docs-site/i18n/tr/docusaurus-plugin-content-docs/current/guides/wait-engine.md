@@ -31,6 +31,49 @@ WaitEngine.waitForInvisible(By.cssSelector(".spinner"));  // yükleme göstergel
 WaitEngine.waitForClickable(By.id("submit"));
 ```
 
+### Actionability (etkileşime hazır olma)
+
+`Locator` eylemleri (`click`, `hover`, `type`, `clear`, `append`), Playwright'ın
+actionability kontrolleri gibi, öğe o etkileşime hazır olana kadar bekler.
+Doğrudan da çağırabilirsiniz:
+
+```java
+WaitEngine.waitForActionable(By.id("submit"));                       // CLICK
+WaitEngine.waitForActionable(By.id("email"), ActionKind.EDIT);
+```
+
+| Kontrol | `CLICK` | `HOVER` | `EDIT` |
+|---|:-:|:-:|:-:|
+| Görünür | evet | evet | evet |
+| Etkin | evet | hayır | evet |
+| Kararlı (iki yoklama arasında konum ve boyut değişmemiş) | evet | evet | evet |
+| Olayı alır (başka bir öğe tarafından örtülmemiş) | evet | evet | hayır |
+
+Öğenin merkezi ekran dışındaysa veya örtülüyse öğe görünür alana kaydırılır.
+Hiç hazır olmazsa hata, öğeyi ve nedeni belirtir:
+
+```
+NotActionableException: Element <button#submit> is not actionable for CLICK after 10s:
+obscured by <div.modal-backdrop>
+```
+
+Sayfa, öğe çözümlendikten sonra yeniden çizilirse veya kontrolden sonra bir
+katman belirirse, locator zinciri yeniden çözülür (en fazla üç deneme).
+
+Kaçış yolları, en az müdahaleciden en fazlasına:
+
+- `find("#x").force().click()` kararlılık ve örtülmeme kontrollerini atlar. Öğe
+  yine de görünür ve etkin olmalıdır.
+- `find("#x").jsClick()` örtülü olsa bile JavaScript ile tıklar.
+- `actionability.enabled: false` önceki beklemeleri geri getirir (yalnızca görünür ve etkin).
+
+Kontroller "fail-open" çalışır: betik çalıştırılamazsa eylem devam eder. Her
+eyleme yaklaşık bir yoklama aralığı (`actionability.stabilityIntervalMs`, 100 ms)
+ekler.
+
+Kapsam dışı: `BasePage.jsType`, `upload` (dosya girdileri çoğu zaman gizlidir) ve
+`withinFrame`.
+
 ### Etkin / devre dışı
 
 ```java
@@ -126,6 +169,10 @@ new WebDriverWait(getDriver(), Duration.ofSeconds(30))
 timeouts:
   explicit: 10   # saniye — tüm WaitEngine çağrıları için varsayılan
   pageLoad: 30   # saniye — tarayıcı sayfa yükleme süresi
+
+actionability:
+  enabled: true              # click/hover/type öncesi kararlılık ve örtülmeme kontrolleri
+  stabilityIntervalMs: 100   # öğenin oturmasını beklerken yoklama aralığı
 ```
 
 ---

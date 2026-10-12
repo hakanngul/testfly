@@ -8,7 +8,7 @@ sidebar_position: 4
 
 # Web-First Assertions
 
-TestFly provides web-first assertions inspired by Playwright's `expect()` and AssertJ. All assertions poll the DOM via `WebDriverWait` until the condition is met or the timeout is exceeded. You never need to write manual waits or `Thread.sleep()` before asserting.
+TestFly provides web-first assertions inspired by Playwright's `expect()` and AssertJ. All DOM and page assertions poll via `WebDriverWait` until the condition is met or the timeout is exceeded (the [AI assertions](#semantic-ai-assertions-satisfiesai--violatesai) are the exception: they do not poll). You never need to write manual waits or `Thread.sleep()` before asserting.
 
 ```java
 import static io.testfly.assertion.SeleniumAssert.assertThat;
@@ -25,7 +25,13 @@ Traditional assertions (like TestNG `Assert.assertTrue(el.isDisplayed())` or JUn
 TestFly's `assertThat()`:
 1. **Auto-retries** during the configured `timeouts.explicit` (default 10s).
 2. **Logs each step** automatically into [`StepLogger`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/steps/StepLogger.java) and surfaces it in the HTML report.
-3. **Works seamlessly** with both Selenium [`By`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/assertion/SeleniumAssert.java) and fluent [`Locator`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/locator/Locator.java) instances (`$()`, `getByRole()`, etc.).
+3. **Accepts** both Selenium [`By`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/assertion/SeleniumAssert.java) and fluent [`Locator`](https://github.com/hakanngul/testfly/blob/development/src/main/java/io/testfly/locator/Locator.java) instances (`$()`, `getByRole()`, etc.).
+
+### Which element is checked
+
+- `count` counts every match, visible or hidden, for both `By` and `Locator` (the same number `Locator.count()` returns).
+- The other matchers check a single element. With a `By`, that is the first match. With a `Locator`, the whole chain (`filter`, `withText`, `nth`, ...) is resolved again on each poll and the first **visible** match is checked; if no match is visible, the first match is checked. This way hidden duplicates (for example a mobile and a desktop menu) do not hide the visible one, and hidden elements such as `input[type=hidden]` can still be checked with `hasValue` or `hasAttribute`.
+- Assertions do not apply `locators.strict`: several matches are not an error.
 
 ---
 
@@ -41,7 +47,7 @@ assertThat(By.cssSelector(".spinner")).isHidden();
 ### Text
 
 ```java
-// Exact text match (trimmed)
+// Exact match against the element's text, with leading/trailing whitespace trimmed
 assertThat(By.tagName("h1")).hasText("Dashboard");
 
 // Substring containment
@@ -56,6 +62,8 @@ assertThat(By.id("delete-btn")).isDisabled();
 assertThat(By.id("terms-checkbox")).isChecked();
 assertThat(By.id("search-input")).isFocused();
 ```
+
+`isEnabled` and `isDisabled` also require the element to be displayed; a hidden element fails with `actual: [not displayed]`. `isChecked` reads the selected state of a native checkbox, radio button or `<option>`.
 
 ### Verified Click
 
@@ -220,7 +228,7 @@ assertThat(By.id("error-banner")).not().isAttached(); // no element in the DOM
 
 ```java
 assertThat(By.cssSelector("table tbody tr")).count(5);
-assertThat($(".card")).count(3);
+assertThat($(".card")).count(3);   // hidden cards are counted too
 assertThat($(".card")).countAtLeast(1).countAtMost(10);
 
 assertThat(By.id("csrf-token")).isAttached();          // present, visible or not (alias: exists())
@@ -328,8 +336,38 @@ Attach contextual information to explain *why* an assertion was made:
 assertThat(By.id("user-avatar"))
     .as("User profile picture after OAuth login")
     .isVisible();
-// If it fails: "[User profile picture after OAuth login] Expected element to be visible: By.id: user-avatar (timeout: 10s)"
+// If it fails: "[User profile picture after OAuth login] Expected element to be visible: By.id: user-avatar (actual: [not found], timeout: 10s)"
 ```
+
+`describedAs(...)` is an alias for `as(...)`. Page assertions (`assertThat(getDriver())`, `assertThatPage()`) report the current title and URL instead: `(actual title: [...], actual url: [...], timeout: ...)`.
+
+### What `actual` reports
+
+Every failure ends with `(actual: [...], timeout: ...)` showing the last value observed while polling. A negated assertion (`not()`) ends with `(condition still met, timeout: ...)` instead, and `click()`, `fill()` and `clear()` say which step failed (see [Verified Click](#verified-click)).
+
+| Assertion | `actual` shows |
+|---|---|
+| `hasText`, `containsText` | the element's text, quoted, on one line (max 200 chars) |
+| `hasValue` | the value, quoted, or `null` when the element has none |
+| `hasAttribute(name, value)` | `name="..."`, or `attribute 'name' absent` |
+| `hasAttribute(name)` | `attribute 'name' absent` |
+| `hasCssValue` | `property="..."` |
+| `hasClass` | `class="..."` |
+| `isVisible`, `isHidden` | `not displayed`, `displayed` |
+| `isEnabled`, `isDisabled` | `not displayed`, `disabled`, `enabled` |
+| `isChecked` | `not selected` |
+| `isFocused` | `focused element: <input#other>` |
+| `count` | the number of elements found, e.g. `2 element(s)` |
+| `countAtLeast`, `countAtMost` | the number of elements found, e.g. `2 element(s)` |
+| `isAttached`, `exists` | `not found` |
+| `hasTexts`, `containsTexts`, `hasText(Pattern[])`, `containsText(String[])` | the texts of all matches, e.g. `["Apple", "Pear"]` |
+| `hasRole` | the role, or `generic (no role)` |
+| `hasAccessibleName`, `hasAccessibleDescription` | the computed name or description, quoted |
+| Other single-element assertions (`hasValue(Pattern)`, `isEditable`, ...) | the element checked, e.g. `condition not met on <input#email>` |
+
+Every single-element matcher reports `not found` when nothing matches, and `element went stale` when the page replaced the element during the check.
+
+If a `Locator` cannot be resolved, for example because the container of `$(".row").within(By.id("grid"))` never appears or `nth(5)` is out of range, the assertion fails with a normal `AssertionError` (`actual: [locator failed: ...]`) instead of a `LocatorException`.
 
 ---
 
@@ -352,6 +390,8 @@ softAssert(By.id("status-badge")).hasText("Active");
 // Framework flushes and reports all failures at test completion.
 ```
 
+Page state works the same way: `softAssert(getDriver()).hasTitle("Dashboard")` or `softAssertPage().urlContains("/orders")`.
+
 ### 2. Fluent `.softly()` Modifier
 
 ```java
@@ -373,7 +413,71 @@ softAssert().that(items.size() > 0, "Item list should not be empty");
 
 ---
 
-## Semantic AI Assertions (`satisfiesAi` & `violatesAi`)
+## Accessibility assertions
+
+`getByRole(...)` finds elements by their role and name. These assertions check the same
+things on an element you already have, deterministically and without an LLM:
+
+```java
+assertThat(By.id("save")).hasRole(Role.BUTTON);
+assertThat(By.id("save")).hasAccessibleName("Save order");                  // exact, whitespace collapsed
+assertThat(By.id("save")).hasAccessibleName(Pattern.compile("(?i)save"));   // partial, ignores case
+assertThat(By.id("email")).hasAccessibleDescription("We never share it");
+assertThat(By.id("email")).hasAccessibleDescription(Pattern.compile("never share"));
+```
+
+They retry until the timeout like every other assertion, and a failure shows what was found:
+`Expected element to have role [button]: By.id: save (actual: [link], timeout: 10s)`.
+
+### ARIA snapshots
+
+`matchesAriaSnapshot` compares the whole accessibility tree under an element with a YAML
+template, so one assertion covers structure, names and states:
+
+```java
+assertThat(By.tagName("nav")).matchesAriaSnapshot("""
+    - navigation "Main":
+      - link "Home"
+      - link "Docs"
+    """);
+```
+
+You do not have to write templates by hand. Print the current tree, review it, and paste it in:
+
+```java
+System.out.println(find("nav").ariaSnapshot());   // one element
+System.out.println(ariaSnapshot());               // whole page, inside a page object
+```
+
+A template is a constraint, not a full copy of the tree:
+
+| Template | Matches |
+|---|---|
+| `- button` | any button |
+| `- button "Save"` | a button whose name contains `Save`, ignoring case |
+| `- heading /Issues \d+/` | a heading whose name matches the regular expression (add `i` after the closing `/` to ignore case) |
+| `- heading [level=2]` | a heading with that attribute |
+| `- checkbox "Milk" [checked]` | a checked checkbox; other attributes are `disabled`, `expanded`, `pressed`, `selected` |
+| `- list:` followed by an indented list | children that appear in this order among the direct children; other children are ignored |
+
+The top-level entries match the children of the element, or of any element below it, so a
+template can describe only the part you care about. Only the roles of
+[`getByRole`](/docs/guides/semantic-locators#getbyrole) and `text` appear; other elements are transparent and their
+children belong to the nearest ancestor that has a role. Hidden content
+(`aria-hidden`, `display: none`, `hidden`) and decorative images (`alt=""`) are left out.
+
+A mistake in the template (an unknown role, invalid YAML) fails immediately with
+`IllegalArgumentException` instead of waiting for the timeout. A mismatch prints the
+template and the captured snapshot (at most 200 lines).
+
+:::note
+The accessible name is TestFly's simplified version of the W3C algorithm. It uses the same
+order as `withName(...)`: `aria-label`, `aria-labelledby`, a `<label>`, the visible text for
+roles that take their name from content (button, link, heading, cell and similar), then
+`alt`, `title`, a button's `value` and `placeholder`. Shadow DOM is not entered.
+:::
+
+## Semantic AI Assertions (`satisfiesAi` & `violatesAi`) {#semantic-ai-assertions-satisfiesai--violatesai}
 
 For complex page states, dynamic messages, or visual flows where exact string matching is brittle, TestFly provides LLM-evaluated semantic assertions:
 

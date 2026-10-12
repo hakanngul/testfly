@@ -189,4 +189,69 @@ public class TraceRecorderTest {
         t.setStatus("FAILED");
         return t;
     }
+
+    // ------------------------------------------------------------------
+    // buildHtml — step snapshots
+    // ------------------------------------------------------------------
+
+    @Test
+    public void buildHtml_stepWithAriaSnapshot_isClickableAndEmbedsTheSnapshot() {
+        TestTiming t = timing("snapStep");
+        t.addStep(new StepRecord("Open page", 10L, "INFO", null, "- heading \"Hi\" [level=1]\n", null));
+
+        String html = TraceRecorder.buildHtml(t, "snapStep", null);
+
+        Assert.assertTrue(html.contains("showScreenshot(0)"), "a step with a snapshot is clickable");
+        Assert.assertTrue(html.contains("var stepSnapshots"));
+        Assert.assertTrue(html.contains("aria:\"- heading \\\"Hi\\\" [level=1]\\n\""), html);
+        Assert.assertTrue(html.contains("dom:null"));
+    }
+
+    @Test
+    public void buildHtml_afterSnapshot_isEmbedded() {
+        TestTiming t = timing("afterStep");
+        StepRecord s = new StepRecord("Click pay", 10L, "INFO", null, "- button \"Pay\"\n", null);
+        s.setAfterAriaSnapshot("- alert \"Card declined\"\n");
+        t.addStep(s);
+
+        String html = TraceRecorder.buildHtml(t, "afterStep", null);
+
+        Assert.assertTrue(html.contains("after:\"- alert"), html);
+    }
+
+    @Test
+    public void buildHtml_stepsWithoutSnapshots_embedNoSnapshotEntries() {
+        TestTiming t = timing("plain");
+        t.addStep(new StepRecord("Plain", 10L, "INFO", "abc=="));
+
+        String html = TraceRecorder.buildHtml(t, "plain", null);
+
+        Assert.assertFalse(html.contains("aria:"), "no snapshot entries expected");
+    }
+
+    @Test
+    public void buildHtml_snapshotContainingScriptEnd_cannotBreakOutOfTheScriptBlock() {
+        String attack = "</script><script>alert(1)</script><!--";
+        TestTiming t = timing("xss");
+        t.addStep(new StepRecord("Step </script><b>x</b>", 10L, "INFO", null, attack, attack));
+
+        String html = TraceRecorder.buildHtml(t, "xss", null);
+
+        Assert.assertFalse(html.contains("alert(1)</script>"), "snapshot must not end the script block");
+        Assert.assertFalse(html.contains("<script>alert(1)"), "snapshot must not open a script block");
+        Assert.assertFalse(html.contains("<!--"), "snapshot must not open an HTML comment");
+        Assert.assertTrue(html.contains("\\u003c/script>"), "angle brackets are escaped for JavaScript");
+    }
+
+    @Test
+    public void buildHtml_snapshotWithLineSeparators_staysOnOneJsLine() {
+        TestTiming t = timing("ls");
+        t.addStep(new StepRecord("S", 1L, "INFO", null, "a\u2028b\u2029c", null));
+
+        String html = TraceRecorder.buildHtml(t, "ls", null);
+
+        Assert.assertFalse(html.contains("\u2028"));
+        Assert.assertFalse(html.contains("\u2029"));
+        Assert.assertTrue(html.contains("a\\u2028b\\u2029c"));
+    }
 }

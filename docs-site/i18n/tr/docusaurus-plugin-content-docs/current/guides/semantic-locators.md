@@ -72,6 +72,13 @@ getByText("Submit").exact();  // yalnızca "Submit" ile eşleşir
 
 ---
 
+## Rol ve adı doğrulama
+
+`withName(...)` ve `hasAccessibleName(...)` aynı erişilebilir adı okur. Bu yüzden bir öğeyi
+adına göre bulan locator ile o adı kontrol eden doğrulama her zaman aynı sonuca varır.
+`hasRole`, `hasAccessibleName`, `hasAccessibleDescription` ve ARIA snapshot'ları için bkz.
+[Erişilebilirlik doğrulamaları](/docs/guides/assertions#erişilebilirlik-doğrulamaları).
+
 ## test-id niteliğini yapılandırma
 
 `getByTestId` varsayılan olarak `data-testid` kullanır. `testfly.yml` içinde geçersiz kılın:
@@ -98,6 +105,30 @@ Locator.cssSelector(".product-card")
 // Null-safe yazma (null veya boş string geçildiğinde NPE fırlatmadan öğeyi temizler)
 getByPlaceholder("Arama").type(null);
 ```
+
+---
+
+## Strict mode
+
+Varsayılan olarak birden fazla elemanla eşleşen bir locator üzerinde aksiyon,
+uyarı vermeden ilk eşleşmeyi kullanır. `testfly.yml` içinde
+`locators.strict: true` yazarsanız bu durum hataya dönüşür ve bir tıklama sessizce
+yanlış butona gidemez:
+
+```
+Strict mode violation: Locator[getByRole(button)] resolved to 3 visible elements;
+use first()/nth()/last() or narrow the locator.
+Candidates: <button#save "Kaydet">, <button#cancel "İptal">, <button#help "Yardım">
+```
+
+- Yalnızca **görünür** eşleşmeler sayılır. Gizli kopyalar (mobil ve masaüstü
+  menü, kapalı bir modal) ihlal sayılmaz. Tam olarak bir eşleşme görünürse o
+  kullanılır.
+- `first()`, `nth(i)` ve `last()` bilinçli olarak kuralın dışına çıkar.
+- Aksiyonlara, `element()`, `isVisible()` ve `isEnabled()` metotlarına uygulanır.
+  `count()`, `elements()` ve `assertThat(...)` doğrulamalarına uygulanmaz.
+- Kontrol locator çözüldüğünde yapılır, bu yüzden zaman aşımını beklemeden hemen
+  hata verir.
 
 ---
 

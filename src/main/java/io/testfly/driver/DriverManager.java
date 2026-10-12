@@ -206,6 +206,8 @@ public final class DriverManager {
             String boundTo = DRIVER_BROWSER_CONTEXT.get();
             String requested = BrowserContext.get();
             if (java.util.Objects.equals(boundTo, requested)) {
+                // Retry or a reused per-suite browser: start this test with no leftover console errors.
+                io.testfly.browser.ConsoleErrorCollector.beginTest(DRIVER.get());
                 return; // retry-safe — semaphore permit already held by this thread
             }
             System.out.println("[TestFly] Matrix browser changed on this thread (" + boundTo + " -> " + requested
@@ -244,6 +246,7 @@ public final class DriverManager {
             DRIVER_BROWSER_CONTEXT.set(BrowserContext.get());
 
             applyWindow(driver);
+            io.testfly.browser.ConsoleErrorCollector.beginTest(driver);
 
             // Capture cloud session URL for BrowserStack / Sauce Labs
             try {

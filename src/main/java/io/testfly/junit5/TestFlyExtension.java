@@ -140,8 +140,10 @@ public class TestFlyExtension
             PreConditionRunner.run(context.getRequiredTestMethod(), false);
 
             TestFlyConfig.Recording rec = TestFlyContext.getConfig().getRecording();
-            if (rec != null && rec.isEnabled()) {
-                RecordingManager.start(DriverManager.getDriver(), rec.getFps(), rec.getMaxDurationSeconds());
+            // Same rule as the TestNG listener: honour recording.mode: off and recording.cdp.
+            if (rec != null && rec.shouldRecord()) {
+                RecordingManager.start(DriverManager.getDriver(), rec.getFps(), rec.getMaxDurationSeconds(),
+                        rec.isCdp());
             }
 
             if (ConsoleErrorCollector.isEnabled()) {
@@ -333,6 +335,7 @@ public class TestFlyExtension
             BrowserContext.clear();
             NetworkMock.cleanup();
             TestClock.autoReset();
+            io.testfly.browser.GeoLocation.autoReset();
             if (!noBrowser && DriverManager.shouldQuitAfterTest())
                 DriverManager.quitDriver();
             TestFlyContext.clearCurrentTest();
@@ -467,15 +470,7 @@ public class TestFlyExtension
     }
 
     private void saveTraceIfEnabled(String testId, String testName, boolean isPassing) {
-        try {
-            TestFlyConfig.Tracing tracing = TestFlyContext.getConfig().getTracing();
-            if (tracing == null || !tracing.isEnabled())
-                return;
-            if (isPassing && !tracing.isCaptureOnPass())
-                return;
-            TraceRecorder.save(testId, testName);
-        } catch (Exception ignored) {
-        }
+        TraceRecorder.saveIfEnabled(testId, testName, isPassing);
     }
 
     private void runAiAnalysisIfEnabled(String testId) {
@@ -532,7 +527,7 @@ public class TestFlyExtension
                 throw new IllegalStateException(
                         "[UseAuth] No auth strategy named '" + strategyName + "' found in api.auth config");
             }
-            ApiAuth auth = resolveAuthStrategy(strategy);
+            ApiAuth auth = io.testfly.internal.api.AuthStrategies.resolve(strategy);
             if (auth != null)
                 ApiClient.setGlobalAuth(auth);
         } catch (IllegalStateException e) {
@@ -540,46 +535,6 @@ public class TestFlyExtension
         } catch (Exception e) {
             throw new RuntimeException("[UseAuth] Failed to apply auth strategy '" + strategyName + "'", e);
         }
-    }
-
-    private ApiAuth resolveAuthStrategy(TestFlyConfig.Api.AuthStrategy s) {
-        String type = s.getType();
-        if (type == null)
-            return null;
-        return switch (type.toLowerCase()) {
-            case "bearer" -> ApiAuth.bearerToken(resolveEnvVar(s.getToken()));
-            case "basic" -> ApiAuth.basicAuth(resolveEnvVar(s.getUsername()), resolveEnvVar(s.getPassword()));
-            case "oauth2" -> ApiAuth.oauth2(resolveEnvVar(s.getTokenUrl()),
-                    resolveEnvVar(s.getClientId()),
-                    resolveEnvVar(s.getClientSecret()));
-            case "apikey", "api_key", "apikey-header" -> ApiAuth.apiKey(
-                    s.getHeaderName() != null ? s.getHeaderName() : "X-Api-Key",
-                    resolveEnvVar(s.getApiKey() != null ? s.getApiKey() : s.getToken()));
-            case "apikey-query", "api_key_query" -> ApiAuth.apiKeyQuery(
-                    s.getHeaderName() != null ? s.getHeaderName() : "api_key",
-                    resolveEnvVar(s.getApiKey() != null ? s.getApiKey() : s.getToken()));
-            case "digest" -> ApiAuth.digest(resolveEnvVar(s.getUsername()), resolveEnvVar(s.getPassword()));
-            case "hmac" -> ApiAuth.hmac(resolveEnvVar(s.getApiKey()), resolveEnvVar(s.getSecret()), s.getAlgorithm());
-            case "oauth2_password", "oauth2-password", "password" -> ApiAuth.oauth2Password(
-                    resolveEnvVar(s.getTokenUrl()), resolveEnvVar(s.getClientId()),
-                    resolveEnvVar(s.getClientSecret()), resolveEnvVar(s.getUsername()), resolveEnvVar(s.getPassword()));
-            default -> throw new IllegalArgumentException(
-                    "[UseAuth] Unknown auth type: '" + type
-                            + "'. Use bearer, basic, oauth2, apiKey, digest, hmac, oauth2_password");
-        };
-    }
-
-    private String resolveEnvVar(String value) {
-        if (value == null)
-            return null;
-        if (value.startsWith("${") && value.endsWith("}")) {
-            String varName = value.substring(2, value.length() - 1);
-            String resolved = System.getenv(varName);
-            if (resolved == null)
-                resolved = System.getProperty(varName);
-            return resolved != null ? resolved : value;
-        }
-        return value;
     }
 
     private void loadTestData(ExtensionContext context) {

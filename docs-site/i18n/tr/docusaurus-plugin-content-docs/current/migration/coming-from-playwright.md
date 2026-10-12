@@ -52,8 +52,10 @@ Bkz. [Erişilebilirlik Öncelikli Locator'lar](/docs/guides/semantic-locators).
 Playwright gibi, eylemler etkileşimden önce öğenin etkileşime hazır olmasını bekler — `Thread.sleep()` yok, elle oluşturulmuş bekleme yok.
 
 ```java
-find("#login").click();   // öğenin tıklanabilir olması için otomatik bekler
+find("#login").click();   // öğe görünür, etkin, kararlı ve örtülmemiş olana kadar bekler
 ```
+
+Actionability, Playwright'ın kontrolleriyle eşleşir: görünür, etkin, kararlı (animasyon bitmiş) ve olayı alan (başka bir öğe tarafından örtülmemiş). Playwright'ın `{ force: true }` seçeneği `.force()` karşılığına gelir; bkz. [Actionability](/docs/guides/wait-engine#actionability-etkileşime-hazır-olma).
 
 Açık bir koşula ihtiyaç duyduğunuzda, [`WaitEngine`](/docs/guides/wait-engine) size akıcı ve önceden yapılandırılmış bir bekleme sunar — Playwright'ın `expect(...).toBeVisible()` beklemesinin Selenium karşılığı.
 
@@ -65,6 +67,10 @@ Playwright'ın otomatik yeniden deneyen `expect()` işlevinin doğrudan karşıl
 assertThat(getByRole(Role.HEADING)).hasText("Welcome back");
 assertThat(find(".cart-count")).hasText("3");
 ```
+
+### Strict mode
+
+Playwright, birden fazla elemanla eşleşen bir locator üzerindeki aksiyonu reddeder. TestFly bunu `locators.strict: true` ile isteğe bağlı sunar; `first()`, `nth()` veya `last()` ile daraltabilirsiniz. Bkz. [Strict mode](/docs/guides/semantic-locators#strict-mode).
 
 ### Ayarlardan çok kural (Convention over configuration)
 

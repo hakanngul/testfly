@@ -75,6 +75,7 @@ public class LocalEdgeDriverProvider implements DriverProvider {
 
         // Keep alerts open until the test explicitly handles them.
         options.setCapability("unhandledPromptBehavior", "ignore");
+        BiDiCapability.applyIfConfigured(options, config);
 
         WebDriver driver = new EdgeDriver(options);
         DriverSetup.configureTimeouts(driver, config);

@@ -127,6 +127,7 @@ public final class TestFlyConfig {
         private String downloadDir = "./target/downloads";
         private boolean captureConsoleErrors = false;
         private boolean failOnConsoleErrors = false;
+        private boolean bidi = false;
         private List<String> matrix = Collections.emptyList();
         private String device; // optional device profile name, e.g. "iPhone 14"
         private Window window = new Window();
@@ -169,6 +170,22 @@ public final class TestFlyConfig {
 
         public boolean isFailOnConsoleErrors() {
             return failOnConsoleErrors;
+        }
+
+        /**
+         * Starts the browser with a WebDriver BiDi connection ({@code webSocketUrl}). Console error
+         * capture uses it, when {@code captureConsoleErrors} is on, to see every error from the
+         * moment a page starts loading, in browsers without a WebDriver browser log (Firefox).
+         * Safari does not support BiDi.
+         */
+        @TestFlyApi(since = "1.1.0")
+        public boolean isBidi() {
+            return bidi;
+        }
+
+        @TestFlyApi(since = "1.1.0")
+        public void setBidi(boolean bidi) {
+            this.bidi = bidi;
         }
 
         public void setFailOnConsoleErrors(boolean failOnConsoleErrors) {
@@ -1067,6 +1084,18 @@ public final class TestFlyConfig {
         this.tracing = tracing;
     }
 
+    private Actionability actionability = new Actionability();
+
+    @TestFlyApi(since = "1.1.0")
+    public Actionability getActionability() {
+        return actionability;
+    }
+
+    @TestFlyApi(since = "1.1.0")
+    public void setActionability(Actionability actionability) {
+        this.actionability = actionability;
+    }
+
     private Locators locators;
 
     public Locators getLocators() {
@@ -1077,11 +1106,73 @@ public final class TestFlyConfig {
         this.locators = locators;
     }
 
+    /**
+     * Playwright-style actionability checks run before click/hover/type: the element
+     * must be visible, enabled (where relevant), stable (not animating) and not
+     * covered by another element.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public static final class Actionability {
+        private boolean enabled = true;
+        private int stabilityIntervalMs = 100;
+        private boolean hitTargetCheck = true;
+        private boolean autoScroll = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getStabilityIntervalMs() {
+            return stabilityIntervalMs;
+        }
+
+        public void setStabilityIntervalMs(int stabilityIntervalMs) {
+            this.stabilityIntervalMs = stabilityIntervalMs;
+        }
+
+        public boolean isHitTargetCheck() {
+            return hitTargetCheck;
+        }
+
+        public void setHitTargetCheck(boolean hitTargetCheck) {
+            this.hitTargetCheck = hitTargetCheck;
+        }
+
+        public boolean isAutoScroll() {
+            return autoScroll;
+        }
+
+        public void setAutoScroll(boolean autoScroll) {
+            this.autoScroll = autoScroll;
+        }
+    }
+
     public static final class Locators {
         private boolean selfHealing = false;
         private boolean aiHealing = false;
         private int maxDomTokens = 8000;
         private String testIdAttribute = "data-testid";
+        // TODO(2.0): consider defaulting to true, as Playwright does.
+        private boolean strict = false;
+
+        /**
+         * When true, an action on a locator that matches more than one visible element
+         * (and is not narrowed with first()/nth()/last()) fails instead of silently
+         * using the first match.
+         */
+        @TestFlyApi(since = "1.1.0")
+        public boolean isStrict() {
+            return strict;
+        }
+
+        @TestFlyApi(since = "1.1.0")
+        public void setStrict(boolean strict) {
+            this.strict = strict;
+        }
 
         /** Overridable from the umbrella via {@code features.healing}. */
         public boolean isSelfHealing() {
@@ -1309,6 +1400,9 @@ public final class TestFlyConfig {
     public static final class Tracing {
         private boolean enabled = false;
         private boolean captureOnPass = false;
+        private String snapshots = "aria";
+        private int snapshotMaxKb = 256;
+        private boolean snapshotOnFailureAfter = true;
 
         /** Overridable from the umbrella via {@code features.tracing}. */
         public boolean isEnabled() {
@@ -1325,6 +1419,50 @@ public final class TestFlyConfig {
 
         public void setCaptureOnPass(boolean v) {
             this.captureOnPass = v;
+        }
+
+        /**
+         * What each step records for the trace: {@code none}, {@code aria} (the accessibility
+         * tree, default), {@code dom} (the pruned page HTML) or {@code both}.
+         */
+        @TestFlyApi(since = "1.1.0")
+        public String getSnapshots() {
+            return snapshots;
+        }
+
+        @TestFlyApi(since = "1.1.0")
+        public void setSnapshots(String v) {
+            String mode = v == null ? "" : v.trim().toLowerCase(java.util.Locale.ROOT);
+            if (!mode.equals("none") && !mode.equals("aria") && !mode.equals("dom") && !mode.equals("both")) {
+                throw new IllegalArgumentException(
+                        "tracing.snapshots must be one of none, aria, dom, both; got: '" + v + "'");
+            }
+            this.snapshots = mode;
+        }
+
+        /** Largest snapshot kept per step, in kilobytes; longer ones are cut with a marker. */
+        @TestFlyApi(since = "1.1.0")
+        public int getSnapshotMaxKb() {
+            return snapshotMaxKb;
+        }
+
+        @TestFlyApi(since = "1.1.0")
+        public void setSnapshotMaxKb(int v) {
+            if (v < 1) {
+                throw new IllegalArgumentException("tracing.snapshotMaxKb must be at least 1; got: " + v);
+            }
+            this.snapshotMaxKb = v;
+        }
+
+        /** Whether a failed test also records an accessibility snapshot taken after its last step. */
+        @TestFlyApi(since = "1.1.0")
+        public boolean isSnapshotOnFailureAfter() {
+            return snapshotOnFailureAfter;
+        }
+
+        @TestFlyApi(since = "1.1.0")
+        public void setSnapshotOnFailureAfter(boolean v) {
+            this.snapshotOnFailureAfter = v;
         }
     }
 
@@ -1877,6 +2015,28 @@ public final class TestFlyConfig {
         public void setMaxConcurrentRequests(int value) { maxConcurrentRequests = value; }
         public Ssl getSsl() { return ssl; }
         public void setSsl(Ssl value) { ssl = value; }
+        private Proxy proxy = new Proxy();
+        /** HTTP proxy for API calls ({@code api.proxy.host/port/nonProxyHosts}). */
+        public Proxy getProxy() { return proxy; }
+        public void setProxy(Proxy value) { proxy = value; }
+        /**
+         * HTTP proxy for API calls. Unset host means direct connections. Proxy authentication is
+         * not supported. {@code nonProxyHosts} entries match host names case-insensitively and may
+         * use {@code *} wildcards, e.g. {@code localhost}, {@code *.internal}, {@code 10.*}.
+         */
+        public static final class Proxy {
+            private String host;
+            private int port;
+            private java.util.List<String> nonProxyHosts = new java.util.ArrayList<>();
+            public String getHost() { return host; }
+            public void setHost(String value) { host = value; }
+            public int getPort() { return port; }
+            public void setPort(int value) { port = value; }
+            public java.util.List<String> getNonProxyHosts() { return nonProxyHosts; }
+            public void setNonProxyHosts(java.util.List<String> value) {
+                nonProxyHosts = value != null ? value : new java.util.ArrayList<>();
+            }
+        }
         public static final class Ssl {
             private boolean trustAll;
             private TrustStore trustStore;
@@ -2050,7 +2210,7 @@ public final class TestFlyConfig {
         }
 
         public static final class AuthStrategy {
-            private String type; // bearer | basic | oauth2 | apiKey | hmac | digest
+            private String type; // bearer | basic | oauth2 | oauth2_password | oauth2-refresh | apiKey | apikey-query | digest | hmac | hmac-signed
             private String token; // bearer
             private String username; // basic / digest
             private String password; // basic / digest
@@ -2149,6 +2309,23 @@ public final class TestFlyConfig {
             public void setAlgorithm(String v) {
                 this.algorithm = v;
             }
+
+            private String refreshToken; // oauth2-refresh
+            private String keyHeader; // hmac-signed (default X-Api-Key)
+            private String signatureHeader; // hmac-signed (default X-Signature)
+            private String timestampHeader; // hmac-signed (default X-Timestamp; "none" disables)
+            private String encoding; // hmac-signed: base64 | hex
+
+            public String getRefreshToken() { return refreshToken; }
+            public void setRefreshToken(String v) { this.refreshToken = v; }
+            public String getKeyHeader() { return keyHeader; }
+            public void setKeyHeader(String v) { this.keyHeader = v; }
+            public String getSignatureHeader() { return signatureHeader; }
+            public void setSignatureHeader(String v) { this.signatureHeader = v; }
+            public String getTimestampHeader() { return timestampHeader; }
+            public void setTimestampHeader(String v) { this.timestampHeader = v; }
+            public String getEncoding() { return encoding; }
+            public void setEncoding(String v) { this.encoding = v; }
         }
     }
 

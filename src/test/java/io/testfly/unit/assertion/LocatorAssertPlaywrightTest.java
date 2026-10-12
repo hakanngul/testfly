@@ -102,6 +102,12 @@ public class LocatorAssertPlaywrightTest {
         when(((JavascriptExecutor) driver).executeScript(anyString(), any(Object[].class))).thenReturn(result);
     }
 
+    /** JSON the accessibility probe returns for one element. */
+    private static String a11yNode(String role, String name, String description) {
+        return "{\"role\":\"" + role + "\",\"name\":\"" + name + "\",\"description\":\"" + description
+                + "\",\"attrs\":{}}";
+    }
+
     // ---------------------------------------------------------------
     // State
     // ---------------------------------------------------------------
@@ -274,8 +280,8 @@ public class LocatorAssertPlaywrightTest {
 
     @Test
     public void hasRole_enum() {
-        WebElement el = found(element("button"));
-        when(el.getAriaRole()).thenReturn("button");
+        found(element("button"));
+        jsReturns(a11yNode("button", "", ""));
         expect().hasRole(Role.BUTTON);
     }
 
@@ -285,16 +291,17 @@ public class LocatorAssertPlaywrightTest {
 
     @Test
     public void hasAccessibleName_pattern() {
-        WebElement el = found(element("button"));
-        when(el.getAccessibleName()).thenReturn("Submit order");
-        expect().hasAccessibleName(Pattern.compile("^Submit"));
+        found(element("button"));
+        jsReturns(a11yNode("button", "Submit order", ""));
+        expect().hasAccessibleName(Pattern.compile("^Submit"))
+                .hasAccessibleName(Pattern.compile("(?i)submit"));
     }
 
     @Test
     public void hasAccessibleDescription_isWhitespaceNormalized() {
         found(element("input"));
-        jsReturns("  Must be   at least\n8 characters ");
-        expect().hasAccessibleDescription("Must be at least 8 characters")
+        jsReturns(a11yNode("textbox", "", "Must be at least 8 characters"));
+        expect().hasAccessibleDescription("  Must be   at least\n8 characters ")
                 .hasAccessibleDescription(Pattern.compile("8 characters"));
     }
 
