@@ -14,7 +14,6 @@ import org.openqa.selenium.safari.SafariOptions;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -40,8 +39,7 @@ public class RemoteDriverProvider implements DriverProvider {
         try {
             URL url = URI.create(gridUrl).toURL();
             WebDriver driver = new RemoteWebDriver(url, options);
-            driver.manage().timeouts().implicitlyWait(Duration.ZERO);
-            driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(config.getTimeouts().getPageLoad()));
+            DriverSetup.configureTimeouts(driver, config);
             return driver;
         } catch (MalformedURLException e) {
             throw new IllegalStateException("Invalid Grid URL: " + gridUrl, e);

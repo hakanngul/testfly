@@ -7,7 +7,6 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.safari.SafariDriver;
 import org.openqa.selenium.safari.SafariOptions;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -58,8 +57,7 @@ public class LocalSafariDriverProvider implements DriverProvider {
         options.setCapability("unhandledPromptBehavior", "ignore");
 
         WebDriver driver = new SafariDriver(options);
-        driver.manage().timeouts().implicitlyWait(Duration.ZERO);
-        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(config.getTimeouts().getPageLoad()));
+        DriverSetup.configureTimeouts(driver, config);
 
         return driver;
     }

@@ -11,7 +11,6 @@ import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.safari.SafariOptions;
 
 import java.net.URI;
-import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -78,9 +77,7 @@ public class BrowserStackProvider implements DriverProvider {
 
         try {
             WebDriver driver = new RemoteWebDriver(URI.create(HUB_URL).toURL(), options);
-            driver.manage().timeouts().implicitlyWait(Duration.ZERO);
-            driver.manage().timeouts().pageLoadTimeout(
-                    Duration.ofSeconds(cfg.getTimeouts().getPageLoad()));
+            DriverSetup.configureTimeouts(driver, cfg);
             return driver;
         } catch (Exception e) {
             throw new IllegalStateException("[BrowserStack] Failed to create session: " + e.getMessage(), e);
