@@ -1,9 +1,15 @@
 package io.testfly.unit;
 
+import io.testfly.browser.BrowserContext;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.driver.BrowserStackProvider;
+import io.testfly.driver.DriverProviderFactory;
 import io.testfly.driver.SauceLabsProvider;
+import org.openqa.selenium.remote.AbstractDriverOptions;
+import org.openqa.selenium.safari.SafariOptions;
 import org.testng.annotations.Test;
+
+import java.util.Map;
 
 import static org.testng.Assert.*;
 
@@ -143,5 +149,39 @@ public class CloudProviderTest {
         assertEquals(cfg.getPlatformName(), "macOS 13");
         assertEquals(cfg.getBrowser(), "safari");
         assertEquals(cfg.getBrowserVersion(), "16.0");
+    }
+
+    // ── Matrix override and alert behavior ───────────────────────────────
+
+    @Test
+    public void resolveCloudBrowserName_matrixContextWins() {
+        BrowserContext.set("firefox");
+        try {
+            assertEquals(DriverProviderFactory.resolveCloudBrowserName("safari"), "firefox");
+        } finally {
+            BrowserContext.clear();
+        }
+    }
+
+    @Test
+    public void resolveCloudBrowserName_withoutMatrix_usesCloudBrowserOrChrome() {
+        BrowserContext.clear();
+        assertEquals(DriverProviderFactory.resolveCloudBrowserName("edge"), "edge");
+        assertEquals(DriverProviderFactory.resolveCloudBrowserName(null), "chrome");
+    }
+
+    @Test
+    public void browserstack_buildOptions_keepsAlertsOpen() {
+        AbstractDriverOptions<?> options = BrowserStackProvider.buildOptions("safari", "17", Map.of("os", "OS X"));
+        assertTrue(options instanceof SafariOptions);
+        assertEquals(options.getCapability("unhandledPromptBehavior"), "ignore");
+        assertNotNull(options.getCapability("bstack:options"));
+    }
+
+    @Test
+    public void saucelabs_buildOptions_keepsAlertsOpen() {
+        AbstractDriverOptions<?> options = SauceLabsProvider.buildOptions("chrome", "latest", "Windows 11", Map.of());
+        assertEquals(options.getCapability("unhandledPromptBehavior"), "ignore");
+        assertNotNull(options.getCapability("sauce:options"));
     }
 }

@@ -54,6 +54,19 @@ public final class DriverProviderFactory {
     }
 
     /**
+     * Browser for a cloud session: the {@link BrowserContext} override (set for
+     * {@code browser.matrix} runs) wins over the provider's own
+     * {@code execution.<cloud>.browser}, which defaults to chrome.
+     */
+    public static String resolveCloudBrowserName(String cloudBrowser) {
+        String contextBrowser = BrowserContext.get();
+        if (contextBrowser != null && !contextBrowser.isBlank()) {
+            return contextBrowser;
+        }
+        return cloudBrowser != null && !cloudBrowser.isBlank() ? cloudBrowser : "chrome";
+    }
+
+    /**
      * Browser for the current thread: the {@link BrowserContext} override (set for
      * {@code browser.matrix} runs) wins over YAML {@code browser.name}.
      *
