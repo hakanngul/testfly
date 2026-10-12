@@ -53,6 +53,10 @@ public class LocalSafariDriverProvider implements DriverProvider {
             System.err.println("[TestFly] Running Safari inside a container may require WebDriver+Safari setup; ensure the environment supports it.");
         }
 
+        // Keep alerts open until the test explicitly handles them, as on Chrome/Firefox/Edge.
+        // Safari's W3C default dismisses them before the next command.
+        options.setCapability("unhandledPromptBehavior", "ignore");
+
         WebDriver driver = new SafariDriver(options);
         driver.manage().timeouts().implicitlyWait(Duration.ZERO);
         driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(config.getTimeouts().getPageLoad()));
