@@ -30,7 +30,7 @@ public final class ApiResponseSpec {
         if (expectedContentType != null) {
             String actual = res.header("Content-Type");
             if (actual == null || !actual.contains(expectedContentType)) {
-                throw new ApiException(null, null, res.status(), res.body(),
+                throw new ApiException(res.requestMethod(), res.requestUrl(), res.status(), res.body(),
                         "[ApiResponseSpec] Expected Content-Type to contain '" + expectedContentType + "' but got '" + actual + "'");
             }
         }

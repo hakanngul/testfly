@@ -11,6 +11,51 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 
 ---
 
+## [Unreleased]
+
+### Eklenenler
+- **Doğrulanmış yazma ve temizleme `assertThat(...).fill(text)` / `assertThat(...).clear()`**: elemanı `Locator.fill()` gibi bulur, düzenlenebilir olana kadar bekler, yazar ve değerin metne eşit olup öyle kaldığını doğrular. Şifre değerleri asla loglanmaz, yalnızca uzunlukları yazılır.
+- **Doğrulanmış tıklama `assertThat(...).click()`**: elemanı `Locator.click()` gibi bulur (self-healing dahil), görünür ve etkin olana kadar bekler, ekranın ortasına kaydırıp üzerine gelir, üstünü kapatan bir şey kalmayana kadar bekler, tıklar ve `click` event'inin elemana ulaştığını doğrular. Rapora geçen bir `Clicked: ...` adımı yazar; `as(...)`, `within(...)` ve soft modu destekler. `Locator.click()` değişmedi.
+- **`LocatorAssert` için form ve input doğrulamaları**: `hasValue()` (boş olmayan herhangi bir değer), `hasEmptyValue()`, `containsValue`, `valueMatches`, `isPasswordHidden()` / `isPasswordVisible()`, `hasType`, `hasPlaceholder`, `hasMaxLength`, `isEditable`, `isReadOnly`, `isRequired` ve `isValid()`, `isInvalid()`, `hasValidationMessage` ile HTML5 doğrulaması.
+- **`LocatorAssert` için Playwright tarzı `not()`**: `assertThat(x).not().hasText("Hata")` bir sonraki doğrulamayı tersine çevirir. Playwright'taki gibi, olumsuzlanan doğrulamaların çoğu eşleşen eleman yoksa da geçer. `click()`, `fill()` veya `clear()` ile birlikte kullanılamaz.
+- **`LocatorAssert` için Playwright for Java eşliği**: `isAttached`, `isEmpty`, `isIndeterminate`, `isInViewport(ratio)`, `hasCount`, `hasText(Pattern | String[] | Pattern[])`, `containsText(Pattern | String[])`, `hasValue(Pattern)`, `hasValues`, `hasAttribute(name, Pattern)`, `hasClass(Pattern)`, `containsClass`, `hasCSS`, `hasId(Pattern)`, `hasJSProperty`, `hasRole(Role)`, `hasAccessibleName(Pattern)`, `hasAccessibleDescription`, `hasAccessibleErrorMessage`. `Pattern` argümanları, Playwright'taki gibi değerin herhangi bir yerinde eşleşir.
+- **Ek `LocatorAssert` matcher'ları**: `hasTextMatching`, `hasTextIgnoringCase`, `hasTexts`, `containsTexts`, `isSelected`, `hasSelectedOption`, `hasOptions`, `countAtLeast`, `countAtMost`, `exists`, `isInViewport`, `hasRole`, `hasAccessibleName`, `hasId`.
+- **`Locator` aksiyonları ve getter'ları**: `getValue()` (input değerini okur; `getText()` input'larda boştur), `fill`, `check` / `uncheck` / `setChecked`, `selectByText` / `selectByValue` / `selectByIndex`, `getSelectedOption`, `doubleClick`, `rightClick`, `press`, `dragTo`, `upload` (gizli file input'larla da çalışır), `focus`, `blur`, `waitFor(Locator.State)`, `getCssValue`, `innerHTML`, `outerHTML`, `allTexts` ve beklemeyen `isChecked`, `isSelected`, `isDisabled`, `isEditable`, `isFocused`, `isPresent` kontrolleri.
+- **`PageAssert` matcher'ları**: `hasAlert`, `hasAlertText`, `hasNoAlert`, `hasCookie`, `doesNotHaveCookie`, `hasLocalStorageItem`, `hasWindowCount`.
+- **API ikili gövdeler ve yanıt erişimcileri**: yanıtlar byte olarak okunur ve `Content-Type` charset'iyle gerektiğinde çözülür. Yeni `ApiResponse.asBytes()`, `saveTo(Path)`, `headers()`, `headerValues(name)`, `contentType()`, `charset()`, `isSuccessful()`, `prettyBody()`; istek tarafında `ApiClient.body(byte[])` ve `ApiResponse.Builder.body(byte[])`.
+- **JSONPath joker karakter ve tırnaklı anahtarlar**: yeni bağımlılık olmadan `$.items[*].id`, `$.map.*` ve `$['key.with.dots']`. Filtre ifadeleri, dilimler ve `..` anlaşılır bir `IllegalArgumentException` ile reddedilir.
+- **API doğrulamaları**: `assertStatusIn(int...)`, `assertStatusRange(from, to)`, `assertSuccessful()`, anlamsal `assertJsonEquals(json)` / `assertJsonEquals(path, json)` (anahtar sırası ve `1` / `1.0` farkı yok sayılır, opsiyonel dizi sırasından bağımsız mod, ilk farkı gösteren mesaj) ve `assertJsonArrayContains(path, value)`.
+- **API istekleri**: `ApiClient.head(..)` / `options(..)` (`ApiSupport` içinde `apiHead` / `apiOptions`), `addQueryParam` / `addQueryParams` ile tekrarlanan query anahtarları, istek bazında retry `retry(n)`, `retry(n, backoff)`, `retryOn(statuses...)`, `retryOnException(boolean)`, `noRetry()` ve `api.logBody` açıkken step logunda istek gövdesi (ikili gövdeler boyut özeti olarak).
+- **API proxy**: `api.proxy.host`, `api.proxy.port`, `api.proxy.nonProxyHosts` ve istek bazında `ApiClient.proxy(host, port)` / `noProxy()`.
+- **Test kapsamlı istek spec'i**: `ApiClient.setTestSpec(spec)` / `clearTestSpec()` bir spec'i yalnızca mevcut test thread'ine uygular ve her test sonunda temizlenir.
+- **Polling seçenekleri `ApiPolling`**: `ApiClient.pollUntil(condition, ApiPolling.within(timeout).interval(..).failFastOn(..).maxAttempts(..).rethrowPredicateErrors(..))`. Zaman aşımı hatası artık son hatayı cause olarak taşır.
+- **Kısmi batch sonuçları**: `ApiBatchRunner.executeAll()` her istek için yanıt veya hatayı gönderim sırasıyla içeren `ApiBatchResult` döndürür; `execute()` değişmedi.
+- **Gerçek Digest kimlik doğrulama** (RFC 7616: MD5, SHA-256, SHA-512-256, `-sess`, `qop=auth`/`auth-int`): `ApiAuth.digest(username, password)` ile; test bazında challenge önbelleği ve bayat nonce yönetimi.
+- **HMAC istek imzalama** `ApiAuth.hmacSigner()` / `ApiHmacSigner`: metod, query dahil path, zaman damgası ve gövde hash'ini imzalar; header'lar, algoritma, encoding ve kanonik metin ayarlanabilir.
+- **`ApiAuth.Intercepting`**: son isteğe veya yanıta ihtiyaç duyan auth stratejileri en içteki interceptor olarak çalışır.
+- **OAuth2 refresh token**: `ApiAuth.oauth2Refresh(...)`, süresi dolan client-credentials ve password token'ları için otomatik refresh-token grant ve `ApiAuth.clearTokenCache()`.
+- **Yeni `@UseAuth` tipleri**: `digest`, `hmac-signed`, `oauth2-refresh`; YAML alanları `refreshToken`, `keyHeader`, `signatureHeader`, `timestampHeader`, `encoding`.
+- **`ApiFailure` ve `ApiAssertionError`**: her API hatasında durum, URL, metod ve gövde için tek arayüz. Şema ve OpenAPI hataları artık isteği raporlar.
+- **WireMock yardımcıları**: paralel testler için `ApiMockServer.stubFor(MappingBuilder)`, `stubJson(method, urlPattern, status, json)` ve `resetOwnStubs()`.
+
+### Değişenler
+- **Şema ve OpenAPI hataları** `AssertionError` alt sınıfı olan `ApiAssertionError` fırlatır; mevcut `catch (AssertionError)` kodu çalışmaya devam eder.
+- **`ApiAuth.digest(...)`** artık RFC 7616 challenge/response uygular. Önceden hiçbir sunucunun kabul etmediği `Digest base64(user:password)` gönderiyordu.
+- **Cookie jar** (`withCookies()`): cookie'ler yalnızca kendi host'una veya `Domain`'ine gönderilir; `Path`, `Secure`, `Max-Age` ve `Expires` dikkate alınır, yabancı `Domain` cookie'leri reddedilir. `Path` içermeyen cookie yine `/` için geçerlidir. Önceden her cookie her host'a gidiyordu.
+- **OAuth2 token önbelleği** suite sonunda temizlenir; token'lar aynı JVM'deki suite'ler arasında yeniden kullanılmaz.
+- **`ApiAuth.basicAuth`** kimlik bilgilerini her zaman UTF-8 ile kodlar.
+- **`body(Object)`'e verilen `byte[]`** Base64 JSON metni yerine ham olarak gönderilir.
+- **`@UseAuth` çözümleme** TestNG listener'ı ve JUnit 5 extension'ı tarafından ortak kullanılır (mevcut tipler için davranış değişmedi).
+
+### Kullanımdan Kaldırılanlar (Deprecated)
+- **`ApiAuth.hmac(apiKey, secret, algorithm)`**: yalnızca API anahtarını imzalar. `ApiAuth.hmacSigner()` kullanın. Header'ları değişmedi.
+
+### Düzeltilenler
+- **`ApiResponseSpec` content-type hataları** isteği `null null` olarak gösteriyordu; artık metod ve URL'yi içerir.
+- **`/` veya `~` içeren anahtarlı JSON yolları** JSON Pointer üzerinden yanlış çözülüyordu; artık bracket notasyonuyla çalışır.
+- **Küçük harfli `content-type` header'ı** istek spec'inin content type'ı ile çoğaltılabiliyordu.
+- **Dokümanlar**: README, `ApiClient.setGlobalAuth`'u `@BeforeSuite` içinde öneriyordu; global auth test thread'i başınadır ve her test sonunda silindiği için bu çalışmaz. `docs/public-api.md` olmayan bir `api()` istemcisini anlatıyordu. Konfigürasyon sayfası olmayan bir `apiClient().withAuth(name)` metodundan bahsediyordu.
+
 ## [1.0.7] — 2026-10-09
 
 ### Eklenenler

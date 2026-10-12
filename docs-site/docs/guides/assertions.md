@@ -65,6 +65,67 @@ assertThat(By.id("search-input")).isFocused();
 
 `isEnabled` and `isDisabled` also require the element to be displayed; a hidden element fails with `actual: [not displayed]`. `isChecked` reads the selected state of a native checkbox, radio button or `<option>`.
 
+### Verified Click
+
+`assertThat(...).click()` clicks the element and asserts that the click really reached it:
+
+```java
+assertThat(headerLoginButton).click();
+assertThat(submitButton).as("Submit order").click();
+```
+
+Behind the scenes it:
+
+1. Finds the element exactly like `locator.click()` does, including chain filters (`nth`, `filter`, `withText`) and self-healing, and waits until it is visible and enabled.
+2. Scrolls it to the centre of the viewport and moves the mouse onto it. A submit button at the bottom of a long form is brought into view first.
+3. Waits until nothing covers it, such as a cookie banner, a modal or a sticky header.
+4. Clicks it and checks that the `click` event was delivered to the element.
+5. Logs a passed `Clicked: ...` step in the report.
+
+If a step fails, the error says which one, for example:
+
+```text
+Click not performed: element not visible and enabled: By.id: login (No element found for: By.id: login)
+Click not performed: By.id: login is covered by <div class='cookie-banner'> (timeout: 10s)
+Click did not reach By.id: login (no click event was received)
+```
+
+Finding the element uses `timeouts.explicit`, like `locator.click()`. `within(...)` applies to the later steps, such as waiting for a covering element to go away.
+
+In soft mode (`softly()` / `softAssert(...)`) the failure is recorded and the test continues. If the click navigates away or opens an alert, it counts as delivered and the alert is left open.
+
+`assertThat(...).click()` only proves that the click reached the element. To prove the app reacted, assert on the result, for example `assertThatPage().urlContains("/login")` or `assertThat(loginModal).isVisible()`. The plain `locator.click()` action is unchanged.
+
+### Verified Fill & Clear
+
+`assertThat(...).fill(text)` types into a field and asserts that the value really stuck. `assertThat(...).clear()` does the same for an empty value:
+
+```java
+assertThat(userNameField).fill("admin");
+assertThat(passwordField).fill(System.getenv("APP_PASSWORD"));
+assertThat(searchField).clear();
+```
+
+Behind the scenes it:
+
+1. Finds the element like `locator.fill()` does (chain filters, self-healing) and waits until it is visible and enabled.
+2. Waits until it is not `readonly`, then scrolls it to the centre of the viewport.
+3. Clears it and types the text, exactly like `locator.fill()`.
+4. Waits until the value equals the text, and checks again after a short pause. This catches values that `maxlength`, an input mask, or the app's own state (React, Vue, ...) changed or reset after typing.
+5. Logs a passed `Filled: ... with [admin]` or `Cleared: ...` step.
+
+Example failures:
+
+```text
+Fill not performed: element is read-only: By.id: username (timeout: 10s)
+Fill did not stick for By.id: code: expected value [abcdef] but was [abc] (timeout: 10s)
+Fill did not stick for By.id: password: expected 7 characters but got 0 (password value hidden) (timeout: 10s)
+```
+
+For `type="password"` fields the value never appears in the report or in failure messages; only its length does.
+
+The value must match exactly. A field that reformats its input, such as a phone mask that turns `5321234567` into `(532) 123 45 67`, fails this assertion. For such fields use `locator.fill(...)` and then `assertThat(field).hasValue("(532) 123 45 67")`.
+
 ### Attributes & CSS
 
 ```java
@@ -82,12 +143,99 @@ assertThat(By.id("error-toast")).hasCssValue("color", "rgb(255, 0, 0)");
 assertThat(By.id("item")).hasClass("active");
 ```
 
-### Element Count
+### Form Inputs & Validation
+
+Input fields have no visible text, so `hasText()` does not work on them. Assert on their value instead:
+
+```java
+// Value checks
+assertThat(passwordField).hasValue();          // any non-empty value
+assertThat(searchField).hasEmptyValue();
+assertThat(emailField).containsValue("@example.com");
+assertThat(phoneField).valueMatches("\\+90 \\d{3} \\d{3} \\d{4}");
+
+// Password masking ("show password" toggle)
+assertThat(passwordField).isPasswordHidden();  // type="password"
+showPasswordToggle.click();
+assertThat(passwordField).isPasswordVisible(); // type is no longer "password"
+
+// Input attributes
+assertThat(usernameField).hasType("text").hasPlaceholder("Username").hasMaxLength(20);
+assertThat(usernameField).isRequired();        // required or aria-required="true"
+assertThat(usernameField).isEditable();        // visible, enabled, not readonly
+assertThat(referenceField).isReadOnly();
+
+// HTML5 constraint validation
+assertThat(emailField).isInvalid().hasValidationMessage("@");
+assertThat(emailField).isValid();
+```
+
+`hasValidationMessage()` checks the browser's own message, which depends on the browser and its locale.
+
+To read an input's value in your code, use `locator.getValue()`. `getText()` always returns `""` for inputs.
+
+### Text Patterns & Lists
+
+```java
+assertThat(By.id("order")).hasTextMatching("Order #\\d+ placed");
+assertThat(By.id("status")).hasTextIgnoringCase("active");
+
+// All matching elements, in order / in any order
+assertThat($(".breadcrumb li")).hasTexts("Home", "Products", "Shoes");
+assertThat($(".tag")).containsTexts("java", "selenium");
+```
+
+### Selection
+
+```java
+assertThat(By.id("newsletter")).not().isChecked();
+assertThat(By.id("select-all")).isIndeterminate();
+assertThat(By.cssSelector("option[value='tr']")).isSelected();
+assertThat(By.id("country")).hasSelectedOption("Turkey");
+assertThat(By.id("country")).hasOptions("Germany", "Turkey", "USA");
+```
+
+### Accessibility & Identity
+
+```java
+assertThat(By.id("search")).hasRole("searchbox").hasAccessibleName("Search products");
+assertThat(By.cssSelector("main > section")).hasId("results");
+assertThat(By.id("footer-cta")).isInViewport();
+```
+
+### Negation with `not()`
+
+`not()` negates the next assertion, like Playwright's `not()`:
+
+```java
+assertThat(By.id("status")).not().hasText("Error");
+assertThat(By.id("status")).not().containsText("failed");
+assertThat(By.name("username")).not().hasValue("guest");
+assertThat(By.id("submit")).not().containsClass("loading");
+assertThat(By.id("submit")).not().hasAttribute("disabled");
+assertThat(By.id("email")).not().hasAttribute("aria-invalid", "true");
+assertThat(By.id("search")).not().isFocused();
+assertThat(By.id("newsletter")).not().isChecked();
+assertThat(By.id("error-banner")).not().isAttached(); // no element in the DOM
+```
+
+- `not()` applies only to the assertion right after it. In `assertThat(x).not().isVisible().hasText("a")`, `hasText` is not negated.
+- As in Playwright, most negated assertions also pass when no element matches. To require the element too, assert it first: `assertThat(status).isVisible().not().hasText("Error")`.
+- `not()` cannot be combined with `click()`, `fill()` or `clear()`.
+- Failure messages and report steps show the negation: `Expected NOT text [Error] for: ...`, `[not] Assert text 'Error' ...`.
+
+### Element Count & Presence
 
 ```java
 assertThat(By.cssSelector("table tbody tr")).count(5);
 assertThat($(".card")).count(3);   // hidden cards are counted too
+assertThat($(".card")).countAtLeast(1).countAtMost(10);
+
+assertThat(By.id("csrf-token")).isAttached();          // present, visible or not (alias: exists())
+assertThat(By.id("error-banner")).not().isAttached(); // absent from the DOM
 ```
+
+When you assert on a `Locator` (`$()`, `getByRole()`, ...), only visible elements are matched. So `count`, `hasCount`, `exists` and `isAttached` ignore hidden elements. Pass a `By` if hidden elements must be counted.
 
 ### Page & URL (PageAssert)
 
@@ -109,9 +257,58 @@ assertThat(getDriver())
     .as("Should land on dashboard after login")
     .within(Duration.ofSeconds(5))
     .urlContains("/dashboard");
+
+// Alerts (the alert is left open)
+assertThatPage().hasAlert().hasAlertText("Saved successfully");
+assertThatPage().hasNoAlert();
+
+// Cookies & localStorage
+assertThatPage().hasCookie("session").hasCookie("locale", "tr");
+assertThatPage().doesNotHaveCookie("tracking");
+assertThatPage().hasLocalStorageItem("theme", "dark");
+
+// Windows / tabs
+assertThatPage().hasWindowCount(2);
 ```
 
 ---
+
+## Playwright Parity
+
+TestFly's element assertions follow the names of Playwright for Java (`assertThat(locator).isVisible()`), not the JavaScript names (`expect(locator).toBeVisible()`):
+
+| Playwright JS | TestFly |
+|---|---|
+| `expect(l).toBeAttached()` | `assertThat(l).isAttached()` |
+| `toBeChecked()` / `toBeChecked({indeterminate: true})` | `isChecked()` / `isIndeterminate()` |
+| `toBeDisabled()` / `toBeEnabled()` / `toBeEditable()` | `isDisabled()` / `isEnabled()` / `isEditable()` |
+| `toBeEmpty()` | `isEmpty()` |
+| `toBeFocused()` | `isFocused()` |
+| `toBeHidden()` / `toBeVisible()` | `isHidden()` / `isVisible()` |
+| `toBeInViewport({ratio})` | `isInViewport()` / `isInViewport(ratio)` |
+| `toContainText(text \| regex \| array)` | `containsText(String \| Pattern \| String[])` |
+| `toContainClass(...)` | `containsClass(String \| List<String>)` |
+| `toHaveAccessibleName/Description/ErrorMessage` | `hasAccessibleName` / `hasAccessibleDescription` / `hasAccessibleErrorMessage` (`String` or `Pattern`) |
+| `toHaveAttribute(name, value \| regex)` | `hasAttribute(name, String \| Pattern)` |
+| `toHaveClass(regex)` | `hasClass(Pattern)` |
+| `toHaveCount(n)` | `hasCount(n)` |
+| `toHaveCSS(name, value \| regex)` | `hasCSS(name, String \| Pattern)` |
+| `toHaveId(...)` | `hasId(String \| Pattern)` |
+| `toHaveJSProperty(name, value)` | `hasJSProperty(name, value)` |
+| `toHaveRole(role)` | `hasRole(Role.BUTTON)` / `hasRole("button")` |
+| `toHaveText(text \| regex \| array)` | `hasText(String \| Pattern \| String[] \| Pattern[])` |
+| `toHaveValue(...)` / `toHaveValues([...])` | `hasValue(String \| Pattern)` / `hasValues(...)` |
+| `.not` | `.not()` |
+
+`isEmpty()` checks the value of `input`, `textarea` and `select` (a value of spaces is not empty) and the trimmed text content of any other element.
+
+`Pattern` arguments match anywhere in the value, as Playwright's regular expressions do. Use `^...$` for a full match: `hasText(Pattern.compile("^Order #\\d+$"))`.
+
+**Differences from Playwright:**
+
+- `hasClass(String)` checks a single class name, which is what Playwright calls `containsClass`. To match the whole `class` attribute, use `hasClass(Pattern)`.
+- Playwright's option objects have no counterpart. Use `within(...)` for `timeout`, `not()` for `visible: false` / `enabled: false` / `checked: false`, and `hasTextIgnoringCase(...)` for `ignoreCase`.
+- `toMatchAriaSnapshot` and element screenshots are not available. For page screenshots, see visual testing.
 
 ## Modifiers & Customization
 
@@ -146,7 +343,7 @@ assertThat(By.id("user-avatar"))
 
 ### What `actual` reports
 
-Every failure ends with `(actual: [...], timeout: ...)` showing the last value observed while polling:
+Every failure ends with `(actual: [...], timeout: ...)` showing the last value observed while polling. A negated assertion (`not()`) ends with `(condition still met, timeout: ...)` instead, and `click()`, `fill()` and `clear()` say which step failed (see [Verified Click](#verified-click)).
 
 | Assertion | `actual` shows |
 |---|---|
@@ -161,6 +358,12 @@ Every failure ends with `(actual: [...], timeout: ...)` showing the last value o
 | `isChecked` | `not selected` |
 | `isFocused` | `focused element: <input#other>` |
 | `count` | the number of elements found, e.g. `2 element(s)` |
+| `countAtLeast`, `countAtMost` | the number of elements found, e.g. `2 element(s)` |
+| `isAttached`, `exists` | `not found` |
+| `hasTexts`, `containsTexts`, `hasText(Pattern[])`, `containsText(String[])` | the texts of all matches, e.g. `["Apple", "Pear"]` |
+| `hasRole` | the role, or `generic (no role)` |
+| `hasAccessibleName`, `hasAccessibleDescription` | the computed name or description, quoted |
+| Other single-element assertions (`hasValue(Pattern)`, `isEditable`, ...) | the element checked, e.g. `condition not met on <input#email>` |
 
 Every single-element matcher reports `not found` when nothing matches, and `element went stale` when the page replaced the element during the check.
 
@@ -217,10 +420,10 @@ things on an element you already have, deterministically and without an LLM:
 
 ```java
 assertThat(By.id("save")).hasRole(Role.BUTTON);
-assertThat(By.id("save")).hasAccessibleName("Save");          // contains, ignores case
-assertThat(By.id("save")).hasExactAccessibleName("Save order");
-assertThat(By.id("email")).hasAccessibleDescription("never share");
-assertThat(By.id("email")).hasExactAccessibleDescription("We never share it");
+assertThat(By.id("save")).hasAccessibleName("Save order");                  // exact, whitespace collapsed
+assertThat(By.id("save")).hasAccessibleName(Pattern.compile("(?i)save"));   // partial, ignores case
+assertThat(By.id("email")).hasAccessibleDescription("We never share it");
+assertThat(By.id("email")).hasAccessibleDescription(Pattern.compile("never share"));
 ```
 
 They retry until the timeout like every other assertion, and a failure shows what was found:

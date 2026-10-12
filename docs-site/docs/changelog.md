@@ -11,6 +11,51 @@ All notable changes to TestFly are documented here.
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Verified fill and clear `assertThat(...).fill(text)` / `assertThat(...).clear()`**: resolve the element like `Locator.fill()`, wait until it is editable, type, and assert that the value then equals the text and stays that way. Password values are never logged, only their length.
+- **Verified click `assertThat(...).click()`**: resolves the element like `Locator.click()` (including self-healing), waits until it is visible and enabled, scrolls it to the centre and hovers it, waits until nothing covers it, clicks, and asserts that the `click` event reached the element. Logs a passed `Clicked: ...` step; supports `as(...)`, `within(...)` and soft mode. `Locator.click()` is unchanged.
+- **Form and input assertions on `LocatorAssert`**: `hasValue()` (any non-empty value), `hasEmptyValue()`, `containsValue`, `valueMatches`, `isPasswordHidden()` / `isPasswordVisible()`, `hasType`, `hasPlaceholder`, `hasMaxLength`, `isEditable`, `isReadOnly`, `isRequired`, and HTML5 validation through `isValid()`, `isInvalid()` and `hasValidationMessage`.
+- **Playwright-style `not()` on `LocatorAssert`**: `assertThat(x).not().hasText("Error")` negates the next assertion. As in Playwright, most negated assertions also pass when no element matches. Cannot be combined with `click()`, `fill()` or `clear()`.
+- **Playwright for Java parity on `LocatorAssert`**: `isAttached`, `isEmpty`, `isIndeterminate`, `isInViewport(ratio)`, `hasCount`, `hasText(Pattern | String[] | Pattern[])`, `containsText(Pattern | String[])`, `hasValue(Pattern)`, `hasValues`, `hasAttribute(name, Pattern)`, `hasClass(Pattern)`, `containsClass`, `hasCSS`, `hasId(Pattern)`, `hasJSProperty`, `hasRole(Role)`, `hasAccessibleName(Pattern)`, `hasAccessibleDescription`, `hasAccessibleErrorMessage`. `Pattern` arguments match anywhere in the value, as in Playwright.
+- **More `LocatorAssert` matchers**: `hasTextMatching`, `hasTextIgnoringCase`, `hasTexts`, `containsTexts`, `isSelected`, `hasSelectedOption`, `hasOptions`, `countAtLeast`, `countAtMost`, `exists`, `isInViewport`, `hasRole`, `hasAccessibleName`, `hasId`.
+- **`Locator` actions and getters**: `getValue()` (reads an input's value; `getText()` is empty for inputs), `fill`, `check` / `uncheck` / `setChecked`, `selectByText` / `selectByValue` / `selectByIndex`, `getSelectedOption`, `doubleClick`, `rightClick`, `press`, `dragTo`, `upload` (works with hidden file inputs), `focus`, `blur`, `waitFor(Locator.State)`, `getCssValue`, `innerHTML`, `outerHTML`, `allTexts`, and the non-waiting checks `isChecked`, `isSelected`, `isDisabled`, `isEditable`, `isFocused`, `isPresent`.
+- **`PageAssert` matchers**: `hasAlert`, `hasAlertText`, `hasNoAlert`, `hasCookie`, `doesNotHaveCookie`, `hasLocalStorageItem`, `hasWindowCount`.
+- **API binary bodies and response accessors**: responses are read as bytes and decoded lazily with the `Content-Type` charset. New `ApiResponse.asBytes()`, `saveTo(Path)`, `headers()`, `headerValues(name)`, `contentType()`, `charset()`, `isSuccessful()`, `prettyBody()`; request side `ApiClient.body(byte[])` and `ApiResponse.Builder.body(byte[])`.
+- **JSONPath wildcards and quoted keys**: `$.items[*].id`, `$.map.*` and `$['key.with.dots']` without a new dependency. Filter expressions, slices and `..` are rejected with a clear `IllegalArgumentException`.
+- **API assertions**: `assertStatusIn(int...)`, `assertStatusRange(from, to)`, `assertSuccessful()`, semantic `assertJsonEquals(json)` / `assertJsonEquals(path, json)` (key order and `1` vs `1.0` ignored, optional array-order-insensitive mode, first-difference message) and `assertJsonArrayContains(path, value)`.
+- **API requests**: `ApiClient.head(..)` / `options(..)` (plus `apiHead` / `apiOptions` in `ApiSupport`), repeated query keys with `addQueryParam` / `addQueryParams`, per-request retry `retry(n)`, `retry(n, backoff)`, `retryOn(statuses...)`, `retryOnException(boolean)`, `noRetry()`, and request bodies in the step log when `api.logBody` is on (binary bodies as a size summary).
+- **API proxy**: `api.proxy.host`, `api.proxy.port`, `api.proxy.nonProxyHosts` and per-request `ApiClient.proxy(host, port)` / `noProxy()`.
+- **Test-scoped request spec**: `ApiClient.setTestSpec(spec)` / `clearTestSpec()` apply a spec to the current test thread only and are cleared after each test.
+- **Polling options `ApiPolling`**: `ApiClient.pollUntil(condition, ApiPolling.within(timeout).interval(..).failFastOn(..).maxAttempts(..).rethrowPredicateErrors(..))`. The timeout error now carries the last error as its cause.
+- **Partial batch results**: `ApiBatchRunner.executeAll()` returns `ApiBatchResult` with a response or an error for every request in submission order; `execute()` is unchanged.
+- **Real Digest authentication** (RFC 7616: MD5, SHA-256, SHA-512-256, `-sess`, `qop=auth`/`auth-int`) through `ApiAuth.digest(username, password)`, with per-test challenge caching and stale-nonce handling.
+- **HMAC request signing** `ApiAuth.hmacSigner()` / `ApiHmacSigner`: signs method, path with query, timestamp and body hash; configurable headers, algorithm, encoding and canonical string.
+- **`ApiAuth.Intercepting`**: auth strategies that need the final request or the response run as the innermost interceptor.
+- **OAuth2 refresh tokens**: `ApiAuth.oauth2Refresh(...)`, automatic refresh-token grant for expired client-credentials and password tokens, and `ApiAuth.clearTokenCache()`.
+- **New `@UseAuth` types**: `digest`, `hmac-signed`, `oauth2-refresh`, with the YAML fields `refreshToken`, `keyHeader`, `signatureHeader`, `timestampHeader`, `encoding`.
+- **`ApiFailure` and `ApiAssertionError`**: one interface for status, URL, method and body on every API failure. Schema and OpenAPI failures now report the request.
+- **WireMock helpers**: `ApiMockServer.stubFor(MappingBuilder)`, `stubJson(method, urlPattern, status, json)` and `resetOwnStubs()` for parallel tests.
+
+### Changed
+- **Schema and OpenAPI failures** throw `ApiAssertionError`, a subclass of `AssertionError`, so existing `catch (AssertionError)` code keeps working.
+- **`ApiAuth.digest(...)`** now performs RFC 7616 challenge/response. It previously sent `Digest base64(user:password)`, which no server accepted.
+- **Cookie jar** (`withCookies()`): cookies are sent only to their host or `Domain`, honour `Path`, `Secure`, `Max-Age` and `Expires`, and foreign `Domain` cookies are rejected. A cookie without `Path` still applies to `/`. Previously every cookie went to every host.
+- **OAuth2 token cache** is cleared at suite end, so tokens are no longer reused across suites in the same JVM.
+- **`ApiAuth.basicAuth`** always encodes credentials as UTF-8.
+- **A `byte[]` passed to `body(Object)`** is sent raw instead of as a Base64 JSON string.
+- **Default `@UseAuth` resolution** is shared by the TestNG listener and the JUnit 5 extension (no behaviour change for existing types).
+
+### Deprecated
+- **`ApiAuth.hmac(apiKey, secret, algorithm)`**: signs only the API key. Use `ApiAuth.hmacSigner()`. Its headers are unchanged.
+
+### Fixed
+- **`ApiResponseSpec` content-type failures** named the request as `null null`; they now include the method and URL.
+- **JSON paths with keys containing `/` or `~`** resolved incorrectly through JSON Pointer; they now work with bracket notation.
+- **A lower-case `content-type` header** could be duplicated by a request spec's content type.
+- **Docs**: README suggested `ApiClient.setGlobalAuth` in `@BeforeSuite`, which cannot work because global auth is per test thread and cleared after each test. `docs/public-api.md` described a non-existent `api()` client. The configuration page mentioned a non-existent `apiClient().withAuth(name)`.
+
 ## [1.0.7] — 2026-10-09
 
 ### Added

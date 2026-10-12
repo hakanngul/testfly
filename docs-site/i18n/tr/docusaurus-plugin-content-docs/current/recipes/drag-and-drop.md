@@ -11,6 +11,19 @@ HTML5 sürükle-bırak, Selenium'daki uygulamaya en bağımlı etkileşimlerden 
 
 ---
 
+## Kısayol: `Locator.dragTo()`
+
+Yaygın durumda bir locator'ı diğerinin üzerine sürükleyin. `dragTo()` kaynağın görünür olmasını bekler ve arka planda `Actions.dragAndDrop()` kullanır:
+
+```java
+find("#card-42").dragTo(find("#done"));
+assertThat(find("#done #card-42")).isVisible();
+```
+
+Uygulama tepki vermezse aşağıdaki yaklaşımlardan birini kullanın.
+
+---
+
 ## Standart Actions sürükle-bırak
 
 Buradan başlayın. Çoğu doğal HTML5 sürüklenebilir uygulamasıyla çalışır:

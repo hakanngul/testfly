@@ -733,9 +733,10 @@ public class LocatorAssertTest {
     }
 
     @Test
-    public void hasAccessibleName_containsIgnoringCase_passes() {
+    public void hasAccessibleName_patternContainsIgnoringCase_passes() {
         WebDriver d = jsDriver(node("button", "Submit order", ""));
-        SeleniumAssert.assertThat(stubFirstElement(d, "x")).hasAccessibleName("submit");
+        SeleniumAssert.assertThat(stubFirstElement(d, "x"))
+                .hasAccessibleName(java.util.regex.Pattern.compile("(?i)submit"));
     }
 
     @Test
@@ -743,16 +744,16 @@ public class LocatorAssertTest {
         WebDriver d = jsDriver(node("button", "Submit order", ""));
         By locator = stubFirstElement(d, "x");
         String msg = failureOf(() -> SeleniumAssert.assertThat(locator).hasAccessibleName("Cancel"));
-        assertTrue(msg.contains("accessible name to contain [Cancel]"), msg);
+        assertTrue(msg.contains("accessible name [Cancel]"), msg);
         assertTrue(msg.contains("actual: [\"Submit order\"]"), msg);
     }
 
     @Test
-    public void hasExactAccessibleName_requiresFullMatch() {
+    public void hasAccessibleName_requiresFullMatch() {
         WebDriver d = jsDriver(node("button", "Submit order", ""));
         By locator = stubFirstElement(d, "x");
-        SeleniumAssert.assertThat(locator).hasExactAccessibleName("Submit   order");
-        String msg = failureOf(() -> SeleniumAssert.assertThat(locator).hasExactAccessibleName("Submit"));
+        SeleniumAssert.assertThat(locator).hasAccessibleName("Submit   order");
+        String msg = failureOf(() -> SeleniumAssert.assertThat(locator).hasAccessibleName("Submit"));
         assertTrue(msg.contains("actual: [\"Submit order\"]"), msg);
     }
 
@@ -760,9 +761,9 @@ public class LocatorAssertTest {
     public void hasAccessibleDescription_passesAndFails() {
         WebDriver d = jsDriver(node("textbox", "Email", "We never share it"));
         By locator = stubFirstElement(d, "x");
-        SeleniumAssert.assertThat(locator).hasAccessibleDescription("never share");
-        SeleniumAssert.assertThat(locator).hasExactAccessibleDescription("We never share it");
-        String msg = failureOf(() -> SeleniumAssert.assertThat(locator).hasAccessibleDescription("spam"));
+        SeleniumAssert.assertThat(locator).hasAccessibleDescription(java.util.regex.Pattern.compile("never share"));
+        SeleniumAssert.assertThat(locator).hasAccessibleDescription("We never share it");
+        String msg = failureOf(() -> SeleniumAssert.assertThat(locator).hasAccessibleDescription("never share"));
         assertTrue(msg.contains("actual: [\"We never share it\"]"), msg);
     }
 

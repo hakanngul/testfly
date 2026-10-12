@@ -9,7 +9,6 @@ import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.firefox.FirefoxProfile;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -65,8 +64,7 @@ public class LocalFirefoxDriverProvider implements DriverProvider{
         BiDiCapability.applyIfConfigured(options, config);
 
         WebDriver driver = new FirefoxDriver(options);
-        driver.manage().timeouts().implicitlyWait(Duration.ZERO);
-        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(config.getTimeouts().getPageLoad()));
+        DriverSetup.configureTimeouts(driver, config);
 
         List<String> args = config.getBrowser().getArguments();
         boolean hasWindowSize = args != null && args.stream().anyMatch(a -> a != null && (a.startsWith("--window-size") || a.startsWith("--width")));

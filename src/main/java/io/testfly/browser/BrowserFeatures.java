@@ -1,6 +1,7 @@
 package io.testfly.browser;
 
 import io.testfly.api.TestFlyApi;
+import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chromium.ChromiumDriver;
 import org.openqa.selenium.devtools.HasDevTools;
@@ -29,8 +30,9 @@ public final class BrowserFeatures {
     /** A feature that depends on the Chrome DevTools Protocol. */
     public enum Feature {
         /** {@code NetworkMock} routes and stubs, {@code network.blockUrls} and {@code NetworkAssert}. */
-        NETWORK_MOCK("Network mocking, URL blocking and network assertions are not available; routes are "
-                + "ignored and requests reach the real network."),
+        NETWORK_MOCK("Network interception requires a local Chrome/Edge session (Selenium Grid and cloud "
+                + "sessions are not supported yet). Network mocking, URL blocking and network assertions are not "
+                + "available; routes are ignored and requests reach the real network."),
         /** Video recording through the DevTools screencast. */
         CDP_RECORDING("Video recording uses periodic screenshots instead of the DevTools screencast, so "
                 + "frames are less frequent."),
@@ -85,6 +87,16 @@ public final class BrowserFeatures {
     }
 
     private static String describe(WebDriver driver) {
-        return driver == null ? "a missing driver" : driver.getClass().getSimpleName();
+        if (driver == null) {
+            return "a missing driver";
+        }
+        if (driver instanceof HasCapabilities caps) {
+            try {
+                return caps.getCapabilities().getBrowserName() + " (" + driver.getClass().getSimpleName() + ")";
+            } catch (RuntimeException ignored) {
+                // fall through to the class name
+            }
+        }
+        return driver.getClass().getSimpleName();
     }
 }

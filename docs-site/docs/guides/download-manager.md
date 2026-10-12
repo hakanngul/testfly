@@ -18,6 +18,10 @@ browser:
   downloadDir: ./target/downloads   # default
 ```
 
+:::note Safari
+Safari ignores `downloadDir` and always saves to the user's Downloads folder, which WebDriver cannot change. `DownloadManager` warns once and its timeout message says so; download checks are not supported on Safari.
+:::
+
 ---
 
 ## Wait for a specific file

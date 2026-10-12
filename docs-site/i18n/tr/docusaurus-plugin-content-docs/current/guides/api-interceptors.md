@@ -109,3 +109,7 @@ public final class ApiInterceptorExamples {
 ```
 
 Asenkron bağlam ve iptal için [Asenkron Çağrılar ve Batch](api-async-batch.md), çıktı kuralları için [Loglama ve Raporlama](api-reporting.md) sayfalarına bakın.
+
+### Zincirde kimlik doğrulama
+
+`ApiAuth.Intercepting` uygulayan auth stratejileri (Digest, `ApiAuth.hmacSigner()`, özel olanlar) tüm test ve istek interceptor'larından sonra, transport'tan hemen önce eklenir. Böylece son isteği görürler ve gerekirse yeniden gönderebilirler; örneğin Digest challenge sonrasında. Bearer veya basic gibi yalnızca header ekleyen stratejiler zincir başlamadan önce uygulanır.

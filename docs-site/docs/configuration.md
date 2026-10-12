@@ -124,8 +124,11 @@ browser:
   failOnConsoleErrors: false        # fail test if severe console errors are detected
   device:                           # optional mobile emulation profile (e.g. "iPhone 14")
   matrix: []                        # multi-browser matrix execution (e.g. [chrome, firefox])
+  window:
+    mode: maximized                 # default | maximized | fullscreen | size (works on every browser)
+    # width: 1366                   # mode: size only — width and height are both required
+    # height: 768
   arguments:                        # extra command-line flags passed to browser executable
-    - --start-maximized
     - --disable-notifications
     - --remote-allow-origins=*
   capabilities:                     # raw WebDriver capability overrides
@@ -514,8 +517,17 @@ Controls WebDriver browser provisioning, execution mode, capabilities, and proce
 | `failOnConsoleErrors` | `boolean` | `false` | When `true`, automatically fails the test if any `SEVERE` browser console errors occurred. |
 | `device` | `string` | `null` | Emulate a specific mobile device viewport and user agent (e.g. `"iPhone 14"`, `"Pixel 7"`). |
 | `matrix` | `list<string>` | `[]` | Multi-browser matrix execution list (e.g. `[chrome, firefox]`). |
-| `arguments` | `list<string>` | `[]` | Extra CLI flags passed directly to the browser binary (e.g. `--incognito`, `--no-sandbox`). |
+| `window.mode` | `string` | `default` | Window sizing applied after the session starts, the same way on every browser and execution mode: `default` (leave as opened), `maximized`, `fullscreen`, or `size`. In headless runs there is no screen, so `maximized` and `fullscreen` use 1920x1080. |
+| `window.width` / `window.height` | `int` | — | Exact window size in pixels. Required with `mode: size`; rejected with any other mode, so `maximized` always follows the real screen. |
+| `arguments` | `list<string>` | `[]` | Extra CLI flags passed directly to the browser binary (e.g. `--incognito`, `--no-sandbox`). Safari does not accept command-line flags; they are ignored with a warning. Use `window.mode` for window sizing. |
 | `capabilities` | `map` | `{}` | Raw capability key-values merged into WebDriver options (e.g. `acceptInsecureCerts`, `pageLoadStrategy`). |
+
+### Browser behavior notes
+
+- **Alerts stay open.** Every built-in provider (local, Grid, BrowserStack, Sauce Labs) sets `unhandledPromptBehavior: ignore`, so an alert waits until the test handles it. Override it through `browser.capabilities` if you need another behavior.
+- **Safari limits.** Safari has no headless mode and accepts no command-line `arguments` (both are ignored with a warning). Use `window.mode` for window sizing. Safari ignores `downloadDir` and saves to the user's Downloads folder. Safari runs one session at a time, so use a single thread. Enable *Allow remote automation* in Safari's Developer settings once (`safaridriver --enable`).
+- **Matrix.** `browser.matrix` selects the browser for local, Grid, and cloud runs alike. With `lifecycle: per-suite`, a thread that switches to another matrix browser gets a new session.
+
 
 ---
 
@@ -527,7 +539,7 @@ Governs test execution topology, base URLs, concurrency, and cloud grid provider
 |---|---|---|---|
 | `mode` | `string` | **required** | Execution environment: `local`, `remote`, `browserstack`, or `saucelabs`. |
 | `baseUrl` | `string` | `null` | Default web URL. When calling `open("/home")`, TestFly prefixes it with this URL. |
-| `gridUrl` | `string` | `null` | Hub endpoint for remote Selenium Grid (used when `mode: remote`). Example: `http://localhost:4444`. |
+| `gridUrl` | `string` | `null` | Hub endpoint for remote Selenium Grid (used when `mode: remote`). Example: `http://localhost:4444`. Supported Grid browsers: `chrome`, `edge`, `firefox`, `safari`. |
 | `parallel` | `string` | `none` | Parallel test distribution mode: `none`, `methods`, `classes`, `tests`, `instances`. Validated against TestNG `ParallelMode`. |
 | `threadCount` | `int` | `1` | Concurrency worker count when `parallel` is enabled. |
 | `maxActiveSessions` | `int` | `5` | Semaphore limiting concurrent WebDriver sessions. Extra threads queue until a slot is free (see `sessionWaitSeconds`). Named sessions from `MultiSessionManager` count against the same limit. |
@@ -717,8 +729,11 @@ Configuration for the built-in fluent REST client (`ApiClient` & `BaseApiTest`).
 | `api.ssl.trustStore.path` | `string` | — | Path to a custom truststore; replaces the default JDK truststore for this profile. Required whenever the `trustStore` block is present. |
 | `api.ssl.trustStore.type` | `string` | `PKCS12` | `PKCS12` or `JKS`; any other value is rejected. |
 | `api.ssl.trustStore.password` | `string` | `null` | Supply via `${TESTFLY_TRUSTSTORE_PASSWORD}`; never commit it. |
+| `api.proxy.host` | `string` | `null` | HTTP proxy host for API calls; unset means direct connections. Proxy authentication is not supported. |
+| `api.proxy.port` | `int` | `0` | Proxy port, required (1..65535) when `host` is set. |
+| `api.proxy.nonProxyHosts` | `list<string>` | `[]` | Hosts that bypass the proxy; case-insensitive, `*` wildcards (`localhost`, `*.internal`, `10.*`). |
 
-Setting `trustAll: true` together with a `trustStore` block fails with `Conflicting SSL selection`. Request-level `.trustStore(...)` or `.trustAllCerts()` replaces the entire YAML SSL selection for that request. `.requestTimeout(Duration)` and the existing `.timeout(int)` set the per-request timeout; the last call wins. This is not a socket read-idle timeout. The batch limit controls logical calls; the global transport limit controls real sends.
+Setting `trustAll: true` together with a `trustStore` block fails with `Conflicting SSL selection`. Request-level `.trustStore(...)` or `.trustAllCerts()` replaces the entire YAML SSL selection for that request. `.proxy(host, port)` and `.noProxy()` override `api.proxy` for one request. `.requestTimeout(Duration)` and the existing `.timeout(int)` set the per-request timeout; the last call wins. This is not a socket read-idle timeout. The batch limit controls logical calls; the global transport limit controls real sends.
 
 See [SSL Configuration](guides/api-ssl.md) and [Timeouts & Performance](guides/api-performance.md).
 
@@ -736,9 +751,11 @@ api:
     retryOnException: true
 ```
 
+A request can override the policy with `.retry(attempts)`, `.retry(attempts, backoff)`, `.retryOn(statuses...)`, `.retryOnException(boolean)` or `.noRetry()`. An explicit override enables retry for that request even when `enabled` is `false`.
+
 #### `api.auth`
 
-Named authentication profiles referenced in tests via `@UseAuth("name")` or `apiClient().withAuth("name")`:
+Named authentication profiles applied to a test method or class with `@UseAuth("name")`. Types: `bearer`, `basic`, `oauth2`, `oauth2_password`, `oauth2-refresh` (`refreshToken`), `apiKey`, `apikey-query`, `digest`, `hmac` (deprecated) and `hmac-signed` (`apiKey`, `secret`, optional `algorithm`, `keyHeader`, `signatureHeader`, `timestampHeader`, `encoding`). See [API Authentication](guides/api-auth.md).
 
 ```yaml
 api:

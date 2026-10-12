@@ -183,9 +183,9 @@ public class AriaSnapshotIntegrationTest {
     @Test
     public void hasAccessibleName_followsTheSamePrecedenceAsWithName() {
         requireBrowser();
-        SeleniumAssert.assertThat(By.cssSelector("nav")).hasExactAccessibleName("Main");
-        SeleniumAssert.assertThat(By.id("email")).hasExactAccessibleName("Email");
-        SeleniumAssert.assertThat(By.cssSelector("img[alt='Logo']")).hasExactAccessibleName("Logo");
+        SeleniumAssert.assertThat(By.cssSelector("nav")).hasAccessibleName("Main");
+        SeleniumAssert.assertThat(By.id("email")).hasAccessibleName("Email");
+        SeleniumAssert.assertThat(By.cssSelector("img[alt='Logo']")).hasAccessibleName("Logo");
         // Locator.withName() resolves the same elements.
         assertEquals(Locator.byRole(Role.NAVIGATION).withName("Main").count(), 1);
         assertEquals(Locator.byLabel("Email").count(), 1);
@@ -194,6 +194,6 @@ public class AriaSnapshotIntegrationTest {
     @Test
     public void hasAccessibleDescription_readsAriaDescribedBy() {
         requireBrowser();
-        SeleniumAssert.assertThat(By.id("email")).hasExactAccessibleDescription("We never share it");
+        SeleniumAssert.assertThat(By.id("email")).hasAccessibleDescription("We never share it");
     }
 }

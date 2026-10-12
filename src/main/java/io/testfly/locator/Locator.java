@@ -5,17 +5,21 @@ import java.util.List;
 import org.openqa.selenium.By;
 import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.WrapsDriver;
 import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.Select;
 
 import io.testfly.api.TestFlyApi;
 import io.testfly.config.TestFlyConfig;
 import io.testfly.driver.DriverManager;
 import io.testfly.internal.ElementDescriber;
 import io.testfly.internal.TestFlyContext;
+import io.testfly.internal.FilePaths;
 import io.testfly.steps.StepLogger;
 import io.testfly.wait.ActionKind;
 import io.testfly.wait.WaitEngine;
@@ -405,6 +409,10 @@ public final class Locator extends By {
      * Command+A,
      * Windows/Linux Control+A) followed by native clear.
      *
+     * <p>Safari only gets the native clear: safaridriver keeps a modifier key
+     * pressed after a chord, so every later keystroke in the session would be
+     * sent as a shortcut and typing would silently do nothing.
+     *
      * @param el target WebElement to clear
      */
     public static void robustClear(WebElement el) {
@@ -412,11 +420,23 @@ public final class Locator extends By {
             return;
         }
         try {
-            el.sendKeys(Keys.chord(Keys.COMMAND, "a"), Keys.BACK_SPACE);
-            el.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.BACK_SPACE);
+            if (!isSafari(el)) {
+                el.sendKeys(Keys.chord(Keys.COMMAND, "a"), Keys.BACK_SPACE);
+                el.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.BACK_SPACE);
+            }
             el.clear();
         } catch (Exception e) {
             LOGGER.warn("Robust clear işlemi sırasında hata oluştu: {}", e.getMessage());
+        }
+    }
+
+    private static boolean isSafari(WebElement el) {
+        try {
+            return el instanceof WrapsDriver wraps
+                    && wraps.getWrappedDriver() instanceof HasCapabilities caps
+                    && "safari".equalsIgnoreCase(caps.getCapabilities().getBrowserName());
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -510,6 +530,330 @@ public final class Locator extends By {
         StepLogger.step("JS click " + this);
         WebElement el = waitForVisible(resolve());
         ((JavascriptExecutor) driver()).executeScript("arguments[0].click();", el);
+    }
+
+    /**
+     * Alias for {@link #type(String)} — clears the field, then types the text.
+     *
+     * @since 1.1.0
+     */
+    public void fill(String text) {
+        type(text);
+    }
+
+    /**
+     * Returns the input element's current value. Use this instead of
+     * {@link #getText()} for {@code <input>} / {@code <textarea>} fields, whose
+     * visible text is always empty. Alias for {@link #inputValue()}.
+     *
+     * @since 1.1.0
+     */
+    public String getValue() {
+        return inputValue();
+    }
+
+    /**
+     * Checks a checkbox or radio button; does nothing if it is already checked.
+     *
+     * @since 1.1.0
+     */
+    public void check() {
+        setChecked(true);
+    }
+
+    /**
+     * Unchecks a checkbox; does nothing if it is already unchecked.
+     *
+     * @since 1.1.0
+     */
+    public void uncheck() {
+        setChecked(false);
+    }
+
+    /**
+     * Brings a checkbox or radio button to the requested state, clicking it only
+     * when its current state differs.
+     *
+     * @since 1.1.0
+     */
+    public void setChecked(boolean checked) {
+        StepLogger.step((checked ? "Check " : "Uncheck ") + this);
+        WebElement el = waitForClickable(resolve());
+        if (el.isSelected() != checked) {
+            el.click();
+        }
+    }
+
+    /**
+     * Selects the {@code <option>} with the given visible text.
+     *
+     * @since 1.1.0
+     */
+    public void selectByText(String text) {
+        StepLogger.step("Select by text '" + text + "' in " + this);
+        new Select(waitForVisible(resolve())).selectByVisibleText(text);
+    }
+
+    /**
+     * Selects the {@code <option>} with the given {@code value} attribute.
+     *
+     * @since 1.1.0
+     */
+    public void selectByValue(String value) {
+        StepLogger.step("Select by value '" + value + "' in " + this);
+        new Select(waitForVisible(resolve())).selectByValue(value);
+    }
+
+    /**
+     * Selects the {@code <option>} at the given zero-based index.
+     *
+     * @since 1.1.0
+     */
+    public void selectByIndex(int index) {
+        StepLogger.step("Select by index " + index + " in " + this);
+        new Select(waitForVisible(resolve())).selectByIndex(index);
+    }
+
+    /**
+     * Returns the visible text of the first selected {@code <option>}.
+     *
+     * @since 1.1.0
+     */
+    public String getSelectedOption() {
+        StepLogger.step("Get selected option from " + this);
+        return new Select(waitForVisible(resolve())).getFirstSelectedOption().getText().trim();
+    }
+
+    /**
+     * Waits for the element to be clickable, then double-clicks it.
+     *
+     * @since 1.1.0
+     */
+    public void doubleClick() {
+        StepLogger.step("Double-click " + this);
+        WebElement el = waitForClickable(resolve());
+        new Actions(driver()).doubleClick(el).perform();
+    }
+
+    /**
+     * Waits for the element to be visible, then right-clicks (context-clicks) it.
+     *
+     * @since 1.1.0
+     */
+    public void rightClick() {
+        StepLogger.step("Right-click " + this);
+        WebElement el = waitForVisible(resolve());
+        new Actions(driver()).contextClick(el).perform();
+    }
+
+    /**
+     * Sends a key or key chord to the element, e.g. {@code press(Keys.ENTER)} or
+     * {@code press(Keys.CONTROL, "a")}.
+     *
+     * @since 1.1.0
+     */
+    public void press(CharSequence... keys) {
+        StepLogger.step("Press keys in " + this);
+        waitForVisible(resolve()).sendKeys(Keys.chord(keys));
+    }
+
+    /**
+     * Drags this element onto {@code target}.
+     *
+     * @since 1.1.0
+     */
+    public void dragTo(Locator target) {
+        StepLogger.step("Drag " + this + " to " + target);
+        WebElement source = waitForVisible(resolve());
+        WebElement destination = target.element();
+        new Actions(driver()).dragAndDrop(source, destination).perform();
+    }
+
+    /**
+     * Sends one or more files to an {@code <input type="file">}. Each path is
+     * resolved as an absolute path, a classpath resource, or a project-root
+     * relative path. Does not wait for visibility, because file inputs are often
+     * hidden behind a styled button.
+     *
+     * @since 1.1.0
+     */
+    public void upload(String... filePaths) {
+        StepLogger.step("Upload " + filePaths.length + " file(s) to " + this);
+        List<String> resolved = new ArrayList<>(filePaths.length);
+        for (String path : filePaths) {
+            resolved.add(FilePaths.resolve(path));
+        }
+        resolve().sendKeys(String.join("\n", resolved));
+    }
+
+    /**
+     * Moves keyboard focus to the element.
+     *
+     * @since 1.1.0
+     */
+    public void focus() {
+        StepLogger.step("Focus " + this);
+        ((JavascriptExecutor) driver()).executeScript("arguments[0].focus();", waitForVisible(resolve()));
+    }
+
+    /**
+     * Removes keyboard focus from the element.
+     *
+     * @since 1.1.0
+     */
+    public void blur() {
+        StepLogger.step("Blur " + this);
+        ((JavascriptExecutor) driver()).executeScript("arguments[0].blur();", resolve());
+    }
+
+    /**
+     * Returns the element's computed CSS property value.
+     *
+     * @since 1.1.0
+     */
+    public String getCssValue(String propertyName) {
+        return resolve().getCssValue(propertyName);
+    }
+
+    /**
+     * Returns the element's inner HTML.
+     *
+     * @since 1.1.0
+     */
+    public String innerHTML() {
+        return resolve().getDomProperty("innerHTML");
+    }
+
+    /**
+     * Returns the element's outer HTML.
+     *
+     * @since 1.1.0
+     */
+    public String outerHTML() {
+        return resolve().getDomProperty("outerHTML");
+    }
+
+    /**
+     * Returns the trimmed visible texts of all visible matching elements (no
+     * wait).
+     *
+     * @since 1.1.0
+     */
+    public List<String> allTexts() {
+        return elements().stream().map(el -> el.getText().trim()).toList();
+    }
+
+    /**
+     * Returns true if a checkbox or radio button is present and checked — does NOT
+     * wait.
+     *
+     * @since 1.1.0
+     */
+    public boolean isChecked() {
+        return isSelected();
+    }
+
+    /**
+     * Returns true if the element (option, checkbox, radio) is present and
+     * selected — does NOT wait.
+     *
+     * @since 1.1.0
+     */
+    public boolean isSelected() {
+        try {
+            return resolveNow().isSelected();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if the element is present but disabled — does NOT wait.
+     *
+     * @since 1.1.0
+     */
+    public boolean isDisabled() {
+        try {
+            return !resolveNow().isEnabled();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if the element is visible, enabled, and not read-only — does
+     * NOT wait.
+     *
+     * @since 1.1.0
+     */
+    public boolean isEditable() {
+        try {
+            WebElement el = resolveNow();
+            return el.isDisplayed() && el.isEnabled() && el.getDomAttribute("readonly") == null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if the element is the document's active element — does NOT
+     * wait.
+     *
+     * @since 1.1.0
+     */
+    public boolean isFocused() {
+        try {
+            return resolveNow().equals(driver().switchTo().activeElement());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if at least one element matches, visible or not — does NOT
+     * wait.
+     *
+     * @since 1.1.0
+     */
+    public boolean isPresent() {
+        return !resolveAllQuietly().isEmpty();
+    }
+
+    /**
+     * Element states for {@link #waitFor(State)}.
+     *
+     * @since 1.1.0
+     */
+    public enum State {
+        /** At least one matching element is displayed. */
+        VISIBLE,
+        /** No matching element is displayed (absent elements count as hidden). */
+        HIDDEN,
+        /** At least one matching element is in the DOM. */
+        ATTACHED,
+        /** No matching element is in the DOM. */
+        DETACHED
+    }
+
+    /**
+     * Waits up to {@code timeouts.explicit} until the element reaches the given
+     * state.
+     *
+     * @throws org.openqa.selenium.TimeoutException if the state is not reached
+     * @since 1.1.0
+     */
+    public void waitFor(State state) {
+        StepLogger.step("Wait for " + this + " to be " + state);
+        WaitEngine.wait(d -> {
+            List<WebElement> found = resolveAllQuietly();
+            boolean reached = switch (state) {
+                case VISIBLE -> found.stream().anyMatch(Locator::displayedQuietly);
+                case HIDDEN -> found.stream().noneMatch(Locator::displayedQuietly);
+                case ATTACHED -> !found.isEmpty();
+                case DETACHED -> found.isEmpty();
+            };
+            return reached ? true : null;
+        });
     }
 
     /**
@@ -622,6 +966,23 @@ public final class Locator extends By {
 
     private static WebElement legacyWait(WebElement el, ActionKind actionKind) {
         return actionKind == ActionKind.CLICK ? WaitEngine.waitForClickable(el) : WaitEngine.waitForVisible(el);
+    }
+
+    /** {@link #resolveAll()} that treats an unresolvable chain as "no match". */
+    private List<WebElement> resolveAllQuietly() {
+        try {
+            return resolveAll();
+        } catch (LocatorException e) {
+            return List.of();
+        }
+    }
+
+    private static boolean displayedQuietly(WebElement el) {
+        try {
+            return el.isDisplayed();
+        } catch (org.openqa.selenium.StaleElementReferenceException e) {
+            return false;
+        }
     }
 
     /** Single-shot resolution (no waiting) — used by {@code isVisible()}/{@code isEnabled()}. */

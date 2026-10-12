@@ -2,6 +2,7 @@ package io.testfly.test;
 
 import io.testfly.api.TestFlyApi;
 import io.testfly.driver.DriverManager;
+import io.testfly.internal.FilePaths;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.shadow.ShadowDom;
 import io.testfly.test.support.ActionSupport;
@@ -25,8 +26,6 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.io.File;
-import java.nio.file.Paths;
 import java.time.Duration;
 
 /**
@@ -665,30 +664,7 @@ public abstract class BasePage implements LocatorSupport, AssertionSupport, Acti
     // assertScreenshot() ×4, emulateDevice(), resetDevice() — via VisualSupport
 
     private String resolveFilePath(String filePath) {
-        // 1. Absolute path
-        File absolute = new File(filePath);
-        if (absolute.isAbsolute() && absolute.exists()) {
-            return absolute.getAbsolutePath();
-        }
-
-        // 2. Classpath resource (src/test/resources)
-        java.net.URL resource = getClass().getClassLoader().getResource(filePath);
-        if (resource != null) {
-            try {
-                return Paths.get(resource.toURI()).toAbsolutePath().toString();
-            } catch (Exception ignored) {
-            }
-        }
-
-        // 3. Project-root relative
-        File relative = Paths.get(System.getProperty("user.dir"), filePath).toFile();
-        if (relative.exists()) {
-            return relative.getAbsolutePath();
-        }
-
-        throw new IllegalArgumentException(
-                "File not found for upload: '" + filePath + "'. " +
-                        "Checked: absolute path, classpath resources, and project-root relative path.");
+        return FilePaths.resolve(filePath);
     }
 
     /**

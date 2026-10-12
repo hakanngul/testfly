@@ -65,6 +65,67 @@ assertThat(By.id("search-input")).isFocused();
 
 `isEnabled` ve `isDisabled` elemanın görünür olmasını da şart koşar; gizli bir eleman `actual: [not displayed]` ile başarısız olur. `isChecked`, yerel checkbox, radio button veya `<option>` elemanının seçili durumunu okur.
 
+### Doğrulanmış Tıklama (Verified Click)
+
+`assertThat(...).click()` elemana tıklar ve tıklamanın gerçekten elemana ulaştığını doğrular:
+
+```java
+assertThat(headerLoginButton).click();
+assertThat(submitButton).as("Siparişi gönder").click();
+```
+
+Arka planda şunları yapar:
+
+1. Elemanı tam olarak `locator.click()` gibi bulur: chain filtreleri (`nth`, `filter`, `withText`) ve self-healing dahil. Ardından görünür ve etkin olana kadar bekler.
+2. Elemanı ekranın ortasına kaydırır ve mouse'u üzerine götürür. Uzun bir formun en altındaki submit butonu önce görünür hale getirilir.
+3. Üstünü kapatan bir şey (cookie banner, modal, sticky header) kalmayana kadar bekler.
+4. Tıklar ve `click` event'inin elemana ulaştığını kontrol eder.
+5. Rapora geçen (PASS) bir `Clicked: ...` adımı yazar.
+
+Bir adım başarısız olursa hata mesajı hangisi olduğunu söyler, örneğin:
+
+```text
+Click not performed: element not visible and enabled: By.id: login (No element found for: By.id: login)
+Click not performed: By.id: login is covered by <div class='cookie-banner'> (timeout: 10s)
+Click did not reach By.id: login (no click event was received)
+```
+
+Elemanı bulma adımı, `locator.click()` gibi `timeouts.explicit` süresini kullanır. `within(...)` sonraki adımlara uygulanır, örneğin üstü kapatan elemanın kalkmasını beklemeye.
+
+Soft modda (`softly()` / `softAssert(...)`) hata kaydedilir ve test devam eder. Tıklama başka bir sayfaya geçerse ya da alert açarsa tıklama ulaşmış sayılır ve alert açık bırakılır.
+
+`assertThat(...).click()` yalnızca tıklamanın elemana ulaştığını kanıtlar. Uygulamanın tepki verdiğini kanıtlamak için sonucu doğrulayın, örneğin `assertThatPage().urlContains("/login")` veya `assertThat(loginModal).isVisible()`. Normal `locator.click()` aksiyonu değişmedi.
+
+### Doğrulanmış Yazma ve Temizleme (Verified Fill & Clear)
+
+`assertThat(...).fill(text)` alana yazar ve değerin gerçekten oturduğunu doğrular. `assertThat(...).clear()` aynısını boş değer için yapar:
+
+```java
+assertThat(userNameField).fill("admin");
+assertThat(passwordField).fill(System.getenv("APP_PASSWORD"));
+assertThat(searchField).clear();
+```
+
+Arka planda şunları yapar:
+
+1. Elemanı `locator.fill()` gibi bulur (chain filtreleri, self-healing) ve görünür ve etkin olana kadar bekler.
+2. `readonly` olmayana kadar bekler, sonra elemanı ekranın ortasına kaydırır.
+3. Alanı temizler ve metni yazar, tıpkı `locator.fill()` gibi.
+4. Değer metne eşit olana kadar bekler ve kısa bir süre sonra tekrar kontrol eder. Böylece `maxlength`, input maskesi ya da uygulamanın kendi state'i (React, Vue, ...) yüzünden yazıldıktan sonra değişen veya silinen değerler yakalanır.
+5. Rapora geçen bir `Filled: ... with [admin]` veya `Cleared: ...` adımı yazar.
+
+Örnek hata mesajları:
+
+```text
+Fill not performed: element is read-only: By.id: username (timeout: 10s)
+Fill did not stick for By.id: code: expected value [abcdef] but was [abc] (timeout: 10s)
+Fill did not stick for By.id: password: expected 7 characters but got 0 (password value hidden) (timeout: 10s)
+```
+
+`type="password"` alanlarda değer ne raporda ne de hata mesajlarında görünür, yalnızca uzunluğu yazılır.
+
+Değer birebir eşleşmelidir. Girdiyi yeniden biçimlendiren bir alan, örneğin `5321234567` değerini `(532) 123 45 67` yapan bir telefon maskesi, bu doğrulamada başarısız olur. Böyle alanlarda `locator.fill(...)` kullanıp ardından `assertThat(field).hasValue("(532) 123 45 67")` ile doğrulayın.
+
 ### Nitelikler & CSS (Attributes & CSS)
 
 ```java
@@ -82,12 +143,99 @@ assertThat(By.id("error-toast")).hasCssValue("color", "rgb(255, 0, 0)");
 assertThat(By.id("item")).hasClass("active");
 ```
 
-### Eleman Sayısı (Count)
+### Form Alanları ve Doğrulama (Form Inputs & Validation)
+
+Input alanlarının görünür metni yoktur, bu yüzden `hasText()` onlarda çalışmaz. Bunun yerine değeri doğrulayın:
+
+```java
+// Değer kontrolleri
+assertThat(passwordField).hasValue();          // boş olmayan herhangi bir değer
+assertThat(searchField).hasEmptyValue();
+assertThat(emailField).containsValue("@example.com");
+assertThat(phoneField).valueMatches("\\+90 \\d{3} \\d{3} \\d{4}");
+
+// Şifre maskeleme ("şifreyi göster" düğmesi)
+assertThat(passwordField).isPasswordHidden();  // type="password"
+showPasswordToggle.click();
+assertThat(passwordField).isPasswordVisible(); // type artık "password" değil
+
+// Input nitelikleri
+assertThat(usernameField).hasType("text").hasPlaceholder("Kullanıcı adı").hasMaxLength(20);
+assertThat(usernameField).isRequired();        // required veya aria-required="true"
+assertThat(usernameField).isEditable();        // görünür, etkin, readonly değil
+assertThat(referenceField).isReadOnly();
+
+// HTML5 kısıt doğrulaması
+assertThat(emailField).isInvalid().hasValidationMessage("@");
+assertThat(emailField).isValid();
+```
+
+`hasValidationMessage()` tarayıcının kendi mesajını kontrol eder. Bu mesaj tarayıcıya ve tarayıcının diline göre değişir.
+
+Kodunuzda bir input'un değerini okumak için `locator.getValue()` kullanın. `getText()` input'larda her zaman `""` döndürür.
+
+### Metin Kalıpları ve Listeler (Text Patterns & Lists)
+
+```java
+assertThat(By.id("order")).hasTextMatching("Sipariş #\\d+ alındı");
+assertThat(By.id("status")).hasTextIgnoringCase("aktif");
+
+// Eşleşen tüm elemanlar: sıralı / sırasız
+assertThat($(".breadcrumb li")).hasTexts("Ana Sayfa", "Ürünler", "Ayakkabı");
+assertThat($(".tag")).containsTexts("java", "selenium");
+```
+
+### Seçim (Selection)
+
+```java
+assertThat(By.id("newsletter")).not().isChecked();
+assertThat(By.id("select-all")).isIndeterminate();
+assertThat(By.cssSelector("option[value='tr']")).isSelected();
+assertThat(By.id("country")).hasSelectedOption("Türkiye");
+assertThat(By.id("country")).hasOptions("Almanya", "Türkiye", "ABD");
+```
+
+### Erişilebilirlik ve Kimlik (Accessibility & Identity)
+
+```java
+assertThat(By.id("search")).hasRole("searchbox").hasAccessibleName("Ürün ara");
+assertThat(By.cssSelector("main > section")).hasId("results");
+assertThat(By.id("footer-cta")).isInViewport();
+```
+
+### `not()` ile Olumsuzlama (Negation)
+
+`not()` bir sonraki doğrulamayı tersine çevirir, tıpkı Playwright'taki `not()` gibi:
+
+```java
+assertThat(By.id("status")).not().hasText("Hata");
+assertThat(By.id("status")).not().containsText("başarısız");
+assertThat(By.name("username")).not().hasValue("guest");
+assertThat(By.id("submit")).not().containsClass("loading");
+assertThat(By.id("submit")).not().hasAttribute("disabled");
+assertThat(By.id("email")).not().hasAttribute("aria-invalid", "true");
+assertThat(By.id("search")).not().isFocused();
+assertThat(By.id("newsletter")).not().isChecked();
+assertThat(By.id("error-banner")).not().isAttached(); // DOM'da eleman yok
+```
+
+- `not()` yalnızca hemen arkasından gelen doğrulamaya uygulanır. `assertThat(x).not().isVisible().hasText("a")` zincirinde `hasText` tersine çevrilmez.
+- Playwright'taki gibi, olumsuzlanan doğrulamaların çoğu eşleşen eleman yoksa da geçer. Elemanın var olmasını da istiyorsanız önce onu doğrulayın: `assertThat(status).isVisible().not().hasText("Hata")`.
+- `not()`, `click()`, `fill()` veya `clear()` ile birlikte kullanılamaz.
+- Hata mesajları ve rapor adımları olumsuzlamayı gösterir: `Expected NOT text [Hata] for: ...`, `[not] Assert text 'Hata' ...`.
+
+### Eleman Sayısı ve Varlık (Count & Presence)
 
 ```java
 assertThat(By.cssSelector("table tbody tr")).count(5);
 assertThat($(".card")).count(3);   // gizli kartlar da sayılır
+assertThat($(".card")).countAtLeast(1).countAtMost(10);
+
+assertThat(By.id("csrf-token")).isAttached();          // DOM'da var, görünür olsun ya da olmasın (diğer adı: exists())
+assertThat(By.id("error-banner")).not().isAttached(); // DOM'da yok
 ```
+
+Bir `Locator` (`$()`, `getByRole()`, ...) üzerinde doğrulama yaptığınızda yalnızca görünür elemanlar eşleşir. Bu yüzden `count`, `hasCount`, `exists` ve `isAttached` gizli elemanları saymaz. Gizli elemanların da sayılması gerekiyorsa `By` verin.
 
 ### Sayfa ve URL Doğrulamaları (PageAssert)
 
@@ -109,9 +257,58 @@ assertThat(getDriver())
     .as("Giriş sonrası panele yönlenmeli")
     .within(Duration.ofSeconds(5))
     .urlContains("/dashboard");
+
+// Alert'ler (alert açık bırakılır)
+assertThatPage().hasAlert().hasAlertText("Başarıyla kaydedildi");
+assertThatPage().hasNoAlert();
+
+// Cookie'ler ve localStorage
+assertThatPage().hasCookie("session").hasCookie("locale", "tr");
+assertThatPage().doesNotHaveCookie("tracking");
+assertThatPage().hasLocalStorageItem("theme", "dark");
+
+// Pencereler / sekmeler
+assertThatPage().hasWindowCount(2);
 ```
 
 ---
+
+## Playwright Eşliği (Playwright Parity)
+
+TestFly'ın eleman doğrulamaları Playwright'ın JavaScript isimlerini (`expect(locator).toBeVisible()`) değil, Playwright for Java isimlerini (`assertThat(locator).isVisible()`) izler:
+
+| Playwright JS | TestFly |
+|---|---|
+| `expect(l).toBeAttached()` | `assertThat(l).isAttached()` |
+| `toBeChecked()` / `toBeChecked({indeterminate: true})` | `isChecked()` / `isIndeterminate()` |
+| `toBeDisabled()` / `toBeEnabled()` / `toBeEditable()` | `isDisabled()` / `isEnabled()` / `isEditable()` |
+| `toBeEmpty()` | `isEmpty()` |
+| `toBeFocused()` | `isFocused()` |
+| `toBeHidden()` / `toBeVisible()` | `isHidden()` / `isVisible()` |
+| `toBeInViewport({ratio})` | `isInViewport()` / `isInViewport(ratio)` |
+| `toContainText(text \| regex \| array)` | `containsText(String \| Pattern \| String[])` |
+| `toContainClass(...)` | `containsClass(String \| List<String>)` |
+| `toHaveAccessibleName/Description/ErrorMessage` | `hasAccessibleName` / `hasAccessibleDescription` / `hasAccessibleErrorMessage` (`String` veya `Pattern`) |
+| `toHaveAttribute(name, value \| regex)` | `hasAttribute(name, String \| Pattern)` |
+| `toHaveClass(regex)` | `hasClass(Pattern)` |
+| `toHaveCount(n)` | `hasCount(n)` |
+| `toHaveCSS(name, value \| regex)` | `hasCSS(name, String \| Pattern)` |
+| `toHaveId(...)` | `hasId(String \| Pattern)` |
+| `toHaveJSProperty(name, value)` | `hasJSProperty(name, value)` |
+| `toHaveRole(role)` | `hasRole(Role.BUTTON)` / `hasRole("button")` |
+| `toHaveText(text \| regex \| array)` | `hasText(String \| Pattern \| String[] \| Pattern[])` |
+| `toHaveValue(...)` / `toHaveValues([...])` | `hasValue(String \| Pattern)` / `hasValues(...)` |
+| `.not` | `.not()` |
+
+`isEmpty()`, `input`, `textarea` ve `select` için değeri (yalnızca boşluklardan oluşan değer boş sayılmaz), diğer elemanlar için kırpılmış metin içeriğini kontrol eder.
+
+`Pattern` argümanları, Playwright'taki regex'ler gibi değerin herhangi bir yerinde eşleşir. Tam eşleşme için `^...$` kullanın: `hasText(Pattern.compile("^Sipariş #\\d+$"))`.
+
+**Playwright'tan farklar:**
+
+- `hasClass(String)` tek bir class adına bakar; Playwright buna `containsClass` der. Tüm `class` attribute'unu eşleştirmek için `hasClass(Pattern)` kullanın.
+- Playwright'ın options nesnelerinin karşılığı yoktur. `timeout` için `within(...)`, `visible: false` / `enabled: false` / `checked: false` için `not()`, `ignoreCase` için `hasTextIgnoringCase(...)` kullanın.
+- `toMatchAriaSnapshot` ve eleman ekran görüntüleri yoktur. Sayfa ekran görüntüleri için görsel test bölümüne bakın.
 
 ## Özelleştirme ve Niteleyiciler
 
@@ -146,7 +343,7 @@ assertThat(By.id("user-avatar"))
 
 ### `actual` ne raporlar
 
-Her hata `(actual: [...], timeout: ...)` ile biter ve polling sırasında gözlenen son değeri gösterir:
+Her hata `(actual: [...], timeout: ...)` ile biter ve polling sırasında gözlenen son değeri gösterir. `not()` ile olumsuzlanmış bir doğrulama bunun yerine `(condition still met, timeout: ...)` ile biter; `click()`, `fill()` ve `clear()` ise hangi adımın başarısız olduğunu söyler (bkz. [Doğrulanmış Tıklama](#doğrulanmış-tıklama-verified-click)).
 
 | Doğrulama | `actual` gösterir |
 |---|---|
@@ -161,6 +358,12 @@ Her hata `(actual: [...], timeout: ...)` ile biter ve polling sırasında gözle
 | `isChecked` | `not selected` |
 | `isFocused` | `focused element: <input#other>` |
 | `count` | bulunan eleman sayısı, örneğin `2 element(s)` |
+| `countAtLeast`, `countAtMost` | bulunan eleman sayısı, örneğin `2 element(s)` |
+| `isAttached`, `exists` | `not found` |
+| `hasTexts`, `containsTexts`, `hasText(Pattern[])`, `containsText(String[])` | eşleşen tüm elemanların metinleri, örneğin `["Elma", "Armut"]` |
+| `hasRole` | rol ya da `generic (no role)` |
+| `hasAccessibleName`, `hasAccessibleDescription` | hesaplanan ad veya açıklama, tırnak içinde |
+| Diğer tek eleman doğrulamaları (`hasValue(Pattern)`, `isEditable`, ...) | kontrol edilen eleman, örneğin `condition not met on <input#email>` |
 
 Tek elemanlı matcher'ların tümü, eşleşme yoksa `not found`, kontrol sırasında sayfa elemanı değiştirdiyse `element went stale` raporlar.
 
@@ -217,10 +420,10 @@ softAssert().that(items.size() > 0, "Öğe listesi boş olmamalı");
 
 ```java
 assertThat(By.id("save")).hasRole(Role.BUTTON);
-assertThat(By.id("save")).hasAccessibleName("Kaydet");          // içerir, büyük/küçük harf farkı yok
-assertThat(By.id("save")).hasExactAccessibleName("Siparişi kaydet");
-assertThat(By.id("email")).hasAccessibleDescription("paylaşmayız");
-assertThat(By.id("email")).hasExactAccessibleDescription("Adresinizi kimseyle paylaşmayız");
+assertThat(By.id("save")).hasAccessibleName("Siparişi kaydet");                 // tam eşleşme, boşluklar sadeleştirilir
+assertThat(By.id("save")).hasAccessibleName(Pattern.compile("(?i)kaydet"));     // kısmi, büyük/küçük harf farkı yok
+assertThat(By.id("email")).hasAccessibleDescription("Adresinizi kimseyle paylaşmayız");
+assertThat(By.id("email")).hasAccessibleDescription(Pattern.compile("paylaşmayız"));
 ```
 
 Diğer doğrulamalar gibi zaman aşımına kadar yeniden dener ve hata, bulunanı gösterir:

@@ -11,7 +11,7 @@ import io.testfly.api.TestFlyApi;
  * 401 vs 500 vs timeout and the framework can classify flaky vs hard failures.
  */
 @TestFlyApi(since = "1.10.0")
-public class ApiException extends RuntimeException {
+public class ApiException extends RuntimeException implements ApiFailure {
 
     private final int status;
     private final String body;
@@ -19,7 +19,7 @@ public class ApiException extends RuntimeException {
     private final String method;
 
     public ApiException(String method, String url, int status, String body, String message) {
-        super(message + " — " + method + " " + url + " → " + status + " Body: " + truncate(body, 500));
+        super(describe(message, method, url, status, body));
         this.method = method;
         this.url = url;
         this.status = status;
@@ -35,17 +35,17 @@ public class ApiException extends RuntimeException {
     }
 
     public ApiException(String method, String url, int status, String body, String message, Throwable cause) {
-        super(message + " — " + method + " " + url + " → " + status + " Body: " + truncate(body, 500), cause);
+        super(describe(message, method, url, status, body), cause);
         this.method = method;
         this.url = url;
         this.status = status;
         this.body = body;
     }
 
-    public int getStatus() { return status; }
-    public String getBody() { return body; }
-    public String getUrl() { return url; }
-    public String getMethod() { return method; }
+    @Override public int getStatus() { return status; }
+    @Override public String getBody() { return body; }
+    @Override public String getUrl() { return url; }
+    @Override public String getMethod() { return method; }
 
     /** 4xx client error. */
     public boolean isClientError() { return status >= 400 && status < 500; }
@@ -57,6 +57,12 @@ public class ApiException extends RuntimeException {
     public boolean isTimeout() {
         return getCause() instanceof java.net.http.HttpTimeoutException
                 || (getCause() != null && getCause().getCause() instanceof java.net.http.HttpTimeoutException);
+    }
+
+    /** Builds the shared failure message; omits the request part when method and URL are unknown. */
+    static String describe(String message, String method, String url, int status, String body) {
+        String request = method == null && url == null ? "" : " — " + method + " " + url;
+        return message + request + " → " + status + " Body: " + truncate(body, 500);
     }
 
     private static String truncate(String s, int max) {

@@ -130,6 +130,19 @@ public final class TestFlyConfig {
         private boolean bidi = false;
         private List<String> matrix = Collections.emptyList();
         private String device; // optional device profile name, e.g. "iPhone 14"
+        private Window window = new Window();
+
+        /**
+         * Window sizing applied right after the browser session starts.
+         * Never {@code null}; defaults to {@code mode: default}.
+         */
+        public Window getWindow() {
+            return window;
+        }
+
+        public void setWindow(Window window) {
+            this.window = window != null ? window : new Window();
+        }
 
         public String getDevice() {
             return device;
@@ -226,6 +239,47 @@ public final class TestFlyConfig {
 
         public void setLifecycle(String lifecycle) {
             this.lifecycle = lifecycle;
+        }
+    }
+
+    /**
+     * Browser window sizing ({@code browser.window} in testfly.yml).
+     * <ul>
+     * <li>{@code default} — leave the window as the browser opens it</li>
+     * <li>{@code maximized} — maximize to the current screen; no width/height</li>
+     * <li>{@code fullscreen} — switch to full screen; no width/height</li>
+     * <li>{@code size} — exact {@code width} x {@code height}; both required</li>
+     * </ul>
+     * Headless sessions have no screen, so {@code maximized} and
+     * {@code fullscreen} fall back to a built-in 1920x1080 window there.
+     */
+    public static final class Window {
+        private String mode = "default";
+        private Integer width;
+        private Integer height;
+
+        public String getMode() {
+            return mode;
+        }
+
+        public void setMode(String mode) {
+            this.mode = mode != null ? mode : "default";
+        }
+
+        public Integer getWidth() {
+            return width;
+        }
+
+        public void setWidth(Integer width) {
+            this.width = width;
+        }
+
+        public Integer getHeight() {
+            return height;
+        }
+
+        public void setHeight(Integer height) {
+            this.height = height;
         }
     }
 
@@ -1961,6 +2015,28 @@ public final class TestFlyConfig {
         public void setMaxConcurrentRequests(int value) { maxConcurrentRequests = value; }
         public Ssl getSsl() { return ssl; }
         public void setSsl(Ssl value) { ssl = value; }
+        private Proxy proxy = new Proxy();
+        /** HTTP proxy for API calls ({@code api.proxy.host/port/nonProxyHosts}). */
+        public Proxy getProxy() { return proxy; }
+        public void setProxy(Proxy value) { proxy = value; }
+        /**
+         * HTTP proxy for API calls. Unset host means direct connections. Proxy authentication is
+         * not supported. {@code nonProxyHosts} entries match host names case-insensitively and may
+         * use {@code *} wildcards, e.g. {@code localhost}, {@code *.internal}, {@code 10.*}.
+         */
+        public static final class Proxy {
+            private String host;
+            private int port;
+            private java.util.List<String> nonProxyHosts = new java.util.ArrayList<>();
+            public String getHost() { return host; }
+            public void setHost(String value) { host = value; }
+            public int getPort() { return port; }
+            public void setPort(int value) { port = value; }
+            public java.util.List<String> getNonProxyHosts() { return nonProxyHosts; }
+            public void setNonProxyHosts(java.util.List<String> value) {
+                nonProxyHosts = value != null ? value : new java.util.ArrayList<>();
+            }
+        }
         public static final class Ssl {
             private boolean trustAll;
             private TrustStore trustStore;
@@ -2134,7 +2210,7 @@ public final class TestFlyConfig {
         }
 
         public static final class AuthStrategy {
-            private String type; // bearer | basic | oauth2 | apiKey | hmac | digest
+            private String type; // bearer | basic | oauth2 | oauth2_password | oauth2-refresh | apiKey | apikey-query | digest | hmac | hmac-signed
             private String token; // bearer
             private String username; // basic / digest
             private String password; // basic / digest
@@ -2233,6 +2309,23 @@ public final class TestFlyConfig {
             public void setAlgorithm(String v) {
                 this.algorithm = v;
             }
+
+            private String refreshToken; // oauth2-refresh
+            private String keyHeader; // hmac-signed (default X-Api-Key)
+            private String signatureHeader; // hmac-signed (default X-Signature)
+            private String timestampHeader; // hmac-signed (default X-Timestamp; "none" disables)
+            private String encoding; // hmac-signed: base64 | hex
+
+            public String getRefreshToken() { return refreshToken; }
+            public void setRefreshToken(String v) { this.refreshToken = v; }
+            public String getKeyHeader() { return keyHeader; }
+            public void setKeyHeader(String v) { this.keyHeader = v; }
+            public String getSignatureHeader() { return signatureHeader; }
+            public void setSignatureHeader(String v) { this.signatureHeader = v; }
+            public String getTimestampHeader() { return timestampHeader; }
+            public void setTimestampHeader(String v) { this.timestampHeader = v; }
+            public String getEncoding() { return encoding; }
+            public void setEncoding(String v) { this.encoding = v; }
         }
     }
 

@@ -8,7 +8,6 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,8 +20,7 @@ public class LocalChromeDriverProvider implements DriverProvider {
         ChromeOptions options = buildOptions(config);
 
         WebDriver driver = new ChromeDriver(options);
-        driver.manage().timeouts().implicitlyWait(Duration.ZERO);
-        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(config.getTimeouts().getPageLoad()));
+        DriverSetup.configureTimeouts(driver, config);
 
         List<String> args = config.getBrowser().getArguments();
         boolean hasWindowSize = args != null && args.stream().anyMatch(a -> a != null && a.startsWith("--window-size"));

@@ -227,4 +227,24 @@ public class DownloadManagerTest {
             uniqueDir.toFile().delete();
         }
     }
+
+    @Test
+    public void waitForFile_onSafari_timeoutExplainsDownloadsFolder() {
+        TestFlyContext.getConfig().getBrowser().setName("safari");
+
+        RuntimeException e = expectThrows(RuntimeException.class,
+                () -> DownloadManager.waitForFile("missing.csv", 0));
+
+        assertTrue(e.getMessage().contains("Safari ignores browser.downloadDir"), e.getMessage());
+    }
+
+    @Test
+    public void waitForFile_onChrome_timeoutHasNoSafariHint() {
+        TestFlyContext.getConfig().getBrowser().setName("chrome");
+
+        RuntimeException e = expectThrows(RuntimeException.class,
+                () -> DownloadManager.waitForFile("missing.csv", 0));
+
+        assertFalse(e.getMessage().contains("Safari"), e.getMessage());
+    }
 }

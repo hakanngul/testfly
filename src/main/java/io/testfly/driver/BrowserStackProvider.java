@@ -11,7 +11,6 @@ import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.safari.SafariOptions;
 
 import java.net.URI;
-import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -49,7 +48,7 @@ public class BrowserStackProvider implements DriverProvider {
 
         String username = resolveEnv(bs.getUsername());
         String accessKey = resolveEnv(bs.getAccessKey());
-        String browser = bs.getBrowser() != null ? bs.getBrowser() : "chrome";
+        String browser = DriverProviderFactory.resolveCloudBrowserName(bs.getBrowser());
         String testId = TestFlyContext.getCurrentTestId();
 
         if (isBlank(username))
@@ -78,16 +77,24 @@ public class BrowserStackProvider implements DriverProvider {
 
         try {
             WebDriver driver = new RemoteWebDriver(URI.create(HUB_URL).toURL(), options);
-            driver.manage().timeouts().implicitlyWait(Duration.ZERO);
-            driver.manage().timeouts().pageLoadTimeout(
-                    Duration.ofSeconds(cfg.getTimeouts().getPageLoad()));
+            DriverSetup.configureTimeouts(driver, cfg);
             return driver;
         } catch (Exception e) {
             throw new IllegalStateException("[BrowserStack] Failed to create session: " + e.getMessage(), e);
         }
     }
 
-    private static AbstractDriverOptions<?> buildOptions(
+    /**
+     * Builds the cloud session options. Exposed so it can be unit-tested without
+     * a cloud account. Alerts stay open until the test handles them, as locally.
+     */
+    public static AbstractDriverOptions<?> buildOptions(String browser, String browserVersion, Map<String, Object> bstackOptions) {
+        AbstractDriverOptions<?> options = baseOptions(browser, browserVersion, bstackOptions);
+        options.setCapability("unhandledPromptBehavior", "ignore");
+        return options;
+    }
+
+    private static AbstractDriverOptions<?> baseOptions(
             String browser, String browserVersion, Map<String, Object> bstackOptions) {
         switch (browser.toLowerCase()) {
             case "firefox": {

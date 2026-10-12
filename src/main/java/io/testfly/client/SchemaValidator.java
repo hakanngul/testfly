@@ -22,6 +22,15 @@ class SchemaValidator {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     static void validate(String responseBody, String schemaPath) {
+        validate(responseBody, schemaPath, null, null, -1);
+    }
+
+    /** Validates the response body and reports failures with the request context. */
+    static void validate(ApiResponse response, String schemaPath) {
+        validate(response.body(), schemaPath, response.requestMethod(), response.requestUrl(), response.status());
+    }
+
+    private static void validate(String responseBody, String schemaPath, String method, String url, int status) {
         ensureValidatorAvailable();
         try {
             InputStream schemaStream = Thread.currentThread()
@@ -46,7 +55,7 @@ class SchemaValidator {
                 String details = violations.stream()
                         .map(com.networknt.schema.ValidationMessage::getMessage)
                         .collect(Collectors.joining("\n  - ", "\n  - ", ""));
-                throw new AssertionError(
+                throw new ApiAssertionError(method, url, status, responseBody,
                         "[ApiResponse] Schema validation failed against '" + schemaPath + "':" + details);
             }
 

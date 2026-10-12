@@ -132,6 +132,10 @@ public final class SeleniumAssert {
             this.locator = locator;
         }
 
+        Locator locator() {
+            return locator;
+        }
+
         /** Every match of the chain, visible or not — the same set {@link Locator#count()} sees. */
         @Override
         public java.util.List<org.openqa.selenium.WebElement> findElements(

@@ -8,7 +8,6 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.edge.EdgeOptions;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,8 +78,7 @@ public class LocalEdgeDriverProvider implements DriverProvider {
         BiDiCapability.applyIfConfigured(options, config);
 
         WebDriver driver = new EdgeDriver(options);
-        driver.manage().timeouts().implicitlyWait(Duration.ZERO);
-        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(config.getTimeouts().getPageLoad()));
+        DriverSetup.configureTimeouts(driver, config);
 
         if (!config.getBrowser().isHeadless() && !hasWindowSize) {
             if (hasStartFullscreen) {

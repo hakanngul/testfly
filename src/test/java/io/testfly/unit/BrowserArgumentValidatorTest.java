@@ -53,8 +53,9 @@ public class BrowserArgumentValidatorTest {
         BrowserArgumentValidator.validate("edge", List.of("-private"));
     }
 
-    @Test(expectedExceptions = IllegalStateException.class)
-    public void validate_safariAnyArguments_throws() {
+    @Test
+    public void validate_safariArguments_warnsInsteadOfThrowing() {
+        // Safari ignores arguments; a shared testfly.yml must still start Safari.
         BrowserArgumentValidator.validate("safari", List.of("--start-maximized"));
     }
 

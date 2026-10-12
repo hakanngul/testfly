@@ -105,8 +105,11 @@ browser:
   failOnConsoleErrors: false        # SEVERE konsol hatası varsa testi başarısız say
   device:                           # isteğe bağlı mobil emülasyon profili (örn: "iPhone 14")
   matrix: []                        # çoklu tarayıcı matrisi (örn: [chrome, firefox])
+  window:
+    mode: maximized                 # default | maximized | fullscreen | size (tüm tarayıcılarda çalışır)
+    # width: 1366                   # yalnızca mode: size — width ve height birlikte zorunlu
+    # height: 768
   arguments:                        # tarayıcı çalıştırılabilirine iletilecek ek bayraklar
-    - --start-maximized
     - --disable-notifications
     - --remote-allow-origins=*
   capabilities:                     # doğrudan WebDriver capability geçersiz kılmaları
@@ -495,8 +498,17 @@ Tarayıcı sağlama, çalıştırma modu, yetenekler ve süreç argümanlarını
 | `failOnConsoleErrors` | `boolean` | `false` | `true` ise test sırasında `SEVERE` düzeyinde konsol hatası oluştuğunda testi başarısız sayar. |
 | `device` | `string` | `null` | Mobil emülasyon profili adı (örn: `"iPhone 14"`, `"Pixel 7"`). |
 | `matrix` | `list<string>` | `[]` | Çoklu tarayıcı test koşumu için tarayıcı listesi (örn: `[chrome, firefox]`). |
-| `arguments` | `list<string>` | `[]` | Tarayıcı ikili dosyasına aktarılan komut satırı bayrakları (örn: `--incognito`, `--no-sandbox`). |
+| `window.mode` | `string` | `default` | Oturum açıldıktan sonra uygulanan pencere boyutu; tüm tarayıcı ve çalıştırma modlarında aynı şekilde çalışır: `default` (açıldığı gibi bırak), `maximized`, `fullscreen` veya `size`. Headless koşumda ekran olmadığı için `maximized` ve `fullscreen` 1920x1080 kullanır. |
+| `window.width` / `window.height` | `int` | — | Piksel cinsinden kesin pencere boyutu. `mode: size` ile zorunludur; diğer modlarda verilirse hata verir, böylece `maximized` her zaman gerçek ekranı izler. |
+| `arguments` | `list<string>` | `[]` | Tarayıcı ikili dosyasına aktarılan komut satırı bayrakları (örn: `--incognito`, `--no-sandbox`). Safari komut satırı bayrağı kabul etmez; bayraklar uyarıyla yok sayılır. Pencere boyutu için `window.mode` kullanın. |
 | `capabilities` | `map` | `{}` | WebDriver seçeneklerine eklenen ham yetenekler (örn: `acceptInsecureCerts`, `pageLoadStrategy`). |
+
+### Tarayıcı davranış notları
+
+- **Alert'ler açık kalır.** Tüm yerleşik sağlayıcılar (local, Grid, BrowserStack, Sauce Labs) `unhandledPromptBehavior: ignore` ayarlar; alert, test onu ele alana kadar bekler. Farklı bir davranış gerekirse `browser.capabilities` ile geçersiz kılın.
+- **Safari kısıtları.** Safari'nin headless modu yoktur ve komut satırı `arguments` kabul etmez (ikisi de uyarıyla yok sayılır). Pencere boyutu için `window.mode` kullanın. Safari `downloadDir` ayarını yok sayar ve kullanıcının İndirilenler klasörüne kaydeder. Safari aynı anda tek oturum çalıştırır; tek thread kullanın. Safari Geliştirici ayarlarında *Uzaktan otomasyona izin ver* seçeneğini bir kez açın (`safaridriver --enable`).
+- **Matrix.** `browser.matrix` tarayıcıyı local, Grid ve cloud koşumlarında aynı şekilde seçer. `lifecycle: per-suite` ile başka bir matrix tarayıcısına geçen thread yeni bir oturum alır.
+
 
 ---
 
@@ -508,7 +520,7 @@ Test dağıtımı, temel adresler, eşzamanlılık ve bulut ızgara (grid) sağl
 |---|---|---|---|
 | `mode` | `string` | **zorunlu** | Çalıştırma ortamı: `local`, `remote`, `browserstack` veya `saucelabs`. |
 | `baseUrl` | `string` | `null` | Web testleri için temel URL. `open("/home")` çağrıldığında bu adresin ardına eklenir. |
-| `gridUrl` | `string` | `null` | Uzak Selenium Grid adresi (`mode: remote` iken zorunludur). Örnek: `http://localhost:4444`. |
+| `gridUrl` | `string` | `null` | Uzak Selenium Grid adresi (`mode: remote` iken zorunludur). Örnek: `http://localhost:4444`. Grid'de desteklenen tarayıcılar: `chrome`, `edge`, `firefox`, `safari`. |
 | `parallel` | `string` | `none` | TestNG paralel dağıtım modu: `none`, `methods`, `classes`, `tests`, `instances`. |
 | `threadCount` | `int` | `1` | Paralel mod aktifken çalışacak iş parçacığı (worker thread) sayısı. |
 | `maxActiveSessions` | `int` | `5` | Eşzamanlı aktif tarayıcı oturumlarını sınırlayan semafor. Ekstra thread'ler yuva boşalana kadar kuyrukta bekler (bkz. `sessionWaitSeconds`). `MultiSessionManager` ile açılan adlandırılmış oturumlar da aynı sınıra sayılır. |
@@ -698,8 +710,11 @@ Yerleşik REST istemcisi (`ApiClient` & `BaseApiTest`) yapılandırması.
 | `api.ssl.trustStore.path` | `string` | — | Özel güven deposunun dosya yolu; bu profil için varsayılan JDK deposunun yerini alır. `trustStore` bloğu yazıldığında zorunludur. |
 | `api.ssl.trustStore.type` | `string` | `PKCS12` | `PKCS12` veya `JKS`; başka değerler reddedilir. |
 | `api.ssl.trustStore.password` | `string` | `null` | Parolayı `${TESTFLY_TRUSTSTORE_PASSWORD}` ile sağlayın; asla commit'lemeyin. |
+| `api.proxy.host` | `string` | `null` | API çağrıları için HTTP proxy host'u; ayarlanmazsa doğrudan bağlanılır. Proxy kimlik doğrulaması desteklenmez. |
+| `api.proxy.port` | `int` | `0` | Proxy portu; `host` ayarlıysa zorunludur (1..65535). |
+| `api.proxy.nonProxyHosts` | `list<string>` | `[]` | Proxy'yi atlayan host'lar; büyük/küçük harfe duyarsız, `*` joker karakterli (`localhost`, `*.internal`, `10.*`). |
 
-`trustAll: true` ile birlikte bir `trustStore` bloğu tanımlamak `Conflicting SSL selection` hatası verir. İstek üzerindeki `.trustStore(...)` veya `.trustAllCerts()` o istek için YAML SSL seçiminin tamamını geçersiz kılar. `.requestTimeout(Duration)` veya mevcut `.timeout(int)` istek başına zaman aşımını değiştirir; son çağrı kazanır. Bu bir socket read-idle timeout değildir. Batch limiti mantıksal çağrıları, global limit gerçek gönderimleri sınırlar.
+`trustAll: true` ile birlikte bir `trustStore` bloğu tanımlamak `Conflicting SSL selection` hatası verir. İstek üzerindeki `.trustStore(...)` veya `.trustAllCerts()` o istek için YAML SSL seçiminin tamamını geçersiz kılar. `.proxy(host, port)` ve `.noProxy()` tek bir istek için `api.proxy` ayarını geçersiz kılar. `.requestTimeout(Duration)` veya mevcut `.timeout(int)` istek başına zaman aşımını değiştirir; son çağrı kazanır. Bu bir socket read-idle timeout değildir. Batch limiti mantıksal çağrıları, global limit gerçek gönderimleri sınırlar.
 
 [SSL yapılandırması](guides/api-ssl.md) ve [Timeouts & Performance](guides/api-performance.md) sayfalarına bakın.
 
@@ -717,9 +732,11 @@ api:
     retryOnException: true
 ```
 
+Bir istek bu politikayı `.retry(attempts)`, `.retry(attempts, backoff)`, `.retryOn(statuses...)`, `.retryOnException(boolean)` veya `.noRetry()` ile geçersiz kılabilir. Açık bir override, `enabled` `false` olsa bile o istek için retry'ı etkinleştirir.
+
 #### `api.auth`
 
-Testlerde `@UseAuth("ad")` veya `apiClient().withAuth("ad")` ile çağrılan adlandırılmış kimlik doğrulama profilleri:
+Test metoduna veya sınıfına `@UseAuth("ad")` ile uygulanan adlandırılmış kimlik doğrulama profilleri. Tipler: `bearer`, `basic`, `oauth2`, `oauth2_password`, `oauth2-refresh` (`refreshToken`), `apiKey`, `apikey-query`, `digest`, `hmac` (deprecated) ve `hmac-signed` (`apiKey`, `secret`, opsiyonel `algorithm`, `keyHeader`, `signatureHeader`, `timestampHeader`, `encoding`). Bkz. [API Kimlik Doğrulama](guides/api-auth.md).
 
 ```yaml
 api:

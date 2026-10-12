@@ -45,12 +45,10 @@ public class BrowserArgumentValidator {
     }
 
     private static void validateSafari(List<String> arguments) {
-        // Safari does not expose command-line arguments through Selenium.
-        // Rejecting them here prevents silent misconfiguration.
-        throw new IllegalStateException(
-                "Safari does not support browser.arguments via Selenium. " +
-                "Remove the arguments list from configuration or use capabilities instead."
-        );
+        // Safari does not expose command-line arguments through Selenium, so they
+        // are ignored. Warn instead of failing so one testfly.yml can serve every browser.
+        System.err.println("[TestFly] Safari ignores browser.arguments " + arguments
+                + "; use browser.window.mode (maximized | fullscreen | size) for window sizing.");
     }
 
 }

@@ -6,6 +6,9 @@ import io.testfly.driver.DriverManager;
 import io.testfly.driver.DriverProviderRegistry;
 import io.testfly.internal.TestFlyContext;
 import io.testfly.loadtest.LoadTest;
+import org.openqa.selenium.NoSuchSessionException;
+import org.openqa.selenium.NoSuchWindowException;
+import org.openqa.selenium.UnhandledAlertException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
 import org.testng.annotations.AfterMethod;
@@ -29,6 +32,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotSame;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertSame;
@@ -228,6 +232,112 @@ public class DriverManagerTest {
         assertEquals(provider.providerCalls(), 2);
         verify(dead).quit();
         assertEquals(DriverManager.activeSessions(), 1, "replacement must not leak or double-release a permit");
+    }
+
+    @Test
+    public void perSuite_matrixBrowserSwitchOnSameThread_startsTheRequestedBrowser() {
+        configure(5, "per-suite");
+        FakeDriverProvider other = new FakeDriverProvider(BROWSER + "-other");
+        DriverProviderRegistry.register(other);
+
+        BrowserContext.set(BROWSER);
+        DriverManager.createDriver();
+        WebDriver first = provider.first();
+
+        // Next matrix entry runs on the same worker thread with another browser.
+        BrowserContext.set(BROWSER + "-other");
+        DriverManager.createDriver();
+
+        assertSame(DriverManager.getDriver(), other.first(), "per-suite reuse must not hand out the previous browser");
+        verify(first).quit();
+        assertEquals(DriverManager.activeSessions(), 1);
+    }
+
+    @Test
+    public void perSuite_sameMatrixBrowser_reusesDriver() {
+        configure(5, "per-suite");
+        BrowserContext.set(BROWSER);
+        DriverManager.createDriver();
+        DriverManager.createDriver();
+
+        assertEquals(provider.providerCalls(), 1);
+    }
+
+    @Test
+    public void shutdownTeardown_quitsDriversOfEveryThread() throws Exception {
+        DriverManager.createDriver();
+        onOtherThread(() -> {
+            DriverManager.createDriver();
+            return null;
+        });
+        assertEquals(DriverManager.activeSessions(), 2);
+
+        java.lang.reflect.Method quitAll = DriverManager.class.getDeclaredMethod("quitAllTrackedDrivers");
+        quitAll.setAccessible(true);
+        quitAll.invoke(null);
+        quitAll.invoke(null); // second run (e.g. hook after normal teardown) must not double-quit
+
+        for (WebDriver driver : provider.created()) {
+            verify(driver, times(1)).quit();
+        }
+        assertEquals(DriverManager.activeSessions(), 0);
+    }
+
+    @Test
+    public void hasDriver_tracksBindingWithoutHealthCheck() {
+        assertFalse(DriverManager.hasDriver());
+
+        DriverManager.createDriver();
+        WebDriver driver = provider.first();
+        assertTrue(DriverManager.hasDriver());
+        verify(driver, never()).getTitle();
+
+        DriverManager.quitDriver();
+        assertFalse(DriverManager.hasDriver());
+    }
+
+    @Test
+    public void hasDriver_trueWhileNamedSessionOverrideIsActive() {
+        WebDriver named = org.mockito.Mockito.mock(WebDriver.class);
+        DriverManager.pushSessionOverride(named);
+        try {
+            assertTrue(DriverManager.hasDriver());
+        } finally {
+            DriverManager.popSessionOverride();
+        }
+        assertFalse(DriverManager.hasDriver());
+    }
+
+    @Test
+    public void getDriver_openAlertKeepsSession() {
+        DriverManager.createDriver();
+        WebDriver driver = provider.first();
+        when(driver.getTitle()).thenThrow(new UnhandledAlertException("unexpected alert open", "hi"));
+
+        assertSame(DriverManager.getDriver(), driver, "an open alert must not recreate the session");
+        assertEquals(provider.providerCalls(), 1);
+        verify(driver, never()).quit();
+    }
+
+    @Test
+    public void getDriver_closedCurrentWindowKeepsSession() {
+        DriverManager.createDriver();
+        WebDriver driver = provider.first();
+        when(driver.getTitle()).thenThrow(new NoSuchWindowException("window already closed"));
+
+        assertSame(DriverManager.getDriver(), driver, "a closed tab must not recreate the session");
+        assertEquals(provider.providerCalls(), 1);
+    }
+
+    @Test
+    public void getDriver_lostSessionIsRecreated() {
+        DriverManager.createDriver();
+        WebDriver dead = provider.first();
+        when(dead.getTitle()).thenThrow(new NoSuchSessionException("invalid session id"));
+
+        assertNotSame(DriverManager.getDriver(), dead);
+        assertEquals(provider.providerCalls(), 2);
+        assertEquals(DriverManager.activeSessions(), 1);
     }
 
     @Test
