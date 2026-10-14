@@ -107,7 +107,7 @@ TestFly depends on mobilecli's **protocol**, not its code. It never bundles, dow
                      mobilecli (user-installed) ─► adb/UiAutomation | XCUITest agent
 ```
 
-The **`MobileDriver` SPI** is the replaceable seam. A later Appium, cloud or recorded-replay adapter can implement it. The built-in `MobileCliDriver` auto-injects `deviceId` into every call.
+The **`MobileDriver` SPI** is the replaceable seam. A later Appium, cloud or recorded-replay adapter can implement it. The built-in `MobileCliDriver` injects the selected `deviceId` only into device-scoped methods (`device.*`). Server and discovery calls (`server.info`, `devices.list`) are sent without it, so connecting by name or with no selector can bootstrap before an id is known.
 
 ### D4. Lifecycle and engine integration
 
@@ -139,9 +139,24 @@ mobile:
   timeouts:
     actionMs: 5000             # auto-wait budget per action/assertion
     pollMs: 100
-    rpcMs: 30000               # per JSON-RPC HTTP request
+    rpcMs: 30000               # upper bound per JSON-RPC HTTP request
+  allowRemote: false           # non-loopback serverUrl needs this and https://
+  headers: {}                  # e.g. Authorization for a TLS/auth proxy
   screenshotOnFailure: true
 ```
+
+**Device selection** is deterministic and runs once at connect time, after `server.info` and `devices.list`:
+
+1. If `deviceId` is set, it must match exactly one online device of `platform`.
+2. Otherwise, if `deviceName` is set, the regex must match exactly one online device of `platform`.
+3. Otherwise, exactly one online device of `platform` must exist.
+
+Zero matches or more than one fails fast with `DeviceSelectionException`. The message lists the candidates (id, name, type) and the selector that was used. TestFly never picks a device arbitrarily.
+
+**Transport security.** mobilecli's JSON-RPC endpoint has no documented authentication, and whoever reaches it can control the device.
+- By default, `serverUrl` must resolve to a loopback address. Any other host is rejected with a clear error.
+- A remote device lab requires an explicit opt-in, `mobile.allowRemote: true`, plus an `https://` URL; plain `http://` to a non-loopback host is refused.
+- Remote setups are documented as "put mobilecli behind a TLS-terminating, authenticating proxy or an SSH tunnel". Optional static headers (`mobile.headers`, for example `Authorization: Bearer ${MOBILECLI_TOKEN}`) are sent on every request to support such a proxy.
 
 The defaults live in one place: `TestFlyConfig.Mobile` field initialisers, plus `TestFlyDefaults.applyMissing`. Validation fails fast when a mobile test runs without `platform`. Unknown keys are lenient, as elsewhere.
 
@@ -158,15 +173,21 @@ The defaults live in one place: `TestFlyConfig.Mobile` field initialisers, plus 
 - **Errors.** One `MobileException` hierarchy:
   - `MobileServerUnavailableException`: connection refused. The message says to start `mobilecli server start`.
   - `MobileVersionException`: below the minimum version.
-  - `DeviceNotFoundException`: JSON-RPC error `-32010`.
+  - `DeviceNotFoundException`: JSON-RPC error `-32010` as documented. mobilecli 1.0.20 actually returns `-32000` with `data: "error finding device: device not found: …"`, so the mapping also matches that payload.
+  - `DeviceSelectionException`: the selectors match zero or several devices.
   - `MobileTimeoutException`: `-32050`, or the action budget is exhausted. The message includes the last matched nodes.
   - `MobileLocatorException`: no match or strict violation. The message includes the query and the candidate nodes.
   - `MobileRpcException`: other JSON-RPC errors.
+- **Deadlines.** Every JSON-RPC HTTP request uses `HttpRequest.timeout(min(rpcMs, remaining action budget))`. A stalled mobilecli call therefore cannot hold an action or assertion past `actionMs`; the `Poller` regains control and fails with `MobileTimeoutException`. A timed-out state-changing call may still complete on the device, and the error message says so.
 - **Retries.** Read-only calls (`dump.ui`, `info`, `devices.list`) may be retried once on I/O failure. State-changing calls (tap, text, launch) are **never** retried by the transport, because a duplicate tap is worse than a clear failure.
 
 ### D7. Parallelism and scale
 
-- **Device per thread.** One device per worker thread; a thread never shares its device. The device count therefore caps parallelism.
+- **Exclusive device reservation.** The Java `ThreadLocal` only isolates handles, not the physical device, so TestFly also reserves the device itself.
+  - A JVM-wide registry keyed by `deviceId` grants each device to one session at a time.
+  - Any other worker that selects the same device blocks until it is released, with a timeout and a clear error, so access is serialised, not interleaved.
+  - Before Phase 3, a suite with more parallel workers than devices therefore runs mobile tests serially. A warning names the setting to change.
+  - Reservation is per JVM. Separate JVMs or machines sharing one device are unsupported and documented as such.
 - **Pooling.** The first release uses one configured device. Phase 3 adds `mobile.devices` (a list or a selector) and an allocator that hands each worker a free device. Workers block with a timeout when all devices are busy, as Mobilewright's `DeviceAllocator` does.
 - **Cost per step.** A `dump.ui` call takes roughly 100–500 ms, depending on platform and tree size. Polling is therefore bounded by `pollMs` and reuses one tree per cycle. The cost is on the device side; JVM-side cost is negligible.
 
@@ -287,27 +308,28 @@ The main risks:
 
 **Phase 0: prerequisites (maintainer)**
 1. [ ] Confirm the licensing position: no redistribution, plus NOTICE attribution.
-2. [ ] On a real Android emulator, record `server.info`, `devices.list`, `device.info`, `device.dump.ui`, `device.screenshot` and the error responses as JSON fixtures. Pin the minimum mobilecli version.
+2. [x] Already observed against mobilecli 1.0.20 without a device: `server.info` returns `{name, version}`; `devices.list` returns `{devices: [...]}` (an object, not the bare array the OpenRPC spec shows); an unknown device returns `-32000` rather than `-32010`; an unknown method returns `-32601`. Code must follow observed behaviour, not the published spec.
+3. [ ] On a real Android emulator, record `server.info`, `devices.list`, `device.info`, `device.dump.ui`, `device.screenshot` and the error responses as JSON fixtures. Pin the minimum mobilecli version.
 
 **Phase 1: foundation (no device needed; verified with the fake server)**
-3. [ ] `JsonRpcClient`, `MobileDriver` SPI, `MobileCliDriver`, and the `MobileException` hierarchy.
-4. [ ] `TestFlyConfig.Mobile`, with defaults and validation.
-5. [ ] `MobileNode`, `LocatorEngine` (role table), `Poller`, `MobileLocator`, `MobileScreen`, `MobileDevice` and `MobileAssertions`.
-6. [ ] `Mobile.connect()` for explicit use.
-7. [ ] Run `scripts/agent/verify.sh code` and `api`.
+4. [ ] `JsonRpcClient`, `MobileDriver` SPI, `MobileCliDriver`, and the `MobileException` hierarchy; loopback/`allowRemote` validation, deterministic device selection, deadline-bounded requests, and the JVM-wide device reservation.
+5. [ ] `TestFlyConfig.Mobile`, with defaults and validation.
+6. [ ] `MobileNode`, `LocatorEngine` (role table), `Poller`, `MobileLocator`, `MobileScreen`, `MobileDevice` and `MobileAssertions`.
+7. [ ] `Mobile.connect()` for explicit use.
+8. [ ] Run `scripts/agent/verify.sh code` and `api`.
 
 **Phase 2: domain integration**
-8. [ ] `MobileSupport`, `BaseMobileTest` and `@MobileTest`, plus the `isMobileTest` branch in `TestExecutionListener`.
-9. [ ] `BaseJUnit5MobileTest` and the `TestFlyExtension` branch; the Cucumber `@mobile` tag in `CucumberHooks`.
-10. [ ] Failure screenshot and step logging through `StepLogger`.
-11. [ ] English and Turkish docs (`docs-site/`), a sample `testfly.yml`, and NOTICE.
-12. [ ] Run `scripts/agent/verify.sh code`, `api` and `docs`.
+9. [ ] `MobileSupport`, `BaseMobileTest` and `@MobileTest`, plus the `isMobileTest` branch in `TestExecutionListener`.
+10. [ ] `BaseJUnit5MobileTest` and the `TestFlyExtension` branch; the Cucumber `@mobile` tag in `CucumberHooks`.
+11. [ ] Failure screenshot and step logging through `StepLogger`.
+12. [ ] English and Turkish docs (`docs-site/`), a sample `testfly.yml`, and NOTICE.
+13. [ ] Run `scripts/agent/verify.sh code`, `api` and `docs`.
 
 **Phase 3: real devices and scale**
-13. [ ] An Android emulator smoke suite, as an optional CI job or a documented local run.
-14. [ ] iOS simulator and real-device validation on a macOS runner.
-15. [ ] `mobile.devices` pool and allocator for parallel runs; deep links, orientation and geolocation.
+14. [ ] An Android emulator smoke suite, as an optional CI job or a documented local run.
+15. [ ] iOS simulator and real-device validation on a macOS runner.
+16. [ ] `mobile.devices` pool and allocator for parallel runs; deep links, orientation and geolocation.
 
 **Phase 4: stabilise**
-16. [ ] Promote validated types to `@TestFlyApi`.
-17. [ ] Evaluate WebSocket, WebView and screencast support.
+17. [ ] Promote validated types to `@TestFlyApi`.
+18. [ ] Evaluate WebSocket, WebView and screencast support.
