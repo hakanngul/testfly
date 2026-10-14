@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **WireMock helpers**: `ApiMockServer.stubFor(MappingBuilder)`, `stubJson(method, urlPattern, status, json)` and `resetOwnStubs()` for parallel tests.
 
 ### Changed
+- **`execution.baseUrl` is now required**: configuration loading fails at startup with `execution.baseUrl must be specified` when the key is missing or blank, matching the documented minimum `testfly.yml`. Previously a missing value only failed later, in `open()` or when an agent action used a relative URL. Configs without `execution.baseUrl` must add it.
 - **Assertion failure diagnostics**: `LocatorAssert` failures now end with `(actual: [...], timeout: ...)` showing the last observed text, value, attribute, CSS value, class list, element count or element state. This covers the matchers added in this release too; those that only test a condition report the element checked, for example `condition not met on <input#email>`. A `within(By)` container that never appears now fails as an `AssertionError` instead of leaking a `LocatorException`. Tools that match the exact old message suffix `(timeout: Ns)` should be updated; the prefix is unchanged.
 - **Schema and OpenAPI failures** throw `ApiAssertionError`, a subclass of `AssertionError`, so existing `catch (AssertionError)` code keeps working.
 - **`ApiAuth.digest(...)`** now performs RFC 7616 challenge/response. It previously sent `Digest base64(user:password)`, which no server accepted.

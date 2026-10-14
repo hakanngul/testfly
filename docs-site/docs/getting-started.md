@@ -115,7 +115,7 @@ timeouts:
 ```
 
 :::note Required keys
-`execution.mode`, `browser.name`, `timeouts.explicit`, and `timeouts.pageLoad` are mandatory. If any of them is missing, TestFly stops at startup with a configuration error. Everything else has a sensible default.
+`execution.mode`, `execution.baseUrl`, `browser.name`, `timeouts.explicit`, and `timeouts.pageLoad` are mandatory. If any of them is missing, TestFly stops at startup with a configuration error. Everything else has a sensible default.
 :::
 
 ---

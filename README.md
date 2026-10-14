@@ -337,7 +337,7 @@ public class LoginTest extends BaseTest {
         new LoginPage(getDriver()).login("admin", "password123");
 
         // Web-first auto-waiting assertions
-        assertThatPage().hasUrlContains("/dashboard");
+        assertThatPage().urlContains("/dashboard");
         assertThat(find(".welcome-badge")).isVisible().hasText("Welcome, admin!");
     }
 }

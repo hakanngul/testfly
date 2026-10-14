@@ -6,6 +6,9 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import static org.testng.Assert.*;
 
 /**
@@ -133,6 +136,39 @@ public class ConfigurationLoaderTest {
             System.clearProperty("testfly.profile");
             TestFlyConfig config = ConfigurationLoader.load();
             assertTrue(config.getExecution().getMaxActiveSessions() > 0);
+        }
+    }
+
+    @Test
+    public void load_withoutBaseUrl_failsFast() throws Exception {
+        IllegalStateException e = expectThrows(IllegalStateException.class,
+                () -> loadExecution("  mode: local\n"));
+        assertTrue(e.getMessage().contains("execution.baseUrl"), e.getMessage());
+    }
+
+    @Test
+    public void load_withBlankBaseUrl_failsFast() throws Exception {
+        IllegalStateException e = expectThrows(IllegalStateException.class,
+                () -> loadExecution("  mode: local\n  baseUrl: \"  \"\n"));
+        assertTrue(e.getMessage().contains("execution.baseUrl"), e.getMessage());
+    }
+
+    private static TestFlyConfig loadExecution(String executionBlock) throws Exception {
+        Path tmp = Files.createTempFile("testfly-baseurl", ".yml");
+        try {
+            Files.writeString(tmp, "execution:\n" + executionBlock
+                    + "browser:\n  name: chrome\n"
+                    + "timeouts:\n  explicit: 10\n  pageLoad: 30\n");
+            synchronized (LOCK) {
+                System.setProperty("testfly.config", tmp.toString());
+                try {
+                    return ConfigurationLoader.load();
+                } finally {
+                    System.clearProperty("testfly.config");
+                }
+            }
+        } finally {
+            Files.deleteIfExists(tmp);
         }
     }
 }
