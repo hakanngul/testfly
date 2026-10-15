@@ -81,7 +81,7 @@ execution:
 | Key | What it does |
 |-----|--------------|
 | `mode` | `local`, `remote`, `browserstack`, or `saucelabs`. |
-| `baseUrl` | Default URL used by `open()` and `BaseCucumberSteps.open()`. |
+| `baseUrl` | Required. Default URL used by `open()` and `BaseCucumberSteps.open()`. |
 | `gridUrl` | Selenium Grid / standalone server URL, used when `mode: remote`. |
 | `parallel` | TestNG parallel mode: `none`, `methods`, `classes`, `tests`, or `instances`. |
 | `threadCount` | Number of threads when parallel execution is enabled. |

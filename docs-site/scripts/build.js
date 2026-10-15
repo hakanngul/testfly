@@ -5,9 +5,11 @@ const env = { ...process.env };
 
 // Node 25+ has experimental Web Storage API enabled by default which conflicts
 // with Docusaurus SSR / multi-locale build when --localstorage-file is not provided.
+// Alternatif: localstorage dosyası belirt
 if (nodeMajor >= 22) {
-  env.NODE_OPTIONS = `${env.NODE_OPTIONS || ''} --no-webstorage`.trim();
+  env.NODE_OPTIONS = `${env.NODE_OPTIONS || ''} --localstorage-file=./.tmp-localstorage`.trim();
 }
+
 
 const result = spawnSync('npx', ['docusaurus', 'build', ...process.argv.slice(2)], {
   stdio: 'inherit',

@@ -115,7 +115,7 @@ timeouts:
 ```
 
 :::note Zorunlu anahtarlar
-`execution.mode`, `browser.name`, `timeouts.explicit` ve `timeouts.pageLoad` zorunludur. Bunlardan biri eksikse TestFly başlangıçta yapılandırma hatasıyla durur. Diğer her şeyin makul bir varsayılanı vardır.
+`execution.mode`, `execution.baseUrl`, `browser.name`, `timeouts.explicit` ve `timeouts.pageLoad` zorunludur. Bunlardan biri eksikse TestFly başlangıçta yapılandırma hatasıyla durur. Diğer her şeyin makul bir varsayılanı vardır.
 :::
 
 ---

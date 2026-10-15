@@ -318,6 +318,11 @@ public final class ConfigurationLoader {
                     "execution.mode must be 'local', 'remote', 'browserstack', or 'saucelabs', got: '" + mode + "'");
         }
 
+        String baseUrl = config.getExecution().getBaseUrl();
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalStateException("execution.baseUrl must be specified");
+        }
+
         if (config.getTimeouts() == null
                 || config.getTimeouts().getExplicit() <= 0
                 || config.getTimeouts().getPageLoad() <= 0) {

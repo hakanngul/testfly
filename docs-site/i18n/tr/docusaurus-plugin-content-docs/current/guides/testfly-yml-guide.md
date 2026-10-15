@@ -81,7 +81,7 @@ execution:
 | Anahtar | Ne yapar |
 |-----|--------------|
 | `mode` | `local`, `remote`, `browserstack` veya `saucelabs`. |
-| `baseUrl` | `open()` ve `BaseCucumberSteps.open()` tarafından kullanılan varsayılan URL. |
+| `baseUrl` | Zorunlu. `open()` ve `BaseCucumberSteps.open()` tarafından kullanılan varsayılan URL. |
 | `gridUrl` | `mode: remote` olduğunda kullanılan Selenium Grid / standalone sunucu URL'si. |
 | `parallel` | TestNG paralel modu: `none`, `methods`, `classes`, `tests` veya `instances`. |
 | `threadCount` | Paralel çalıştırma etkinleştirildiğinde kullanılacak thread sayısı. |
