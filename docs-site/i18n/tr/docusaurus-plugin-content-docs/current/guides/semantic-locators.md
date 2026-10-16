@@ -106,6 +106,22 @@ Locator.cssSelector(".product-card")
 getByPlaceholder("Arama").type(null);
 ```
 
+### Tablonun bütün sütunu: `withinEach`
+
+`within(container)` yalnızca **ilk** container'ın içinde arar. `withinEach(containers)` ise zinciri **her** container'ın içinde ayrı ayrı çalıştırır ve sonuçları birleştirir; böylece `nth()`, `first()`, `last()`, `filter()` ve `withText()` her container için ayrı uygulanır. Bir tablo sütunu, `td:nth-child(3)` yazmadan ve satırlar üzerinde döngü kurmadan tek bir locator olur:
+
+```java
+// Her satırın üçüncü hücresi: ["Apple", "Banana", "Cherry"]
+List<String> names = getByRole(Role.CELL).nth(2)
+        .withinEach(getByRole(Role.ROW))
+        .allTexts();
+
+assertThat(Locator.cssSelector("td").nth(1).withinEach(By.cssSelector("tr")).within(By.id("fruits")))
+        .hasTexts("$2", "$3", "$4");
+```
+
+Yeterli eşleşmesi olmayan satırlar (örneğin yalnızca `th` hücreleri olan başlık satırı) atlanır. Sonuç genellikle birden fazla öğe içerir: `allTexts()`, `count()` veya `assertThat(...)` ile okuyun; tek bir hücreye tıklamak için daha dar bir locator kullanın. `locators.strict: true` iken bütün sütun üzerinde bir aksiyon strict mode ihlalidir, çünkü `nth()` toplamda bir öğe değil, her satırdan bir öğe seçer.
+
 ---
 
 ## Strict mode

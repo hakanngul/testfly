@@ -119,6 +119,22 @@ Locator.cssSelector(".product-card")
 getByPlaceholder("Search").type(null);
 ```
 
+### A whole table column: `withinEach`
+
+`within(container)` searches only the **first** container. `withinEach(containers)` runs the chain separately inside **every** container and joins the results, so `nth()`, `first()`, `last()`, `filter()` and `withText()` apply per container. That turns a table column into one locator, with no `td:nth-child(3)` and no loop over the rows:
+
+```java
+// Third cell of every row: ["Apple", "Banana", "Cherry"]
+List<String> names = getByRole(Role.CELL).nth(2)
+        .withinEach(getByRole(Role.ROW))
+        .allTexts();
+
+assertThat(Locator.cssSelector("td").nth(1).withinEach(By.cssSelector("tr")).within(By.id("fruits")))
+        .hasTexts("$2", "$3", "$4");
+```
+
+Rows with too few matches, such as a header row of `th` cells, are skipped. The result usually holds several elements: read it with `allTexts()`, `count()` or `assertThat(...)`, and use a narrower locator before clicking a single cell. With `locators.strict: true`, an action on the whole column is a strict mode violation, because `nth()` picks one element per row, not one overall.
+
 ---
 
 ## Strict mode

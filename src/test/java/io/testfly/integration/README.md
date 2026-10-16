@@ -28,6 +28,7 @@ The default `mvn test` command skips these tests entirely — they live under
 | `db/DbClientIntegrationTest` | Database assertions | H2 in-memory DB; connection factory, query execution, row assertions, connection cleanup |
 | `email/MailhogIntegrationTest` | Email (Mailhog) | Local HTTP stub; message parsing, request construction, error handling (5xx, connection refused) |
 | `locator/ActionabilityIntegrationTest` | Actionability | Real Chrome; click waits for an overlay and an animation to finish, scrolls off-screen buttons, names the blocking element on failure |
+| `locator/WithinEachIntegrationTest` | `withinEach` | Real Chrome; a table column selected per row, header row skipped, ARIA grid, `within` still searches only the first container |
 | `accessibility/AriaSnapshotIntegrationTest` | ARIA assertions | Real Chrome; role, accessible name and description, ARIA snapshot output and template matching |
 | `tracing/TraceSnapshotIntegrationTest` | Step traces | Real Chrome; per-step ARIA and DOM snapshots, after-failure snapshot, the trace file opened in the browser, hostile page markup stays inert |
 | `browser/DeviceEmulatorIntegrationTest` | Device emulation | Real Chromium; viewport and user agent stick across navigation, network mocking keeps working, reset restores the browser |
