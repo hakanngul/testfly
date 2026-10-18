@@ -1,335 +1,222 @@
 # ADR 0002: Native mobile automation through mobilecli
 
-- Status: Proposed
+- Status: Proposed; implementation gated by licensing and device validation
 - Date: 2026-10-14
+- Revised: 2026-10-18
 - Deciders: TestFly maintainers
 
-## Context
+## Context and evidence
 
-TestFly has no native mobile automation. "Mobile" in `src/main` today means browser device emulation (`browser/DeviceProfiles`, `DeviceEmulator`); there is no Appium dependency or iOS/Android driver.
+TestFly currently supports browser device emulation, not native Android or iOS automation. This proposal keeps a separate `io.testfly.mobile` domain backed by a Java client for user-installed [mobilecli](https://github.com/mobile-next/mobilecli), inspired by [Mobilewright](https://mobilewright.dev). It describes planned behavior, not shipped support.
 
-[Mobilewright](https://mobilewright.dev) (Apache-2.0, TypeScript) offers a Playwright-style mobile API without an Appium server. It is a thin client over [mobilecli](https://github.com/mobile-next/mobilecli), a Go daemon that drives devices and exposes JSON-RPC 2.0 over HTTP (`POST /rpc`) and WebSocket (`/ws`) on port 12000.
+### Verified TestFly constraints
 
-- **Android:** `adb` plus an on-device UiAutomation server. The server holds the device's only UiAutomation connection, so Appium cannot share the device.
-- **iOS:** an XCUITest runner agent (`com.mobilenext.devicekit-iosUITests.xctrunner`). Real devices need a provisioning profile; simulators need macOS and Xcode.
-- **UI model:** the UI is read as a view tree. `device.dump.ui` returns `{elements: [{type, text, label, name, value, identifier, placeholder, rect, visible, enabled, selected, checked, focused, children}]}`.
-- **Input:** input is coordinate-based: `device.io.tap {x,y}`, `longpress`, `swipe`, `text`, `button`, `gesture`.
+Source reviewed at TestFly revision `2fbcfad` establishes these boundaries:
 
-The protocol is language-neutral. A Java client can use it exactly the way `@mobilewright/driver-mobilecli` does.
+| Source | Planning consequence |
+|---|---|
+| [`BaseApiTest`](../../src/main/java/io/testfly/test/BaseApiTest.java), [`BaseJUnit5ApiTest`](../../src/main/java/io/testfly/junit5/BaseJUnit5ApiTest.java), `loadtest/BaseLoadTest` | Mobile can be a peer domain sharing backend, data, context, steps, and soft assertions. |
+| [`Locator`](../../src/main/java/io/testfly/locator/Locator.java), [`DriverProvider`](../../src/main/java/io/testfly/driver/DriverProvider.java), `WaitEngine` | These are Selenium-specific; mobile needs independent locator/wait/driver contracts. |
+| [`TestExecutionListener`](../../src/main/java/io/testfly/listeners/TestExecutionListener.java) | Allocation occurs in `onTestStart`; `beforeInvocation` is a no-op. Adding mobile there alone does not establish availability during user `@BeforeMethod`. |
+| [`TestFlyExtension`](../../src/main/java/io/testfly/junit5/TestFlyExtension.java) | Its `beforeEach`/`afterEach` lifecycle is useful, but its retry interceptor recreates WebDriver and reinvokes only the test method. Mobile must not inherit that retry path. |
+| [`CucumberHooks`](../../src/main/java/io/testfly/cucumber/CucumberHooks.java) | Current cleanup precedes conventional user after-hooks. The TestNG listener skips Cucumber `runScenario`; preserve one lifecycle owner. |
+| [`StepLogger.stepWithScreenshot`](../../src/main/java/io/testfly/steps/StepLogger.java) | Records a step artifact. Test-level screenshots and immediate engine/report attachments require additional integration. |
+| [`TestFlyConfig`](../../src/main/java/io/testfly/config/TestFlyConfig.java), [`ConfigurationLoader`](../../src/main/java/io/testfly/config/ConfigurationLoader.java) | Stable JavaBean configuration uses SnakeYAML, placeholder resolution, and unknown-key warnings. |
+| [`TestFlyApi`](../../src/main/java/io/testfly/api/TestFlyApi.java), [`check-public-api.sh`](../../scripts/agent/check-public-api.sh) | Stable contracts cannot be bypassed by leaving a getter's return type unannotated. The gate compares public members of annotated source-file types. |
+| [`pom.xml`](../../pom.xml) | Jackson is available; Java 21 provides HTTP. JUnit/Cucumber dependencies remain optional. |
 
-### Forces from the current TestFly source
+`@NoBrowser` is not inherited. Mobile detection must use assignability or explicit annotation lookup rather than relying on an annotation on a base class.
 
-- **Domains are already separated by base class.** Each domain has its own base classes and `*Support` mix-ins:
-  - Web: `test/BaseTest`, with `LocatorSupport`, `BrowserSupport` and others.
-  - API: `test/BaseApiTest` and `junit5/BaseJUnit5ApiTest`, with `ApiSupport`.
-  - Load: `loadtest/BaseLoadTest`.
+### Upstream evidence and unresolved claims
 
-  Shared capabilities (`StepSupport`, `SoftAssertSupport`, `ApiSupport`, `DbSupport`, `ContextSupport` and others) are mixed into each base class.
-- **Engine bridges decide whether to start a browser.**
-  - TestNG: `TestExecutionListener.skipBrowser` returns `isApiTest || isNoBrowserTest || isLoadTest` (`listeners/TestExecutionListener.java:409-410`).
-  - JUnit 5: `TestFlyExtension.skipBrowser` checks the API base classes and `LoadTestDetector`.
-  - Cucumber: `CucumberHooks.skipBrowser` checks the `@nobrowser`, `@api` and load-test tags.
+The original ADR records a **device-free observation against mobilecli 1.0.20**: `server.info` returned `{name, version}`, `devices.list` returned `{devices: [...]}`, an unknown device returned `-32000`, and an unknown method returned `-32601`. Those observations were not rerun for this revision and have no raw fixtures attached here. They do not establish a minimum supported version or validate device operations.
 
-  `@NoBrowser` is not `@Inherited`, so it does not reach subclasses of an annotated base class.
-- **The web stack is Selenium-shaped by design.**
-  - `locator/Locator` extends Selenium `By`.
-  - `driver/DriverProvider` returns `WebDriver`.
-  - `wait/WaitEngine` is WebDriver-only.
-  - `reporting/ScreenshotManager` takes screenshots through WebDriver.
-- **Building blocks already exist.**
-  - Jackson and `java.net.http.HttpClient` are compile dependencies.
-  - `steps/StepLogger.stepWithScreenshot(name, status, base64)` attaches a screenshot without WebDriver.
-  - `TestFlyConfig` is a SnakeYAML JavaBean with nested section classes and reflective `${VAR:-default}` resolution.
-- **There is no "incubating" marker.** `@TestFlyApi(since)` freezes a signature for the whole major version, and `scripts/agent/check-public-api.sh` enforces this.
+The original proposal describes JSON-RPC 2.0 over `POST /rpc`, view-tree dumps, coordinate input, Android adb/UiAutomation, and an iOS XCUITest agent. Command names, schemas, platform capabilities, and error codes remain validation inputs until checked against a pinned upstream revision and actual devices. Published specifications and Mobilewright usage may differ from the daemon. No device latency benchmark or upstream confirmation is claimed here.
 
-### Licensing
-
-- **mobilecli** uses FSL-1.1-ALv2. Each release also becomes available under Apache-2.0 two years after publication. Until then, a "Competing Use" is prohibited. That means making mobilecli available to others in a commercial product or service that substitutes for it or offers substantially similar functionality.
-- **Mobilewright** uses Apache-2.0, so porting its logic is allowed with attribution.
+The original ADR identifies mobilecli as FSL-1.1-ALv2 and Mobilewright as Apache-2.0. Verify the exact revision's license, competing-use restriction, change date, and attribution requirements. No redistribution is an architectural choice; it does **not** prove that TestFly's intended SDK, CI, or commercial use is permitted.
 
 ## Decision
 
-Native mobile becomes a **fourth test domain** next to web, API and load. It lives in its own package, has its own base classes, and talks to a **user-installed, unmodified** mobilecli server over JSON-RPC.
+Proceed conditionally with a native mobile peer domain and replaceable `MobileDriver` adapter. Prove a narrow Android workflow before integrating test engines. Android and iOS support graduate independently.
 
-### D1. Consume mobilecli as-is; do not fork
+### D1. Scope and adapter boundary
 
-TestFly depends on mobilecli's **protocol**, not its code. It never bundles, downloads, patches or redistributes the binary. Users install it themselves, and TestFly connects to `mobile.serverUrl`.
+- Connect to an existing, unmodified server. TestFly does not download, start, patch, fork, bundle, or redistribute mobilecli or its agents.
+- Keep runtime types under `io.testfly.mobile`, implementation helpers under `.internal`, and the adapter seam under `.spi`. Preserve Selenium locator, waiting, and driver contracts.
+- `MobileDriver` exposes platform-neutral semantics for discovery, immutable snapshots, input, screenshots, and app lifecycle. `MobileCliDriver` owns protocol/platform details. Add operations when needed and verified; unsupported capabilities fail before mutation.
+- The first slice targets **one preinstalled app on one dedicated Android emulator**, through explicit `Mobile.connect(options)`: text/test-id queries, tap, replacement fill, visibility/text assertions, screenshot, and bounded close. Installation, roles, additional gestures, and engines follow that proof.
+- Discovery calls have no selected-device parameter. Inject device ID only into verified device-scoped calls. Check server identity/version at connection and publish a tested version/capability matrix; a minimum-version comparison alone does not validate later versions.
 
-- **Gaps:** a gap in mobilecli is handled in this order:
-  1. Solve it in Java. Locators, waiting and gesture composition are TestFly code anyway.
-  2. Raise an upstream issue or PR.
-  3. Adapt behind the `MobileDriver` SPI.
-- **Version check:** at connect time, TestFly checks `server.info` against a documented minimum version.
-- **Fallback:** a fork is a contingency only, for the case where upstream is abandoned or relicensed. It becomes cheaper over time because each release turns Apache-2.0 after two years.
-
-**Rationale:** mobilecli bundles a Go daemon, an iOS XCUITest agent with code-signing, and an Android UiAutomation server, all of which break with OS releases. Owning that stack is outside TestFly's scope as a Java SDK. Distributing a modified build would also move TestFly toward the FSL "making available" clause that this design avoids.
-
-### D2. Domain layout
-
-| | Web | API | Load | **Mobile (new)** |
-|---|---|---|---|---|
-| Package | `driver`, `locator`, `wait` | `api`, `client` | `loadtest` | **`io.testfly.mobile`** |
-| TestNG base | `test.BaseTest` | `test.BaseApiTest` | `loadtest.BaseLoadTest` | **`mobile.BaseMobileTest`** |
-| JUnit 5 base | `junit5.BaseJUnit5Test` | `junit5.BaseJUnit5ApiTest` | – | **`mobile.junit5.BaseJUnit5MobileTest`** |
-| Capability mix-in | `LocatorSupport`, `BrowserSupport`… | `ApiSupport` | `LoadTestSupport` | **`mobile.MobileSupport`** |
-| Bridge check | – | `isApiTest` | `isLoadTest` | **`isMobileTest`**: skip browser, open device |
-| Cucumber tag | – | `@api` | load tags | **`@mobile`** |
-| Config section | `browser:` | `api:` | `loadTest:` | **`mobile:`** |
-
-- `BaseMobileTest` mixes in `MobileSupport` together with the shared capabilities: `StepSupport`, `SoftAssertSupport`, `TestDataSupport`, `ContextSupport`, `ApiSupport`, `DbSupport` and `EmailSupport`. One test can then drive the app and verify the backend. It mixes in no web `*Support` interface.
-- **Placement.** All mobile types live under `io.testfly.mobile`, following the `loadtest` precedent. The incubating surface is then one namespace that is easy to exclude from, or later add to, the public-API gate. The JUnit 5 base lives in `io.testfly.mobile.junit5` because JUnit is an optional dependency.
-- **Web stack unchanged.** `Locator`, `WaitEngine`, `DriverManager` and `DriverProvider` are not changed. Consumers who do not use mobile see no behavioural change.
-
-### D3. Components
-
-```
- Test code ──► BaseMobileTest / BaseJUnit5MobileTest / Cucumber @mobile
-                 │  MobileSupport: device(), screen(), expect(...)
-                 ▼
- ┌──────────────────────── io.testfly.mobile ────────────────────────┐
- │ MobileDevice   app/device control, screenshot, openUrl            │
- │ MobileScreen   getByRole/Text/Label/TestId/Placeholder/Type       │
- │ MobileLocator  immutable query: filter/nth/first/last/within      │
- │                actions: tap/fill/longPress/swipe/clear            │
- │ MobileAssertions  expect(locator).toBeVisible()/toHaveText()…     │
- │ MobileNode     immutable snapshot of one view-tree node           │
- │ ─────────────────────────── internal ──────────────────────────── │
- │ MobileSessions  ThreadLocal<MobileDevice> holder, open/close      │
- │ LocatorEngine   flatten tree, match, role table, strict check     │
- │ Poller          Supplier/BooleanSupplier poll with timeout        │
- │ ─────────────────────────── spi ───────────────────────────────── │
- │ MobileDriver    viewTree/tap/longPress/text/swipe/button/         │
- │                 screenshot/apps/openUrl/orientation/info          │
- │   └─ MobileCliDriver ─► JsonRpcClient (JDK HttpClient + Jackson)  │
- └──────────────────────────────────┬────────────────────────────────┘
-                                    │ POST {serverUrl}/rpc  (JSON-RPC 2.0)
-                                    ▼
-                     mobilecli (user-installed) ─► adb/UiAutomation | XCUITest agent
+```text
+explicit Mobile.connect(options)       later: runner-owned MobileSupport
+                    \                  /
+                      MobileDevice
+                screen / locator / assertions
+                            |
+                      MobileDriver SPI
+                            |
+                      MobileCliDriver
+                   JDK HTTP + Jackson
+                            |
+                  user-installed mobilecli
+                            |
+                  dedicated Android / iOS
 ```
 
-The **`MobileDriver` SPI** is the replaceable seam. A later Appium, cloud or recorded-replay adapter can implement it. The built-in `MobileCliDriver` injects the selected `deviceId` only into device-scoped methods (`device.*`). Server and discovery calls (`server.info`, `devices.list`) are sent without it, so connecting by name or with no selector can bootstrap before an id is known.
+Provide a testable programmatic driver-injection path. Defer provider discovery and additional adapters until needed.
 
-### D4. Lifecycle and engine integration
+### D2. Ownership, reservation, and cleanup
 
-- **Explicit use.** `try (MobileDevice d = Mobile.connect()) {...}` works without any base class, for scripts and custom runners.
-- **TestNG.** `TestExecutionListener` gains `isMobileTest(result)`, which returns true if:
-  - the class is assignable to `BaseMobileTest`, or
-  - the class or method carries a new `@MobileTest` annotation.
+An explicit connection is `AutoCloseable`, owned by its creating thread. Managed sessions add a thread-confined current-session holder and invocation/attempt identity. Reject cross-thread use and nested ownership of the same device; never silently replace a session.
 
-  A mobile test skips the browser. The listener opens the device before the test and closes it after. On failure, it pushes a device screenshot through `StepLogger.stepWithScreenshot`.
-- **JUnit 5.** `TestFlyExtension.skipBrowser` and `beforeEach`/`afterEach` get the same checks.
-- **Cucumber.** `CucumberHooks.skipBrowser` treats `@mobile` like `@api`, and the hooks open and close the device.
-- **Ownership.** One device session per thread, held in `MobileSessions`, never shared between threads. Cleanup runs in `finally` blocks and in a shutdown hook, like `DriverManager.quitAllTrackedDrivers`.
-- **App state.** The default is to launch `mobile.app.bundleId` before each test and terminate it after. `mobile.app.reset: none | relaunch | clearData` controls this.
+Connection order is mandatory:
 
-### D5. Configuration
+1. Validate options/endpoint; perform bounded server discovery and deterministic device selection.
+2. Acquire a JVM-wide exclusive reservation **before install, reset, launch, input, or any device-state mutation**, keyed by `(server identity, device ID)`.
+3. Under the reservation, recheck availability/capabilities, prepare the app, then publish the active session.
+4. On every exit, close partial resources and remove current-session bindings. Capture failure evidence before app termination and release. Close is idempotent and bounded; preserve the primary failure and report cleanup failures separately.
 
-The `mobile:` section is absent by default. When it is absent, nothing mobile loads.
+Initially, server identity is the normalized endpoint, including base path/effective port. Daemon name/version is not unique. All workers sharing a daemon must use the same endpoint; aliases/proxies for that daemon are unsupported until a trustworthy identity mechanism exists. Acquisition is interruptible and bounded, with owner/device diagnostics. Separate JVMs and other automation tools require externally exclusive devices; do not promise concurrent Appium access.
+
+Failed acquisition performs no mutation. Release ownership in `finally` after partial-open or close failures. If a timed-out mutation or failed cleanup leaves device quiescence unknown, retain an unavailable-device marker so waiting workers fail with an explicit recovery instruction rather than reusing it. Recovery requires out-of-band reconciliation. Shutdown cleanup is best effort, not the normal lifecycle.
+
+### D3. App state and platform capabilities
+
+Default managed policy: `relaunch`. Each managed attempt applies its policy anew:
+
+| Policy | Before user setup | After user teardown and failure capture |
+|---|---|---|
+| `none` | No implicit launch, termination, or data change; app ID optional. | No app mutation; release session. |
+| `relaunch` | Require app ID; terminate existing instance, then launch; preserve data. | Terminate that app. |
+| `clearData` | Require app ID and verified reset capability; terminate, clear data, launch. | Terminate that app. |
+
+Installation is a later explicit option, independent of reset, performed under the lease before preparation. Verify artifact/signing requirements and whether paths belong to the client or daemon before exposing it. Never silently substitute uninstall/reinstall or relaunch for clear-data.
+
+Android, iOS simulator, and iOS real-device reset are separate capabilities. Reject iOS `clearData` until demonstrated for the exact target. Simulator success does not establish physical-device provisioning, installation, or reset support.
+
+### D4. Tree semantics and actions
+
+- Normalize verified dumps into immutable trees preserving ancestry, attributes, bounds, and screen metadata. Missing state remains unknown; do not invent visibility/enabled values. Validate Android resource-ID and iOS identifier mappings with fixtures.
+- Evaluate immutable locator queries against one fresh snapshot per poll. `within(container)` means **UI-hierarchy descendants**, excluding the container. Bounds containment/overlap never establishes ancestry; indexing must preserve parent/child relationships.
+- Use deterministic tree order for `first`/`last`/zero-based `nth`. Actions require one target unless explicitly narrowed. Duplicate targets fail strictness; no match polls until timeout. Document/test text matching, absent attributes, and accessible-name rules before publishing conveniences.
+- Tap requires verified visibility/enabled state, usable bounds, and stability across successive snapshots. Compare target identity/attributes as well as bounds. Re-resolve immediately before dispatch; changed target/geometry restarts polling within the same deadline. Coordinate input cannot atomically bind a snapshot to a tap, so residual races remain documented.
+- Establish the transform between tree bounds, input coordinates, and screenshot pixels: origin, units, scale/density, orientation, viewport, and system insets. Do not assume Android pixels equal iOS points. Reject unverified transforms; test rotation and edge targets before claiming orientation support.
+- `fill(value)` replaces existing contents. Verify focus, clearing, Unicode, empty strings, and readback on the device; never silently append. Unknown clear/key methods cannot underpin claimed fill support. Redact password/input values from diagnostics.
+
+Role mappings, labels, placeholder queries, scrolling, and gestures follow the core proof. Port only verified logic with required attribution.
+
+### D5. Transport, deadlines, and security
+
+Use JDK `HttpClient` and Jackson. Verify response IDs/envelopes, HTTP failures, malformed bodies, and response-size limits. A small `MobileException` hierarchy separates selection, compatibility/capability, transport/RPC, strictness, and timeout failures. Preserve raw RPC code and sanitized data: do not globally classify `-32000` as device-not-found or assume `-32010`/`-32050` are universal.
+
+Use monotonic deadlines for connection, acquisition, actions/assertions, and cleanup. Requests and sleeps are capped by the enclosing remaining budget; `rpcMs` is a ceiling, not a fresh allowance for each substep. A 5-second action must not wait on a 30-second request timeout. Preserve interruption. Client cancellation cannot guarantee cancellation on the device; ambiguous mutations trigger D2's unavailable-device policy.
+
+Retry verified read-only calls at most once on transient I/O failure within the same deadline. Never automatically retry tap, text, launch, install, reset, or other mutations. Diagnostics include selector, selected device, server version, elapsed budget, and sanitized last matches, without dumping a sensitive tree by default.
+
+Device control is privileged. Default to literal loopback/validated localhost endpoints. Remote endpoints require opt-in, HTTPS, and a documented authenticating proxy or secure tunnel; do not assume native daemon authentication. Reject embedded URL credentials, disable redirects, validate endpoint construction, and redact headers. Local HTTP remains usable behind an SSH tunnel.
+
+### D6. Configuration and stability
+
+The initial slice accepts incubating `MobileOptions` through `Mobile.connect(options)` and changes no stable configuration type. Mobile operational APIs/SPI remain unannotated with `@TestFlyApi` and explicitly incubating. Do not exclude mobile from, or weaken, the public API gate.
+
+Before YAML integration, commit to stable `TestFlyConfig.getMobile`/`setMobile` signatures and a **stable configuration DTO**, including exposed nested value types. It must not expose incubating runtime classes. Mark that commitment deliberately and cover nested DTO compatibility; current source-file discovery is not a complete nested-type audit. Configuration can be stable while operational APIs incubate.
+
+Proposed later configuration, **not currently supported**:
 
 ```yaml
 mobile:
   serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
-  platform: android            # android | ios — required when a mobile test runs
-  deviceId: ""                 # exact id; wins over deviceName
-  deviceName: ""               # regex
+  platform: android            # android | ios; required when mobile runs
+  deviceId: ""                # exact ID; takes precedence over deviceName
+  deviceName: ""              # full regex match
   app:
-    bundleId: com.example.app
-    install: ""                # optional .apk/.ipa/.app path
-    reset: relaunch            # none | relaunch | clearData
+    bundleId: com.example.app  # Android package / iOS bundle identifier
+    reset: relaunch           # none | relaunch | clearData
   timeouts:
-    actionMs: 5000             # auto-wait budget per action/assertion
+    connectMs: 60000           # whole discovery/acquisition/preparation budget
+    acquireMs: 30000           # capped by remaining connectMs
+    actionMs: 5000
     pollMs: 100
-    rpcMs: 30000               # upper bound per JSON-RPC HTTP request
-  allowRemote: false           # non-loopback serverUrl needs this and https://
-  headers: {}                  # e.g. Authorization for a TLS/auth proxy
+    rpcMs: 30000
+    cleanupMs: 10000           # bounded artifact capture and cleanup
+  allowRemote: false
+  headers: {}                  # secrets via placeholders; never diagnostics
   screenshotOnFailure: true
 ```
 
-**Device selection** is deterministic and runs once at connect time, after `server.info` and `devices.list`:
+Select online devices of the requested platform by exact ID, otherwise full name-regex match, otherwise the sole candidate. Zero/multiple matches fail with sanitized candidates; never select arbitrarily. Recheck after reservation. Initial support has no pooling.
 
-1. If `deviceId` is set, it must match exactly one online device of `platform`.
-2. Otherwise, if `deviceName` is set, the regex must match exactly one online device of `platform`.
-3. Otherwise, exactly one online device of `platform` must exist.
+One authoritative definition supplies options/YAML defaults. Preserve existing loading/override behavior, placeholder resolution, and unknown-key warnings; do not assume generic environment/system-property overrides. Test missing, blank, malformed, and invalid values, regexes, and positive timeout constraints. Absent mobile configuration must cause no mobile discovery/allocation/remote calls for non-mobile execution. Add `TestFlyDefaults` support only with explicit precedence coverage.
 
-Zero matches or more than one fails fast with `DeviceSelectionException`. The message lists the candidates (id, name, type) and the selector that was used. TestFly never picks a device arbitrarily.
+### D7. Engine integration after Android proof
 
-**Transport security.** mobilecli's JSON-RPC endpoint has no documented authentication, and whoever reaches it can control the device.
-- By default, `serverUrl` must resolve to a loopback address. Any other host is rejected with a clear error.
-- A remote device lab requires an explicit opt-in, `mobile.allowRemote: true`, plus an `https://` URL; plain `http://` to a non-loopback host is refused.
-- Remote setups are documented as "put mobilecli behind a TLS-terminating, authenticating proxy or an SSH tunnel". Optional static headers (`mobile.headers`, for example `Authorization: Bearer ${MOBILECLI_TOKEN}`) are sent on every request to support such a proxy.
+| Engine | Planned entry | Required ordering/registration |
+|---|---|---|
+| TestNG | `mobile.BaseMobileTest`, `MobileSupport`, later `@MobileTest` | Register listeners as `BaseApiTest` does; document registration for annotation-only use. Prove a callback scheme opening before user `@BeforeMethod` and closing after `@AfterMethod`, including configuration failures. Adding to `onTestStart` alone is insufficient. |
+| JUnit 5 | `mobile.junit5.BaseJUnit5MobileTest`, later annotation support | Register the extension explicitly. Open before user `@BeforeEach`; close after `@AfterEach`, including failures/aborts. |
+| Cucumber | `@mobile` with mobile support | Glue/hooks own the scenario; the TestNG wrapper must not allocate again. Separate early failure capture from final cleanup so documented user after-hooks retain device access and their failures are captured. |
 
-The defaults live in one place: `TestFlyConfig.Mobile` field initialisers, plus `TestFlyDefaults.applyMissing`. Validation fails fast when a mobile test runs without `platform`. Unknown keys are lenient, as elsewhere.
+Share appropriate `StepSupport`, `TestDataSupport`, `ContextSupport`, `ApiSupport`, `DbSupport`, and `EmailSupport`. Reuse the shared soft-assertion collector through mobile helpers rather than mixing in the current `SoftAssertSupport`, which also exposes Selenium locator/page overloads. Inherit no web support interfaces. Base/annotation/tag detection skips browser allocation and rejects conflicting domain declarations.
 
-### D6. Locators, auto-wait and errors
+Prove one owner per attempt across success, failure, disabled/quarantined tests, skip/abort after allocation, open/setup/teardown failures, interruption, and retry. Skip-before-allocation allocates nothing. A supported retry must rerun preparation and the complete user lifecycle with a fresh lease; otherwise reject it. **Initially reject TestFly-managed mobile retries** rather than enter web retry behavior. External full-invocation retries require separate executable evidence.
 
-- **Locators** are evaluated client-side over the dumped tree. Each poll cycle fetches the tree once (`device.dump.ui`), flattens it, and evaluates every pending predicate against that snapshot.
-  - Query methods: `getByRole(MobileRole)` with `withName`/`exact`, `getByText`, `getByLabel`, `getByTestId` (iOS identifier, Android resource-id), `getByPlaceholder` and `getByType` (raw class).
-  - Refinements: `filter`, `nth`, `first`, `last`, and `within(locator)` (containment by bounds).
-  - The role-to-native-class table is ported from Mobilewright, with attribution.
-- **Actionability.** Actions wait until the target exists and is visible, enabled and stable. Stable means the bounds are unchanged across two polls. Then the action taps the centre of the bounds.
-  - Reads wait for visibility only.
-  - `expect` retries until `actionMs` runs out.
-  - More than one match for an action is an error (strict mode) unless `first`, `last` or `nth` is used.
-- **Errors.** One `MobileException` hierarchy:
-  - `MobileServerUnavailableException`: connection refused. The message says to start `mobilecli server start`.
-  - `MobileVersionException`: below the minimum version.
-  - `DeviceNotFoundException`: JSON-RPC error `-32010` as documented. mobilecli 1.0.20 actually returns `-32000` with `data: "error finding device: device not found: …"`, so the mapping also matches that payload.
-  - `DeviceSelectionException`: the selectors match zero or several devices.
-  - `MobileTimeoutException`: `-32050`, or the action budget is exhausted. The message includes the last matched nodes.
-  - `MobileLocatorException`: no match or strict violation. The message includes the query and the candidate nodes.
-  - `MobileRpcException`: other JSON-RPC errors.
-- **Deadlines.** Every JSON-RPC HTTP request uses `HttpRequest.timeout(min(rpcMs, remaining action budget))`. A stalled mobilecli call therefore cannot hold an action or assertion past `actionMs`; the `Poller` regains control and fails with `MobileTimeoutException`. A timed-out state-changing call may still complete on the device, and the error message says so.
-- **Retries.** Read-only calls (`dump.ui`, `info`, `devices.list`) may be retried once on I/O failure. State-changing calls (tap, text, launch) are **never** retried by the transport, because a duplicate tap is worse than a clear failure.
+Capture a failure screenshot while the app/session and report item remain available. Reuse its bytes for the step, test-level `ExecutionMetrics` artifact, immediate ReportPortal attachment, and Cucumber attachment as applicable; verify each path. Screenshot failure must not replace the primary failure or prevent release. Route shared `step(..., true)` mobile screenshots through the device. Audit AI analysis, console, tracing, parameter injection, and other web helpers so mobile neither accesses retained web sessions nor creates/recreates WebDriver. Include a mobile failure on a thread previously used by a web test.
 
-### D7. Parallelism and scale
+### D8. Licensing, alternatives, and deferred scope
 
-- **Exclusive device reservation.** The Java `ThreadLocal` only isolates handles, not the physical device, so TestFly also reserves the device itself.
-  - A JVM-wide registry keyed by `deviceId` grants each device to one session at a time.
-  - Any other worker that selects the same device blocks until it is released, with a timeout and a clear error, so access is serialised, not interleaved.
-  - Before Phase 3, a suite with more parallel workers than devices therefore runs mobile tests serially. A warning names the setting to change.
-  - Reservation is per JVM. Separate JVMs or machines sharing one device are unsupported and documented as such.
-- **Pooling.** The first release uses one configured device. Phase 3 adds `mobile.devices` (a list or a selector) and an allocator that hands each worker a free device. Workers block with a timeout when all devices are busy, as Mobilewright's `DeviceAllocator` does.
-- **Cost per step.** A `dump.ui` call takes roughly 100–500 ms, depending on platform and tree size. Polling is therefore bounded by `pollMs` and reuses one tree per cycle. The cost is on the device side; JVM-side cost is negligible.
+Before merging integration, record exact license/revision evidence, intended SDK/CI/commercial use, obligations, and the maintainer conclusion. Add `NOTICE`/license attribution for copied Mobilewright logic. If permission remains unresolved or unfavorable, stop mobilecli delivery and reassess the adapter.
 
-### D8. Licensing and attribution
-
-- TestFly never ships mobilecli (D1).
-- Ported Mobilewright logic carries Apache-2.0 attribution in `NOTICE`.
-- Docs credit mobilecli and say that the API is inspired by Mobilewright.
-- The feature is not named after Mobilewright.
-- A courtesy note to Mobile Next HQ is recommended.
-
-### D9. Stability
-
-- New types are **not** annotated with `@TestFlyApi` until they have shipped in at least one minor release and been validated on real Android and iOS devices. Docs mark them as incubating.
-- Changes to existing `@TestFlyApi` types are additive only:
-  - `TestFlyConfig.getMobile`/`setMobile`
-  - the new `@MobileTest` annotation, which stays incubating as well
-- The bridge changes are internal and behaviour-neutral for non-mobile tests.
-
-### Target usage
-
-```java
-public class LoginMobileTest extends BaseMobileTest {
-
-    @Test
-    public void userCanSignIn() {
-        screen().getByLabel("Email").fill("user@example.com");
-        screen().getByLabel("Password").fill(getTestData("password", String.class));
-        screen().getByRole(MobileRole.BUTTON).withName("Sign In").tap();
-
-        expect(screen().getByText("Welcome back")).toBeVisible();
-        apiGet("/me").send().assertStatus(200);   // same test, backend check via ApiSupport
-    }
-}
-```
-
-## Options considered
-
-### A. Appium java-client adapter
-
-| Dimension | Assessment |
+| Option | Assessment |
 |---|---|
-| Complexity | Medium. It reuses WebDriver semantics but needs Appium server and driver setup. |
-| Cost | A large new dependency, plus a server install for users. |
-| Fit | Could reuse `DriverProvider`, but `Locator` and `WaitEngine` are web-shaped. |
-| Licensing | Apache-2.0, no restrictions. |
+| Native Java adapter for unmodified mobilecli | Conditional choice: small runtime surface; protocol maturity, device behavior, and permitted use remain gates. |
+| Appium Java adapter | Credible alternative with broad ecosystem/cloud support, additional dependencies/server setup; can implement the separate mobile seam. No unsupported performance comparison is claimed. |
+| Fork/bundle mobilecli | Rejected for agent maintenance and distribution/licensing scope; requires a new decision if reconsidered. |
+| Node/Mobilewright subprocess | Rejected for an additional runtime and cross-process lifecycle, despite reusing upstream behavior. |
 
-**Pros:** a mature ecosystem with the widest device-cloud support; familiar WebDriver model.
-**Cons:** heavy setup, which is the problem Mobilewright exists to solve; slower; pulls mobile into the Selenium-shaped seams.
+Defer pools/cross-JVM allocation, installation, deep links, geolocation, WebViews, WebSocket streaming, screencast, and a separate Maven artifact. Revisit from measured needs after core contracts hold. iOS validation is its own stage.
 
-### B. Native Java client for unmodified mobilecli (chosen)
+## Delivery plan and exit criteria
 
-| Dimension | Assessment |
-|---|---|
-| Complexity | Medium. The locator engine, auto-wait and lifecycle are built in Java. |
-| Cost | No new dependencies; users install one binary. |
-| Fit | A peer domain, the same pattern as API and load testing. |
-| Licensing | Acceptable while TestFly only speaks the protocol. |
+Unchecked items are pending. Fake-server success proves client behavior, never native automation. Each stage must pass before the next integration stage.
 
-**Pros:**
-- Light setup.
-- The view-tree model is deterministic and AI/MCP-friendly.
-- There is a proven design to port from.
-- The SPI keeps an Appium path open.
+### Implementation boundary
 
-**Cons:**
-- The protocol comes from a single vendor and is partly undocumented. The published OpenRPC spec omits `device.io.keys`, `device.apps.clear`, `device.location.*` and `device.webview.*`, all of which Mobilewright uses.
-- On Android, mobilecli cannot share a device with Appium.
+The first code increment contains internal foundations under `io.testfly.mobile.internal`: bounded JSON-RPC HTTP transport, process-local device reservations/quarantine, and immutable normalized trees with hierarchical queries. They have deterministic local-server/unit coverage and introduce no stable API or configuration changes.
 
-### B′. Fork mobilecli and ship it with TestFly (rejected)
+This increment does not complete Stage 0 or Stage 1. It contains no mobilecli wire-to-tree adapter, `Mobile.connect` facade, device actions, runner integration, or supported-device claim. Pinned protocol/license evidence and Android emulator validation remain prerequisites for integrating and delivering native automation.
 
-**Pros:** full control of the device layer and no external install step.
-**Cons:**
-- TestFly would own Go, XCUITest signing and Android server maintenance across OS releases.
-- It would diverge from upstream fixes.
-- Redistribution moves toward the FSL competing-use clause.
+The transport connects directly to the configured endpoint; JVM forward-proxy settings are not supported. RPC exceptions retain the numeric code but omit server message/data from diagnostics. Sanitized structured device-error classification is deferred to the adapter work, where pinned fixtures can establish reliable mappings.
 
-### C. Drive Mobilewright from Java through a Node subprocess or bridge (rejected)
+### Stage 0 — Establish a permitted, reproducible target
 
-**Pros:** reuses Mobilewright's behaviour verbatim.
-**Cons:**
-- Node ≥ 22.12 becomes a hard requirement on every runner.
-- Cross-runtime process management.
-- No Java-native types.
-- Mobilewright's API is shaped around its own test runner.
+- [ ] Complete D8's revision-specific licensing/provenance review.
+- [ ] Pin mobilecli release/commit/spec references; record installation commands, host/emulator OS, Android API level, app fixture version, and agent version where available. Minimum supported version stays unset until validated.
+- [ ] Capture sanitized emulator request/response fixtures for discovery, device info, tree, tap, text/clear, screenshot, terminate/launch, and representative errors. Establish coordinate units and working replacement fill; record capability gaps.
 
-## Trade-off analysis
+**Exit:** maintainers can reproduce a permitted app interaction on the pinned target, with fixtures and an explicit proceed/alternative-adapter decision.
 
-B costs more Java code than A. In return, mobile becomes a peer domain built the same way as API and load testing, rather than a Selenium extension, and users get the simple setup that motivates the work. B over B′ trades control for a much smaller maintenance surface and a cleaner licensing position. That trade can be revisited if upstream stalls.
+### Stage 1 — Explicit Android vertical slice
 
-The main risks:
+- [ ] Implement the minimal driver/SPI, options, selection/leases, bounded transport/cleanup, core queries, tap/fill/assertions, screenshot, and `Mobile.connect(options)`.
+- [ ] Unit/fake-server checks cover envelopes/errors/version mismatch, deadlines/cancellation, no mutation retries, hierarchical scoping with overlapping siblings, duplicate targets, coordinate changes, concurrent acquisition, and partial-failure release/unavailable-device behavior.
+- [ ] From Java, replace prefilled text including Unicode/empty input, tap, assert resulting text/visibility, save a valid screenshot, and close. Repeat **at least 10 emulator runs without manual recovery**; retain results/timings. Deliberately fail an assertion and verify screenshot plus subsequent safe reacquisition.
+- [ ] Document the explicit API, pinned setup, limitations, and fixture provenance. Run `scripts/agent/verify.sh code`, `api`, `spi`, and `docs`; run consumer verification with a representative checkout or explicitly record that gap.
 
-| Risk | Mitigation |
-|---|---|
-| Protocol drift or undocumented methods | `MobileDriver` SPI isolation; minimum-version check; contract tests against fixtures recorded from a real device |
-| Licensing interpretation | No redistribution; maintainers confirm before Phase 1 merges |
-| Slow or flaky device I/O | One tree per poll cycle; strict actionability; no transport retries for actions; device screenshot on failure |
-| No devices in CI | Unit and contract tests on an in-process fake JSON-RPC server (`com.sun.net.httpserver`); real-device runs as a separate, optional job |
+**Exit:** focused checks and real emulator evidence pass. No runner base classes or supported-iOS claim is required; fake-only completion fails this gate.
 
-## Consequences
+### Stage 2 — One engine at a time
 
-- **Easier**
-  - Android and iOS automation from Java with no Appium server.
-  - One test can combine the app and backend checks, through `ApiSupport` and `DbSupport`.
-  - A cheap, serialisable view tree for future AI/MCP features.
-- **Harder**
-  - A second locator and wait implementation to maintain beside the web one.
-  - Three engine bridges gain a mobile branch.
-  - Real-device verification needs hardware or emulators that CI does not have today.
-- **To revisit**
-  - Promotion to `@TestFlyApi`.
-  - WebSocket transport for logs and screencast.
-  - WebView bridging (`device.webview.*`).
-  - Device pools across machines.
-  - A separate Maven artifact, if mobile ever needs its own dependencies.
+- [ ] Freeze the configuration DTO; wire/test loading, defaults, validation, precedence, and compatibility.
+- [ ] Deliver TestNG, then JUnit 5, then Cucumber. Each engine-driven suite proves D7 lifecycle cases, artifact timing, zero WebDriver side effects, no double ownership, bounded release, and fail-fast unsupported retries.
+- [ ] Run the app smoke through each engine, including device access in user setup/teardown and backend assertions via shared support.
+- [ ] Add runnable examples, English/Turkish product docs, configuration samples, and attribution. Run `code`, `api`, `spi`, `docs`, and relevant consumer checks after each engine change.
 
-## Action items
+**Exit per engine:** callback/report tests and emulator smoke pass; unfinished engines remain unsupported. Store device evidence in an optional CI job or reproducible local procedure. Missing shared CI hardware does not waive the device gate.
 
-**Phase 0: prerequisites (maintainer)**
-1. [ ] Confirm the licensing position: no redistribution, plus NOTICE attribution.
-2. [x] Already observed against mobilecli 1.0.20 without a device: `server.info` returns `{name, version}`; `devices.list` returns `{devices: [...]}` (an object, not the bare array the OpenRPC spec shows); an unknown device returns `-32000` rather than `-32010`; an unknown method returns `-32601`. Code must follow observed behaviour, not the published spec.
-3. [ ] On a real Android emulator, record `server.info`, `devices.list`, `device.info`, `device.dump.ui`, `device.screenshot` and the error responses as JSON fixtures. Pin the minimum mobilecli version.
+### Stage 3 — Validate platforms and stabilize selectively
 
-**Phase 1: foundation (no device needed; verified with the fake server)**
-4. [ ] `JsonRpcClient`, `MobileDriver` SPI, `MobileCliDriver`, and the `MobileException` hierarchy; loopback/`allowRemote` validation, deterministic device selection, deadline-bounded requests, and the JVM-wide device reservation.
-5. [ ] `TestFlyConfig.Mobile`, with defaults and validation.
-6. [ ] `MobileNode`, `LocatorEngine` (role table), `Poller`, `MobileLocator`, `MobileScreen`, `MobileDevice` and `MobileAssertions`.
-7. [ ] `Mobile.connect()` for explicit use.
-8. [ ] Run `scripts/agent/verify.sh code` and `api`.
+- [ ] Validate Android physical devices separately. Validate iOS simulator on macOS/Xcode, then physical iOS with documented signing/provisioning. Repeat core actions, coordinate/screenshot checks, app-state policies, and failure cleanup per claimed target.
+- [ ] Publish the tested version/platform/capability matrix, including unsupported reset/installation cases. Validate upstream upgrades before extending it.
+- [ ] After at least one incubating minor release and emulator plus physical-device evidence for the claimed platforms, review operational APIs/SPI individually for `@TestFlyApi` promotion; run compatibility/consumer gates.
 
-**Phase 2: domain integration**
-9. [ ] `MobileSupport`, `BaseMobileTest` and `@MobileTest`, plus the `isMobileTest` branch in `TestExecutionListener`.
-10. [ ] `BaseJUnit5MobileTest` and the `TestFlyExtension` branch; the Cucumber `@mobile` tag in `CucumberHooks`.
-11. [ ] Failure screenshot and step logging through `StepLogger`.
-12. [ ] English and Turkish docs (`docs-site/`), a sample `testfly.yml`, and NOTICE.
-13. [ ] Run `scripts/agent/verify.sh code`, `api` and `docs`.
-
-**Phase 3: real devices and scale**
-14. [ ] An Android emulator smoke suite, as an optional CI job or a documented local run.
-15. [ ] iOS simulator and real-device validation on a macOS runner.
-16. [ ] `mobile.devices` pool and allocator for parallel runs; deep links, orientation and geolocation.
-
-**Phase 4: stabilise**
-17. [ ] Promote validated types to `@TestFlyApi`.
-18. [ ] Evaluate WebSocket, WebView and screencast support.
+**Exit:** support/stability claims match execution evidence. Gestures, pooling, and streaming need separate measurable acceptance criteria.
