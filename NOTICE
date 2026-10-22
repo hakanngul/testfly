@@ -1,0 +1,23 @@
+TestFly
+Copyright 2026 The TestFly authors
+
+This product includes software developed by the TestFly project, licensed under
+the Apache License, Version 2.0 (see LICENSE).
+
+-------------------------------------------------------------------------------
+Mobilewright (https://mobilewright.dev), by Mobile Next
+Licensed under the Apache License, Version 2.0
+
+The native mobile module (io.testfly.mobile) ports logic from Mobilewright's
+@mobilewright/core query engine: the role-to-native-class table
+(io.testfly.mobile.MobileRole) and the locator matching rules
+(io.testfly.mobile.internal.LocatorEngine). The mobilecli method names and
+parameters used by io.testfly.mobile.internal.MobileCliDriver follow
+@mobilewright/driver-mobilecli. The API names are inspired by Mobilewright.
+
+-------------------------------------------------------------------------------
+mobilecli (https://github.com/mobile-next/mobilecli)
+
+TestFly does not include, bundle, download, modify or redistribute mobilecli.
+The native mobile module talks to a mobilecli server that the user installs
+and runs. mobilecli is licensed by its authors under FSL-1.1-ALv2.

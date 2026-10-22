@@ -140,6 +140,7 @@ mobile:
     actionMs: 5000             # auto-wait budget per action/assertion
     pollMs: 100
     rpcMs: 30000               # upper bound per JSON-RPC HTTP request
+    reserveMs: 300000          # wait for a device another session in this JVM holds
   allowRemote: false           # non-loopback serverUrl needs this and https://
   headers: {}                  # e.g. Authorization for a TLS/auth proxy
   screenshotOnFailure: true
@@ -180,6 +181,8 @@ The defaults live in one place: `TestFlyConfig.Mobile` field initialisers, plus 
   - `MobileRpcException`: other JSON-RPC errors.
 - **Deadlines.** Every JSON-RPC HTTP request uses `HttpRequest.timeout(min(rpcMs, remaining action budget))`. A stalled mobilecli call therefore cannot hold an action or assertion past `actionMs`; the `Poller` regains control and fails with `MobileTimeoutException`. A timed-out state-changing call may still complete on the device, and the error message says so.
 - **Retries.** Read-only calls (`dump.ui`, `info`, `devices.list`) may be retried once on I/O failure. State-changing calls (tap, text, launch) are **never** retried by the transport, because a duplicate tap is worse than a clear failure.
+- **Closed connections.** mobilecli 1.0.20 closes the connection without a JSON-RPC answer when its device daemon times out (60 s). The client reports this as `MobileRpcException`, not a parse error or a hang.
+- **Connect timeouts.** A refused connection means no server (`MobileServerUnavailableException`); a connection that is only slow to open is a `MobileTimeoutException`, so polling keeps going until its budget runs out.
 
 ### D7. Parallelism and scale
 
@@ -315,11 +318,17 @@ The main risks:
    - Open: successful `device.dump.ui` and `device.screenshot`. The unaccelerated emulator was too slow; record them on an accelerated emulator or a real device.
 
 **Phase 1: foundation (no device needed; verified with the fake server)**
-4. [ ] `JsonRpcClient`, `MobileDriver` SPI, `MobileCliDriver`, and the `MobileException` hierarchy; loopback/`allowRemote` validation, deterministic device selection, deadline-bounded requests, and the JVM-wide device reservation.
-5. [ ] `TestFlyConfig.Mobile`, with defaults and validation.
-6. [ ] `MobileNode`, `LocatorEngine` (role table), `Poller`, `MobileLocator`, `MobileScreen`, `MobileDevice` and `MobileAssertions`.
-7. [ ] `Mobile.connect()` for explicit use.
-8. [ ] Run `scripts/agent/verify.sh code` and `api`.
+4. [x] `JsonRpcClient`, `MobileDriver` SPI, `MobileCliDriver`, and the `MobileException` hierarchy; loopback/`allowRemote` validation, deterministic device selection, deadline-bounded requests, and the JVM-wide device reservation.
+5. [x] `TestFlyConfig.Mobile`, with defaults and validation.
+6. [x] `MobileNode`, `LocatorEngine` (role table), `Poller`, `MobileLocator`, `MobileScreen`, `MobileDevice` and `MobileAssertions`.
+7. [x] `Mobile.connect()` for explicit use.
+8. [x] Run `scripts/agent/verify.sh code` and `api`.
+
+   Phase 1 notes (2026-10-22):
+   - Verified against an in-process fake server (`src/test/java/io/testfly/unit/mobile`) that serves the recorded 1.0.20 responses and a small fake app; no device was used.
+   - Added `mobile.timeouts.reserveMs` (D5, D7): how long a session waits for a device that another session in the same JVM holds.
+   - Not in Phase 1: the mobilecli **agent**. Mobilewright runs `mobilecli agent status/install --device <id>` before connecting; without the on-device agent, UI calls can fail (likely the cause of the failed `device.dump.ui` recording). Phase 2 decides whether TestFly checks the agent or only documents `mobilecli agent install`.
+   - `launchApp` does not yet wait for the app to reach the foreground (Mobilewright polls `device.apps.foreground`); the first locator call auto-waits instead.
 
 **Phase 2: domain integration**
 9. [ ] `MobileSupport`, `BaseMobileTest` and `@MobileTest`, plus the `isMobileTest` branch in `TestExecutionListener`.

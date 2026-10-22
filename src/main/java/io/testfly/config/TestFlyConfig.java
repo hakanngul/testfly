@@ -2717,4 +2717,211 @@ public final class TestFlyConfig {
         }
     }
 
+    // ── Native mobile (incubating, ADR 0002) ─────────────────────────────
+
+    private Mobile mobile;
+
+    /**
+     * Native mobile settings ({@code mobile:}), or {@code null} when the section is absent.
+     * Nothing mobile loads while it is absent. Incubating: see ADR 0002.
+     */
+    public Mobile getMobile() {
+        return mobile;
+    }
+
+    public void setMobile(Mobile mobile) {
+        this.mobile = mobile;
+    }
+
+    /**
+     * Native mobile block (incubating). TestFly talks to a user-installed mobilecli server.
+     *
+     * <pre>
+     * mobile:
+     *   serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+     *   platform: android            # android | ios
+     *   deviceId: ""                 # exact id; wins over deviceName
+     *   deviceName: ""               # regex
+     *   app:
+     *     bundleId: com.example.app
+     *     install: ""
+     *     reset: relaunch            # none | relaunch | clearData
+     *   timeouts:
+     *     actionMs: 5000
+     *     pollMs: 100
+     *     rpcMs: 30000
+     *     reserveMs: 300000
+     *   allowRemote: false
+     *   headers: {}
+     *   screenshotOnFailure: true
+     * </pre>
+     *
+     * The defaults live in the field initialisers below; {@code io.testfly.mobile.Mobile}
+     * validates the block when a device is opened.
+     */
+    public static final class Mobile {
+        private String serverUrl = "http://localhost:12000";
+        private String platform;
+        private String deviceId = "";
+        private String deviceName = "";
+        private App app = new App();
+        private Timeouts timeouts = new Timeouts();
+        private boolean allowRemote = false;
+        private java.util.Map<String, String> headers = new java.util.LinkedHashMap<>();
+        private boolean screenshotOnFailure = true;
+
+        public String getServerUrl() {
+            return serverUrl;
+        }
+
+        public void setServerUrl(String serverUrl) {
+            this.serverUrl = serverUrl == null || serverUrl.isBlank() ? "http://localhost:12000" : serverUrl.trim();
+        }
+
+        /** {@code android} or {@code ios}; required when a mobile test runs. */
+        public String getPlatform() {
+            return platform;
+        }
+
+        public void setPlatform(String platform) {
+            this.platform = platform;
+        }
+
+        public String getDeviceId() {
+            return deviceId;
+        }
+
+        public void setDeviceId(String deviceId) {
+            this.deviceId = deviceId != null ? deviceId : "";
+        }
+
+        public String getDeviceName() {
+            return deviceName;
+        }
+
+        public void setDeviceName(String deviceName) {
+            this.deviceName = deviceName != null ? deviceName : "";
+        }
+
+        public App getApp() {
+            return app;
+        }
+
+        public void setApp(App app) {
+            this.app = app != null ? app : new App();
+        }
+
+        public Timeouts getTimeouts() {
+            return timeouts;
+        }
+
+        public void setTimeouts(Timeouts timeouts) {
+            this.timeouts = timeouts != null ? timeouts : new Timeouts();
+        }
+
+        /** A non-loopback {@code serverUrl} needs this flag and {@code https://}. */
+        public boolean isAllowRemote() {
+            return allowRemote;
+        }
+
+        public void setAllowRemote(boolean allowRemote) {
+            this.allowRemote = allowRemote;
+        }
+
+        /** Static headers sent with every request, e.g. {@code Authorization} for a TLS/auth proxy. */
+        public java.util.Map<String, String> getHeaders() {
+            return headers;
+        }
+
+        public void setHeaders(java.util.Map<String, String> headers) {
+            this.headers = headers != null ? new java.util.LinkedHashMap<>(headers) : new java.util.LinkedHashMap<>();
+        }
+
+        public boolean isScreenshotOnFailure() {
+            return screenshotOnFailure;
+        }
+
+        public void setScreenshotOnFailure(boolean screenshotOnFailure) {
+            this.screenshotOnFailure = screenshotOnFailure;
+        }
+
+        /** The app under test. */
+        public static final class App {
+            private String bundleId = "";
+            private String install = "";
+            private String reset = "relaunch";
+
+            /** iOS bundle id or Android package. Empty: no app is launched. */
+            public String getBundleId() {
+                return bundleId;
+            }
+
+            public void setBundleId(String bundleId) {
+                this.bundleId = bundleId != null ? bundleId : "";
+            }
+
+            /** Optional {@code .apk}/{@code .ipa}/{@code .app} path installed when the device opens. */
+            public String getInstall() {
+                return install;
+            }
+
+            public void setInstall(String install) {
+                this.install = install != null ? install : "";
+            }
+
+            /** {@code none}, {@code relaunch} (default) or {@code clearData}. */
+            public String getReset() {
+                return reset;
+            }
+
+            public void setReset(String reset) {
+                this.reset = reset == null || reset.isBlank() ? "relaunch" : reset.trim();
+            }
+        }
+
+        /** Time budgets in milliseconds. */
+        public static final class Timeouts {
+            private long actionMs = 5000;
+            private long pollMs = 100;
+            private long rpcMs = 30000;
+            private long reserveMs = 300000;
+
+            /** Auto-wait budget of one action or assertion. */
+            public long getActionMs() {
+                return actionMs;
+            }
+
+            public void setActionMs(long actionMs) {
+                this.actionMs = actionMs;
+            }
+
+            /** Pause between two polls of the view tree. */
+            public long getPollMs() {
+                return pollMs;
+            }
+
+            public void setPollMs(long pollMs) {
+                this.pollMs = pollMs;
+            }
+
+            /** Upper bound of one JSON-RPC HTTP request. */
+            public long getRpcMs() {
+                return rpcMs;
+            }
+
+            public void setRpcMs(long rpcMs) {
+                this.rpcMs = rpcMs;
+            }
+
+            /** How long a session waits for a device another session in this JVM holds. */
+            public long getReserveMs() {
+                return reserveMs;
+            }
+
+            public void setReserveMs(long reserveMs) {
+                this.reserveMs = reserveMs;
+            }
+        }
+    }
+
 }
