@@ -231,6 +231,16 @@ public final class MobileLocator {
         return "MobileLocator(" + describe() + ")";
     }
 
+    /**
+     * Logs the action as a test step, like web locators do ("Tap getByText(...)"). Typed text is
+     * not logged. Outside a running test (scripts) nothing is logged.
+     */
+    private void step(String action) {
+        if (io.testfly.internal.TestFlyContext.getCurrentTestId() != null) {
+            io.testfly.steps.StepLogger.step(Character.toUpperCase(action.charAt(0)) + action.substring(1) + " " + describe());
+        }
+    }
+
     private MobileLocator derive(Query q) {
         return new MobileLocator(session, q, timeout);
     }
@@ -264,6 +274,7 @@ public final class MobileLocator {
      * server cannot hold the caller past the budget.
      */
     private void act(String action, java.util.function.BiConsumer<MobileNode, java.util.function.Supplier<Duration>> body) {
+        step(action);
         long deadline = System.nanoTime() + timeout.toNanos();
         MobileNode node = resolveActionable(action);
         body.accept(node, () -> {

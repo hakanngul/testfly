@@ -15,6 +15,8 @@ import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.network.NetworkMock;
 import io.testfly.reporting.JUnitXmlReporter;
 import io.testfly.reporting.ReportAdapterRegistry;
+import io.testfly.mobile.internal.MobileSessions;
+import io.testfly.mobile.internal.MobileTestDetector;
 import io.testfly.reporting.ScreenshotManager;
 import io.testfly.steps.StepLogger;
 import io.testfly.steps.StepStatus;
@@ -99,6 +101,10 @@ public class CucumberHooks {
             DriverManager.createDriver();
             startRecordingIfEnabled();
         }
+        // 8b. Native mobile scenario (@mobile, ADR 0002): open the device instead
+        if (MobileTestDetector.isMobileScenario(scenario.getSourceTagNames())) {
+            MobileSessions.open();
+        }
 
         // 9. Notify plugins
         HookRegistry.onTestStart(testId);
@@ -132,6 +138,7 @@ public class CucumberHooks {
             if (!noBrowser) {
                 safeQuitDriver();
             }
+            MobileSessions.close();
             CucumberContext.clear();
             return;
         }
@@ -146,7 +153,9 @@ public class CucumberHooks {
                 // 1. Capture screenshot once for both TestFly HTML report and Cucumber report
                 String screenshotPath = null;
                 try {
-                    screenshotPath = ScreenshotManager.capture(sanitize(scenario.getName()));
+                    screenshotPath = MobileTestDetector.isMobileScenario(scenario.getSourceTagNames())
+                            ? MobileSessions.captureFailure(sanitize(scenario.getName()))
+                            : ScreenshotManager.capture(sanitize(scenario.getName()));
                     if (screenshotPath != null) {
                         ExecutionMetrics.recordScreenshot(testId, screenshotPath);
                         File scFile = new File(screenshotPath);
@@ -267,6 +276,7 @@ public class CucumberHooks {
             if (!noBrowser) {
                 safeQuitDriver();
             }
+            MobileSessions.close();
             io.testfly.session.MultiSessionManager.clearAll();
             io.testfly.assertion.SoftAssertions.clear();
             ScenarioContext.clear();
@@ -433,7 +443,8 @@ public class CucumberHooks {
         }
         return scenario.getSourceTagNames().stream().anyMatch(t -> {
             String lower = t.toLowerCase();
-            return lower.equals("@nobrowser") || lower.equals("@api") || LoadTestDetector.isLoadTestTag(t);
+            return lower.equals("@nobrowser") || lower.equals("@api") || lower.equals(MobileTestDetector.CUCUMBER_TAG)
+                    || LoadTestDetector.isLoadTestTag(t);
         });
     }
 

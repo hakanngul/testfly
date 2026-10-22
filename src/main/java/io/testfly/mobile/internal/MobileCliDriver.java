@@ -68,7 +68,17 @@ public final class MobileCliDriver implements MobileDriver {
 
     @Override
     public List<MobileNode> viewTree(Duration timeout) {
-        JsonNode result = deviceCall("device.dump.ui", null, timeout, true);
+        JsonNode result;
+        try {
+            result = deviceCall("device.dump.ui", null, timeout, true);
+        } catch (MobileRpcException e) {
+            // The UI dump needs mobilecli's on-device agent. TestFly may talk to a remote server, so it
+            // cannot run 'mobilecli agent status' itself; it names the likely fix instead.
+            throw new MobileRpcException(e.getMessage() + " If this persists, check that mobilecli's device agent is "
+                    + "installed: mobilecli agent status --device " + requireDevice().id()
+                    + " (install it with: mobilecli agent install --device " + requireDevice().id() + ").",
+                    e.getCode(), e.getData());
+        }
         JsonNode elements = result.isArray() ? result : result.path("elements");
         List<MobileNode> out = new ArrayList<>();
         for (JsonNode el : elements) {

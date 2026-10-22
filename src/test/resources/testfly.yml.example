@@ -63,3 +63,15 @@ locators:
   aiHealing: false
   maxDomTokens: 8000
 
+
+# Native mobile through a user-installed mobilecli server (incubating, ADR 0002).
+# Uncomment to run tests that extend BaseMobileTest / BaseJUnit5MobileTest or carry @MobileTest / @mobile.
+#mobile:
+#  serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+#  platform: android
+#  deviceName: ""
+#  app:
+#    bundleId: com.example.app
+#    reset: relaunch
+#  timeouts:
+#    actionMs: 5000

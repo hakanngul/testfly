@@ -95,6 +95,12 @@ const sidebars = {
     },
     {
       type: 'category',
+      label: 'Native Mobile (Incubating)',
+      collapsed: false,
+      items: ['mobile/getting-started'],
+    },
+    {
+      type: 'category',
       label: 'AI & MCP Automation',
       collapsed: false,
       items: [

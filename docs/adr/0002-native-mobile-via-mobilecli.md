@@ -327,15 +327,21 @@ The main risks:
    Phase 1 notes (2026-10-22):
    - Verified against an in-process fake server (`src/test/java/io/testfly/unit/mobile`) that serves the recorded 1.0.20 responses and a small fake app; no device was used.
    - Added `mobile.timeouts.reserveMs` (D5, D7): how long a session waits for a device that another session in the same JVM holds.
-   - Not in Phase 1: the mobilecli **agent**. Mobilewright runs `mobilecli agent status/install --device <id>` before connecting; without the on-device agent, UI calls can fail (likely the cause of the failed `device.dump.ui` recording). Phase 2 decides whether TestFly checks the agent or only documents `mobilecli agent install`.
+   - Not in Phase 1: the mobilecli **agent**. Mobilewright runs `mobilecli agent status/install --device <id>` before connecting; without the on-device agent, UI calls can fail (likely the cause of the failed `device.dump.ui` recording). Decided in Phase 2 (see below).
    - `launchApp` does not yet wait for the app to reach the foreground (Mobilewright polls `device.apps.foreground`); the first locator call auto-waits instead.
 
 **Phase 2: domain integration**
-9. [ ] `MobileSupport`, `BaseMobileTest` and `@MobileTest`, plus the `isMobileTest` branch in `TestExecutionListener`.
-10. [ ] `BaseJUnit5MobileTest` and the `TestFlyExtension` branch; the Cucumber `@mobile` tag in `CucumberHooks`.
-11. [ ] Failure screenshot and step logging through `StepLogger`.
-12. [ ] English and Turkish docs (`docs-site/`), a sample `testfly.yml`, and NOTICE.
-13. [ ] Run `scripts/agent/verify.sh code`, `api` and `docs`.
+9. [x] `MobileSupport`, `BaseMobileTest` and `@MobileTest`, plus the `isMobileTest` branch in `TestExecutionListener`.
+10. [x] `BaseJUnit5MobileTest` and the `TestFlyExtension` branch; the Cucumber `@mobile` tag in `CucumberHooks`.
+11. [x] Failure screenshot and step logging through `StepLogger`.
+12. [x] English and Turkish docs (`docs-site/`), a sample `testfly.yml`, and NOTICE.
+13. [x] Run `scripts/agent/verify.sh code`, `api` and `docs`.
+
+   Phase 2 notes (2026-10-22):
+   - Engine bridges verified in-process with real TestNG, JUnit 5 and Cucumber runs against the fake server (`MobileEngineBridgeTest`): the device opens before and closes after each test, no browser starts, and a failing test gets a device screenshot (`target/reports/screenshots/<test>_mobile_<ts>.png`, also logged as a step).
+   - `@MobileTest` is `@Inherited` (unlike `@NoBrowser`), so the base classes carry it and detection never loads a JUnit type.
+   - Mobile actions are logged as steps like web actions ("Tap getByText(...)"); typed text is not logged.
+   - Agent decision: TestFly does not run `mobilecli agent status/install` itself, because the server may be remote and the CLI may not be on the test machine. The docs list the agent as a prerequisite, and a failed UI dump names the `mobilecli agent status --device <id>` check in its error.
 
 **Phase 3: real devices and scale**
 14. [ ] An Android emulator smoke suite, as an optional CI job or a documented local run.

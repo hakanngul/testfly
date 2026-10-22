@@ -1,0 +1,154 @@
+---
+id: getting-started
+title: Native Mobil (Deneysel)
+sidebar_position: 1
+description: "Kullanıcının kurduğu mobilecli sunucusu üzerinden Java ile Android ve iOS uygulamalarını sürün: device(), screen().getByRole/Text/TestId, otomatik bekleyen eylemler ve TestNG, JUnit 5, Cucumber üzerinde expect() doğrulamaları."
+---
+
+# Native Mobil (Deneysel)
+
+TestFly, native Android ve iOS uygulamalarını Appium olmadan sürebilir. [mobilecli](https://github.com/mobile-next/mobilecli) adlı, **sizin kurup çalıştırdığınız** bir sunucuyla konuşur; TestFly onu paketlemez, indirmez ve değiştirmez. API, [Mobilewright](https://mobilewright.dev)'tan esinlenmiştir. Tasarım ve kararlar: ADR 0002 (`docs/adr/0002-native-mobile-via-mobilecli.md`).
+
+:::caution Deneysel
+`io.testfly.mobile` içindeki her şey deneyseldir: `@TestFlyApi` ile işaretli değildir ve bir minor sürümde değişebilir. mobilecli 1.0.20'den kaydedilen yanıtları tekrar oynatan, süreç içi sahte bir mobilecli sunucusuna karşı test edilir. **Henüz gerçek cihaz, emülatör veya simülatörde doğrulanmamıştır.**
+:::
+
+## Ön koşullar
+
+1. mobilecli'yi (1.0.20 veya üstü) kurun ve sunucuyu başlatın:
+
+   ```bash
+   mobilecli server start          # http://localhost:12000 adresini dinler
+   mobilecli devices               # çevrimiçi cihazları ve kimliklerini listeler
+   ```
+
+2. mobilecli'nin ajanını cihaza bir kez kurun. Ekran çağrıları ona ihtiyaç duyar:
+
+   ```bash
+   mobilecli agent install --device <device-id>
+   mobilecli agent status --device <device-id>
+   ```
+
+   Android emülatöründe cihaz kimliği adb seri numarası (`emulator-5554`) değil, AVD adıdır (örneğin `Pixel_8_API_34`).
+
+## Yapılandırma
+
+`testfly.yml` içinde `mobile:` bölümü yoksa mobil tarafta hiçbir şey yüklenmez.
+
+```yaml
+mobile:
+  serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+  platform: android            # android | ios (zorunlu)
+  deviceId: ""                 # tam kimlik; deviceName'e göre önceliklidir
+  deviceName: ""               # cihaz adına uygulanan regex
+  app:
+    bundleId: com.example.app  # Android paketi / iOS bundle id
+    install: ""                # isteğe bağlı .apk/.ipa/.app yolu, cihaz açılırken kurulur
+    reset: relaunch            # none | relaunch | clearData
+  timeouts:
+    actionMs: 5000             # bir eylemin veya doğrulamanın bekleme bütçesi
+    pollMs: 100                # ekranın iki okuması arasındaki bekleme
+    rpcMs: 30000               # mobilecli'ye tek bir isteğin üst sınırı
+    reserveMs: 300000          # aynı JVM'de başka bir testin tuttuğu cihaz için bekleme
+  allowRemote: false
+  headers: {}                  # örn. Authorization: Bearer ${MOBILECLI_TOKEN}
+  screenshotOnFailure: true
+```
+
+- **Cihaz seçimi.** `deviceId`, platformun tam olarak bir çevrimiçi cihazıyla eşleşmelidir; yoksa `deviceName` regex'i eşleşmelidir; o da yoksa platformun tam olarak bir çevrimiçi cihazı olmalıdır. Sıfır veya birden çok eşleşme, mobilecli'nin bildirdiği cihazların listesiyle hata verir.
+- **Uygulama sıfırlama.** `relaunch` her testten önce `bundleId`'yi kapatıp açar; `clearData` verisini silip açar; `none` dokunmaz. `none` dışında uygulama testten sonra kapatılır.
+- **Güvenlik.** mobilecli'de kimlik doğrulama yoktur, bu yüzden yalnızca loopback adresleri kabul edilir. Uzak bir sunucu için `allowRemote: true` ve `https://` adresi gerekir; örneğin TLS sonlandıran, kimlik doğrulayan bir proxy veya SSH tüneli arkasında mobilecli.
+
+## Test yazmak
+
+| Motor | Bir test nasıl mobil test olur |
+|---|---|
+| TestNG | `io.testfly.mobile.BaseMobileTest` sınıfından türetin ya da TestFly listener'larıyla zaten çalışan bir sınıfa veya metoda (örneğin bir `BaseTest` alt sınıfında) `@MobileTest` ekleyin |
+| JUnit 5 | `io.testfly.mobile.junit5.BaseJUnit5MobileTest` sınıfından türetin ya da `TestFlyExtension` kullanan bir sınıfa veya metoda `@MobileTest` ekleyin |
+| Cucumber | senaryoyu veya feature'ı `@mobile` ile etiketleyin; adım sınıfları `MobileSupport` uygular |
+
+Mobil bir testte TestFly tarayıcıyı başlatmaz, testten önce cihazı açar ve sonra kapatır. Cihaz testin thread'ine aittir.
+
+```java
+import io.testfly.mobile.BaseMobileTest;
+import io.testfly.mobile.MobileRole;
+import org.testng.annotations.Test;
+
+public class LoginTest extends BaseMobileTest {
+
+    @Test
+    public void signsIn() {
+        screen().getByTestId("username").fill("ada");
+        screen().getByLabel("Password").fill("secret");
+        screen().getByRole(MobileRole.BUTTON, "Sign in").tap();
+
+        expect(screen().getByText("Hello, ada")).toBeVisible();
+        apiClient().get("/me").send().assertStatus(200);   // aynı testte backend kontrolü
+    }
+}
+```
+
+Temel sınıflar ayrıca `apiClient()`, `db()`, `mailbox()`, `ctx()`, `step()`, `softAssert()` ve `getTestData()` sağlar.
+
+Cucumber adımları:
+
+```java
+public class LoginSteps implements MobileSupport {
+
+    @When("I sign in as {string}")
+    public void signIn(String user) {
+        screen().getByTestId("username").fill(user);
+        screen().getByRole(MobileRole.BUTTON, "Sign in").tap();
+    }
+}
+```
+
+Bir test çalıştırıcısı olmadan cihazı kendiniz açın:
+
+```java
+try (MobileDevice device = Mobile.connect()) {   // testfly.yml dosyasını okur
+    device.screen().getByText("Settings").tap();
+}
+```
+
+## Locator'lar
+
+| Metot | Eşleştiği |
+|---|---|
+| `getByRole(MobileRole.BUTTON)`, `getByRole(role, "name")` | rolün iki platformdaki native sınıfları; `name` etiket, yoksa metindir |
+| `getByText("Save")`, `getByText("sav", false)`, `getByText(Pattern)` | metin, yoksa etiket, yoksa değer (tam, büyük/küçük harf duyarsız alt dize veya regex) |
+| `getByLabel(...)` | erişilebilirlik etiketi |
+| `getByTestId("login")` | iOS accessibility identifier veya Android resource-id (`login`, `com.app:id/login` ile de eşleşir) |
+| `getByPlaceholder(...)` | placeholder metni |
+| `getByType("android.widget.Switch")` | ham native sınıf |
+
+`first()`, `last()`, `nth(i)`, `within(container)`, `or(other)`, `and(other)`, `filterHasText(...)`, `filterHasNotText(...)`, `filterHas(locator)`, `filterHasNot(locator)` ve `withTimeout(Duration)` ile daraltın. Locator'lar TestFly içinde ekranın eleman ağacı üzerinde değerlendirilir.
+
+## Eylemler ve doğrulamalar
+
+- **Eylemler:** `tap()`, `doubleTap()`, `longPress()`, `fill(text)`, `type(text)`, `clear()`, `swipe(SwipeDirection)`. Tam olarak bir eleman eşleşene ve görünür, etkin ve sabit olana kadar bekler, sonra elemanın ortasında işlem yapar. Birden çok eşleşme, `first()`, `last()` veya `nth(i)` biri seçmedikçe hata verir (strict mode).
+- **Okumalar:** `text()`, `value()`, `node()` görünür bir eleman bekler; `count()`, `nodes()`, `isVisible()` beklemeden o anki ekranı okur.
+- **Doğrulamalar:** `expect(locator)` ile `toBeVisible()`, `toBeHidden()`, `toBeEnabled()`, `toBeDisabled()`, `toBeSelected()`, `toBeChecked()`, `toBeFocused()`, `toHaveText(...)`, `toContainText(...)`, `toHaveValue(...)`, `toHaveCount(n)` ve `not()`. `timeouts.actionMs` bitene kadar yeniden denenir.
+- **Cihaz:** `device()`; `launchApp`, `terminateApp`, `clearAppData`, `installApp`, `openUrl` (deep link), `pressButton("BACK")`, `screenSize()` ve `screenshot()` sunar; `screen().swipe(...)` ekran boyunca kaydırır.
+
+Eylemler rapora adım olarak yazılır ("Tap getByText(…)"); yazılan metin kaydedilmez. Bir test başarısız olduğunda cihaz ekran görüntüsü eklenir (`screenshotOnFailure`).
+
+## Hatalar
+
+| İstisna | Ne zaman |
+|---|---|
+| `MobileServerUnavailableException` | mobilecli'ye ulaşılamıyor: `mobilecli server start` ile başlatın |
+| `MobileVersionException` | mobilecli 1.0.20'den eski |
+| `DeviceSelectionException` | seçiciler sıfır veya birden çok çevrimiçi cihazla eşleşiyor |
+| `DeviceNotFoundException` | mobilecli cihazı tanımıyor |
+| `MobileLocatorException` | strict mode: birden çok eleman eşleşti |
+| `MobileTimeoutException` | bir eylemin veya isteğin süresi doldu; mesaj son görülen elemanları listeler |
+| `MobileAssertionError` | bir `expect(...)` zamanında geçmedi |
+| `MobileRpcException` | mobilecli'nin diğer hataları; başarısız bir ekran okuması ajan kontrolünü belirtir |
+
+## Sınırlar
+
+- Test başına bir cihaz; JVM genelindeki rezervasyon bir cihazı aynı anda yalnızca bir testin kullanmasına izin verir. Paralel worker'lar yapılandırılmış tek bir cihazı sırayla paylaşır; cihaz havuzu planlanmıştır.
+- `launchApp` uygulamanın öne gelmesini beklemez; bunun yerine ilk locator çağrısı bekler.
+- Henüz WebView, ekran kaydı veya WebSocket desteği yok.
+- Özel arka uçlar `io.testfly.mobile.spi.MobileDriver` arayüzünü uygulayıp `Mobile.connect(driver, settings)` ile cihaz açabilir.
