@@ -50,6 +50,9 @@ build/
 .DS_Store
 
 .claude/*
+# Shared with the team: subagents and the link to .agents/skills.
+!.claude/agents/
+!.claude/skills
 PLAN.md
 YOUTUBE_PLAN.md
 PLAYWRIGHT_PARITY_PLAN.md
