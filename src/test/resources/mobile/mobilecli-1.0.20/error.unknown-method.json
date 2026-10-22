@@ -1,0 +1,9 @@
+{
+    "jsonrpc": "2.0",
+    "error": {
+        "code": -32601,
+        "data": "Method 'device.bogus' not found",
+        "message": "Method not found"
+    },
+    "id": 9
+}

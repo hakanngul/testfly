@@ -283,7 +283,7 @@ The main risks:
 | Risk | Mitigation |
 |---|---|
 | Protocol drift or undocumented methods | `MobileDriver` SPI isolation; minimum-version check; contract tests against fixtures recorded from a real device |
-| Licensing interpretation | No redistribution; maintainers confirm before Phase 1 merges |
+| Licensing interpretation | No redistribution; confirmed by the maintainer (2026-10-22) |
 | Slow or flaky device I/O | One tree per poll cycle; strict actionability; no transport retries for actions; device screenshot on failure |
 | No devices in CI | Unit and contract tests on an in-process fake JSON-RPC server (`com.sun.net.httpserver`); real-device runs as a separate, optional job |
 
@@ -307,9 +307,12 @@ The main risks:
 ## Action items
 
 **Phase 0: prerequisites (maintainer)**
-1. [ ] Confirm the licensing position: no redistribution, plus NOTICE attribution.
+1. [x] Confirm the licensing position: no redistribution, plus NOTICE attribution. Confirmed by the maintainer on 2026-10-22.
 2. [x] Already observed against mobilecli 1.0.20 without a device: `server.info` returns `{name, version}`; `devices.list` returns `{devices: [...]}` (an object, not the bare array the OpenRPC spec shows); an unknown device returns `-32000` rather than `-32010`; an unknown method returns `-32601`. Code must follow observed behaviour, not the published spec.
-3. [ ] On a real Android emulator, record `server.info`, `devices.list`, `device.info`, `device.dump.ui`, `device.screenshot` and the error responses as JSON fixtures. Pin the minimum mobilecli version.
+3. [~] On a real Android emulator, record `server.info`, `devices.list`, `device.info`, `device.dump.ui`, `device.screenshot` and the error responses as JSON fixtures. Pin the minimum mobilecli version.
+   - Done (2026-10-22, mobilecli 1.0.20, Android 14 emulator without hardware acceleration): `server.info`, `devices.list`, `device.info` and the error responses are in `src/test/resources/mobile/mobilecli-1.0.20/`. Minimum version: 1.0.20.
+   - Observed: the Android emulator id is the AVD name, not the adb serial. A slow device can make the server close the connection after 60 s with **no JSON-RPC response**, so the client must map an empty reply to a transport error.
+   - Open: successful `device.dump.ui` and `device.screenshot`. The unaccelerated emulator was too slow; record them on an accelerated emulator or a real device.
 
 **Phase 1: foundation (no device needed; verified with the fake server)**
 4. [ ] `JsonRpcClient`, `MobileDriver` SPI, `MobileCliDriver`, and the `MobileException` hierarchy; loopback/`allowRemote` validation, deterministic device selection, deadline-bounded requests, and the JVM-wide device reservation.

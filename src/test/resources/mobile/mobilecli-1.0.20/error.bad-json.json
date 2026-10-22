@@ -1,0 +1,9 @@
+{
+    "jsonrpc": "2.0",
+    "error": {
+        "code": -32700,
+        "data": "expecting jsonrpc payload",
+        "message": "Parse error"
+    },
+    "id": null
+}

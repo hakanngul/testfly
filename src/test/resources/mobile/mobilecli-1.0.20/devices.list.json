@@ -1,0 +1,17 @@
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "devices": [
+            {
+                "id": "tf34",
+                "name": "tf34",
+                "platform": "android",
+                "type": "emulator",
+                "version": "14",
+                "state": "online",
+                "model": "sdk_gphone64_x86_64"
+            }
+        ]
+    },
+    "id": 2
+}
