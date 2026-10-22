@@ -18,6 +18,8 @@ final class FakeApp {
     static final String BUNDLE = "dev.testfly.demo";
 
     private final String deviceId;
+    /** More online Android devices served by the same app (device pool tests). */
+    private final java.util.List<String> extraIds;
     String screen = "login";
     String foreground = "com.android.launcher";
     String focused;
@@ -26,8 +28,9 @@ final class FakeApp {
     /** Polls left before the Sign in button stops moving (stability check). */
     int buttonMoves;
 
-    FakeApp(String deviceId) {
+    FakeApp(String deviceId, String... extraOnlineIds) {
         this.deviceId = deviceId;
+        this.extraIds = java.util.List.of(extraOnlineIds);
     }
 
     /** Registers the app's handlers on {@code server}, with a device list holding {@code deviceId}. */
@@ -81,6 +84,10 @@ final class FakeApp {
         ArrayNode list = r.putArray("devices");
         list.addObject().put("id", deviceId).put("name", "Pixel 8 (" + deviceId + ")").put("platform", "android")
                 .put("type", "emulator").put("version", "14").put("state", "online");
+        for (String extra : extraIds) {
+            list.addObject().put("id", extra).put("name", "Pixel 8 (" + extra + ")").put("platform", "android")
+                    .put("type", "emulator").put("version", "14").put("state", "online");
+        }
         list.addObject().put("id", "offline-1").put("name", "Pixel 6").put("platform", "android")
                 .put("type", "emulator").put("state", "offline");
         list.addObject().put("id", "iphone-1").put("name", "iPhone 16").put("platform", "ios")
@@ -89,7 +96,8 @@ final class FakeApp {
     }
 
     private void requireDevice(JsonNode p) {
-        if (!deviceId.equals(p.path("deviceId").asText())) {
+        String id = p.path("deviceId").asText();
+        if (!deviceId.equals(id) && !extraIds.contains(id)) {
             throw new IllegalStateException("call for unknown device " + p.path("deviceId"));
         }
     }

@@ -2742,6 +2742,8 @@ public final class TestFlyConfig {
      *   platform: android            # android | ios
      *   deviceId: ""                 # exact id; wins over deviceName
      *   deviceName: ""               # regex
+     *   devices: []                  # device pool: ids handed out one per test
+     *   pool: false                  # pool every online device that matches deviceName
      *   app:
      *     bundleId: com.example.app
      *     install: ""
@@ -2764,6 +2766,8 @@ public final class TestFlyConfig {
         private String platform;
         private String deviceId = "";
         private String deviceName = "";
+        private java.util.List<String> devices = new java.util.ArrayList<>();
+        private boolean pool = false;
         private App app = new App();
         private Timeouts timeouts = new Timeouts();
         private boolean allowRemote = false;
@@ -2801,6 +2805,31 @@ public final class TestFlyConfig {
 
         public void setDeviceName(String deviceName) {
             this.deviceName = deviceName != null ? deviceName : "";
+        }
+
+        /**
+         * Device pool: ids of the devices tests may use. Each test gets a free one; when all are in
+         * use, it waits up to {@code timeouts.reserveMs}. Empty (default): one device, chosen by
+         * {@code deviceId}/{@code deviceName}.
+         */
+        public java.util.List<String> getDevices() {
+            return devices;
+        }
+
+        public void setDevices(java.util.List<String> devices) {
+            this.devices = devices != null ? new java.util.ArrayList<>(devices) : new java.util.ArrayList<>();
+        }
+
+        /**
+         * Pool every online device of the platform whose name matches {@code deviceName} (all of them
+         * when it is empty), instead of requiring exactly one match.
+         */
+        public boolean isPool() {
+            return pool;
+        }
+
+        public void setPool(boolean pool) {
+            this.pool = pool;
         }
 
         public App getApp() {

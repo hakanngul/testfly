@@ -22,7 +22,7 @@ Design and status: `docs/adr/0002-native-mobile-via-mobilecli.md`. Everything is
 - A connection closed without an answer is a `MobileRpcException`. A slow connect is a `MobileTimeoutException`; a refused one is `MobileServerUnavailableException`.
 - Strict mode: several matches fail unless `first`/`last`/`nth` is used. Actions wait for visible, enabled and stable.
 - Only loopback servers by default; a remote server needs `allowRemote` and `https`.
-- One device per JVM session at a time (`DeviceReservations`). Never share sessions across threads.
+- One session per device at a time in a JVM (`DeviceReservations.acquireAny`). A pool comes from `mobile.devices` or `mobile.pool`. Never share sessions across threads.
 - TestFly never bundles or runs the mobilecli binary. Users install it, plus `mobilecli agent install --device <id>`.
 - Names follow web `Locator` where both exist (`type` clears, `append` adds, `getText`, `getValue`).
 

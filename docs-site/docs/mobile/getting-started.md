@@ -41,6 +41,8 @@ mobile:
   platform: android            # android | ios (required)
   deviceId: ""                 # exact id; wins over deviceName
   deviceName: ""               # regex on the device name
+  devices: []                  # device pool: ids handed out one per test
+  pool: false                  # pool every online device matching deviceName
   app:
     bundleId: com.example.app  # Android package / iOS bundle id
     install: ""                # optional .apk/.ipa/.app path, installed when the device opens
@@ -56,6 +58,7 @@ mobile:
 ```
 
 - **Device selection.** `deviceId` must match exactly one online device of the platform; otherwise the `deviceName` regex must; otherwise exactly one online device of the platform must exist. Zero or several matches fail with a list of the devices mobilecli reported.
+- **Device pool (parallel runs).** List the devices in `devices: [id1, id2]`, or set `pool: true` to use every online device of the platform that matches `deviceName`. Each test gets a free device; when all are in use it waits up to `reserveMs`, then fails with `MobileTimeoutException`. Run at most as many parallel mobile workers as there are devices. `devices` cannot be combined with `deviceId` or `pool`. Offline ids in `devices` are skipped with a warning.
 - **App reset.** `relaunch` terminates and launches `bundleId` before each test; `clearData` clears its data and launches it; `none` leaves it alone. Except with `none`, the app is terminated after the test.
 - **Security.** mobilecli has no authentication, so only loopback addresses are accepted. A remote server needs `allowRemote: true` and an `https://` URL, for example mobilecli behind a TLS-terminating, authenticating proxy or an SSH tunnel.
 
@@ -139,7 +142,7 @@ Actions are logged as report steps ("Tap getByText(…)"); typed text is not log
 |---|---|
 | `MobileServerUnavailableException` | mobilecli is not reachable: start `mobilecli server start` |
 | `MobileVersionException` | mobilecli is older than 1.0.20 |
-| `DeviceSelectionException` | the selectors match zero or several online devices |
+| `DeviceSelectionException` | the selectors match zero or several online devices, or no pool device is online |
 | `DeviceNotFoundException` | mobilecli does not know the device |
 | `MobileLocatorException` | strict mode: several elements matched |
 | `MobileTimeoutException` | an action or request ran out of time; the message lists the last elements seen |
@@ -148,7 +151,7 @@ Actions are logged as report steps ("Tap getByText(…)"); typed text is not log
 
 ## Limits
 
-- One device per test; a JVM-wide reservation lets only one test use a device at a time. Parallel workers share one configured device serially; device pools are planned.
+- One device per test; a JVM-wide reservation lets only one test use a device at a time. Without a pool, parallel workers share one device serially. Separate JVMs or machines sharing devices are not coordinated.
 - `launchApp` does not wait for the app to reach the foreground; the first locator call waits instead.
 - No WebView, screencast or WebSocket support yet.
 - Custom backends can implement the `io.testfly.mobile.spi.MobileDriver` interface and open a device with `Mobile.connect(driver, settings)`.

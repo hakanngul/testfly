@@ -190,6 +190,34 @@ public class MobileDeviceTest {
     }
 
     @Test
+    public void aDevicePoolGivesParallelSessionsDifferentDevices() {
+        String a = uniqueId();
+        String b = uniqueId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            new FakeApp(a, b).install(server);
+            TestFlyConfig.Mobile cfg = config(server, "");
+            cfg.setDevices(List.of(a, b));
+            cfg.getTimeouts().setReserveMs(150);
+            try (MobileDevice first = Mobile.connect(cfg); MobileDevice second = Mobile.connect(cfg)) {
+                assertEquals(List.of(first.id(), second.id()), List.of(a, b));
+                expect(second.screen().getByText("Welcome back")).toBeVisible();
+                MobileTimeoutException busy = expectThrows(MobileTimeoutException.class, () -> Mobile.connect(cfg));
+                assertTrue(busy.getMessage().contains("All 2 pool devices"), busy.getMessage());
+            }
+            TestFlyConfig.Mobile byName = config(server, "");
+            byName.setPool(true);
+            byName.setDeviceName("Pixel 8");
+            try (MobileDevice pooled = Mobile.connect(byName)) {
+                assertEquals(pooled.id(), a, "mobile.pool takes every online match, first free one first");
+            }
+
+            TestFlyConfig.Mobile both = config(server, a);
+            both.setDevices(List.of(a, b));
+            expectThrows(ConfigurationException.class, () -> Mobile.connect(both));
+        }
+    }
+
+    @Test
     public void resetNoneLeavesTheAppAlone() {
         String id = uniqueId();
         try (FakeMobilecliServer server = new FakeMobilecliServer()) {

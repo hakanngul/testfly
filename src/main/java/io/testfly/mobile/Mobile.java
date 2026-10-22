@@ -15,6 +15,7 @@ import io.testfly.mobile.internal.ServerVersion;
 import io.testfly.mobile.spi.MobileDriver;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -73,9 +74,12 @@ public final class Mobile {
         Duration rpcTimeout = Duration.ofMillis(t.getRpcMs());
         Reservation reservation = null;
         try {
-            MobileDeviceInfo device = DeviceSelector.select(driver.devices(rpcTimeout), platform,
-                    mobile.getDeviceId(), mobile.getDeviceName());
-            reservation = DeviceReservations.acquire(device.id(), Duration.ofMillis(t.getReserveMs()));
+            List<MobileDeviceInfo> candidates = DeviceSelector.candidates(driver.devices(rpcTimeout), platform,
+                    mobile.getDeviceId(), mobile.getDeviceName(), mobile.getDevices(), mobile.isPool());
+            reservation = DeviceReservations.acquireAny(candidates.stream().map(MobileDeviceInfo::id).toList(),
+                    Duration.ofMillis(t.getReserveMs()));
+            String reservedId = reservation.deviceId();
+            MobileDeviceInfo device = candidates.stream().filter(d -> d.id().equals(reservedId)).findFirst().orElseThrow();
             driver.useDevice(device);
             MobileSession session = new MobileSession(driver, device, platform, Duration.ofMillis(t.getActionMs()),
                     Duration.ofMillis(t.getPollMs()), rpcTimeout);
@@ -131,6 +135,18 @@ public final class Mobile {
         }
         if (!RESETS.contains(mobile.getApp().getReset().toLowerCase(Locale.ROOT))) {
             throw new ConfigurationException("mobile.app.reset must be none, relaunch or clearData, got: " + mobile.getApp().getReset());
+        }
+        if (!mobile.getDevices().isEmpty()) {
+            if (mobile.getDevices().stream().anyMatch(id -> id == null || id.isBlank())) {
+                throw new ConfigurationException("mobile.devices must not contain blank ids: " + mobile.getDevices());
+            }
+            if (!mobile.getDeviceId().isBlank() || mobile.isPool()) {
+                throw new ConfigurationException("mobile.devices cannot be combined with mobile.deviceId or mobile.pool; "
+                        + "list every device of the pool in mobile.devices");
+            }
+        }
+        if (mobile.isPool() && !mobile.getDeviceId().isBlank()) {
+            throw new ConfigurationException("mobile.pool selects devices by mobile.deviceName; remove mobile.deviceId");
         }
         TestFlyConfig.Mobile.Timeouts t = mobile.getTimeouts();
         positive("mobile.timeouts.actionMs", t.getActionMs());

@@ -131,6 +131,25 @@ public class MobileLocatorEngineTest {
         expectThrows(() -> DeviceSelector.select(DEVICES, MobilePlatform.ANDROID, "", "("));
     }
 
+    @Test
+    public void poolCandidatesFollowTheConfiguredOrderAndSkipOfflineDevices() {
+        assertEquals(DeviceSelector.candidates(DEVICES, MobilePlatform.ANDROID, "", "", List.of("emulator-b", "emulator-c", "emulator-a"), false)
+                .stream().map(MobileDeviceInfo::id).toList(), List.of("emulator-b", "emulator-a"), "offline emulator-c is skipped");
+        assertTrue(expectThrows(() -> DeviceSelector.candidates(DEVICES, MobilePlatform.ANDROID, "", "", List.of("emulator-c", "udid-1"), false))
+                .getMessage().contains("None of the mobile.devices"));
+
+        assertEquals(DeviceSelector.candidates(DEVICES, MobilePlatform.ANDROID, "", "", List.of(), true)
+                .stream().map(MobileDeviceInfo::id).toList(), List.of("emulator-a", "emulator-b"), "pool: every online device");
+        assertEquals(DeviceSelector.candidates(DEVICES, MobilePlatform.ANDROID, "", "Pro", List.of(), true)
+                .stream().map(MobileDeviceInfo::id).toList(), List.of("emulator-b"));
+        assertTrue(expectThrows(() -> DeviceSelector.candidates(DEVICES, MobilePlatform.ANDROID, "", "Galaxy", List.of(), true))
+                .getMessage().contains("mobile.pool found no online android device matching"));
+
+        // Without a pool the single-device rule still applies.
+        expectThrows(() -> DeviceSelector.candidates(DEVICES, MobilePlatform.ANDROID, "", "", List.of(), false));
+        assertEquals(DeviceSelector.candidates(DEVICES, MobilePlatform.IOS, "", "", List.of(), false).get(0).id(), "udid-1");
+    }
+
     private static DeviceSelectionException expectThrows(Runnable r) {
         try {
             r.run();
@@ -161,5 +180,54 @@ public class MobileLocatorEngineTest {
         DeviceReservations.Reservation second = waiter.get(5, TimeUnit.SECONDS);
         second.close();
         DeviceReservations.acquire(id, Duration.ZERO).close();
+    }
+
+    @Test
+    public void aPoolHandsOutFreeDevicesAndWakesWaitersOnRelease() throws Exception {
+        String a = "pool-a-" + System.nanoTime();
+        String b = "pool-b-" + System.nanoTime();
+        List<String> pool = List.of(a, b);
+        DeviceReservations.Reservation first = DeviceReservations.acquireAny(pool, Duration.ZERO);
+        DeviceReservations.Reservation second = DeviceReservations.acquireAny(pool, Duration.ZERO);
+        assertEquals(List.of(first.deviceId(), second.deviceId()), pool, "each session gets a different device");
+        try {
+            DeviceReservations.acquireAny(pool, Duration.ofMillis(100));
+            fail("a third session must wait and time out");
+        } catch (MobileTimeoutException expected) {
+            assertTrue(expected.getMessage().contains("All 2 pool devices"), expected.getMessage());
+        }
+        CompletableFuture<DeviceReservations.Reservation> waiter =
+                CompletableFuture.supplyAsync(() -> DeviceReservations.acquireAny(pool, Duration.ofSeconds(5)));
+        Thread.sleep(100);
+        assertFalse(waiter.isDone());
+        second.close();
+        DeviceReservations.Reservation third = waiter.get(5, TimeUnit.SECONDS);
+        assertEquals(third.deviceId(), b, "the waiter gets the released device");
+        first.close();
+        third.close();
+    }
+
+    @Test
+    public void manyThreadsNeverShareAPoolDevice() throws Exception {
+        List<String> pool = List.of("par-a-" + System.nanoTime(), "par-b-" + System.nanoTime(), "par-c-" + System.nanoTime());
+        java.util.Set<String> inUse = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        java.util.concurrent.atomic.AtomicInteger clashes = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.ExecutorService workers = java.util.concurrent.Executors.newFixedThreadPool(8);
+        List<java.util.concurrent.Future<?>> jobs = new java.util.ArrayList<>();
+        for (int i = 0; i < 40; i++) {
+            jobs.add(workers.submit(() -> {
+                try (DeviceReservations.Reservation r = DeviceReservations.acquireAny(pool, Duration.ofSeconds(10))) {
+                    if (!inUse.add(r.deviceId())) clashes.incrementAndGet();
+                    Thread.sleep(5);
+                    inUse.remove(r.deviceId());
+                }
+                return null;
+            }));
+        }
+        for (java.util.concurrent.Future<?> job : jobs) {
+            job.get(30, TimeUnit.SECONDS);
+        }
+        workers.shutdown();
+        assertEquals(clashes.get(), 0, "no device was held by two sessions at once");
     }
 }

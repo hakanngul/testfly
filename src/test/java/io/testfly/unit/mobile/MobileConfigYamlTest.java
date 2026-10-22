@@ -7,6 +7,7 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
 import java.io.StringReader;
+import java.util.List;
 import java.util.Map;
 
 import static org.testng.Assert.*;
@@ -35,6 +36,8 @@ public class MobileConfigYamlTest {
         assertEquals(m.getDeviceName(), "");
         assertEquals(m.getApp().getBundleId(), "");
         assertEquals(m.getApp().getReset(), "relaunch");
+        assertTrue(m.getDevices().isEmpty());
+        assertFalse(m.isPool());
         assertEquals(m.getTimeouts().getActionMs(), 5000);
         assertEquals(m.getTimeouts().getPollMs(), 100);
         assertEquals(m.getTimeouts().getRpcMs(), 30000);
@@ -50,6 +53,8 @@ public class MobileConfigYamlTest {
                 + "  serverUrl: https://lab.example.com\n"
                 + "  platform: ios\n"
                 + "  deviceName: iPhone 1[56]\n"
+                + "  devices: [udid-1, udid-2]\n"
+                + "  pool: true\n"
                 + "  app:\n"
                 + "    bundleId: com.example.app\n"
                 + "    install: build/App.app\n"
@@ -66,6 +71,8 @@ public class MobileConfigYamlTest {
         assertEquals(m.getServerUrl(), "https://lab.example.com");
         assertEquals(m.getPlatform(), "ios");
         assertEquals(m.getDeviceName(), "iPhone 1[56]");
+        assertEquals(m.getDevices(), List.of("udid-1", "udid-2"));
+        assertTrue(m.isPool());
         assertEquals(m.getApp().getBundleId(), "com.example.app");
         assertEquals(m.getApp().getInstall(), "build/App.app");
         assertEquals(m.getApp().getReset(), "clearData");

@@ -140,6 +140,38 @@ public class MobileEngineBridgeTest {
         }
     }
 
+    @Test
+    public void parallelTestNgWorkersGetDifferentPoolDevices() {
+        String a = deviceId();
+        String b = deviceId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            // reset: none keeps the app as it is; the shared fake app starts in the foreground.
+            new FakeApp(a, b).install(server).foreground = FakeApp.BUNDLE;
+            TestFlyConfig.Mobile m = new TestFlyConfig.Mobile();
+            m.setServerUrl(server.url());
+            m.setPlatform("android");
+            m.setDevices(List.of(a, b));
+            m.getApp().setBundleId(FakeApp.BUNDLE);
+            m.getApp().setReset("none");
+            m.getTimeouts().setPollMs(20);
+            MobileSessions.setOpener(() -> Mobile.connect(m));
+
+            TestListenerAdapter results = new TestListenerAdapter();
+            TestNG testng = new TestNG(false);
+            testng.setTestClasses(new Class<?>[] {MobileBridgeSamples.ParallelSample.class});
+            testng.setParallel(org.testng.xml.XmlSuite.ParallelMode.METHODS);
+            testng.setThreadCount(2);
+            testng.addListener(results);
+            testng.setVerbose(0);
+            testng.run();
+
+            assertEquals(results.getPassedTests().size(), 2, results.getFailedTests().stream()
+                    .map(r -> String.valueOf(r.getThrowable())).toList().toString());
+            assertEquals(new java.util.HashSet<>(SEEN), java.util.Set.of("parallel:" + a, "parallel:" + b),
+                    "the two parallel tests ran on different devices: " + SEEN);
+        }
+    }
+
     // ── Cucumber ────────────────────────────────────────────────────────
 
     private static byte runCucumber(String tag) {

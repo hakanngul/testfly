@@ -80,4 +80,26 @@ final class MobileBridgeSamples {
             }
         }
     }
+
+    /** Two mobile tests that hold their device for a moment; run in parallel against a pool. */
+    public static class ParallelSample extends BaseMobileTest {
+
+        private void hold() throws InterruptedException {
+            synchronized (SEEN) {
+                SEEN.add("parallel:" + device().id());
+            }
+            expect(screen().getByText("Welcome back")).toBeVisible();
+            Thread.sleep(300);
+        }
+
+        @Test
+        public void first() throws InterruptedException {
+            hold();
+        }
+
+        @Test
+        public void second() throws InterruptedException {
+            hold();
+        }
+    }
 }

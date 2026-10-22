@@ -41,6 +41,8 @@ mobile:
   platform: android            # android | ios (zorunlu)
   deviceId: ""                 # tam kimlik; deviceName'e göre önceliklidir
   deviceName: ""               # cihaz adına uygulanan regex
+  devices: []                  # cihaz havuzu: her teste bir kimlik verilir
+  pool: false                  # deviceName ile eşleşen tüm çevrimiçi cihazları havuza al
   app:
     bundleId: com.example.app  # Android paketi / iOS bundle id
     install: ""                # isteğe bağlı .apk/.ipa/.app yolu, cihaz açılırken kurulur
@@ -56,6 +58,7 @@ mobile:
 ```
 
 - **Cihaz seçimi.** `deviceId`, platformun tam olarak bir çevrimiçi cihazıyla eşleşmelidir; yoksa `deviceName` regex'i eşleşmelidir; o da yoksa platformun tam olarak bir çevrimiçi cihazı olmalıdır. Sıfır veya birden çok eşleşme, mobilecli'nin bildirdiği cihazların listesiyle hata verir.
+- **Cihaz havuzu (paralel koşum).** Cihazları `devices: [id1, id2]` ile listeleyin ya da `pool: true` ile platformun `deviceName` ile eşleşen tüm çevrimiçi cihazlarını kullanın. Her test boş bir cihaz alır; hepsi kullanımdaysa `reserveMs` kadar bekler, sonra `MobileTimeoutException` ile hata verir. Paralel mobil worker sayısı cihaz sayısını geçmemelidir. `devices`, `deviceId` veya `pool` ile birlikte kullanılamaz. `devices` içindeki çevrimdışı kimlikler bir uyarıyla atlanır.
 - **Uygulama sıfırlama.** `relaunch` her testten önce `bundleId`'yi kapatıp açar; `clearData` verisini silip açar; `none` dokunmaz. `none` dışında uygulama testten sonra kapatılır.
 - **Güvenlik.** mobilecli'de kimlik doğrulama yoktur, bu yüzden yalnızca loopback adresleri kabul edilir. Uzak bir sunucu için `allowRemote: true` ve `https://` adresi gerekir; örneğin TLS sonlandıran, kimlik doğrulayan bir proxy veya SSH tüneli arkasında mobilecli.
 
@@ -139,7 +142,7 @@ Eylemler rapora adım olarak yazılır ("Tap getByText(…)"); yazılan metin ka
 |---|---|
 | `MobileServerUnavailableException` | mobilecli'ye ulaşılamıyor: `mobilecli server start` ile başlatın |
 | `MobileVersionException` | mobilecli 1.0.20'den eski |
-| `DeviceSelectionException` | seçiciler sıfır veya birden çok çevrimiçi cihazla eşleşiyor |
+| `DeviceSelectionException` | seçiciler sıfır veya birden çok çevrimiçi cihazla eşleşiyor ya da havuzdaki hiçbir cihaz çevrimiçi değil |
 | `DeviceNotFoundException` | mobilecli cihazı tanımıyor |
 | `MobileLocatorException` | strict mode: birden çok eleman eşleşti |
 | `MobileTimeoutException` | bir eylemin veya isteğin süresi doldu; mesaj son görülen elemanları listeler |
@@ -148,7 +151,7 @@ Eylemler rapora adım olarak yazılır ("Tap getByText(…)"); yazılan metin ka
 
 ## Sınırlar
 
-- Test başına bir cihaz; JVM genelindeki rezervasyon bir cihazı aynı anda yalnızca bir testin kullanmasına izin verir. Paralel worker'lar yapılandırılmış tek bir cihazı sırayla paylaşır; cihaz havuzu planlanmıştır.
+- Test başına bir cihaz; JVM genelindeki rezervasyon bir cihazı aynı anda yalnızca bir testin kullanmasına izin verir. Havuz yoksa paralel worker'lar tek cihazı sırayla paylaşır. Cihazları paylaşan ayrı JVM'ler veya makineler koordine edilmez.
 - `launchApp` uygulamanın öne gelmesini beklemez; bunun yerine ilk locator çağrısı bekler.
 - Henüz WebView, ekran kaydı veya WebSocket desteği yok.
 - Özel arka uçlar `io.testfly.mobile.spi.MobileDriver` arayüzünü uygulayıp `Mobile.connect(driver, settings)` ile cihaz açabilir.
