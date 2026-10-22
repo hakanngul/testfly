@@ -351,3 +351,26 @@ The main risks:
 **Phase 4: stabilise**
 17. [ ] Promote validated types to `@TestFlyApi`.
 18. [ ] Evaluate WebSocket, WebView and screencast support.
+
+   Phase 4 preparation (2026-10-22). Nothing is promoted yet: D9 requires one shipped minor release and validation on real Android **and** iOS devices, and neither has happened.
+
+   **Promotion candidates** (all in `io.testfly.mobile` unless noted):
+   - Entry and session: `Mobile`, `MobileDevice`, `MobileScreen`, `MobileLocator`, `MobileSupport`, `MobileTest`, `BaseMobileTest`, `junit5.BaseJUnit5MobileTest`.
+   - Assertions: `MobileAssertions`, `MobileLocatorAssert`, `MobileAssertionError`.
+   - Values: `MobileRole`, `MobilePlatform`, `SwipeDirection`, `MobileNode`, `MobileBounds`, `MobileDeviceInfo`, `MobileScreenSize`.
+   - Errors: `MobileException` and its subclasses.
+   - Kept incubating longer: `spi.MobileDriver`, because a second backend has not shaped it yet; `internal.*` is never public API.
+
+   **Checklist before promotion:**
+   - [x] Web naming parity. `MobileLocator.type` now clears like web `Locator.type`; `append` adds text; reads are `getText()` and `getValue()` (changed while incubating).
+   - [ ] Records. `MobileNode`, `MobileBounds`, `MobileDeviceInfo` and `MobileScreenSize` are records, and adding a component later breaks their canonical constructor. Either accept that, or turn the ones likely to grow (`MobileNode`, `MobileDeviceInfo`) into final classes before promotion.
+   - [ ] `MobileSupport.expect(MobileLocator)` next to web `AssertionSupport` in a class that mixes both: confirm overload resolution in a consumer compile test (`scripts/agent/verify.sh consumer`).
+   - [ ] Real-device evidence: Android (the smoke workflow) and iOS (phase 3).
+   - [ ] One minor release shipped with the module marked incubating.
+   - [ ] Annotate with `@TestFlyApi(since = "<that minor>")`, then run `scripts/agent/verify.sh api` and `consumer`.
+
+   **Evaluation (item 18):**
+   - **WebView:** feasible. mobilecli exposes `device.webview.list/evaluate/goto/goBack/goForward/reload/url/title/waitForLoadState`; Mobilewright drives web content through `evaluate` plus an injected DOM query script. A Java port needs that script, which is Mobilewright code (Apache-2.0, attribution). Size: large. Recommendation: a separate ADR when a consumer needs hybrid apps.
+   - **Screen recording:** cheap. `device.screenrecord {output, timeLimit}` and `device.screenrecord.stop` already exist; wire them to `recording.mode: retain-on-failure` like web video. Note that `output` is a path on the mobilecli machine, so a remote server needs a way to return the file. Recommendation: do it next, for local servers first.
+   - **Live screencast:** `mobilecli screencapture -f mjpeg` streams MJPEG. It is useful for a live view, but tests do not need it. Recommendation: not now.
+   - **WebSocket transport (`/ws`):** Mobilewright uses one persistent socket instead of an HTTP request per call. It would save connection setup per poll, but the per-request deadline and no-retry rules (D6) must hold on a multiplexed socket. Recommendation: measure `dump.ui` latency over HTTP on a real device first; switch only if connection setup is a visible share.

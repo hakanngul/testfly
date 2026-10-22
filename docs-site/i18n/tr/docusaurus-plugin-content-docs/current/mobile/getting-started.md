@@ -126,8 +126,8 @@ try (MobileDevice device = Mobile.connect()) {   // testfly.yml dosyasını okur
 
 ## Eylemler ve doğrulamalar
 
-- **Eylemler:** `tap()`, `doubleTap()`, `longPress()`, `fill(text)`, `type(text)`, `clear()`, `swipe(SwipeDirection)`. Tam olarak bir eleman eşleşene ve görünür, etkin ve sabit olana kadar bekler, sonra elemanın ortasında işlem yapar. Birden çok eşleşme, `first()`, `last()` veya `nth(i)` biri seçmedikçe hata verir (strict mode).
-- **Okumalar:** `text()`, `value()`, `node()` görünür bir eleman bekler; `count()`, `nodes()`, `isVisible()` beklemeden o anki ekranı okur.
+- **Eylemler:** `tap()`, `doubleTap()`, `longPress()`, `fill(text)` (`type(text)` ile aynı), `append(text)`, `clear()`, `swipe(SwipeDirection)`. Tam olarak bir eleman eşleşene ve görünür, etkin ve sabit olana kadar bekler, sonra elemanın ortasında işlem yapar. Birden çok eşleşme, `first()`, `last()` veya `nth(i)` biri seçmedikçe hata verir (strict mode).
+- **Okumalar:** `getText()`, `getValue()`, `node()` görünür bir eleman bekler; `count()`, `nodes()`, `isVisible()` beklemeden o anki ekranı okur.
 - **Doğrulamalar:** `expect(locator)` ile `toBeVisible()`, `toBeHidden()`, `toBeEnabled()`, `toBeDisabled()`, `toBeSelected()`, `toBeChecked()`, `toBeFocused()`, `toHaveText(...)`, `toContainText(...)`, `toHaveValue(...)`, `toHaveCount(n)` ve `not()`. `timeouts.actionMs` bitene kadar yeniden denenir.
 - **Cihaz:** `device()`; `launchApp`, `terminateApp`, `clearAppData`, `installApp`, `openUrl` (deep link), `pressButton("BACK")`, `screenSize()` ve `screenshot()` sunar; `screen().swipe(...)` ekran boyunca kaydırır.
 

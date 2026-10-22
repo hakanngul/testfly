@@ -127,9 +127,18 @@ public final class MobileLocator {
         });
     }
 
-    /** Focuses the element and types {@code text} after its current content. */
+    /** Same as {@link #fill(String)}: clears the element, then types {@code text} (as web {@code Locator.type}). */
     public void type(String text) {
         act("type", (node, rpc) -> {
+            session.driver().tap(cx(node), cy(node), rpc.get());
+            session.driver().clearText(rpc.get());
+            session.driver().typeText(text, rpc.get());
+        });
+    }
+
+    /** Focuses the element and types {@code text} after its current content (as web {@code Locator.append}). */
+    public void append(String text) {
+        act("append", (node, rpc) -> {
             session.driver().tap(cx(node), cy(node), rpc.get());
             session.driver().typeText(text, rpc.get());
         });
@@ -192,13 +201,13 @@ public final class MobileLocator {
     }
 
     /** Waits for the element and returns its displayed text ({@code text}, else label, else value). */
-    public String text() {
-        return resolveVisible("text").displayText();
+    public String getText() {
+        return resolveVisible("getText").displayText();
     }
 
     /** Waits for the element and returns its {@code value} (empty when it has none). */
-    public String value() {
-        String v = resolveVisible("value").value();
+    public String getValue() {
+        String v = resolveVisible("getValue").value();
         return v == null ? "" : v;
     }
 

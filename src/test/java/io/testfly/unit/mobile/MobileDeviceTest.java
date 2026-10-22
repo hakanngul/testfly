@@ -73,7 +73,10 @@ public class MobileDeviceTest {
                 expect(signIn).toBeDisabled();
                 expect(screen.getByRole(MobileRole.TEXTFIELD)).toHaveCount(2);
 
-                screen.getByTestId("username").fill("ada");
+                screen.getByTestId("username").fill("ad");
+                screen.getByTestId("username").append("a");
+                expect(screen.getByPlaceholder("Username")).toHaveText("ada");
+                screen.getByTestId("username").type("ada");
                 expect(screen.getByPlaceholder("Username")).toHaveText("ada");
                 screen.getByLabel("Password").fill("s3cret");
                 assertEquals(app.password, "s3cret");
@@ -88,7 +91,7 @@ public class MobileDeviceTest {
                 expect(screen.getByRole(MobileRole.LISTITEM).filterHasText("sett")).toHaveText("Settings");
                 expect(screen.getByText("Welcome back")).toBeHidden();
                 expect(screen.getByText("Welcome back")).not().toBeVisible();
-                assertEquals(screen.getByTestId("greeting").text(), "Hello, ada");
+                assertEquals(screen.getByTestId("greeting").getText(), "Hello, ada");
                 assertEquals(device.screenshot().length, 4);
             }
             assertEquals(app.foreground, "com.android.launcher", "close() terminates the app");

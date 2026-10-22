@@ -126,8 +126,8 @@ Refine with `first()`, `last()`, `nth(i)`, `within(container)`, `or(other)`, `an
 
 ## Actions and assertions
 
-- **Actions:** `tap()`, `doubleTap()`, `longPress()`, `fill(text)`, `type(text)`, `clear()`, `swipe(SwipeDirection)`. They wait until exactly one element matches and it is visible, enabled and stable, then act on the centre of the element. Several matches fail unless `first()`, `last()` or `nth(i)` picks one (strict mode).
-- **Reads:** `text()`, `value()`, `node()` wait for a visible element; `count()`, `nodes()`, `isVisible()` read the current screen without waiting.
+- **Actions:** `tap()`, `doubleTap()`, `longPress()`, `fill(text)` (same as `type(text)`), `append(text)`, `clear()`, `swipe(SwipeDirection)`. They wait until exactly one element matches and it is visible, enabled and stable, then act on the centre of the element. Several matches fail unless `first()`, `last()` or `nth(i)` picks one (strict mode).
+- **Reads:** `getText()`, `getValue()`, `node()` wait for a visible element; `count()`, `nodes()`, `isVisible()` read the current screen without waiting.
 - **Assertions:** `expect(locator)` with `toBeVisible()`, `toBeHidden()`, `toBeEnabled()`, `toBeDisabled()`, `toBeSelected()`, `toBeChecked()`, `toBeFocused()`, `toHaveText(...)`, `toContainText(...)`, `toHaveValue(...)`, `toHaveCount(n)`, and `not()`. They retry until `timeouts.actionMs` runs out.
 - **Device:** `device()` offers `launchApp`, `terminateApp`, `clearAppData`, `installApp`, `openUrl` (deep links), `pressButton("BACK")`, `screenSize()` and `screenshot()`; `screen().swipe(...)` swipes across the screen.
 
