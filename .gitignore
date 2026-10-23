@@ -84,3 +84,4 @@ ai-docs
 .testfly/action-cache.json
 .testfly/page-knowledge.json
 packa
+node_modules/*
