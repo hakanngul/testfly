@@ -9,22 +9,7 @@ Write tests against the public `io.testfly.mobile` API only; never import `io.te
 
 ## Find locators on a running device
 
-Needs a mobilecli server (`mobilecli server start`, default `http://localhost:12000`; tests start it themselves via `mobile.autoStartServer`, but locator finding needs it running) and `mobilecli agent install --device <id>`. If either is missing, say so and stop; do not guess selectors.
-
-1. `mobilecli devices` gives the device id (iOS: simulator UDID, Android: AVD name or serial).
-2. Read the screen tree; the first call on a fresh iOS simulator can take minutes (DeviceKit start), so allow 180 s:
-   ```bash
-   curl -s --max-time 180 -X POST http://localhost:12000/rpc -H 'Content-Type: application/json' \
-     -d '{"jsonrpc":"2.0","id":1,"method":"device.dump.ui","params":{"deviceId":"<id>"}}' > /tmp/ui.json
-   ```
-   Elements carry `type`, `text`, `label`, `name`, `value`, `identifier` (iOS accessibility id; Android resource-id `pkg:id/name`), `placeholder` and `rect`.
-3. Pick one selector per element, in this order, and keep it unique on that screen:
-   1. `identifier` → bare string, e.g. `LoginScreen.loginButton` or `com.app:id/btnLogin` (short `btnLogin` also matches on Android).
-   2. `role=button;name=Sign in` when there is no id (roles: `MobileRole`, matched on both platforms).
-   3. `label=…`, then `placeholder=…`, then `text=…`. Avoid `type=…` unless nothing else is unique.
-   Texts depend on the device language; say which language you read.
-4. Repeat per screen (navigate with taps through `device.io.tap` or ask the user). For both platforms, read each app; never copy an iOS id to Android or the reverse.
-5. Output `@MobileFind` fields grouped by page (below), with elements you could not identify listed separately.
+Use `testfly-mobile-locator-finder`: `mobilecli snapshot` for the overview, `mobilecli dump ui` JSON for the ids, `mobilecli io tap @eN` to move between screens, and the selector priority (id → role+name → label → placeholder → text). Never guess an id.
 
 ## Page objects
 
