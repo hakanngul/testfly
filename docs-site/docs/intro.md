@@ -115,6 +115,7 @@ Outcomes first — the API that delivers each one is on the right so you can jum
 | **Know which tests will flake next** | Flakiness prediction — risk scores from run history, radar chart in report |
 | **Drive tests from data you already have** | External test data — `@TestData("csv:...")`, `@TestData(value="excel:...", sheet="Login")`, `@TestData("db:SELECT...")` |
 | **Test time-dependent behaviour deterministically** | Clock mocking — `clock().set("2030-01-01T00:00:00Z")`, JS `Date` override, auto-reset |
+| **Test native iOS and Android apps in the same suite** | [Native mobile](/docs/mobile/getting-started) (incubating) — `MobilePage` page objects with `@MobileFind(ios = …, android = …)`, auto-waiting locators, device pool, no Appium |
 
 ---
 
@@ -134,3 +135,4 @@ Outcomes first — the API that delivers each one is on the right so you can jum
 - [Getting Started](/docs/getting-started) — install and run your first test in under 5 minutes
 - [Configuration Reference](/docs/configuration) — full YAML config documentation
 - [Core Guides](/docs/guides/base-test) — deep dives into each feature
+- [Native Mobile](/docs/mobile/getting-started) — iOS and Android tests through mobilecli (incubating)

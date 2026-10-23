@@ -151,6 +151,7 @@ Outcomes first — the API that delivers each one is named so you can find it in
 - **File download testing that just works** — `DownloadManager` polls the download dir and handles partial files
 - **Read the test like a spec** — `StepLogger` named steps with timestamps and per-step screenshots
 - **Test UI and API in the same suite** — `BaseApiTest` + fluent `ApiClient` with auth, schema validation, JSONPath; hybrid UI + API tests
+- **Native iOS and Android tests in the same suite (incubating)** — `BaseMobileTest` / `@mobile` scenarios drive apps through a user-installed mobilecli server, with fluent `MobilePage` page objects (`@MobileFind(ios = …, android = …)`), auto-waiting locators, a device pool for parallel runs, and no Appium
 - **Seamless Load & Performance Testing** — declarative load tests side-by-side with UI/API tests using Gatling or lightweight virtual threads, with feeder support, SLA assertions, and multi-channel reports (HTML, Allure, ReportPortal)
 - **Accessibility testing in one line** — `accessibility().withTags("wcag2a","wcag21aa").run()`; axe-core bundled in the JAR, no extra dependency
 - **Autonomous Agentic Testing & Dynamic Goals** — `act("Goal description")` compiles natural language goals into deterministic Selenium actions, frozen into `.testfly/action-cache.json` for 0 ms replay
@@ -679,6 +680,40 @@ public void flakyTest() {
     // retried up to maxAttempts times if it fails
 }
 ```
+
+---
+
+## Native Mobile (Incubating)
+
+Drive Android and iOS apps from the same TestNG, JUnit 5 or Cucumber suite, without Appium. TestFly talks to [mobilecli](https://github.com/mobile-next/mobilecli), which you install (`npm install -g mobilecli`); TestFly starts its server when it is not running.
+
+```java
+public class LoginTest extends BaseMobileTest {
+
+    @Test
+    public void signsIn() {
+        new HomePage().openLogin().signIn(user, password).shouldBeClosed();
+    }
+}
+
+public class LoginPage extends MobilePage {
+    @MobileFind(ios = "LoginScreen.nameTextField", android = "com.example:id/etUser")
+    @WaitFor
+    private MobileLocator username;
+    // …
+}
+```
+
+```yaml
+# src/test/resources/testfly-myapp-ios.yml  →  -Dtestfly.profile=myapp-ios
+mobile:
+  platform: ios
+  deviceId: ${MOBILE_DEVICE_ID:-}
+  app:
+    bundleId: com.example.app
+```
+
+The API is incubating (not `@TestFlyApi` yet). 📖 [Native Mobile documentation](https://testfly.dev/docs/mobile/getting-started)
 
 ---
 

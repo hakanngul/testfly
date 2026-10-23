@@ -97,7 +97,7 @@ const sidebars = {
       type: 'category',
       label: 'Native Mobile (Incubating)',
       collapsed: false,
-      items: ['mobile/getting-started'],
+      items: ['mobile/getting-started', 'mobile/locators-and-page-objects', 'mobile/configuration', 'mobile/ci', 'mobile/troubleshooting'],
     },
     {
       type: 'category',

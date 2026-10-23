@@ -34,3 +34,14 @@ ai:
 reporting:
   screenshotOnFailure: true
   htmlReport: true
+
+# Native mobile (incubating): uncomment to drive Android/iOS apps through mobilecli.
+# Better kept in a profile, e.g. src/test/resources/testfly-myapp-ios.yml (-Dtestfly.profile=myapp-ios).
+# Docs: https://testfly.dev/docs/mobile/getting-started
+# mobile:
+#   platform: ios                     # android | ios
+#   deviceId: ${MOBILE_DEVICE_ID:-}   # AVD name / serial / simulator UDID
+#   app:
+#     bundleId: com.example.app       # iOS bundle id / Android package
+#     reset: relaunch                 # none | relaunch | clearData
+#   autoStartServer: true             # start mobilecli when it is not running

@@ -2,71 +2,59 @@
 id: getting-started
 title: Native Mobile (Incubating)
 sidebar_position: 1
-description: "Drive Android and iOS apps from Java through a user-installed mobilecli server: device(), screen().getByRole/Text/TestId, auto-waiting actions and expect() assertions on TestNG, JUnit 5 and Cucumber."
+description: "Drive Android and iOS apps from Java through a user-installed mobilecli server: page objects, auto-waiting locators and expect() assertions on TestNG, JUnit 5 and Cucumber."
 ---
 
 # Native Mobile (Incubating)
 
-TestFly can drive native Android and iOS apps without Appium. It talks to [mobilecli](https://github.com/mobile-next/mobilecli), a server that **you install and run**; TestFly does not bundle, download or modify it. The API is inspired by [Mobilewright](https://mobilewright.dev). Design and decisions: ADR 0002 (`docs/adr/0002-native-mobile-via-mobilecli.md`).
+TestFly can drive native Android and iOS apps without Appium. It talks to [mobilecli](https://github.com/mobile-next/mobilecli), a server that **you install**; TestFly does not bundle, download or modify it, but it can start your installed binary when the server is not running. The API is inspired by [Mobilewright](https://mobilewright.dev). Design and decisions: ADR 0002 (`docs/adr/0002-native-mobile-via-mobilecli.md`).
 
 :::caution Incubating
-Everything in `io.testfly.mobile` is incubating: it is not annotated `@TestFlyApi` and may change in a minor release. It is tested against an in-process fake mobilecli server that replays responses recorded from mobilecli 1.0.20. It has **not yet been validated on real devices, emulators or simulators**.
+Everything in `io.testfly.mobile` is incubating: it is not annotated `@TestFlyApi` and may change in a minor release. The `Mobile Emulator Smoke` workflow runs the examples on Android emulators (API 30 and 34) and an iOS simulator on every relevant change; real phones are not covered by CI yet.
 :::
+
+| Page | What it covers |
+|---|---|
+| This page | setup, the first test on TestNG, JUnit 5 and Cucumber, ready-made examples |
+| [Locators and page objects](locators-and-page-objects) | `getBy…` locators, selector strings, `MobilePage`/`@MobileFind`/`@WaitFor`, actions and assertions |
+| [Configuration](configuration) | the `mobile:` block, device selection, device pool, app reset, server auto-start, profiles, security |
+| [CI](ci) | running on GitHub Actions with an Android emulator or an iOS simulator |
+| [Troubleshooting](troubleshooting) | exceptions, common problems, limits |
 
 ## Prerequisites
 
-1. Install mobilecli (1.0.20 or newer). TestFly starts the server itself when it is not running (`autoStartServer`); to run it yourself:
+1. Install mobilecli 1.0.20 or newer, for example `npm install -g mobilecli`. Android needs the Android SDK (`adb`); iOS simulators need Xcode on macOS.
+2. Boot an emulator or simulator, or connect a phone, and find its id:
 
    ```bash
-   mobilecli server start          # listens on http://localhost:12000
-   mobilecli devices               # lists online devices and their ids
+   mobilecli devices
    ```
 
-2. Install mobilecli's agent on the device once. UI calls need it:
+   On an Android emulator the id is the AVD name (for example `Pixel_8_API_34`), not the adb serial (`emulator-5554`). On iOS it is the simulator UDID.
+3. Install mobilecli's agent on the device once. Every screen read and tap needs it:
 
    ```bash
    mobilecli agent install --device <device-id>
    mobilecli agent status --device <device-id>
    ```
 
-   On an Android emulator the device id is the AVD name (for example `Pixel_8_API_34`), not the adb serial (`emulator-5554`).
+You do not need to start the server yourself: when `http://localhost:12000` does not answer, TestFly runs `mobilecli server start` and stops it when the JVM exits (see [server auto-start](configuration#server-auto-start)). Starting it yourself (`mobilecli server start`) also works.
 
-## Configuration
+## Minimal configuration
 
-Nothing mobile loads unless `testfly.yml` has a `mobile:` section.
+Nothing mobile loads unless the active `testfly.yml` (or profile, `-Dtestfly.profile=<name>` → `testfly-<name>.yml`) has a `mobile:` section:
 
 ```yaml
 mobile:
-  serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
-  autoStartServer: true        # start mobilecli when the loopback server does not answer
-  mobilecliPath: mobilecli     # full path when mobilecli is not on PATH
-  platform: android            # android | ios (required)
-  deviceId: ""                 # exact id; wins over deviceName
-  deviceName: ""               # regex on the device name
-  devices: []                  # device pool: ids handed out one per test
-  pool: false                  # pool every online device matching deviceName
+  platform: ios                     # android | ios
+  deviceId: ${MOBILE_DEVICE_ID:-}   # empty: the only online device of the platform
   app:
-    bundleId: com.example.app  # Android package / iOS bundle id
-    install: ""                # optional .apk/.ipa/.app path, installed when the device opens
-    reset: relaunch            # none | relaunch | clearData
-  timeouts:
-    actionMs: 5000             # auto-wait budget of one action or assertion
-    pollMs: 100                # pause between two reads of the screen
-    rpcMs: 30000               # upper bound of one request to mobilecli
-    reserveMs: 300000          # wait for a device another test in this JVM holds
-    serverStartMs: 20000       # wait for an auto-started server to answer
-  allowRemote: false
-  headers: {}                  # e.g. Authorization: Bearer ${MOBILECLI_TOKEN}
-  screenshotOnFailure: true
+    bundleId: com.example.app       # iOS bundle id / Android package
 ```
 
-- **Device selection.** `deviceId` must match exactly one online device of the platform; otherwise the `deviceName` regex must; otherwise exactly one online device of the platform must exist. Zero or several matches fail with a list of the devices mobilecli reported.
-- **Device pool (parallel runs).** List the devices in `devices: [id1, id2]`, or set `pool: true` to use every online device of the platform that matches `deviceName`. Each test gets a free device; when all are in use it waits up to `reserveMs`, then fails with `MobileTimeoutException`. Run at most as many parallel mobile workers as there are devices. `devices` cannot be combined with `deviceId` or `pool`. Offline ids in `devices` are skipped with a warning.
-- **App reset.** `relaunch` terminates and launches `bundleId` before each test; `clearData` clears its data and launches it; `none` leaves it alone. Except with `none`, the app is terminated after the test.
-- **Server auto-start.** When `serverUrl` is a loopback address and nothing answers, TestFly runs `<mobilecliPath> server start --listen <host:port>` once per JVM, logs to `target/mobilecli-autostart.log`, waits up to `serverStartMs`, and stops that server when the JVM exits. A server you started is never touched. Remote servers are never started. Set `autoStartServer: false` to keep the old behaviour.
-- **Security.** mobilecli has no authentication, so only loopback addresses are accepted. A remote server needs `allowRemote: true` and an `https://` URL, for example mobilecli behind a TLS-terminating, authenticating proxy or an SSH tunnel.
+All other keys have defaults; see [Configuration](configuration). Config validation still requires the `browser`, `execution` and `timeouts` blocks, so a mobile-only profile carries placeholder values for them (copy them from `src/test/resources/testfly-mobile-ios.yml`).
 
-## Writing tests
+## Your first test
 
 | Engine | How a test becomes a mobile test |
 |---|---|
@@ -76,37 +64,44 @@ mobile:
 
 For a mobile test, TestFly skips the browser, opens the device before the test and closes it afterwards. The device belongs to the test's thread.
 
-```java
-import io.testfly.mobile.BaseMobileTest;
-import io.testfly.mobile.MobileRole;
-import org.testng.annotations.Test;
+With [page objects](locators-and-page-objects#page-objects), a test reads as one chain:
 
+```java
 public class LoginTest extends BaseMobileTest {
 
     @Test
     public void signsIn() {
-        screen().getByTestId("username").fill("ada");
-        screen().getByLabel("Password").fill("secret");
-        screen().getByRole(MobileRole.BUTTON, "Sign in").tap();
-
-        expect(screen().getByText("Hello, ada")).toBeVisible();
-        apiClient().get("/me").send().assertStatus(200);   // backend check in the same test
+        new HomePage()
+                .openLogin()
+                .signIn(System.getenv("MOBILE_LOGIN_USER"), System.getenv("MOBILE_LOGIN_PASSWORD"))
+                .shouldBeClosed();
     }
 }
 ```
 
+Direct locators work too, for short checks:
+
+```java
+screen().getByTestId("username").fill("ada");
+screen().getByRole(MobileRole.BUTTON, "Sign in").tap();
+expect(screen().getByText("Hello, ada")).toBeVisible();
+apiClient().get("/me").send().assertStatus(200);   // backend check in the same test
+```
+
 The base classes also provide `apiClient()`, `db()`, `mailbox()`, `ctx()`, `step()`, `softAssert()` and `getTestData()`.
 
-Cucumber steps:
+Cucumber steps keep page instances between steps, because creating a page waits for its screen:
 
 ```java
 public class LoginSteps implements MobileSupport {
+    private HomePage home;
+    private LoginPage login;
 
-    @When("I sign in as {string}")
-    public void signIn(String user) {
-        screen().getByTestId("username").fill(user);
-        screen().getByRole(MobileRole.BUTTON, "Sign in").tap();
-    }
+    @Given("the app is on the home screen")
+    public void onHome() { home = new HomePage(); }
+
+    @When("I open the login form")
+    public void openLogin() { login = home.openLogin(); }
 }
 ```
 
@@ -120,101 +115,11 @@ try (MobileDevice device = Mobile.connect()) {   // reads testfly.yml
 
 ## Examples
 
-Ready-to-run examples drive the built-in Settings app, so no app file is needed:
-
-| Platform | Test | Run |
+| Example | Engine | Run |
 |---|---|---|
-| iOS simulator | `src/test/java/io/testfly/examples/mobile/IosSettingsExampleTest.java` | `mvn test -Dtestfly.profile=mobile-ios -Dtest=IosSettingsExampleTest` |
-| Android emulator | `src/test/java/io/testfly/examples/mobile/AndroidSettingsExampleTest.java` | `mvn test -Dtestfly.profile=mobile-android -Dtest=AndroidSettingsExampleTest` |
+| `examples/mobile/IosSettingsExampleTest` | TestNG, iOS Settings app | `mvn test -Dtestfly.profile=mobile-ios -Dtest=IosSettingsExampleTest` |
+| `examples/mobile/AndroidSettingsExampleTest` | TestNG, Android Settings app | `mvn test -Dtestfly.profile=mobile-android -Dtest=AndroidSettingsExampleTest` |
+| `examples/mobile/IosLoginExampleTest` | TestNG, page objects `HomePage`/`LoginPage` | `MOBILE_LOGIN_USER=… MOBILE_LOGIN_PASSWORD=… mvn test -Dtest=IosLoginExampleTest` (selects `testfly-mobile-ios-login.yml` itself) |
+| `examples/cucumber/mobile/IosLoginCucumberRunner` | Cucumber, `features-mobile/ios_login.feature` | `mvn test -Dtest=IosLoginCucumberRunner` |
 
-The profiles are `src/test/resources/testfly-mobile-ios.yml` and `testfly-mobile-android.yml`. Boot the simulator or emulator first (TestFly starts `mobilecli server` if needed); the texts assume an English device. The `Mobile Emulator Smoke` workflow runs both examples on GitHub Actions.
-
-## Locators
-
-| Method | Matches |
-|---|---|
-| `getByRole(MobileRole.BUTTON)`, `getByRole(role, "name")` | native classes of the role on both platforms; `name` is the label, else the text |
-| `getByText("Save")`, `getByText("sav", false)`, `getByText(Pattern)` | text, else label, else value (exact, case-insensitive substring, or regex) |
-| `getByLabel(...)` | accessibility label |
-| `getByTestId("login")` | iOS accessibility identifier or Android resource-id (`login` also matches `com.app:id/login`) |
-| `getByPlaceholder(...)` | placeholder text |
-| `getByType("android.widget.Switch")` | the raw native class |
-
-Refine with `first()`, `last()`, `nth(i)`, `within(container)`, `or(other)`, `and(other)`, `filterHasText(...)`, `filterHasNotText(...)`, `filterHas(locator)`, `filterHasNot(locator)` and `withTimeout(Duration)`. Locators are evaluated in TestFly against the screen's element tree.
-
-## Page objects
-
-Pages extend `MobilePage`. A `@MobileFind` field holds the iOS and the Android selector of one element; keep fields private and give tests intent methods. A method that changes the screen returns the next page, so a test reads as one fluent chain.
-
-```java
-public class HomePage extends MobilePage {
-    @MobileFind(ios = "HomeScreen.loginButton", android = "com.example:id/btnHome")
-    @WaitFor                                    // new HomePage() waits until it is visible
-    private MobileLocator loginButton;
-
-    @MobileFind(ios = "cookieBannerAcceptAllButton")
-    private MobileLocator cookieAccept;
-
-    @Override
-    protected void onLoad() {                   // runs after the @WaitFor fields are visible
-        tapIfShown(cookieAccept);
-    }
-
-    public LoginPage openLogin() {
-        loginButton.tap();
-        return new LoginPage();
-    }
-}
-
-public class LoginPage extends MobilePage {
-    @MobileFind(ios = "LoginScreen.nameTextField", android = "com.example:id/etUser")
-    @WaitFor
-    private MobileLocator username;
-
-    @MobileFind("role=button;name=Sign in")    // same selector on both platforms
-    private MobileLocator signIn;
-
-    public LoginPage signIn(String user) { username.fill(user); signIn.tap(); return this; }
-    public void shouldBeClosed() { expect(username).toBeHidden(); }
-}
-
-// test (BaseMobileTest, JUnit 5 mobile test or Cucumber steps)
-new HomePage().openLogin().signIn("ada").shouldBeClosed();
-```
-
-- `new SomePage()` uses the current test's device, sets the fields for the running platform, waits for the `@WaitFor` fields, then calls `onLoad()`. `MobilePage(MobileScreen)` takes a screen explicitly (outside a test runner).
-- Do not give `@MobileFind` fields an initial value: Java runs subclass field initializers after the base constructor and would overwrite the locator. `onLoad()` runs before those initializers.
-- Creating a page waits for it, so in Cucumber keep page instances in step-class fields between steps instead of creating a page that has already gone.
-- Selector strings: a bare string is a test id; otherwise `testid=…`, `text=…`, `label=…`, `placeholder=…`, `type=…` or `role=button;name=…` (exact matches). `screen().locate("…")` takes the same strings.
-- `value` is used when the platform's own selector is empty. A field with no selector for the running platform fails only when it is used.
-- Plain classes work too: `page(Type.class)` or `MobilePages.init(page, screen)` fill `@MobileFind` fields without the wait and `onLoad()`.
-- Example: `src/test/java/io/testfly/examples/mobile/HomePage.java` and `LoginPage.java`, used by `IosLoginExampleTest` and the Cucumber `IosLoginSteps`.
-
-## Actions and assertions
-
-- **Actions:** `tap()`, `doubleTap()`, `longPress()`, `fill(text)` (same as `type(text)`), `append(text)`, `clear()`, `swipe(SwipeDirection)`. They wait until exactly one element matches and it is visible, enabled and stable, then act on the centre of the element. Several matches fail unless `first()`, `last()` or `nth(i)` picks one (strict mode).
-- **Reads:** `getText()`, `getValue()`, `node()` wait for a visible element; `count()`, `nodes()`, `isVisible()` read the current screen without waiting.
-- **Assertions:** `expect(locator)` with `toBeVisible()`, `toBeHidden()`, `toBeEnabled()`, `toBeDisabled()`, `toBeSelected()`, `toBeChecked()`, `toBeFocused()`, `toHaveText(...)`, `toContainText(...)`, `toHaveValue(...)`, `toHaveCount(n)`, and `not()`. They retry until `timeouts.actionMs` runs out.
-- **Device:** `device()` offers `launchApp`, `terminateApp`, `clearAppData`, `installApp`, `openUrl` (deep links), `pressButton("BACK")`, `screenSize()` and `screenshot()`; `screen().swipe(...)` swipes across the screen.
-
-Actions are logged as report steps ("Tap getByText(…)"); typed text is not logged. When a test fails, a device screenshot is attached (`screenshotOnFailure`).
-
-## Errors
-
-| Exception | When |
-|---|---|
-| `MobileServerUnavailableException` | mobilecli is not reachable and could not be started: mobilecli is missing (`mobilecliPath`), exited, or did not answer within `serverStartMs`; the message names the log |
-| `MobileVersionException` | mobilecli is older than 1.0.20 |
-| `DeviceSelectionException` | the selectors match zero or several online devices, or no pool device is online |
-| `DeviceNotFoundException` | mobilecli does not know the device |
-| `MobileLocatorException` | strict mode: several elements matched |
-| `MobileTimeoutException` | an action or request ran out of time; the message lists the last elements seen |
-| `MobileAssertionError` | an `expect(...)` did not pass in time |
-| `MobileRpcException` | any other mobilecli error; a failed screen read names the agent check |
-
-## Limits
-
-- One device per test; a JVM-wide reservation lets only one test use a device at a time. Without a pool, parallel workers share one device serially. Separate JVMs or machines sharing devices are not coordinated.
-- `launchApp` does not wait for the app to reach the foreground; the first locator call waits instead.
-- No WebView, screencast or WebSocket support yet.
-- Custom backends can implement the `io.testfly.mobile.spi.MobileDriver` interface and open a device with `Mobile.connect(driver, settings)`.
+All paths are under `src/test/java/io/testfly/`. The Settings examples need no app file; their texts assume an English device. Credentials come only from environment variables.
