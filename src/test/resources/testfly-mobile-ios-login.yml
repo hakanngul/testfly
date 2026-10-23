@@ -1,0 +1,29 @@
+# Profile for IosLoginExampleTest (native iOS login on an app that is already installed on the simulator).
+# Run:
+#   MOBILE_DEVICE_ID=<udid> MOBILE_LOGIN_USER=<member id> MOBILE_LOGIN_PASSWORD=<password> \
+#     mvn test -Dtestfly.profile=mobile-ios-login -Dtest=IosLoginExampleTest
+# Needs a running `mobilecli server start` and the mobilecli agent installed on the simulator.
+# Credentials come from the environment only; never commit them.
+
+# browser, execution and timeouts are required by config validation even for mobile-only runs.
+browser:
+  name: chrome
+  headless: true
+execution:
+  mode: local
+  baseUrl: http://localhost
+timeouts:
+  explicit: 10
+  pageLoad: 30
+
+mobile:
+  serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+  platform: ios
+  deviceId: ${MOBILE_DEVICE_ID:-}
+  app:
+    bundleId: ${MOBILE_APP_BUNDLE_ID:-com.nesine.new-bet-dev}
+    reset: clearData
+  timeouts:
+    actionMs: 30000
+    pollMs: 500
+    rpcMs: 60000
