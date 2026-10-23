@@ -159,6 +159,14 @@ public final class MobileCliDriver implements MobileDriver {
 
     @Override
     public void launchApp(String bundleId, Duration timeout) {
+        if (MobilePlatform.fromWire(requireDevice().platform()) == MobilePlatform.IOS) {
+            // iOS: start DeviceKit before the launch; its startup otherwise minimizes the new app (as Mobilewright does).
+            try {
+                deviceCall("device.apps.foreground", null, timeout, true);
+            } catch (MobileRpcException e) {
+                // No foreground app yet is fine; DeviceKit is up.
+            }
+        }
         deviceCall("device.apps.launch", bundle(bundleId), timeout, false);
     }
 

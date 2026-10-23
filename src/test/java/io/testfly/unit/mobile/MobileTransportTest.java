@@ -227,6 +227,15 @@ public class MobileTransportTest {
             assertEquals(server.calls().get(2).params().get("keys").toString(), "[\"ctrl+a\",\"backspace\"]");
 
             assertEquals(driver.screenshot(T), new byte[] {(byte) 0x89, 'P', 'N', 'G'});
+
+            // iOS warms DeviceKit with device.apps.foreground before a launch; Android does not.
+            server.on("device.apps.foreground", p -> FakeMobilecliServer.error(-32000, "Server error", "no foreground app"));
+            server.on("device.apps.launch", p -> null);
+            driver.launchApp("com.example", T);
+            driver.useDevice(new MobileDeviceInfo("sim-1", "iPhone", "ios", "simulator", "online", "18", null));
+            driver.launchApp("com.example", T);
+            List<String> m = server.methods();
+            assertEquals(m.subList(m.size() - 3, m.size()), List.of("device.apps.launch", "device.apps.foreground", "device.apps.launch"));
         }
     }
 }
