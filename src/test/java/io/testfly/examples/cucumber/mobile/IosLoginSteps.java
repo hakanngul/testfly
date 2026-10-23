@@ -22,25 +22,28 @@ public class IosLoginSteps implements MobileSupport {
 
     private static final String ENV_FILE = ".vscode/mobile.env";
 
+    // Cucumber creates one step instance per scenario, so pages carry over between steps.
+    private HomePage home;
+    private LoginPage login;
+
     @Given("the app is on the home screen")
     public void appIsOnHomeScreen() {
-        page(HomePage.class).ready();
+        home = new HomePage();
     }
 
     @When("I open the login form")
     public void openLoginForm() {
-        page(HomePage.class).loginButton.tap();
-        expect(page(LoginPage.class).username).toBeVisible();
+        login = home.openLogin();
     }
 
     @And("I sign in with the member id and password from the environment")
     public void signIn() {
-        page(LoginPage.class).signIn(requiredEnv("MOBILE_LOGIN_USER"), requiredEnv("MOBILE_LOGIN_PASSWORD"));
+        login.signIn(requiredEnv("MOBILE_LOGIN_USER"), requiredEnv("MOBILE_LOGIN_PASSWORD"));
     }
 
     @Then("the login form is closed")
     public void loginFormIsClosed() {
-        expect(page(LoginPage.class).username).toBeHidden();
+        login.shouldBeClosed();
     }
 
     /**

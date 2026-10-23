@@ -140,26 +140,51 @@ Refine with `first()`, `last()`, `nth(i)`, `within(container)`, `or(other)`, `an
 
 ## Page objects
 
-A `@MobileFind` field holds the iOS and the Android selector of one element. `page(Type.class)` (from `MobileSupport`) creates the page with its no-argument constructor and sets each field to a locator for the running platform. Use `MobilePages.init(page, screen)` for a page you created yourself.
+Pages extend `MobilePage`. A `@MobileFind` field holds the iOS and the Android selector of one element; keep fields private and give tests intent methods. A method that changes the screen returns the next page, so a test reads as one fluent chain.
 
 ```java
-public class LoginPage {
-    @MobileFind(ios = "LoginScreen.loginButton", android = "com.example:id/btnLogin")
-    public MobileLocator loginButton;
+public class HomePage extends MobilePage {
+    @MobileFind(ios = "HomeScreen.loginButton", android = "com.example:id/btnHome")
+    @WaitFor                                    // new HomePage() waits until it is visible
+    private MobileLocator loginButton;
 
-    @MobileFind("role=button;name=Sign in")   // same selector on both platforms
-    public MobileLocator signIn;
+    @MobileFind(ios = "cookieBannerAcceptAllButton")
+    private MobileLocator cookieAccept;
+
+    @Override
+    protected void onLoad() {                   // runs after the @WaitFor fields are visible
+        tapIfShown(cookieAccept);
+    }
+
+    public LoginPage openLogin() {
+        loginButton.tap();
+        return new LoginPage();
+    }
 }
 
-// in a BaseMobileTest, a JUnit 5 mobile test or Cucumber steps implementing MobileSupport:
-LoginPage login = page(LoginPage.class);
-login.loginButton.tap();
+public class LoginPage extends MobilePage {
+    @MobileFind(ios = "LoginScreen.nameTextField", android = "com.example:id/etUser")
+    @WaitFor
+    private MobileLocator username;
+
+    @MobileFind("role=button;name=Sign in")    // same selector on both platforms
+    private MobileLocator signIn;
+
+    public LoginPage signIn(String user) { username.fill(user); signIn.tap(); return this; }
+    public void shouldBeClosed() { expect(username).toBeHidden(); }
+}
+
+// test (BaseMobileTest, JUnit 5 mobile test or Cucumber steps)
+new HomePage().openLogin().signIn("ada").shouldBeClosed();
 ```
 
+- `new SomePage()` uses the current test's device, sets the fields for the running platform, waits for the `@WaitFor` fields, then calls `onLoad()`. `MobilePage(MobileScreen)` takes a screen explicitly (outside a test runner).
+- Do not give `@MobileFind` fields an initial value: Java runs subclass field initializers after the base constructor and would overwrite the locator. `onLoad()` runs before those initializers.
+- Creating a page waits for it, so in Cucumber keep page instances in step-class fields between steps instead of creating a page that has already gone.
 - Selector strings: a bare string is a test id; otherwise `testid=…`, `text=…`, `label=…`, `placeholder=…`, `type=…` or `role=button;name=…` (exact matches). `screen().locate("…")` takes the same strings.
 - `value` is used when the platform's own selector is empty. A field with no selector for the running platform fails only when it is used.
-- Fields must be non-static `MobileLocator`s; superclass fields are filled too. Locators are lazy, so one page instance works across screen changes.
-- Example: `src/test/java/io/testfly/examples/mobile/LoginPage.java`, used by `IosLoginExampleTest` and the Cucumber `IosLoginSteps`.
+- Plain classes work too: `page(Type.class)` or `MobilePages.init(page, screen)` fill `@MobileFind` fields without the wait and `onLoad()`.
+- Example: `src/test/java/io/testfly/examples/mobile/HomePage.java` and `LoginPage.java`, used by `IosLoginExampleTest` and the Cucumber `IosLoginSteps`.
 
 ## Actions and assertions
 

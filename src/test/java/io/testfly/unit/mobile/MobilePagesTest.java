@@ -7,7 +7,11 @@ import io.testfly.mobile.MobileException;
 import io.testfly.mobile.MobileFind;
 import io.testfly.mobile.MobileLocator;
 import io.testfly.mobile.MobileLocatorException;
+import io.testfly.mobile.MobilePage;
 import io.testfly.mobile.MobilePages;
+import io.testfly.mobile.MobileScreen;
+import io.testfly.mobile.MobileTimeoutException;
+import io.testfly.mobile.WaitFor;
 import io.testfly.mobile.internal.SelectorParser;
 import org.testng.annotations.Test;
 
@@ -34,6 +38,90 @@ public class MobilePagesTest {
     static class BadPage {
         @MobileFind("username")
         String field;
+    }
+
+    // Fluent pages on the fake app: login -> home -> login.
+    static class FakeLoginPage extends MobilePage {
+        @MobileFind("placeholder=Username")
+        @WaitFor
+        private MobileLocator username;
+
+        @MobileFind("role=button;name=Sign in")
+        private MobileLocator signIn;
+
+        @MobileFind("text=Cookie banner")
+        private MobileLocator banner;
+
+        boolean loaded;
+        boolean bannerTapped;
+
+        FakeLoginPage(MobileScreen screen) {
+            super(screen);
+        }
+
+        @Override
+        protected void onLoad() {
+            loaded = true;
+            bannerTapped = tapIfShown(banner); // not on the screen: false, without waiting
+        }
+
+        FakeHomePage signIn(String user) {
+            username.fill(user);
+            signIn.tap();
+            return new FakeHomePage(screen());
+        }
+    }
+
+    static class FakeHomePage extends MobilePage {
+        @MobileFind("text=Sign out")
+        @WaitFor
+        private MobileLocator signOut;
+
+        @MobileFind("greeting")
+        private MobileLocator greeting;
+
+        FakeHomePage(MobileScreen screen) {
+            super(screen);
+        }
+
+        String greeting() {
+            return greeting.getText();
+        }
+
+        FakeLoginPage signOut() {
+            assertTrue(tapIfShown(signOut), "Sign out is shown, so it is tapped");
+            return new FakeLoginPage(screen());
+        }
+    }
+
+    static class NeverShownPage extends MobilePage {
+        @MobileFind("text=Nowhere")
+        @WaitFor
+        private MobileLocator missing;
+
+        NeverShownPage(MobileScreen screen) {
+            super(screen);
+        }
+    }
+
+    @Test
+    public void mobilePagesWaitLoadAndChainOnTheSameScreen() {
+        try (FakeMobilecliServer server = new FakeMobilecliServer(); MobileDevice device = connect(server, "android")) {
+            FakeLoginPage login = new FakeLoginPage(device.screen());
+            assertTrue(login.loaded);
+            assertFalse(login.bannerTapped);
+
+            FakeHomePage home = login.signIn("ada");
+            assertSame(home.screen(), device.screen());
+            assertEquals(home.greeting(), "Hello, ada");
+
+            FakeLoginPage again = home.signOut();
+            expect(device.screen().getByText("Welcome back")).toBeVisible();
+            assertTrue(again.loaded);
+
+            MobileTimeoutException e = expectThrows(MobileTimeoutException.class, () -> new NeverShownPage(device.screen()));
+            assertTrue(e.getMessage().contains("Nowhere"), e.getMessage());
+        }
     }
 
     private static MobileDevice connect(FakeMobilecliServer server, String platform) {

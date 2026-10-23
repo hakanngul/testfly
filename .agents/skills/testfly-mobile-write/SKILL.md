@@ -28,22 +28,29 @@ Needs `mobilecli server start` (default `http://localhost:12000`) and `mobilecli
 
 ## Page objects
 
+Pages `extends MobilePage`; fields are private; tests talk to page methods, never to locators; a method that changes the screen returns the next page.
+
 ```java
-public class LoginPage {
+public class LoginPage extends MobilePage {
     @MobileFind(ios = "LoginScreen.nameTextField", android = "com.app:id/etUsername")
-    public MobileLocator username;
+    @WaitFor                                       // new LoginPage() waits for it
+    private MobileLocator username;
 
     @MobileFind("role=button;name=Sign in")        // same selector on both platforms
-    public MobileLocator signIn;
+    private MobileLocator signIn;
 
-    public void signIn(String user, String password) { username.fill(user); /* … */ }
+    public HomePage signIn(String user) { username.fill(user); signIn.tap(); return new HomePage(); }
 }
+
+new LoginPage().signIn("ada").shouldShowGreeting("ada");
 ```
 
-- `page(LoginPage.class)` (from `MobileSupport`) sets every field for the running platform; `MobilePages.init(page, screen)` for pages you construct. Fields: non-static `MobileLocator`; a page needs a no-argument constructor.
+- `new X()` sets fields for the running platform, waits for `@WaitFor` fields, then calls `onLoad()` (banners: `tapIfShown(locator)`). Mark one or two elements that prove the screen is shown with `@WaitFor`.
+- Never give `@MobileFind` fields an initial value (it overwrites the locator); `onLoad()` runs before subclass field initializers.
+- Cucumber: keep page instances in step-class fields; creating a page whose screen is gone times out.
 - An element that exists on one platform only gets only that attribute; using it on the other platform fails with a clear message. Leave unknown ids out instead of inventing them, and mark them with `// shortcut: android id unknown, add when known`.
-- Put waits for screen readiness in page methods (`waitForVisible()`, a `ready()` method), not `Thread.sleep`.
-- Actions: `tap`, `doubleTap`, `longPress`, `fill`/`type` (clears), `append`, `clear`, `swipe`. Reads: `getText`, `getValue`, `count`, `isVisible`. Assert with `expect(locator).toBeVisible()`, `toHaveText`, `toBeHidden`, `toBeEnabled`, … Several matches fail (strict mode) unless `first()`, `last()` or `nth(i)`.
+- Actions: `tap`, `doubleTap`, `longPress`, `fill`/`type` (clears), `append`, `clear`, `swipe`. Reads: `getText`, `getValue`, `count`, `isVisible`. Assert with `expect(locator).toBeVisible()`, `toHaveText`, `toBeHidden`, `toBeEnabled`, … inside page `should…` methods. Several matches fail (strict mode) unless `first()`, `last()` or `nth(i)`.
+- No `Thread.sleep`; waits are `@WaitFor`, `waitForVisible()`/`waitForHidden()` and the auto-waiting actions.
 
 ## Engines
 

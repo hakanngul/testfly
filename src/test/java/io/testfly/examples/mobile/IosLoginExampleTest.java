@@ -24,14 +24,10 @@ public class IosLoginExampleTest extends BaseMobileTest {
         String memberId = requiredEnv("MOBILE_LOGIN_USER");
         String password = requiredEnv("MOBILE_LOGIN_PASSWORD");
 
-        page(HomePage.class).ready().loginButton.tap();
-
-        LoginPage login = page(LoginPage.class);
-        expect(login.username).toBeVisible();
-        login.signIn(memberId, password);
-
-        // The login form is gone once the session is open.
-        expect(login.username).toBeHidden();
+        new HomePage()
+                .openLogin()
+                .signIn(memberId, password)
+                .shouldBeClosed();
     }
 
     private static String requiredEnv(String name) {

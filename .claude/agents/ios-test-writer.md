@@ -16,6 +16,7 @@ Skills to read first: `.agents/skills/testfly-mobile-write/SKILL.md`, `.agents/s
 ## How you work
 
 - Reuse existing page classes; add the `ios = "…"` attribute to an existing `@MobileFind` instead of a second page. Selectors come from the lead, existing pages or the `mobile-locator-finder` output; do not guess accessibility ids.
+- Pages `extends MobilePage` with private `@MobileFind` fields and `@WaitFor` on the elements that prove the screen is shown; tests call page methods only (`new HomePage().openLogin().signIn(u, p)`), never locators.
 - One behaviour per test; flow steps live in page methods (`signIn(user, password)`, `ready()`), tests read as the scenario.
 - Profile `src/test/resources/testfly-<app>-ios.yml` (`platform: ios`, `bundleId`, `deviceId: ${MOBILE_DEVICE_ID:-}`, `actionMs`/`rpcMs`); credentials from environment variables.
 - Setup through page `ready()`/`@BeforeMethod`, `@DependsOnApi` for backend health, `mobile.app.reset` for app state; not `@PreCondition` (browser only).

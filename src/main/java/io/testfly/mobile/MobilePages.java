@@ -16,7 +16,10 @@ public final class MobilePages {
     private MobilePages() {
     }
 
-    /** Creates {@code type} with its no-argument constructor and fills its fields for {@code screen}. */
+    /**
+     * Creates {@code type} with its no-argument constructor and fills its fields for {@code screen}.
+     * A {@link MobilePage} sets up itself on the current test's device, so {@code screen} is ignored for it.
+     */
     public static <T> T create(Class<T> type, MobileScreen screen) {
         Objects.requireNonNull(type, "type");
         T page;
@@ -24,10 +27,16 @@ public final class MobilePages {
             Constructor<T> constructor = type.getDeclaredConstructor();
             constructor.setAccessible(true);
             page = constructor.newInstance();
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            // The constructor itself failed (e.g. a MobilePage's @WaitFor timed out): surface that error.
+            if (e.getCause() instanceof RuntimeException r) {
+                throw r;
+            }
+            throw new MobileException("Cannot create page " + type.getName() + ": " + e.getCause(), e.getCause());
         } catch (ReflectiveOperationException | RuntimeException e) {
             throw new MobileException("Cannot create page " + type.getName() + "; it needs a no-argument constructor: " + e, e);
         }
-        return init(page, screen);
+        return page instanceof MobilePage ? page : init(page, screen);
     }
 
     /**

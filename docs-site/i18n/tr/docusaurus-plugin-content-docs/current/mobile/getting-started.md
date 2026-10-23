@@ -140,26 +140,51 @@ Profiller `src/test/resources/testfly-mobile-ios.yml` ve `testfly-mobile-android
 
 ## Page object'ler
 
-`@MobileFind` alanı bir öğenin iOS ve Android seçicisini birlikte tutar. `page(Type.class)` (`MobileSupport`'tan) sayfayı argümansız kurucusuyla oluşturur ve her alana koşan platformun locator'ını atar. Kendi oluşturduğunuz sayfa için `MobilePages.init(page, screen)` kullanın.
+Sayfalar `MobilePage`'den türer. `@MobileFind` alanı bir öğenin iOS ve Android seçicisini birlikte tutar; alanları private tutun, testlere niyet metotları verin. Ekranı değiştiren metot bir sonraki sayfayı döndürür, böylece test tek bir fluent zincir olarak okunur.
 
 ```java
-public class LoginPage {
-    @MobileFind(ios = "LoginScreen.loginButton", android = "com.example:id/btnLogin")
-    public MobileLocator loginButton;
+public class HomePage extends MobilePage {
+    @MobileFind(ios = "HomeScreen.loginButton", android = "com.example:id/btnHome")
+    @WaitFor                                    // new HomePage() görünene kadar bekler
+    private MobileLocator loginButton;
 
-    @MobileFind("role=button;name=Sign in")   // iki platformda aynı seçici
-    public MobileLocator signIn;
+    @MobileFind(ios = "cookieBannerAcceptAllButton")
+    private MobileLocator cookieAccept;
+
+    @Override
+    protected void onLoad() {                   // @WaitFor alanları göründükten sonra çalışır
+        tapIfShown(cookieAccept);
+    }
+
+    public LoginPage openLogin() {
+        loginButton.tap();
+        return new LoginPage();
+    }
 }
 
-// BaseMobileTest, JUnit 5 mobil testi veya MobileSupport uygulayan Cucumber adımlarında:
-LoginPage login = page(LoginPage.class);
-login.loginButton.tap();
+public class LoginPage extends MobilePage {
+    @MobileFind(ios = "LoginScreen.nameTextField", android = "com.example:id/etUser")
+    @WaitFor
+    private MobileLocator username;
+
+    @MobileFind("role=button;name=Sign in")    // iki platformda aynı seçici
+    private MobileLocator signIn;
+
+    public LoginPage signIn(String user) { username.fill(user); signIn.tap(); return this; }
+    public void shouldBeClosed() { expect(username).toBeHidden(); }
+}
+
+// test (BaseMobileTest, JUnit 5 mobil testi veya Cucumber adımları)
+new HomePage().openLogin().signIn("ada").shouldBeClosed();
 ```
 
+- `new SomePage()` testin cihazını kullanır, alanlara koşan platformun locator'ını atar, `@WaitFor` alanlarını bekler, sonra `onLoad()` çağırır. `MobilePage(MobileScreen)` ekranı açıkça alır (test runner dışında).
+- `@MobileFind` alanlarına başlangıç değeri vermeyin: Java alt sınıf alan başlatıcılarını temel kurucudan sonra çalıştırır ve locator'ı ezer. `onLoad()` bu başlatıcılardan önce çalışır.
+- Sayfa oluşturmak onu bekler; Cucumber'da sayfa örneklerini adımlar arasında step sınıfının alanlarında tutun, kapanmış bir sayfayı yeniden oluşturmayın.
 - Seçici dizeleri: çıplak dize test id'dir; yoksa `testid=…`, `text=…`, `label=…`, `placeholder=…`, `type=…` veya `role=button;name=…` (tam eşleşme). `screen().locate("…")` aynı dizeleri alır.
 - Platformun kendi seçicisi boşsa `value` kullanılır. Koşan platform için seçicisi olmayan alan yalnızca kullanıldığında hata verir.
-- Alanlar statik olmayan `MobileLocator` olmalıdır; üst sınıf alanları da doldurulur. Locator'lar tembeldir, tek sayfa örneği ekran değişse de çalışır.
-- Örnek: `src/test/java/io/testfly/examples/mobile/LoginPage.java`; `IosLoginExampleTest` ve Cucumber `IosLoginSteps` kullanır.
+- Düz sınıflar da çalışır: `page(Type.class)` veya `MobilePages.init(page, screen)` `@MobileFind` alanlarını bekleme ve `onLoad()` olmadan doldurur.
+- Örnek: `src/test/java/io/testfly/examples/mobile/HomePage.java` ve `LoginPage.java`; `IosLoginExampleTest` ve Cucumber `IosLoginSteps` kullanır.
 
 ## Eylemler ve doğrulamalar
 
