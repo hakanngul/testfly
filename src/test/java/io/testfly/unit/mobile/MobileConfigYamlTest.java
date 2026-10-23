@@ -1,5 +1,6 @@
 package io.testfly.unit.mobile;
 
+import io.testfly.config.ConfigurationLoader;
 import io.testfly.config.TestFlyConfig;
 import org.testng.annotations.Test;
 import org.yaml.snakeyaml.LoaderOptions;
@@ -7,6 +8,8 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
 import java.io.StringReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +23,49 @@ public class MobileConfigYamlTest {
         Yaml y = new Yaml(new Constructor(TestFlyConfig.class, new LoaderOptions()));
         TestFlyConfig config = y.load(new StringReader(full));
         return config.getMobile();
+    }
+
+    /** Through ConfigurationLoader, so its validation runs; testfly.config is global, hence the lock. */
+    private static TestFlyConfig load(String yaml) throws Exception {
+        Path file = Files.createTempFile("testfly-mobile-", ".yml");
+        Files.writeString(file, yaml);
+        synchronized (ConfigurationLoader.class) {
+            System.setProperty("testfly.config", file.toString());
+            try {
+                return ConfigurationLoader.load();
+            } finally {
+                System.clearProperty("testfly.config");
+                Files.deleteIfExists(file);
+            }
+        }
+    }
+
+    @Test
+    public void mobileOnlyConfigNeedsNoWebBlocks() throws Exception {
+        TestFlyConfig config = load("mobile:\n  platform: ios\n");
+        assertEquals(config.getMobile().getPlatform(), "ios");
+        assertEquals(config.getBrowser().getName(), "chrome");
+        assertTrue(config.getBrowser().isHeadless());
+        assertEquals(config.getExecution().getMode(), "local");
+        assertEquals(config.getExecution().getBaseUrl(), "http://localhost");
+        assertEquals(config.getTimeouts().getExplicit(), 10);
+        assertEquals(config.getTimeouts().getPageLoad(), 30);
+    }
+
+    @Test
+    public void mobileConfigKeepsTheWebValuesItSets() throws Exception {
+        TestFlyConfig config = load("browser:\n  name: firefox\nexecution:\n  mode: local\n  baseUrl: https://app.example\n"
+                + "timeouts:\n  explicit: 5\nmobile:\n  platform: android\n");
+        assertEquals(config.getBrowser().getName(), "firefox");
+        assertEquals(config.getExecution().getBaseUrl(), "https://app.example");
+        assertEquals(config.getTimeouts().getExplicit(), 5);
+        assertEquals(config.getTimeouts().getPageLoad(), 30);
+    }
+
+    @Test
+    public void webOnlyConfigStillNeedsItsBlocks() throws Exception {
+        IllegalStateException e = expectThrows(IllegalStateException.class, () -> load("retry:\n  enabled: true\n"));
+        assertTrue(e.getMessage().contains("Browser configuration must be specified"), e.getMessage());
     }
 
     @Test

@@ -16,7 +16,7 @@ Everything in `io.testfly.mobile` is incubating: it is not annotated `@TestFlyAp
 | Page | What it covers |
 |---|---|
 | This page | setup, the first test on TestNG, JUnit 5 and Cucumber, ready-made examples |
-| [Locators and page objects](locators-and-page-objects) | `getBy…` locators, selector strings, `MobilePage`/`@MobileFind`/`@WaitFor`, actions and assertions |
+| [Locators and page objects](locators-and-page-objects) | `getBy…` locators, selector strings, `MobilePage`/`@MobileFind`/`@WaitFor`, preconditions (`@PreCondition` with `MobileConditions`), actions and assertions |
 | [Configuration](configuration) | the `mobile:` block, device selection, device pool, app reset, server auto-start, profiles, security |
 | [CI](ci) | running on GitHub Actions with an Android emulator or an iOS simulator |
 | [Troubleshooting](troubleshooting) | exceptions, common problems, limits |
@@ -52,7 +52,7 @@ mobile:
     bundleId: com.example.app       # iOS bundle id / Android package
 ```
 
-All other keys have defaults; see [Configuration](configuration). Config validation still requires the `browser`, `execution` and `timeouts` blocks, so a mobile-only profile carries placeholder values for them (copy them from `src/test/resources/testfly-mobile-ios.yml`).
+All other keys have defaults; see [Configuration](configuration). A mobile-only profile needs no `browser`, `execution` or `timeouts` block.
 
 ## Your first test
 

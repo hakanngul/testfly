@@ -39,7 +39,7 @@ description: "TestFly native mobil modülünün istisnaları, mobilecli, cihazla
 ## Sınırlar
 
 - Test başına bir cihaz; JVM genelindeki rezervasyon bir cihazı aynı anda yalnızca bir testin kullanmasına izin verir. Havuz olmadan paralel worker'lar tek cihazı sırayla paylaşır. Cihazları paylaşan ayrı JVM'ler veya makineler koordine edilmez.
-- `@PreCondition` oturum önbelleği yalnızca tarayıcı içindir; mobil hazırlık için sayfa metotlarını, `@BeforeMethod`/`@BeforeEach`'i, Cucumber `Background`'ı ve backend sağlığı için `@DependsOnApi`'yi kullanın.
+- Uygulama durumu tarayıcı çerezleri gibi saklanamaz; bu yüzden mobil `@PreCondition`, `mobile.app.reset: none` uygulama durumunu korumadıkça her testten önce yeniden çalışır. Cucumber `@PreCondition`'ı okumaz; `Background` kullanın.
 - `launchApp` uygulamanın ön plana gelmesini beklemez; bunun yerine ilk locator çağrısı bekler.
 - Ekran döndürme, konum, ekran kaydı, WebView ve WebSocket desteği henüz yok.
 - Özel backend'ler `io.testfly.mobile.spi.MobileDriver` arayüzünü uygulayıp `Mobile.connect(driver, settings)` ile cihaz açabilir.

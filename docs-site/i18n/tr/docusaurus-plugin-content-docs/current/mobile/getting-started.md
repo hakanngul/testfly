@@ -16,7 +16,7 @@ TestFly, native Android ve iOS uygulamalarını Appium olmadan sürebilir. **Siz
 | Sayfa | Kapsadığı |
 |---|---|
 | Bu sayfa | kurulum, TestNG, JUnit 5 ve Cucumber'da ilk test, hazır örnekler |
-| [Locator'lar ve page object'ler](locators-and-page-objects) | `getBy…` locator'ları, seçici dizeleri, `MobilePage`/`@MobileFind`/`@WaitFor`, eylemler ve doğrulamalar |
+| [Locator'lar ve page object'ler](locators-and-page-objects) | `getBy…` locator'ları, seçici dizeleri, `MobilePage`/`@MobileFind`/`@WaitFor`, ön koşullar (`MobileConditions` ile `@PreCondition`), eylemler ve doğrulamalar |
 | [Yapılandırma](configuration) | `mobile:` bloğu, cihaz seçimi, cihaz havuzu, uygulama sıfırlama, sunucuyu otomatik başlatma, profiller, güvenlik |
 | [CI](ci) | Android emülatörü veya iOS simülatörüyle GitHub Actions'ta çalıştırma |
 | [Sorun giderme](troubleshooting) | istisnalar, sık sorunlar, sınırlar |
@@ -52,7 +52,7 @@ mobile:
     bundleId: com.example.app       # iOS bundle id / Android paketi
 ```
 
-Diğer tüm anahtarların varsayılanı vardır; bkz. [Yapılandırma](configuration). Config doğrulaması hâlâ `browser`, `execution` ve `timeouts` bloklarını istediği için yalnızca mobil olan bir profil bunlar için yer tutucu değerler taşır (`src/test/resources/testfly-mobile-ios.yml` dosyasından kopyalayın).
+Diğer tüm anahtarların varsayılanı vardır; bkz. [Yapılandırma](configuration). Yalnızca mobil olan bir profil `browser`, `execution` veya `timeouts` bloğu gerektirmez.
 
 ## İlk testiniz
 

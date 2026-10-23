@@ -40,6 +40,10 @@ public class MobileEngineBridgeTest {
     }
 
     private static void useFakeDevice(FakeMobilecliServer server, String id) {
+        useFakeDevice(server, id, "relaunch");
+    }
+
+    private static void useFakeDevice(FakeMobilecliServer server, String id, String reset) {
         FakeApp app = new FakeApp(id).install(server);
         APP.set(app);
         TestFlyConfig.Mobile m = new TestFlyConfig.Mobile();
@@ -47,6 +51,7 @@ public class MobileEngineBridgeTest {
         m.setPlatform("android");
         m.setDeviceId(id);
         m.getApp().setBundleId(FakeApp.BUNDLE);
+        m.getApp().setReset(reset);
         m.getTimeouts().setActionMs(1500);
         m.getTimeouts().setPollMs(20);
         MobileSessions.setOpener(() -> Mobile.connect(m));
@@ -210,6 +215,69 @@ public class MobileEngineBridgeTest {
     }
 
     // ── helpers ─────────────────────────────────────────────────────────
+
+    // ── @PreCondition on mobile tests ───────────────────────────────────
+
+    private static final java.util.concurrent.atomic.AtomicBoolean CONDITIONS_REGISTERED = new java.util.concurrent.atomic.AtomicBoolean();
+
+    private static void registerConditions() {
+        if (CONDITIONS_REGISTERED.compareAndSet(false, true)) {
+            io.testfly.mobile.MobileConditions.register(new MobileBridgeSamples.SignInConditions());
+        }
+    }
+
+    private static List<String> runTestNg(Class<?> sample) {
+        TestListenerAdapter results = new TestListenerAdapter();
+        TestNG testng = new TestNG(false);
+        testng.setTestClasses(new Class<?>[] {sample});
+        testng.addListener(results);
+        testng.setVerbose(0);
+        testng.run();
+        assertEquals(results.getFailedTests().size(), 0, String.valueOf(results.getFailedTests().stream().map(ITestResult::getThrowable).toList()));
+        assertEquals(results.getPassedTests().size(), 2);
+        synchronized (SEEN) {
+            return SEEN.stream().filter(s -> s.startsWith("provider:")).toList();
+        }
+    }
+
+    @Test
+    public void preConditionRunsBeforeEveryMobileTestWhenTheAppIsReset() {
+        registerConditions();
+        String id = deviceId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            useFakeDevice(server, id, "relaunch");
+            assertEquals(runTestNg(MobileBridgeSamples.TestNgPreConditionSample.class), List.of("provider:" + id, "provider:" + id),
+                    "the app is relaunched before each test, so the condition runs each time");
+        }
+    }
+
+    @Test
+    public void preConditionRunsOncePerDeviceWhenTheAppKeepsItsState() {
+        registerConditions();
+        String id = deviceId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            useFakeDevice(server, id, "none");
+            APP.get().foreground = FakeApp.BUNDLE; // reset none never launches the app
+            assertEquals(runTestNg(MobileBridgeSamples.TestNgPreConditionSample.class), List.of("provider:" + id),
+                    "the second test reuses the signed-in app");
+        }
+    }
+
+    @Test
+    public void preConditionRunsForJUnit5MobileTests() {
+        registerConditions();
+        String id = deviceId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            useFakeDevice(server, id, "relaunch");
+            SummaryGeneratingListener listener = new SummaryGeneratingListener();
+            LauncherFactory.create().execute(LauncherDiscoveryRequestBuilder.request()
+                    .selectors(selectClass(MobileBridgeSamples.JUnitPreConditionSample.class)).build(), listener);
+            assertEquals(listener.getSummary().getTestsSucceededCount(), 1, String.valueOf(listener.getSummary().getFailures().stream().map(f -> f.getException()).toList()));
+            synchronized (SEEN) {
+                assertEquals(SEEN, List.of("provider:" + id));
+            }
+        }
+    }
 
     private static void assertScreenshotTaken(FakeMobilecliServer server, String testName) throws Exception {
         assertTrue(server.methods().contains("device.screenshot"), server.methods().toString());

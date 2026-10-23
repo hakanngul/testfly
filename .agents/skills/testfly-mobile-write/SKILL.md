@@ -60,13 +60,13 @@ new LoginPage().signIn("ada").shouldShowGreeting("ada");
 | JUnit 5 | `extends junit5.BaseJUnit5MobileTest` | same helpers |
 | Cucumber | steps `implements MobileSupport`, scenario tag `@mobile` | features under `src/test/resources/features-mobile/`; see `examples/cucumber/mobile/` |
 
-- Profiles: one YAML per app/platform under `src/test/resources/testfly-<name>.yml` with `mobile.platform`, `mobile.deviceId: ${MOBILE_DEVICE_ID:-}`, `mobile.app.bundleId`, timeouts (`actionMs`, `rpcMs`). Config validation still needs placeholder `browser`, `execution` and `timeouts` blocks; copy them from `testfly-mobile-ios.yml`.
+- Profiles: one YAML per app/platform under `src/test/resources/testfly-<name>.yml` with `mobile.platform`, `mobile.deviceId: ${MOBILE_DEVICE_ID:-}`, `mobile.app.bundleId`, timeouts (`actionMs`, `rpcMs`). No `browser`/`execution`/`timeouts` blocks are needed in a mobile profile.
 - Run: `MOBILE_DEVICE_ID=<id> mvn test -Dtestfly.profile=<name> -Dtest=<Class>`.
 - Same test on both platforms: one test class, one page object, two profiles (`-Dtestfly.profile=app-ios` / `app-android`).
 
 ## Preconditions and setup
 
-- `@PreCondition`/`@ConditionProvider` cache **browser** cookies and localStorage; they do not apply to native app sessions. For mobile, put shared setup in a page method (`HomePage.ready()`), `@BeforeMethod`/`@BeforeEach`, or a Cucumber `Background`.
+- Shared setup such as a login: `@PreCondition("loggedIn")` on the test, `@ConditionProvider("loggedIn")` in a `MobileConditions` subclass written with page objects, registered in `META-INF/services/io.testfly.mobile.MobileConditions` (see `examples/mobile/LoginConditions.java`). It runs before every test, or once per device when `mobile.app.reset: none` keeps the app state; a retry reruns it. Cucumber does not read `@PreCondition`: use a `Background`.
 - `@DependsOnApi("https://…/health")` works on mobile tests: the test is skipped when the backend is down.
 - App state per test: `mobile.app.reset` (`none`, `relaunch`, `clearData`) in the profile.
 - Credentials only from environment variables (`MOBILE_LOGIN_USER`, …); never in code, features or YAML.

@@ -1,17 +1,6 @@
 # Profile for the native mobile examples (src/test/java/io/testfly/examples/mobile).
 # Run: mvn test -Dtestfly.profile=mobile-ios -Dtest=IosSettingsExampleTest
-# Needs a running `mobilecli server start` and one booted iOS simulator with the mobilecli agent installed.
-
-# browser, execution and timeouts are required by config validation even for mobile-only runs.
-browser:
-  name: chrome
-  headless: true
-execution:
-  mode: local
-  baseUrl: http://localhost
-timeouts:
-  explicit: 10
-  pageLoad: 30
+# mobilecli's server is started automatically when it is down; needs one booted iOS simulator with the mobilecli agent installed.
 
 mobile:
   serverUrl: ${MOBILECLI_URL:-http://localhost:12000}

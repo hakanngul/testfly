@@ -96,6 +96,11 @@ public final class MobileDevice implements AutoCloseable {
         return session.actionTimeout();
     }
 
+    /** Whether the app keeps its state from one test to the next ({@code mobile.app.reset: none}, or no bundle id). */
+    public boolean keepsAppState() {
+        return !terminateOnClose || bundleId.isEmpty();
+    }
+
     @Override
     public void close() {
         if (closed) {

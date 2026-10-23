@@ -95,7 +95,7 @@ mvn test -Dtestfly.profile=myapp-ios     -Dtest=LoginTest
 mvn test -Dtestfly.profile=myapp-android -Dtest=LoginTest
 ```
 
-Config doğrulaması hâlâ `browser`, `execution` ve `timeouts` bloklarını istediği için yalnızca mobil olan bir profil bunlar için yer tutucu değerler taşır. `testfly-mobile-ios.yml`, `testfly-mobile-android.yml` ve `testfly-mobile-ios-login.yml` örnekleri tam bir profil gösterir.
+`mobile:` bloğu olan bir profil `browser`, `execution` veya `timeouts` bloğu gerektirmez: eksik web değerleri etkisiz varsayılanlar alır (headless yerel Chrome, `http://localhost`, 10 sn / 30 sn), sizin verdiğiniz değerler korunur. `testfly-mobile-ios.yml`, `testfly-mobile-android.yml` ve `testfly-mobile-ios-login.yml` örnekleri tam bir profil gösterir.
 
 ## Güvenlik
 

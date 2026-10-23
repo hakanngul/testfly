@@ -5,17 +5,6 @@
 # mobilecli is started automatically when its server is down (mobile.autoStartServer); install the mobilecli agent on the simulator once.
 # Credentials come from the environment only; never commit them.
 
-# browser, execution and timeouts are required by config validation even for mobile-only runs.
-browser:
-  name: chrome
-  headless: true
-execution:
-  mode: local
-  baseUrl: http://localhost
-timeouts:
-  explicit: 10
-  pageLoad: 30
-
 mobile:
   serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
   platform: ios

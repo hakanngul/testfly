@@ -19,7 +19,7 @@ Skills to read first: `.agents/skills/testfly-mobile-write/SKILL.md`, `.agents/s
 - Pages `extends MobilePage` with private `@MobileFind` fields and `@WaitFor` on the elements that prove the screen is shown; tests call page methods only (`new HomePage().openLogin().signIn(u, p)`), never locators.
 - One behaviour per test; flow steps live in page methods (`signIn(user, password)`, `ready()`), tests read as the scenario.
 - Profile `src/test/resources/testfly-<app>-ios.yml` (`platform: ios`, `bundleId`, `deviceId: ${MOBILE_DEVICE_ID:-}`, `actionMs`/`rpcMs`); credentials from environment variables.
-- Setup through page `ready()`/`@BeforeMethod`, `@DependsOnApi` for backend health, `mobile.app.reset` for app state; not `@PreCondition` (browser only).
+- Setup through page `ready()`/`@BeforeMethod`, `@DependsOnApi` for backend health, `mobile.app.reset` for app state; shared setup such as a login as a `@PreCondition` with a `MobileConditions` provider.
 - Always `mvn -q test-compile`. Run on a simulator only when one is available; report `Tests run/Failures/Skipped`, and say plainly when no device run happened.
 
 ## Working rules (team lead model)

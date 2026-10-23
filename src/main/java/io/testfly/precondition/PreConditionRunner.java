@@ -1,6 +1,8 @@
 package io.testfly.precondition;
 
 import io.testfly.driver.DriverManager;
+import io.testfly.mobile.internal.MobileConditionRunner;
+import io.testfly.mobile.internal.MobileSessions;
 import org.openqa.selenium.WebDriver;
 import org.testng.ITestResult;
 
@@ -41,6 +43,11 @@ public final class PreConditionRunner {
             return;
 
         boolean isRetry = isRetry(result);
+        if (MobileSessions.isOpen()) {
+            // A native mobile test: its conditions come from MobileConditions providers.
+            MobileConditionRunner.run(annotation.value(), isRetry);
+            return;
+        }
         WebDriver driver = DriverManager.getDriver();
 
         for (String conditionName : annotation.value()) {
@@ -93,6 +100,10 @@ public final class PreConditionRunner {
         if (annotation == null)
             return;
 
+        if (MobileSessions.isOpen()) {
+            MobileConditionRunner.run(annotation.value(), isRetry);
+            return;
+        }
         WebDriver driver = DriverManager.getDriver();
         for (String conditionName : annotation.value()) {
             if (isRetry)
@@ -111,6 +122,7 @@ public final class PreConditionRunner {
      */
     public static void clearAll() {
         PreconditionSessionCache.clearAll();
+        MobileConditionRunner.clearAll();
     }
 
     /**

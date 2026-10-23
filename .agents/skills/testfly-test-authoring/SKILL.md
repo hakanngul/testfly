@@ -31,7 +31,7 @@ description: Create or revise TestFly framework tests and executable examples ac
 | Named API auth | `@UseAuth("admin")` | TestNG and JUnit 5 API tests; Cucumber applies `ApiAuth` in a step. See `testfly-api-write`. |
 | Data the test creates | Arrange step or `@BeforeMethod`/`@BeforeEach` through `ApiClient`, cleaned up in `@AfterMethod`/`@AfterEach` | Per test; never share mutable fixtures across parallel tests. |
 | Cucumber shared steps | `Background:` in the feature | Per scenario. |
-| Native mobile | page `ready()` methods, `@BeforeMethod`, `Background`; `mobile.app.reset` | `@PreCondition` does not apply to app sessions. See `testfly-mobile-write`. |
+| Native mobile state (e.g. logged in) | `@PreCondition("loggedIn")` + `@ConditionProvider` in a `MobileConditions` subclass (`META-INF/services/io.testfly.mobile.MobileConditions` or `MobileConditions.register`), written with page objects | TestNG (method) and JUnit 5 (method, then class) mobile tests. Runs before every test, or once per device with `mobile.app.reset: none`; reruns on retry. Example: `examples/mobile/LoginConditions.java`. See `testfly-mobile-write`. |
 
 Prefer API calls over UI clicks to create preconditions; a precondition provider must not assert the behaviour under test.
 

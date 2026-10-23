@@ -102,4 +102,44 @@ final class MobileBridgeSamples {
             hold();
         }
     }
+
+    /** Mobile precondition provider: signs in on the fake app with page-object style steps. */
+    public static class SignInConditions extends io.testfly.mobile.MobileConditions {
+
+        @io.testfly.precondition.ConditionProvider("bridge-signedIn")
+        public void signedIn() {
+            synchronized (SEEN) {
+                SEEN.add("provider:" + device().id());
+            }
+            screen().getByTestId("username").fill("ada");
+            screen().getByRole(MobileRole.BUTTON, "Sign in").tap();
+            expect(screen().getByTestId("greeting")).toBeVisible();
+        }
+    }
+
+    /** Two TestNG tests that start signed in. */
+    public static class TestNgPreConditionSample extends BaseMobileTest {
+
+        @io.testfly.precondition.PreCondition("bridge-signedIn")
+        @Test(priority = 1)
+        public void first() {
+            expect(screen().getByTestId("greeting")).toHaveText("Hello, ada");
+        }
+
+        @io.testfly.precondition.PreCondition("bridge-signedIn")
+        @Test(priority = 2)
+        public void second() {
+            expect(screen().getByTestId("greeting")).toHaveText("Hello, ada");
+        }
+    }
+
+    /** A JUnit 5 test that starts signed in. */
+    public static class JUnitPreConditionSample extends BaseJUnit5MobileTest {
+
+        @io.testfly.precondition.PreCondition("bridge-signedIn")
+        @org.junit.jupiter.api.Test
+        void signedIn() {
+            expect(screen().getByTestId("greeting")).toHaveText("Hello, ada");
+        }
+    }
 }

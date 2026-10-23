@@ -98,6 +98,29 @@ Kurallar:
 
 Örnek sayfalar `src/test/java/io/testfly/examples/mobile/HomePage.java` ve `LoginPage.java` dosyalarıdır.
 
+## Ön koşullar (precondition) {#preconditions}
+
+Login gibi ortak hazırlık her testte tekrarlanmak yerine bir ön koşulda durur. Sağlayıcıyı page object'lerle bir `MobileConditions` alt sınıfında yazın ve `@PreCondition` ile isteyin:
+
+```java
+public class LoginConditions extends MobileConditions {
+    @ConditionProvider("loggedIn")
+    public void loggedIn() {
+        new HomePage().openLogin().signIn(System.getenv("MOBILE_LOGIN_USER"), System.getenv("MOBILE_LOGIN_PASSWORD"));
+    }
+}
+
+@PreCondition("loggedIn")
+@Test
+public void showsTheBalance() { /* giriş yapılmış olarak başlar */ }
+```
+
+- Sağlayıcıları `src/test/resources/META-INF/services/io.testfly.mobile.MobileConditions` dosyasına (satır başına bir sınıf adı) kaydedin ya da suite'ten önce `MobileConditions.register(new LoginConditions())` çağırın.
+- Ne zaman çalışır: uygulama durumu tarayıcı çerezleri gibi saklanamaz. `mobile.app.reset: none` ile uygulama durumunu korur, bu yüzden koşul cihaz başına bir kez çalışır; `relaunch` veya `clearData` ile onu isteyen her testten önce çalışır. Yeniden denemede (retry) her zaman tekrar çalışır.
+- TestNG `@PreCondition`'ı test metodundan okur; JUnit 5 metottan, sonra sınıftan. Cucumber okumaz: `Background` kullanın.
+- Mobil bir testte `@PreCondition` adları yalnızca `MobileConditions` sağlayıcılarına bakar; web `BaseConditions` sağlayıcıları tarayıcı testleri içindir.
+- Örnek: `src/test/java/io/testfly/examples/mobile/LoginConditions.java`.
+
 ## Eylemler ve doğrulamalar
 
 - **Eylemler:** `tap()`, `doubleTap()`, `longPress()`, `fill(text)` (`type(text)` ile aynı; önce temizler), `append(text)`, `clear()`, `swipe(SwipeDirection)`. Tam olarak bir öğe eşleşene ve görünür, etkin ve sabit olana kadar bekler, sonra öğenin ortasında işlem yapar. Birden çok eşleşme, `first()`, `last()` veya `nth(i)` biri seçmedikçe hata verir (strict mode).

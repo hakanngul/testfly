@@ -155,6 +155,8 @@ public class TestFlyExtension
 
         if (isMobileTest(context)) {
             MobileSessions.open();
+            // Native mobile tests skip the browser branch above, so their @PreCondition runs here.
+            PreConditionRunner.run(context.getRequiredTestMethod(), false);
         }
 
         autoClearEmailIfEnabled();

@@ -98,6 +98,29 @@ Rules:
 
 The example pages are `src/test/java/io/testfly/examples/mobile/HomePage.java` and `LoginPage.java`.
 
+## Preconditions {#preconditions}
+
+Shared setup, such as signing in, belongs in a precondition instead of every test. Write the provider with page objects in a `MobileConditions` subclass and ask for it with `@PreCondition`:
+
+```java
+public class LoginConditions extends MobileConditions {
+    @ConditionProvider("loggedIn")
+    public void loggedIn() {
+        new HomePage().openLogin().signIn(System.getenv("MOBILE_LOGIN_USER"), System.getenv("MOBILE_LOGIN_PASSWORD"));
+    }
+}
+
+@PreCondition("loggedIn")
+@Test
+public void showsTheBalance() { /* starts signed in */ }
+```
+
+- Register providers in `src/test/resources/META-INF/services/io.testfly.mobile.MobileConditions` (one class name per line) or call `MobileConditions.register(new LoginConditions())` before the suite.
+- When to run: app state cannot be cached like browser cookies. With `mobile.app.reset: none` the app keeps its state, so a condition runs once per device; with `relaunch` or `clearData` it runs before every test that asks for it. A retry always runs it again.
+- TestNG reads `@PreCondition` from the test method; JUnit 5 from the method, then the class. Cucumber does not read it: use a `Background`.
+- On a mobile test, `@PreCondition` names refer to `MobileConditions` providers only; web `BaseConditions` providers serve browser tests.
+- Example: `src/test/java/io/testfly/examples/mobile/LoginConditions.java`.
+
 ## Actions and assertions
 
 - **Actions:** `tap()`, `doubleTap()`, `longPress()`, `fill(text)` (same as `type(text)`; clears first), `append(text)`, `clear()`, `swipe(SwipeDirection)`. They wait until exactly one element matches and it is visible, enabled and stable, then act on the centre of the element. Several matches fail unless `first()`, `last()` or `nth(i)` picks one (strict mode).
