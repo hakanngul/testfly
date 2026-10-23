@@ -98,6 +98,32 @@ Kurallar:
 
 Örnek sayfalar `src/test/java/io/testfly/examples/mobile/HomePage.java` ve `LoginPage.java` dosyalarıdır.
 
+## YAML locator dosyaları {#yaml-locators}
+
+Locator'lar bir YAML dosyasında da durabilir; iki platform için tek dosya. Değerler [seçici dizeleridir](#selector-strings):
+
+```yaml
+# src/test/resources/mobile-locators/login.yml
+login:
+  username:
+    ios: LoginScreen.nameTextField
+    android: com.example:id/etUsername
+  signIn: role=button;name=Sign in     # düz değer: iki platform
+  welcome:
+    mobile: text=Welcome back           # mobile: iki platform
+```
+
+```java
+MobileLocators locators = MobileLocators.load("mobile-locators/login.yml");   // önce classpath, yoksa dosya yolu
+locators.get("login.username").fill("ada");                                    // koşan platformun seçicisi
+```
+
+- Gruplar iç içe olabilir; anahtarlar noktayla birleşir (`login.username`). Yalnızca `ios`, `android` ve `mobile` anahtarları olan bir map tek bir locator'dır; `ios`/`android`, `mobile`'a göre önceliklidir.
+- Dosya yüklenirken her seçici kontrol edilir; geçersiz olan, anahtarını belirterek hata verir. Bilinmeyen bir anahtar, anahtarları listeleyerek hata verir.
+- Koşan platform için seçicisi olmayan anahtar, `@MobileFind`'taki gibi kullanıldığında hata veren bir locator döndürür.
+- `get(key)` testin cihazını kullanır; `get(key, screen)` ekranı açıkça alır. Dosyayı bir kez yükleyip paylaşın (örneğin bir `static final` alanda): cihaz durumu tutmaz.
+- Örnek: `src/test/resources/mobile-locators/login.yml`.
+
 ## Ön koşullar (precondition) {#preconditions}
 
 Login gibi ortak hazırlık her testte tekrarlanmak yerine bir ön koşulda durur. Sağlayıcıyı page object'lerle bir `MobileConditions` alt sınıfında yazın ve `@PreCondition` ile isteyin:

@@ -16,7 +16,7 @@ TestFly, native Android ve iOS uygulamalarını Appium olmadan sürebilir. **Siz
 | Sayfa | Kapsadığı |
 |---|---|
 | Bu sayfa | kurulum, TestNG, JUnit 5 ve Cucumber'da ilk test, hazır örnekler |
-| [Locator'lar ve page object'ler](locators-and-page-objects) | `getBy…` locator'ları, seçici dizeleri, `MobilePage`/`@MobileFind`/`@WaitFor`, ön koşullar (`MobileConditions` ile `@PreCondition`), eylemler ve doğrulamalar |
+| [Locator'lar ve page object'ler](locators-and-page-objects) | `getBy…` locator'ları, seçici dizeleri, `MobilePage`/`@MobileFind`/`@WaitFor`, YAML locator dosyaları, ön koşullar (`MobileConditions` ile `@PreCondition`), eylemler ve doğrulamalar |
 | [Yapılandırma](configuration) | `mobile:` bloğu, cihaz seçimi, cihaz havuzu, uygulama sıfırlama, sunucuyu otomatik başlatma, profiller, güvenlik |
 | [CI](ci) | Android emülatörü veya iOS simülatörüyle GitHub Actions'ta çalıştırma |
 | [Sorun giderme](troubleshooting) | istisnalar, sık sorunlar, sınırlar |

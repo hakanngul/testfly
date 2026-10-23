@@ -359,6 +359,7 @@ The main risks:
    Phase 4 preparation (2026-10-22). Nothing is promoted yet: D9 requires one shipped minor release and validation on real Android **and** iOS devices, and neither has happened.
 
    **Promotion candidates** (all in `io.testfly.mobile` unless noted):
+   - YAML locators (added 2026-10-23): `MobileLocators` (load, get, keys).
    - Preconditions (added 2026-10-23): `MobileConditions`, `MobileDevice.keepsAppState()`; `@PreCondition` routes to them on mobile tests.
    - Page objects (added 2026-10-23): `MobilePage` (fluent base class: fields set, `@WaitFor` awaited, `onLoad()`), `WaitFor`, `MobileFind` (iOS/Android/shared selector per field), `MobilePages`, `MobileSupport.page(Class)`, `MobileScreen.locate(String)`.
    - Entry and session: `Mobile`, `MobileDevice`, `MobileScreen`, `MobileLocator`, `MobileSupport`, `MobileTest`, `BaseMobileTest`, `junit5.BaseJUnit5MobileTest`.

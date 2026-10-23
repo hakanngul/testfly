@@ -98,6 +98,32 @@ Rules:
 
 The example pages are `src/test/java/io/testfly/examples/mobile/HomePage.java` and `LoginPage.java`.
 
+## YAML locator files {#yaml-locators}
+
+Locators can also live in a YAML file, one file for both platforms. Values are [selector strings](#selector-strings):
+
+```yaml
+# src/test/resources/mobile-locators/login.yml
+login:
+  username:
+    ios: LoginScreen.nameTextField
+    android: com.example:id/etUsername
+  signIn: role=button;name=Sign in     # a plain value: both platforms
+  welcome:
+    mobile: text=Welcome back           # mobile: both platforms
+```
+
+```java
+MobileLocators locators = MobileLocators.load("mobile-locators/login.yml");   // classpath, else file path
+locators.get("login.username").fill("ada");                                    // the running platform's selector
+```
+
+- Groups nest; keys join with dots (`login.username`). A map with only `ios`, `android` and `mobile` keys is one locator; `ios`/`android` win over `mobile`.
+- Every selector is checked when the file loads; an invalid one fails naming its key. An unknown key fails listing the keys.
+- A key without a selector for the running platform yields a locator that fails when used, as with `@MobileFind`.
+- `get(key)` uses the current test's device; `get(key, screen)` takes a screen explicitly. Load a file once (for example in a `static final` field) and share it: it holds no device state.
+- Example: `src/test/resources/mobile-locators/login.yml`.
+
 ## Preconditions {#preconditions}
 
 Shared setup, such as signing in, belongs in a precondition instead of every test. Write the provider with page objects in a `MobileConditions` subclass and ask for it with `@PreCondition`:

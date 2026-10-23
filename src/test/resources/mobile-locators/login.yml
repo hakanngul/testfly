@@ -1,0 +1,15 @@
+# Mobile locators of the login example app (same elements as examples/mobile/HomePage and LoginPage).
+# Load: MobileLocators.load("mobile-locators/login.yml").get("login.username")
+home:
+  loginButton:
+    ios: HomeScreen.loginButton
+  cookieAccept:
+    ios: cookieBannerAcceptAllButton
+login:
+  username:
+    ios: LoginScreen.nameTextField
+  password:
+    ios: LoginScreen.passwordTextField
+  loginButton:
+    ios: LoginScreen.loginButton
+    android: com.starlettech.letsbet.stage:id/btnLogin
