@@ -28,7 +28,7 @@ description: "TestFly native mobil modülünün istisnaları, mobilecli, cihazla
 | `did not answer within 20000 ms` | otomatik başlatılan sunucu yavaş veya hata veriyor; `target/mobilecli-autostart.log` dosyasını okuyun ya da `timeouts.serverStartMs`'i artırın. |
 | `Native mobile needs a 'mobile:' section` | etkin profilde `mobile:` bloğu yok; `-Dtestfly.profile=<ad>` verin veya bloğu ekleyin. |
 | iOS'ta ilk `tap` veya `@WaitFor` zaman aşımına düşüyor ("reading the view tree timed out") | DeviceKit yeni simülatörde hâlâ açılıyor. Ekranı bir kez uzun zaman aşımıyla okuyun (bkz. [CI](ci#steps-of-a-job)) ya da `timeouts.rpcMs`'i artırın. |
-| Her ekran okuması başarısız, mesaj ajanı gösteriyor | mobilecli ajanı eksik: `mobilecli agent install --device <id>`. |
+| iOS'ta her ekran okuması başarısız, mesaj ajanı gösteriyor | mobilecli ajanı eksik: `mobilecli agent install --device <id>` (Android ajan gerektirmez). |
 | Android emülatöründe `DeviceSelectionException` | kimlik `emulator-5554` değil, AVD adıdır (`Pixel_8_API_34`). |
 | `Strict mode: … matched 2 elements` | sorgu belirsiz; örneğin bir Ayarlar satırı, aynı etikete sahip bir StaticText de içeren bir Button'dır. Bir rol (`getByRole(BUTTON, "General")`), test id veya `first()` kullanın. |
 | Bir page object alanı `null` | alanın başlangıç değeri (`= null`) locator'ı ezdi; kaldırın. |

@@ -31,7 +31,7 @@ TestFly, native Android ve iOS uygulamalarını Appium olmadan sürebilir. **Siz
    ```
 
    Android emülatöründe kimlik adb seri numarası (`emulator-5554`) değil, AVD adıdır (örneğin `Pixel_8_API_34`). iOS'ta simülatörün UDID'sidir.
-3. mobilecli'nin ajanını cihaza bir kez kurun. Her ekran okuması ve dokunuş ona ihtiyaç duyar:
+3. **iOS:** mobilecli'nin ajanını cihaza bir kez kurun; ekran okumaları ve dokunuşlar ona ihtiyaç duyar. Android ajan gerektirmez (`agent status` yalnızca bunu bildirir):
 
    ```bash
    mobilecli agent install --device <device-id>

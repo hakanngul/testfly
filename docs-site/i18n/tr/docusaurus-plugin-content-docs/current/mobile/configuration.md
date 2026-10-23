@@ -84,7 +84,7 @@ Cihazları `devices: [id1, id2]` ile listeleyin ya da `pool: true` ile platformu
 - sunucunun cevap vermesi için `timeouts.serverStartMs` kadar bekler;
 - sunucu JVM kapanırken durdurulur.
 
-Zaten cevap veren bir sunucu olduğu gibi kullanılır ve hiç durdurulmaz. Uzak sunucular hiçbir zaman başlatılmaz. Çalışan bir sunucu şart koşmak için `autoStartServer: false` yapın. mobilecli **ajanı** otomatik kurulmaz; cihaz başına bir kez kurun (`mobilecli agent install --device <id>`).
+Zaten cevap veren bir sunucu olduğu gibi kullanılır ve hiç durdurulmaz. Uzak sunucular hiçbir zaman başlatılmaz. Çalışan bir sunucu şart koşmak için `autoStartServer: false` yapın. mobilecli **ajanı** (yalnızca iOS) otomatik kurulmaz; cihaz başına bir kez kurun (`mobilecli agent install --device <id>`).
 
 ## Profiller
 

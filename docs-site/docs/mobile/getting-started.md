@@ -31,7 +31,7 @@ Everything in `io.testfly.mobile` is incubating: it is not annotated `@TestFlyAp
    ```
 
    On an Android emulator the id is the AVD name (for example `Pixel_8_API_34`), not the adb serial (`emulator-5554`). On iOS it is the simulator UDID.
-3. Install mobilecli's agent on the device once. Every screen read and tap needs it:
+3. **iOS:** install mobilecli's agent on the device once; screen reads and taps need it. Android needs no agent (`agent status` just reports that):
 
    ```bash
    mobilecli agent install --device <device-id>

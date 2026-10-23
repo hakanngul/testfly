@@ -16,7 +16,7 @@ Skills to read first: `.agents/skills/testfly-mobile-locator-finder/SKILL.md`, `
 
 Follow `testfly-mobile-locator-finder` step by step:
 
-- Check `mobilecli --version`, `mobilecli devices` and `mobilecli agent status --device <id>` first. A missing CLI, device or agent: report it and stop; never invent ids.
+- Check `mobilecli --version` and `mobilecli devices` first, and on iOS `mobilecli agent status --device <id>` (Android needs no agent). A missing CLI, device or iOS agent: report it and stop; never invent ids.
 - Per screen: `mobilecli snapshot --device <id>` for the overview and refs, `mobilecli dump ui --device <id>` for the JSON with `identifier`/`resourceId`, `label`, `text`, `type` (add `--full` when an element is missing; allow a slow first read on a fresh iOS simulator).
 - Pick one selector per element: id, then `role=…;name=…`, `label=`, `placeholder=`, `text=`; count matches in the JSON so each one is unique on its screen.
 - Move to the next screen with `mobilecli io tap --device <id> @eN` (ref from the latest snapshot), then snapshot again; refs are never locators.

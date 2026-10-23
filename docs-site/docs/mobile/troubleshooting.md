@@ -28,7 +28,7 @@ description: "Exceptions of TestFly's native mobile module, common problems with
 | `did not answer within 20000 ms` | the auto-started server is slow or failing; read `target/mobilecli-autostart.log`, or raise `timeouts.serverStartMs`. |
 | `Native mobile needs a 'mobile:' section` | the active profile has no `mobile:` block; pass `-Dtestfly.profile=<name>` or add the block. |
 | The first `tap` or `@WaitFor` times out on iOS ("reading the view tree timed out") | DeviceKit is still starting on a fresh simulator. Read the screen once with a long timeout (see [CI](ci#steps-of-a-job)), or raise `timeouts.rpcMs`. |
-| Every screen read fails, the message names the agent | the mobilecli agent is missing: `mobilecli agent install --device <id>`. |
+| Every screen read fails on iOS, the message names the agent | the mobilecli agent is missing: `mobilecli agent install --device <id>` (Android needs no agent). |
 | `DeviceSelectionException` on an Android emulator | the id is the AVD name (`Pixel_8_API_34`), not `emulator-5554`. |
 | `Strict mode: … matched 2 elements` | the query is ambiguous, e.g. a Settings row is a Button that also holds a StaticText with the same label. Use a role (`getByRole(BUTTON, "General")`), a test id, or `first()`. |
 | A page object field is `null` | the field has an initial value (`= null`) that overwrote the locator; remove it. |

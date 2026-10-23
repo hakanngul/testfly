@@ -9,10 +9,13 @@ Turns "scan this app screen, give me locators" into ready-to-paste `@MobileFind`
 
 ## Preconditions
 
+Commands follow the [mobilecli README](https://github.com/mobile-next/mobilecli/blob/main/README.md).
+
 1. mobilecli is installed: `mobilecli --version` (1.0.20 or newer).
-2. The device is online: `mobilecli devices` → note its id (Android emulator: the AVD name; iOS: the simulator UDID).
-3. The agent is installed on it: `mobilecli agent status --device <id>`; if not, `mobilecli agent install --device <id>`.
-4. The app is open on the screen to scan (ask the user, or launch it: `mobilecli apps launch --device <id> <bundleId>` if that command exists in `mobilecli --help`).
+2. The device is online: `mobilecli devices` → note its id (Android emulator: the AVD name; iOS: the simulator UDID). An offline emulator or simulator: `mobilecli devices --include-offline`, then `mobilecli device boot --device <id>`.
+3. With one online device `--device` can be left out; with several, `export MOBILECLI_DEVICE=<id>` (an explicit `--device` still wins). The commands below keep `--device` for clarity.
+4. **iOS only**: the on-device agent is required for UI tree inspection and taps: `mobilecli agent status --device <id>`, else `mobilecli agent install --device <id>`. Android needs no agent.
+5. The app is open on the screen to scan: ask the user, or `mobilecli apps launch <bundle-id> --device <id>`. `mobilecli apps foreground --device <id>` shows the app in front, `mobilecli apps list --device <id>` the installed bundle ids (useful for `mobile.app.bundleId`).
 
 If any step fails, report it and stop.
 
@@ -47,7 +50,9 @@ mobilecli io tap --device <id> @e12
 mobilecli snapshot --device <id>          # the new screen; refs are new
 ```
 
-Do not type real credentials unless the user provides them for this purpose; never write them into files.
+To reach a screen behind a form, `mobilecli io fill --device <id> 'text'` replaces the focused field's text and `mobilecli io button --device <id> HOME` presses a hardware button. Do not type real credentials unless the user provides them for this purpose; never write them into files.
+
+A screenshot helps to pair elements visually: `mobilecli screenshot --device <id> --output /tmp/<screen>.png`.
 
 ## Both platforms
 

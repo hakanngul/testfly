@@ -84,7 +84,7 @@ When `serverUrl` is a loopback address (`localhost`, `127.*`, `::1`) and nothing
 - it waits up to `timeouts.serverStartMs` for the server to answer;
 - the server is stopped when the JVM exits.
 
-A server that already answers is used as is and never stopped. Remote servers are never started. Set `autoStartServer: false` to require a running server. The mobilecli **agent** is not installed automatically; install it once per device (`mobilecli agent install --device <id>`).
+A server that already answers is used as is and never stopped. Remote servers are never started. Set `autoStartServer: false` to require a running server. The mobilecli **agent** (iOS only) is not installed automatically; install it once per device (`mobilecli agent install --device <id>`).
 
 ## Profiles
 
