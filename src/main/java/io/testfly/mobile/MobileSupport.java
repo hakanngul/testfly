@@ -19,6 +19,11 @@ public interface MobileSupport {
         return device().screen();
     }
 
+    /** A page object with its {@link MobileFind} fields set for the current device; see {@link MobilePages}. */
+    default <T> T page(Class<T> type) {
+        return MobilePages.create(type, screen());
+    }
+
     /** {@code expect(screen().getByText("Welcome")).toBeVisible()} */
     default MobileLocatorAssert expect(MobileLocator locator) {
         return MobileAssertions.expect(locator);

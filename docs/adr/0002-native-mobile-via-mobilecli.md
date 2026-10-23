@@ -344,8 +344,9 @@ The main risks:
    - Agent decision: TestFly does not run `mobilecli agent status/install` itself, because the server may be remote and the CLI may not be on the test machine. The docs list the agent as a prerequisite, and a failed UI dump names the `mobilecli agent status --device <id>` check in its error.
 
 **Phase 3: real devices and scale**
-14. [ ] An Android emulator smoke suite, as an optional CI job or a documented local run.
-15. [ ] iOS simulator and real-device validation on a macOS runner.
+14. [x] An Android emulator smoke suite, as an optional CI job or a documented local run.
+15. [~] iOS simulator and real-device validation on a macOS runner.
+   - Done (2026-10-23): `IosSettingsExampleTest` passes on an iOS simulator in the `ios-simulator-smoke` job, after a DeviceKit warm-up before the first app launch. Open: real iOS and Android devices.
 16. [~] `mobile.devices` pool and allocator for parallel runs; deep links, orientation and geolocation.
    - Done (2026-10-22): device pool. `mobile.devices: [ids]` or `mobile.pool: true` (every online match of `deviceName`). `DeviceReservations.acquireAny` hands each session the first free device and wakes waiters on release (`reserveMs`). Verified with the fake server: two parallel TestNG workers get different devices; 40 sessions on 3 devices never share one. Deep links work through `MobileDevice.openUrl`.
    - Open: orientation and geolocation (`device.io.orientation.*`, `device.location.*`); pools across JVMs or machines.
@@ -357,6 +358,7 @@ The main risks:
    Phase 4 preparation (2026-10-22). Nothing is promoted yet: D9 requires one shipped minor release and validation on real Android **and** iOS devices, and neither has happened.
 
    **Promotion candidates** (all in `io.testfly.mobile` unless noted):
+   - Page objects (added 2026-10-23): `MobileFind` (iOS/Android/shared selector per field), `MobilePages`, `MobileSupport.page(Class)`, `MobileScreen.locate(String)`.
    - Entry and session: `Mobile`, `MobileDevice`, `MobileScreen`, `MobileLocator`, `MobileSupport`, `MobileTest`, `BaseMobileTest`, `junit5.BaseJUnit5MobileTest`.
    - Assertions: `MobileAssertions`, `MobileLocatorAssert`, `MobileAssertionError`.
    - Values: `MobileRole`, `MobilePlatform`, `SwipeDirection`, `MobileNode`, `MobileBounds`, `MobileDeviceInfo`, `MobileScreenSize`.

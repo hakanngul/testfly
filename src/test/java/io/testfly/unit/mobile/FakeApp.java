@@ -20,6 +20,8 @@ final class FakeApp {
     private final String deviceId;
     /** More online Android devices served by the same app (device pool tests). */
     private final java.util.List<String> extraIds;
+    /** Platform the fake device reports ({@code android} or {@code ios}); the UI is the same. */
+    String platform = "android";
     String screen = "login";
     String foreground = "com.android.launcher";
     String focused;
@@ -40,7 +42,7 @@ final class FakeApp {
             requireDevice(p);
             ObjectNode r = MAPPER.createObjectNode();
             ObjectNode d = r.putObject("device");
-            d.put("id", deviceId).put("name", deviceId).put("platform", "android").put("type", "emulator").put("state", "online");
+            d.put("id", deviceId).put("name", deviceId).put("platform", platform).put("type", "emulator").put("state", "online");
             d.putObject("screenSize").put("width", 1080).put("height", 2400).put("scale", 1);
             return r;
         });
@@ -82,7 +84,7 @@ final class FakeApp {
     private JsonNode devices() {
         ObjectNode r = MAPPER.createObjectNode();
         ArrayNode list = r.putArray("devices");
-        list.addObject().put("id", deviceId).put("name", "Pixel 8 (" + deviceId + ")").put("platform", "android")
+        list.addObject().put("id", deviceId).put("name", "Pixel 8 (" + deviceId + ")").put("platform", platform)
                 .put("type", "emulator").put("version", "14").put("state", "online");
         for (String extra : extraIds) {
             list.addObject().put("id", extra).put("name", "Pixel 8 (" + extra + ")").put("platform", "android")

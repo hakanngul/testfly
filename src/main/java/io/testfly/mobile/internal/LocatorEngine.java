@@ -1,5 +1,6 @@
 package io.testfly.mobile.internal;
 
+import io.testfly.mobile.MobileLocatorException;
 import io.testfly.mobile.MobileNode;
 import io.testfly.mobile.MobileRole;
 
@@ -139,6 +140,21 @@ public final class LocatorEngine {
 
             public String describe() {
                 return "getByTestId(\"" + id + "\")";
+            }
+        };
+    }
+
+    /** A query that fails with {@code message} when used, e.g. a page field without a definition for this platform. */
+    public static Query missing(String message) {
+        return new Query() {
+            @Override
+            public List<MobileNode> evaluate(List<MobileNode> roots) {
+                throw new MobileLocatorException(message);
+            }
+
+            @Override
+            public String describe() {
+                return "missing(" + message + ")";
             }
         };
     }

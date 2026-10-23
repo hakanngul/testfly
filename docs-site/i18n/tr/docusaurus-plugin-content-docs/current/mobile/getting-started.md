@@ -138,6 +138,29 @@ Profiller `src/test/resources/testfly-mobile-ios.yml` ve `testfly-mobile-android
 
 `first()`, `last()`, `nth(i)`, `within(container)`, `or(other)`, `and(other)`, `filterHasText(...)`, `filterHasNotText(...)`, `filterHas(locator)`, `filterHasNot(locator)` ve `withTimeout(Duration)` ile daraltın. Locator'lar TestFly içinde ekranın eleman ağacı üzerinde değerlendirilir.
 
+## Page object'ler
+
+`@MobileFind` alanı bir öğenin iOS ve Android seçicisini birlikte tutar. `page(Type.class)` (`MobileSupport`'tan) sayfayı argümansız kurucusuyla oluşturur ve her alana koşan platformun locator'ını atar. Kendi oluşturduğunuz sayfa için `MobilePages.init(page, screen)` kullanın.
+
+```java
+public class LoginPage {
+    @MobileFind(ios = "LoginScreen.loginButton", android = "com.example:id/btnLogin")
+    public MobileLocator loginButton;
+
+    @MobileFind("role=button;name=Sign in")   // iki platformda aynı seçici
+    public MobileLocator signIn;
+}
+
+// BaseMobileTest, JUnit 5 mobil testi veya MobileSupport uygulayan Cucumber adımlarında:
+LoginPage login = page(LoginPage.class);
+login.loginButton.tap();
+```
+
+- Seçici dizeleri: çıplak dize test id'dir; yoksa `testid=…`, `text=…`, `label=…`, `placeholder=…`, `type=…` veya `role=button;name=…` (tam eşleşme). `screen().locate("…")` aynı dizeleri alır.
+- Platformun kendi seçicisi boşsa `value` kullanılır. Koşan platform için seçicisi olmayan alan yalnızca kullanıldığında hata verir.
+- Alanlar statik olmayan `MobileLocator` olmalıdır; üst sınıf alanları da doldurulur. Locator'lar tembeldir, tek sayfa örneği ekran değişse de çalışır.
+- Örnek: `src/test/java/io/testfly/examples/mobile/LoginPage.java`; `IosLoginExampleTest` ve Cucumber `IosLoginSteps` kullanır.
+
 ## Eylemler ve doğrulamalar
 
 - **Eylemler:** `tap()`, `doubleTap()`, `longPress()`, `fill(text)` (`type(text)` ile aynı), `append(text)`, `clear()`, `swipe(SwipeDirection)`. Tam olarak bir eleman eşleşene ve görünür, etkin ve sabit olana kadar bekler, sonra elemanın ortasında işlem yapar. Birden çok eşleşme, `first()`, `last()` veya `nth(i)` biri seçmedikçe hata verir (strict mode).

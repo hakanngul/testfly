@@ -9,9 +9,9 @@ Design and status: `docs/adr/0002-native-mobile-via-mobilecli.md`. Everything is
 
 ## Map
 
-- **Public API** (`io.testfly.mobile`): `Mobile.connect()`, `MobileDevice`, `MobileScreen`, `MobileLocator`, `MobileAssertions`/`MobileLocatorAssert`, `MobileRole`, value records, the `MobileException` subtypes, `MobileSupport`, `BaseMobileTest`, `@MobileTest` (`@Inherited`), `junit5.BaseJUnit5MobileTest`.
+- **Public API** (`io.testfly.mobile`): `Mobile.connect()`, `MobileDevice`, `MobileScreen`, `MobileLocator`, `MobileAssertions`/`MobileLocatorAssert`, `MobileRole`, value records, the `MobileException` subtypes, `MobileSupport`, `BaseMobileTest`, `@MobileTest` (`@Inherited`), `junit5.BaseJUnit5MobileTest`; page objects via `@MobileFind(ios, android, value)` fields, `MobilePages` and `MobileSupport.page(Class)`.
 - **SPI:** `spi.MobileDriver`; every call receives its timeout.
-- **Internal:** `JsonRpcClient` (HTTP `POST /rpc`), `MobileCliDriver` (mobilecli 1.0.20 methods), `LocatorEngine` (ported from Mobilewright; attribution in NOTICE), `Poller`, `DeviceSelector`, `DeviceReservations`, `MobileSessions` (thread-confined), `MobileTestDetector`.
+- **Internal:** `JsonRpcClient` (HTTP `POST /rpc`), `MobileCliDriver` (mobilecli 1.0.20 methods), `LocatorEngine` (ported from Mobilewright; attribution in NOTICE), `SelectorParser` (selector strings of `@MobileFind`/`MobileScreen.locate`), `Poller`, `DeviceSelector`, `DeviceReservations`, `MobileSessions` (thread-confined), `MobileTestDetector`.
 - **Config:** `TestFlyConfig.Mobile`; the defaults live in its field initialisers.
 - **Bridges:** `TestExecutionListener`, `TestFlyExtension`, `CucumberHooks` (`@mobile`): skip the browser, open and close the device, take the failure screenshot.
 

@@ -3,6 +3,7 @@ package io.testfly.mobile;
 import io.testfly.mobile.internal.LocatorEngine;
 import io.testfly.mobile.internal.LocatorEngine.TextMatch;
 import io.testfly.mobile.internal.MobileSession;
+import io.testfly.mobile.internal.SelectorParser;
 
 import java.util.List;
 import java.util.Objects;
@@ -75,6 +76,15 @@ public final class MobileScreen {
         return locator(LocatorEngine.byType(Objects.requireNonNull(type, "type")));
     }
 
+    /**
+     * Locator from a selector string: a bare string is a test id; otherwise {@code testid=},
+     * {@code text=}, {@code label=}, {@code placeholder=}, {@code type=} or
+     * {@code role=button;name=Sign in} (exact matches). Used by {@link MobileFind}.
+     */
+    public MobileLocator locate(String selector) {
+        return locator(SelectorParser.parse(selector));
+    }
+
     /** Swipes across the middle of the screen, half its width or height. */
     public void swipe(SwipeDirection direction) {
         MobileScreenSize size = session.driver().screenSize(session.rpcTimeout());
@@ -100,7 +110,11 @@ public final class MobileScreen {
         return session.driver().screenshot(session.rpcTimeout());
     }
 
-    private MobileLocator locator(LocatorEngine.Query query) {
+    MobilePlatform platform() {
+        return session.platform();
+    }
+
+    MobileLocator locator(LocatorEngine.Query query) {
         return new MobileLocator(session, query, session.actionTimeout());
     }
 }

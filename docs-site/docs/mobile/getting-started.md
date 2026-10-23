@@ -138,6 +138,29 @@ The profiles are `src/test/resources/testfly-mobile-ios.yml` and `testfly-mobile
 
 Refine with `first()`, `last()`, `nth(i)`, `within(container)`, `or(other)`, `and(other)`, `filterHasText(...)`, `filterHasNotText(...)`, `filterHas(locator)`, `filterHasNot(locator)` and `withTimeout(Duration)`. Locators are evaluated in TestFly against the screen's element tree.
 
+## Page objects
+
+A `@MobileFind` field holds the iOS and the Android selector of one element. `page(Type.class)` (from `MobileSupport`) creates the page with its no-argument constructor and sets each field to a locator for the running platform. Use `MobilePages.init(page, screen)` for a page you created yourself.
+
+```java
+public class LoginPage {
+    @MobileFind(ios = "LoginScreen.loginButton", android = "com.example:id/btnLogin")
+    public MobileLocator loginButton;
+
+    @MobileFind("role=button;name=Sign in")   // same selector on both platforms
+    public MobileLocator signIn;
+}
+
+// in a BaseMobileTest, a JUnit 5 mobile test or Cucumber steps implementing MobileSupport:
+LoginPage login = page(LoginPage.class);
+login.loginButton.tap();
+```
+
+- Selector strings: a bare string is a test id; otherwise `testid=…`, `text=…`, `label=…`, `placeholder=…`, `type=…` or `role=button;name=…` (exact matches). `screen().locate("…")` takes the same strings.
+- `value` is used when the platform's own selector is empty. A field with no selector for the running platform fails only when it is used.
+- Fields must be non-static `MobileLocator`s; superclass fields are filled too. Locators are lazy, so one page instance works across screen changes.
+- Example: `src/test/java/io/testfly/examples/mobile/LoginPage.java`, used by `IosLoginExampleTest` and the Cucumber `IosLoginSteps`.
+
 ## Actions and assertions
 
 - **Actions:** `tap()`, `doubleTap()`, `longPress()`, `fill(text)` (same as `type(text)`), `append(text)`, `clear()`, `swipe(SwipeDirection)`. They wait until exactly one element matches and it is visible, enabled and stable, then act on the centre of the element. Several matches fail unless `first()`, `last()` or `nth(i)` picks one (strict mode).
