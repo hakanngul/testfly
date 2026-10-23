@@ -114,6 +114,17 @@ try (MobileDevice device = Mobile.connect()) {   // reads testfly.yml
 }
 ```
 
+## Examples
+
+Ready-to-run examples drive the built-in Settings app, so no app file is needed:
+
+| Platform | Test | Run |
+|---|---|---|
+| iOS simulator | `src/test/java/io/testfly/examples/mobile/IosSettingsExampleTest.java` | `mvn test -Dtestfly.profile=mobile-ios -Dtest=IosSettingsExampleTest` |
+| Android emulator | `src/test/java/io/testfly/examples/mobile/AndroidSettingsExampleTest.java` | `mvn test -Dtestfly.profile=mobile-android -Dtest=AndroidSettingsExampleTest` |
+
+The profiles are `src/test/resources/testfly-mobile-ios.yml` and `testfly-mobile-android.yml`. Start `mobilecli server start` and boot the simulator or emulator first; the texts assume an English device. The `Mobile Emulator Smoke` workflow runs both examples on GitHub Actions.
+
 ## Locators
 
 | Method | Matches |

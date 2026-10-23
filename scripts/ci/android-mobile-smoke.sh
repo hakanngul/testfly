@@ -28,3 +28,7 @@ MOBILE_DEVICE_ID="$device_id" mvn verify -Preal-backends --no-transfer-progress 
   -Dtest=NoSuchTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false \
   -Dit.test=AndroidEmulatorSmokeIntegrationTest \
   -Dtestfly.mobile.smoke=true
+
+# The user-facing example, through BaseMobileTest and the TestNG bridge.
+MOBILE_DEVICE_ID="$device_id" mvn test --no-transfer-progress -Djacoco.skip=true \
+  -Dtestfly.profile=mobile-android -Dtest=AndroidSettingsExampleTest -Dsurefire.failIfNoSpecifiedTests=false

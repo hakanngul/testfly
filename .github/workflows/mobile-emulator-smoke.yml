@@ -12,7 +12,8 @@ on:
     paths:
       - 'src/main/java/io/testfly/mobile/**'
       - 'src/test/java/io/testfly/integration/mobile/**'
-      - 'scripts/ci/android-mobile-smoke.sh'
+      - 'scripts/ci/*-mobile-smoke.sh'
+      - 'src/test/java/io/testfly/examples/mobile/**'
       - '.github/workflows/mobile-emulator-smoke.yml'
 
 permissions:
@@ -72,6 +73,48 @@ jobs:
           name: mobile-smoke-api-${{ matrix.api-level }}
           path: |
             target/failsafe-reports/
+            target/surefire-reports/
+            target/reports/screenshots/
+            target/mobilecli-server.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  ios-simulator-smoke:
+    name: iOS simulator smoke
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install mobilecli
+        run: npm install -g mobilecli@1.0.20
+
+      - name: Build TestFly
+        run: mvn -B --no-transfer-progress -DskipTests -Djacoco.skip=true install
+
+      - name: Run the iOS example on a simulator
+        run: bash scripts/ci/ios-mobile-smoke.sh
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: mobile-smoke-ios
+          path: |
+            target/surefire-reports/
             target/reports/screenshots/
             target/mobilecli-server.log
           if-no-files-found: ignore

@@ -114,6 +114,17 @@ try (MobileDevice device = Mobile.connect()) {   // testfly.yml dosyasını okur
 }
 ```
 
+## Örnekler
+
+Hazır örnekler cihazdaki yerleşik Ayarlar uygulamasını kullanır, uygulama dosyası gerekmez:
+
+| Platform | Test | Çalıştırma |
+|---|---|---|
+| iOS simülatörü | `src/test/java/io/testfly/examples/mobile/IosSettingsExampleTest.java` | `mvn test -Dtestfly.profile=mobile-ios -Dtest=IosSettingsExampleTest` |
+| Android emülatörü | `src/test/java/io/testfly/examples/mobile/AndroidSettingsExampleTest.java` | `mvn test -Dtestfly.profile=mobile-android -Dtest=AndroidSettingsExampleTest` |
+
+Profiller `src/test/resources/testfly-mobile-ios.yml` ve `testfly-mobile-android.yml` dosyalarıdır. Önce `mobilecli server start` ile sunucuyu başlatın ve simülatörü ya da emülatörü açın; metinler İngilizce cihaz varsayar. `Mobile Emulator Smoke` iş akışı iki örneği de GitHub Actions'ta çalıştırır.
+
 ## Locator'lar
 
 | Metot | Eşleştiği |

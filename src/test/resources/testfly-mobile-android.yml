@@ -1,0 +1,26 @@
+# Profile for the native mobile examples (src/test/java/io/testfly/examples/mobile).
+# Run: mvn test -Dtestfly.profile=mobile-android -Dtest=AndroidSettingsExampleTest
+# Needs a running `mobilecli server start` and one booted Android emulator with the mobilecli agent installed.
+
+# browser, execution and timeouts are required by config validation even for mobile-only runs.
+browser:
+  name: chrome
+  headless: true
+execution:
+  mode: local
+  baseUrl: http://localhost
+timeouts:
+  explicit: 10
+  pageLoad: 30
+
+mobile:
+  serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+  platform: android
+  deviceId: ${MOBILE_DEVICE_ID:-}
+  app:
+    bundleId: com.android.settings        # the built-in Settings app: no app file needed
+    reset: relaunch
+  timeouts:
+    actionMs: 30000            # simulators and emulators are slow right after a launch
+    pollMs: 500
+    rpcMs: 60000
