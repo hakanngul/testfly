@@ -233,4 +233,88 @@ public class MobileDeviceTest {
             assertEquals(app.foreground, FakeApp.BUNDLE);
         }
     }
+
+    // ── device settings and recording ───────────────────────────────────
+
+    @Test
+    public void rotatesAndOverridesTheLocationAndRestoresBothOnClose() {
+        String id = uniqueId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            FakeApp app = new FakeApp(id).install(server);
+            try (MobileDevice device = Mobile.connect(config(server, id))) {
+                assertEquals(device.orientation(), io.testfly.mobile.MobileOrientation.PORTRAIT);
+                device.setOrientation(io.testfly.mobile.MobileOrientation.LANDSCAPE);
+                assertEquals(device.orientation(), io.testfly.mobile.MobileOrientation.LANDSCAPE);
+
+                device.setLocation(41.0082, 28.9784);
+                assertEquals(app.location, "41.0082,28.9784");
+                expectThrows(IllegalArgumentException.class, () -> device.setLocation(91, 0));
+            }
+            assertEquals(app.orientation, "portrait", "the orientation before the first change is restored");
+            assertNull(app.location, "the location override is cleared");
+        }
+    }
+
+    @Test
+    public void recordsOnRequestAndKeepsAutomaticRecordingsOnlyWhenAsked() throws Exception {
+        String id = uniqueId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            FakeApp app = new FakeApp(id).install(server);
+
+            // Manual recording.
+            java.nio.file.Path manual = java.nio.file.Files.createTempDirectory("tf-rec-").resolve("manual.mp4");
+            try (MobileDevice device = Mobile.connect(config(server, id))) {
+                device.startRecording(manual);
+                assertEquals(app.recordingTo, manual.toAbsolutePath().toString());
+                expectThrows(IllegalStateException.class, () -> device.startRecording(manual));
+                assertEquals(device.stopRecording(), manual);
+                assertTrue(java.nio.file.Files.exists(manual));
+                assertNull(device.stopRecording(), "nothing is recording any more");
+            }
+
+            // recordVideo: failures — a passed test's recording is discarded at close.
+            TestFlyConfig.Mobile failures = config(server, id);
+            failures.setRecordVideo("failures");
+            String discarded;
+            try (MobileDevice device = Mobile.connect(failures)) {
+                discarded = app.recordingTo;
+                assertNotNull(discarded, "the recording starts with the device");
+            }
+            assertNull(app.recordingTo);
+            assertFalse(java.nio.file.Files.exists(java.nio.file.Path.of(discarded)), "a passed test keeps no video");
+
+            // recordVideo: failures — a failed test keeps it under target/reports/videos.
+            try (MobileDevice device = Mobile.connect(failures)) {
+                java.nio.file.Path kept = device.saveRecording("my test");
+                assertNotNull(kept);
+                assertTrue(kept.toString().contains("reports" + java.io.File.separator + "videos"), kept.toString());
+                assertTrue(kept.getFileName().toString().startsWith("my_test_mobile_"), kept.toString());
+                assertTrue(java.nio.file.Files.exists(kept));
+                java.nio.file.Files.delete(kept);
+            }
+
+            // recordVideo: always — kept at close.
+            TestFlyConfig.Mobile always = config(server, id);
+            always.setRecordVideo("always");
+            try (MobileDevice device = Mobile.connect(always)) {
+                assertNotNull(app.recordingTo);
+            }
+            assertNull(app.recordingTo, "stopped at close");
+            try (var files = java.nio.file.Files.list(java.nio.file.Path.of("target", "reports", "videos"))) {
+                // No test id outside a runner: the file is named after the device.
+                java.util.List<java.nio.file.Path> saved = files.filter(f -> f.getFileName().toString().startsWith(id + "_mobile_")).toList();
+                assertEquals(saved.size(), 1, String.valueOf(saved));
+                java.nio.file.Files.delete(saved.get(0));
+            }
+        }
+    }
+
+    @Test
+    public void rejectsAnUnknownRecordingMode() {
+        TestFlyConfig.Mobile m = new TestFlyConfig.Mobile();
+        m.setPlatform("android");
+        m.setRecordVideo("sometimes");
+        ConfigurationException e = expectThrows(ConfigurationException.class, () -> Mobile.connect(m));
+        assertTrue(e.getMessage().contains("mobile.recordVideo must be off, failures or always"), e.getMessage());
+    }
 }

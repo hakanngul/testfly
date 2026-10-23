@@ -41,5 +41,5 @@ description: "Exceptions of TestFly's native mobile module, common problems with
 - One device per test; a JVM-wide reservation lets only one test use a device at a time. Without a pool, parallel workers share one device serially. Separate JVMs or machines sharing devices are not coordinated.
 - App state cannot be cached like browser cookies, so a mobile `@PreCondition` runs again before every test unless `mobile.app.reset: none` keeps the app state. Cucumber does not read `@PreCondition`; use a `Background`.
 - `launchApp` does not wait for the app to reach the foreground; the first locator call waits instead.
-- No orientation, geolocation, screen recording, WebView or WebSocket support yet.
+- No WebView or WebSocket support yet. Screen recording needs a local mobilecli server; a device that cannot record logs a warning and runs without a video.
 - Custom backends can implement the `io.testfly.mobile.spi.MobileDriver` interface and open a device with `Mobile.connect(driver, settings)`.

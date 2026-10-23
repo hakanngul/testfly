@@ -37,6 +37,7 @@ import java.util.Set;
 public final class Mobile {
 
     private static final Set<String> RESETS = Set.of("none", "relaunch", "cleardata");
+    private static final Set<String> RECORD_MODES = Set.of("off", "failures", "always");
 
     private Mobile() {
     }
@@ -86,7 +87,9 @@ public final class Mobile {
                     Duration.ofMillis(t.getPollMs()), rpcTimeout);
             String reset = mobile.getApp().getReset().toLowerCase(Locale.ROOT);
             prepareApp(session, mobile.getApp(), reset);
-            return new MobileDevice(session, reservation, mobile.getApp().getBundleId(), !reset.equals("none"));
+            MobileDevice opened = new MobileDevice(session, reservation, mobile.getApp().getBundleId(), !reset.equals("none"));
+            opened.startAutoRecording(mobile.getRecordVideo().toLowerCase(Locale.ROOT));
+            return opened;
         } catch (RuntimeException e) {
             if (reservation != null) {
                 reservation.close();
@@ -136,6 +139,9 @@ public final class Mobile {
         }
         if (!RESETS.contains(mobile.getApp().getReset().toLowerCase(Locale.ROOT))) {
             throw new ConfigurationException("mobile.app.reset must be none, relaunch or clearData, got: " + mobile.getApp().getReset());
+        }
+        if (!RECORD_MODES.contains(mobile.getRecordVideo().toLowerCase(Locale.ROOT))) {
+            throw new ConfigurationException("mobile.recordVideo must be off, failures or always, got: " + mobile.getRecordVideo());
         }
         if (!mobile.getDevices().isEmpty()) {
             if (mobile.getDevices().stream().anyMatch(id -> id == null || id.isBlank())) {

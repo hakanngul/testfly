@@ -349,7 +349,8 @@ The main risks:
    - Done (2026-10-23): `IosSettingsExampleTest` passes on an iOS simulator in the `ios-simulator-smoke` job, after a DeviceKit warm-up before the first app launch. Open: real iOS and Android devices.
 16. [~] `mobile.devices` pool and allocator for parallel runs; deep links, orientation and geolocation.
    - Done (2026-10-22): device pool. `mobile.devices: [ids]` or `mobile.pool: true` (every online match of `deviceName`). `DeviceReservations.acquireAny` hands each session the first free device and wakes waiters on release (`reserveMs`). Verified with the fake server: two parallel TestNG workers get different devices; 40 sessions on 3 devices never share one. Deep links work through `MobileDevice.openUrl`.
-   - Open: orientation and geolocation (`device.io.orientation.*`, `device.location.*`); pools across JVMs or machines.
+   - Done (2026-10-23): orientation and geolocation (`MobileDevice.setOrientation/orientation`, `setLocation/clearLocation`, undone at close) and screen recording (`startRecording/stopRecording`, `mobile.recordVideo: off|failures|always`), as optional `MobileDriver` default methods.
+   - Open: pools across JVMs or machines.
 
 **Phase 4: stabilise**
 17. [ ] Promote validated types to `@TestFlyApi`.

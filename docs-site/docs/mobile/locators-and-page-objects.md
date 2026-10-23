@@ -127,5 +127,6 @@ public void showsTheBalance() { /* starts signed in */ }
 - **Reads:** `getText()`, `getValue()`, `node()` wait for a visible element; `count()`, `nodes()`, `isVisible()` read the current screen without waiting; `waitForVisible()` and `waitForHidden()` wait explicitly.
 - **Assertions:** `expect(locator)` with `toBeVisible()`, `toBeHidden()`, `toBeEnabled()`, `toBeDisabled()`, `toBeSelected()`, `toBeChecked()`, `toBeFocused()`, `toHaveText(...)`, `toContainText(...)`, `toHaveValue(...)`, `toHaveCount(n)`, and `not()`. They retry until `timeouts.actionMs` runs out.
 - **Device:** `device()` offers `launchApp`, `terminateApp`, `clearAppData`, `installApp`, `openUrl` (deep links), `pressButton("BACK")`, `screenSize()` and `screenshot()`; `screen().swipe(...)` swipes across the screen.
+- **Device settings:** `device().setOrientation(MobileOrientation.LANDSCAPE)` and `orientation()`; `setLocation(latitude, longitude)` and `clearLocation()`. Both are undone when the device closes, so the next test starts in the original orientation with the real location. `startRecording(path)` / `stopRecording()` record the screen by hand; automatic recording is [`recordVideo`](configuration#screen-recording).
 
 Actions are logged as report steps ("Tap getByText(…)"); typed text is not logged. When a test fails, a device screenshot is attached (`screenshotOnFailure`).

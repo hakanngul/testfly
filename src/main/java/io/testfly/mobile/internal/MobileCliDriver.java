@@ -5,11 +5,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.testfly.mobile.MobileBounds;
 import io.testfly.mobile.MobileDeviceInfo;
 import io.testfly.mobile.MobileNode;
+import io.testfly.mobile.MobileOrientation;
 import io.testfly.mobile.MobilePlatform;
 import io.testfly.mobile.MobileRpcException;
 import io.testfly.mobile.MobileScreenSize;
 import io.testfly.mobile.spi.MobileDriver;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -192,6 +194,44 @@ public final class MobileCliDriver implements MobileDriver {
         ObjectNode p = JsonRpcClient.params();
         p.put("url", url);
         deviceCall("device.url", p, timeout, false);
+    }
+
+    @Override
+    public MobileOrientation orientation(Duration timeout) {
+        String value = deviceCall("device.io.orientation.get", null, timeout, true).path("orientation").asText("");
+        return "landscape".equalsIgnoreCase(value) ? MobileOrientation.LANDSCAPE : MobileOrientation.PORTRAIT;
+    }
+
+    @Override
+    public void setOrientation(MobileOrientation orientation, Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        p.put("orientation", orientation.name().toLowerCase(java.util.Locale.ROOT));
+        deviceCall("device.io.orientation.set", p, timeout, false);
+    }
+
+    @Override
+    public void setLocation(double latitude, double longitude, Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        p.put("latitude", latitude);
+        p.put("longitude", longitude);
+        deviceCall("device.location.set", p, timeout, false);
+    }
+
+    @Override
+    public void clearLocation(Duration timeout) {
+        deviceCall("device.location.clear", null, timeout, false);
+    }
+
+    @Override
+    public void startRecording(Path output, Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        p.put("output", output.toAbsolutePath().toString());
+        deviceCall("device.screenrecord", p, timeout, false);
+    }
+
+    @Override
+    public void stopRecording(Duration timeout) {
+        deviceCall("device.screenrecord.stop", null, timeout, false);
     }
 
     // ── helpers ─────────────────────────────────────────────────────────

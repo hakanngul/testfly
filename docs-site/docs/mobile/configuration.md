@@ -32,6 +32,7 @@ mobile:
   allowRemote: false
   headers: {}                  # e.g. Authorization: Bearer ${MOBILECLI_TOKEN}
   screenshotOnFailure: true
+  recordVideo: off             # off | failures | always
 ```
 
 | Key | Default | Description |
@@ -55,6 +56,7 @@ mobile:
 | `allowRemote` | `false` | Allow a non-loopback `serverUrl` (needs `https://`). |
 | `headers` | `{}` | Extra HTTP headers on every request, e.g. for an authenticating proxy. |
 | `screenshotOnFailure` | `true` | Attach a device screenshot to a failed test. |
+| `recordVideo` | `off` | Screen recording per test: `off`, `failures` (kept for failed tests) or `always`; see [Screen recording](#screen-recording). |
 
 Values support the usual placeholders (`${MOBILE_DEVICE_ID:-}`); see [Configuration](../configuration).
 
@@ -85,6 +87,16 @@ When `serverUrl` is a loopback address (`localhost`, `127.*`, `::1`) and nothing
 - the server is stopped when the JVM exits.
 
 A server that already answers is used as is and never stopped. Remote servers are never started. Set `autoStartServer: false` to require a running server. The mobilecli **agent** (iOS only) is not installed automatically; install it once per device (`mobilecli agent install --device <id>`).
+
+## Screen recording {#screen-recording}
+
+With `recordVideo: failures` or `always`, every mobile test records the screen from the moment its device opens:
+
+- `failures`: a failed test keeps its video as `target/reports/videos/<test>_mobile_<time>.mp4` and logs a "Device recording" step; a passed test's video is deleted.
+- `always`: every video is kept there; outside a test runner the file is named after the device.
+- mobilecli writes the file, so recording works with a local server (the default loopback `serverUrl`). If a device or platform cannot record, a warning is logged and the test runs without a video.
+
+Record by hand with `device().startRecording(path)` and `device().stopRecording()`.
 
 ## Profiles
 

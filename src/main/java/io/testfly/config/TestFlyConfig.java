@@ -2759,6 +2759,7 @@ public final class TestFlyConfig {
      *   allowRemote: false
      *   headers: {}
      *   screenshotOnFailure: true
+     *   recordVideo: off             # off | failures | always
      * </pre>
      *
      * The defaults live in the field initialisers below; {@code io.testfly.mobile.Mobile}
@@ -2778,6 +2779,7 @@ public final class TestFlyConfig {
         private String mobilecliPath = "mobilecli";
         private java.util.Map<String, String> headers = new java.util.LinkedHashMap<>();
         private boolean screenshotOnFailure = true;
+        private String recordVideo = "off";
 
         public String getServerUrl() {
             return serverUrl;
@@ -2895,6 +2897,15 @@ public final class TestFlyConfig {
 
         public void setScreenshotOnFailure(boolean screenshotOnFailure) {
             this.screenshotOnFailure = screenshotOnFailure;
+        }
+
+        /** Screen recording per test: {@code off} (default), {@code failures} (kept for failed tests) or {@code always}. */
+        public String getRecordVideo() {
+            return recordVideo;
+        }
+
+        public void setRecordVideo(String recordVideo) {
+            this.recordVideo = recordVideo == null || recordVideo.isBlank() ? "off" : recordVideo.trim();
         }
 
         /** The app under test. */

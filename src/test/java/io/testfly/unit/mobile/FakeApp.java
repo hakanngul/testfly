@@ -27,6 +27,12 @@ final class FakeApp {
     String focused;
     String username = "";
     String password = "";
+    String orientation = "portrait";
+    /** "lat,lon" while the location is overridden, else null. */
+    String location;
+    /** The file a running screen recording writes to, else null. */
+    String recordingTo;
+
     /** Polls left before the Sign in button stops moving (stability check). */
     int buttonMoves;
 
@@ -72,6 +78,33 @@ final class FakeApp {
             foreground = p.path("bundleId").asText();
             screen = "login";
             return null;
+        });
+        server.on("device.io.orientation.get", p -> MAPPER.createObjectNode().put("orientation", orientation));
+        server.on("device.io.orientation.set", p -> {
+            orientation = p.path("orientation").asText();
+            return null;
+        });
+        server.on("device.location.set", p -> {
+            location = p.path("latitude").asDouble() + "," + p.path("longitude").asDouble();
+            return null;
+        });
+        server.on("device.location.clear", p -> {
+            location = null;
+            return null;
+        });
+        server.on("device.screenrecord", p -> {
+            recordingTo = p.path("output").asText();
+            return null;
+        });
+        server.on("device.screenrecord.stop", p -> {
+            // Like mobilecli: the MP4 is written when the recording stops.
+            try {
+                java.nio.file.Files.write(java.nio.file.Path.of(recordingTo), new byte[] {0, 0, 0, 24, 'f', 't', 'y', 'p'});
+            } catch (java.io.IOException e) {
+                throw new java.io.UncheckedIOException(e);
+            }
+            recordingTo = null;
+            return MAPPER.createObjectNode().put("status", "ok");
         });
         server.on("device.screenshot", p -> {
             ObjectNode r = MAPPER.createObjectNode();

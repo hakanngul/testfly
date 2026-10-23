@@ -441,6 +441,7 @@ mobile:
   allowRemote: false                # non-loopback servers need true + https://
   headers: {}                       # e.g. Authorization: Bearer ${MOBILECLI_TOKEN}
   screenshotOnFailure: true
+  recordVideo: off                  # off | failures | always
 ```
 
 ---
@@ -982,6 +983,7 @@ Native Android and iOS testing through a user-installed mobilecli server (incuba
 | `allowRemote` | `boolean` | `false` | Allow a non-loopback `serverUrl`; requires `https://`. |
 | `headers` | `map` | `{}` | Extra HTTP headers on every mobilecli request (e.g. a proxy token from an environment variable). |
 | `screenshotOnFailure` | `boolean` | `true` | Attach a device screenshot to failed tests. |
+| `recordVideo` | `string` | `off` | Screen recording per test: `off`, `failures` (kept in `target/reports/videos/` for failed tests) or `always`. |
 
 ---
 

@@ -2,8 +2,10 @@ package io.testfly.mobile.spi;
 
 import io.testfly.mobile.MobileDeviceInfo;
 import io.testfly.mobile.MobileNode;
+import io.testfly.mobile.MobileOrientation;
 import io.testfly.mobile.MobileScreenSize;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
@@ -65,6 +67,40 @@ public interface MobileDriver extends AutoCloseable {
 
     /** Opens a URL or deep link. */
     void openUrl(String url, Duration timeout);
+
+    // ── device settings and recording (optional: the defaults report them as unsupported) ──
+
+    default MobileOrientation orientation(Duration timeout) {
+        throw unsupported("orientation");
+    }
+
+    default void setOrientation(MobileOrientation orientation, Duration timeout) {
+        throw unsupported("setOrientation");
+    }
+
+    /** Overrides the device location (degrees). */
+    default void setLocation(double latitude, double longitude, Duration timeout) {
+        throw unsupported("setLocation");
+    }
+
+    /** Restores the real device location. */
+    default void clearLocation(Duration timeout) {
+        throw unsupported("clearLocation");
+    }
+
+    /** Starts a screen recording into {@code output} (MP4), a path on the automation server's host. */
+    default void startRecording(Path output, Duration timeout) {
+        throw unsupported("startRecording");
+    }
+
+    /** Stops the running screen recording and finishes its file. */
+    default void stopRecording(Duration timeout) {
+        throw unsupported("stopRecording");
+    }
+
+    private UnsupportedOperationException unsupported(String operation) {
+        return new UnsupportedOperationException(getClass().getSimpleName() + " does not support " + operation);
+    }
 
     /** Releases client-side resources; the device itself is not touched. */
     @Override

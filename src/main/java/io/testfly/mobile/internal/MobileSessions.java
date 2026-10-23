@@ -82,7 +82,16 @@ public final class MobileSessions {
      */
     public static String captureFailure(String testName) {
         MobileDevice device = CURRENT.get();
-        if (device == null || !screenshotOnFailure()) {
+        if (device == null) {
+            return null;
+        }
+        // A running mobile.recordVideo recording is kept for a failed test, also without screenshots.
+        Path video = device.saveRecording(testName);
+        if (video != null) {
+            LOGGER.info("[TestFly] Device recording of {} saved: {}", testName, video);
+            StepLogger.step("Device recording: " + video, StepStatus.FAIL);
+        }
+        if (!screenshotOnFailure()) {
             return null;
         }
         try {

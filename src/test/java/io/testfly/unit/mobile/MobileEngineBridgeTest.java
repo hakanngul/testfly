@@ -44,6 +44,10 @@ public class MobileEngineBridgeTest {
     }
 
     private static void useFakeDevice(FakeMobilecliServer server, String id, String reset) {
+        useFakeDevice(server, id, reset, "off");
+    }
+
+    private static void useFakeDevice(FakeMobilecliServer server, String id, String reset, String recordVideo) {
         FakeApp app = new FakeApp(id).install(server);
         APP.set(app);
         TestFlyConfig.Mobile m = new TestFlyConfig.Mobile();
@@ -52,6 +56,7 @@ public class MobileEngineBridgeTest {
         m.setDeviceId(id);
         m.getApp().setBundleId(FakeApp.BUNDLE);
         m.getApp().setReset(reset);
+        m.setRecordVideo(recordVideo);
         m.getTimeouts().setActionMs(1500);
         m.getTimeouts().setPollMs(20);
         MobileSessions.setOpener(() -> Mobile.connect(m));
@@ -215,6 +220,36 @@ public class MobileEngineBridgeTest {
     }
 
     // ── helpers ─────────────────────────────────────────────────────────
+
+    // ── mobile.recordVideo ──────────────────────────────────────────────
+
+    @Test
+    public void failedTestKeepsItsRecordingAndPassedTestDoesNot() throws Exception {
+        String id = deviceId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            useFakeDevice(server, id, "relaunch", "failures");
+            TestListenerAdapter results = new TestListenerAdapter();
+            TestNG testng = new TestNG(false);
+            testng.setTestClasses(new Class<?>[] {MobileBridgeSamples.TestNgSample.class});
+            testng.addListener(results);
+            testng.setVerbose(0);
+            testng.run();
+            assertEquals(results.getFailedTests().size(), 1);
+
+            assertEquals(server.methods().stream().filter("device.screenrecord"::equals).count(), 2L, "one recording per test");
+            Path videos = Path.of("target", "reports", "videos");
+            try (var files = Files.list(videos)) {
+                List<Path> kept = files.filter(f -> f.getFileName().toString().contains("failsOnPurpose")).toList();
+                assertEquals(kept.size(), 1, "only the failed test's video is kept: " + kept);
+                for (Path f : kept) {
+                    Files.delete(f);
+                }
+            }
+            try (var files = Files.list(Path.of("target", "mobile-recordings"))) {
+                assertTrue(files.noneMatch(f -> f.getFileName().toString().startsWith(id)), "the passed test's video is deleted");
+            }
+        }
+    }
 
     // ── @PreCondition on mobile tests ───────────────────────────────────
 

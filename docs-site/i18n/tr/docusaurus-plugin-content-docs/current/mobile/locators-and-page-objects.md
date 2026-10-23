@@ -127,5 +127,6 @@ public void showsTheBalance() { /* giriş yapılmış olarak başlar */ }
 - **Okumalar:** `getText()`, `getValue()`, `node()` görünür bir öğeyi bekler; `count()`, `nodes()`, `isVisible()` beklemeden o anki ekranı okur; `waitForVisible()` ve `waitForHidden()` açıkça bekler.
 - **Doğrulamalar:** `expect(locator)` ile `toBeVisible()`, `toBeHidden()`, `toBeEnabled()`, `toBeDisabled()`, `toBeSelected()`, `toBeChecked()`, `toBeFocused()`, `toHaveText(...)`, `toContainText(...)`, `toHaveValue(...)`, `toHaveCount(n)` ve `not()`. `timeouts.actionMs` bitene kadar yeniden dener.
 - **Cihaz:** `device()`; `launchApp`, `terminateApp`, `clearAppData`, `installApp`, `openUrl` (deep link), `pressButton("BACK")`, `screenSize()` ve `screenshot()` sunar; `screen().swipe(...)` ekran boyunca kaydırır.
+- **Cihaz ayarları:** `device().setOrientation(MobileOrientation.LANDSCAPE)` ve `orientation()`; `setLocation(enlem, boylam)` ve `clearLocation()`. İkisi de cihaz kapanırken geri alınır, böylece sonraki test eski yönde ve gerçek konumla başlar. `startRecording(path)` / `stopRecording()` ekranı elle kaydeder; otomatik kayıt için [`recordVideo`](configuration#screen-recording).
 
 Eylemler rapora adım olarak yazılır ("Tap getByText(…)"); yazılan metin loglanmaz. Bir test başarısız olduğunda cihaz ekran görüntüsü eklenir (`screenshotOnFailure`).

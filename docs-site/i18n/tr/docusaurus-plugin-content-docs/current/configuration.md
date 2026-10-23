@@ -422,6 +422,7 @@ mobile:
   allowRemote: false                # loopback olmayan sunucular true + https:// ister
   headers: {}                       # örn. Authorization: Bearer ${MOBILECLI_TOKEN}
   screenshotOnFailure: true
+  recordVideo: off                  # off | failures | always
 ```
 
 ---
@@ -963,6 +964,7 @@ Kullanıcının kurduğu mobilecli sunucusu üzerinden native Android ve iOS tes
 | `allowRemote` | `boolean` | `false` | Loopback olmayan bir `serverUrl`'e izin verir; `https://` gerekir. |
 | `headers` | `map` | `{}` | Her mobilecli isteğine eklenen HTTP başlıkları (örn. ortam değişkeninden bir proxy token'ı). |
 | `screenshotOnFailure` | `boolean` | `true` | Başarısız testlere cihaz ekran görüntüsü ekler. |
+| `recordVideo` | `string` | `off` | Test başına ekran kaydı: `off`, `failures` (başarısız testler için `target/reports/videos/` altında saklanır) veya `always`. |
 
 ---
 

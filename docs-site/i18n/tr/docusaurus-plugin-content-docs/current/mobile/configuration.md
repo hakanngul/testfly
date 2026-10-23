@@ -32,6 +32,7 @@ mobile:
   allowRemote: false
   headers: {}                  # örn. Authorization: Bearer ${MOBILECLI_TOKEN}
   screenshotOnFailure: true
+  recordVideo: off             # off | failures | always
 ```
 
 | Anahtar | Varsayılan | Açıklama |
@@ -55,6 +56,7 @@ mobile:
 | `allowRemote` | `false` | Loopback olmayan bir `serverUrl`'e izin verir (`https://` gerekir). |
 | `headers` | `{}` | Her istekte gönderilen ek HTTP başlıkları, örneğin kimlik doğrulayan bir proxy için. |
 | `screenshotOnFailure` | `true` | Başarısız teste cihaz ekran görüntüsü ekler. |
+| `recordVideo` | `off` | Test başına ekran kaydı: `off`, `failures` (başarısız testler için saklanır) veya `always`; bkz. [Ekran kaydı](#screen-recording). |
 
 Değerler bilinen yer tutucuları destekler (`${MOBILE_DEVICE_ID:-}`); bkz. [Yapılandırma](../configuration).
 
@@ -85,6 +87,16 @@ Cihazları `devices: [id1, id2]` ile listeleyin ya da `pool: true` ile platformu
 - sunucu JVM kapanırken durdurulur.
 
 Zaten cevap veren bir sunucu olduğu gibi kullanılır ve hiç durdurulmaz. Uzak sunucular hiçbir zaman başlatılmaz. Çalışan bir sunucu şart koşmak için `autoStartServer: false` yapın. mobilecli **ajanı** (yalnızca iOS) otomatik kurulmaz; cihaz başına bir kez kurun (`mobilecli agent install --device <id>`).
+
+## Ekran kaydı {#screen-recording}
+
+`recordVideo: failures` veya `always` ile her mobil test, cihazı açıldığı andan itibaren ekranı kaydeder:
+
+- `failures`: başarısız bir test videosunu `target/reports/videos/<test>_mobile_<zaman>.mp4` olarak saklar ve bir "Device recording" adımı yazar; geçen testin videosu silinir.
+- `always`: her video orada saklanır; test runner dışında dosya cihazın adını alır.
+- Dosyayı mobilecli yazar, bu yüzden kayıt yerel bir sunucuyla (varsayılan loopback `serverUrl`) çalışır. Bir cihaz veya platform kayıt yapamıyorsa bir uyarı yazılır ve test videosuz devam eder.
+
+Elle kayıt için `device().startRecording(path)` ve `device().stopRecording()` kullanın.
 
 ## Profiller
 

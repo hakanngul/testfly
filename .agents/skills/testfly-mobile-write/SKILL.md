@@ -34,6 +34,7 @@ new LoginPage().signIn("ada").shouldShowGreeting("ada");
 - Never give `@MobileFind` fields an initial value (it overwrites the locator); `onLoad()` runs before subclass field initializers.
 - Cucumber: keep page instances in step-class fields; creating a page whose screen is gone times out.
 - An element that exists on one platform only gets only that attribute; using it on the other platform fails with a clear message. Leave unknown ids out instead of inventing them, and mark them with `// shortcut: android id unknown, add when known`.
+- Device: `device().setOrientation(MobileOrientation.LANDSCAPE)`, `setLocation(lat, lon)` (both undone at close), `startRecording(path)`/`stopRecording()`; automatic videos with `mobile.recordVideo: failures`.
 - Actions: `tap`, `doubleTap`, `longPress`, `fill`/`type` (clears), `append`, `clear`, `swipe`. Reads: `getText`, `getValue`, `count`, `isVisible`. Assert with `expect(locator).toBeVisible()`, `toHaveText`, `toBeHidden`, `toBeEnabled`, … inside page `should…` methods. Several matches fail (strict mode) unless `first()`, `last()` or `nth(i)`.
 - No `Thread.sleep`; waits are `@WaitFor`, `waitForVisible()`/`waitForHidden()` and the auto-waiting actions.
 
