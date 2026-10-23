@@ -1,6 +1,7 @@
 package io.testfly.examples.mobile;
 
 import io.testfly.mobile.BaseMobileTest;
+import io.testfly.mobile.MobileRole;
 import org.testng.annotations.Test;
 
 /**
@@ -19,8 +20,9 @@ public class IosSettingsExampleTest extends BaseMobileTest {
 
     @Test
     public void opensGeneralAndAbout() {
-        screen().getByText("General").tap();
-        screen().getByText("About").tap();
-        expect(screen().getByText("Model Name")).toBeVisible();
+        // A Settings row is a Button that also holds a StaticText with the same label; target the Button.
+        screen().getByRole(MobileRole.BUTTON, "General").tap();
+        screen().getByRole(MobileRole.BUTTON, "About").tap();
+        expect(screen().getByText("Model Name").first()).toBeVisible();
     }
 }
