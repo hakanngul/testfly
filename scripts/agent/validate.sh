@@ -22,6 +22,8 @@ required_files=(
   .agents/skills/testfly-mobile/SKILL.md
   .agents/skills/testfly-review/SKILL.md
   .agents/skills/testfly-research/SKILL.md
+  .agents/skills/testfly-mobile-write/SKILL.md
+  .agents/skills/testfly-k6-write/SKILL.md
   .agents/skills/graphify/SKILL.md
 )
 
@@ -41,7 +43,7 @@ for skill_file in .agents/skills/*/SKILL.md; do
   [[ "$skill_name" == "$skill_dir" ]] || fail "$skill_file name must match its directory"
   [[ -n "$description" ]] || fail "$skill_file has no description"
 done
-[[ "$skill_count" -eq 12 ]] || fail "expected 12 shared skills, found $skill_count"
+[[ "$skill_count" -eq 14 ]] || fail "expected 14 shared skills, found $skill_count"
 
 # Claude Code discovers the shared skills through this link.
 [[ -L .claude/skills && "$(readlink .claude/skills)" == "../.agents/skills" ]] || fail ".claude/skills must link to ../.agents/skills"

@@ -22,6 +22,19 @@ description: Create or revise TestFly framework tests and executable examples ac
 - For configuration tests, cover precedence, default, missing/blank, malformed, substitution, and compatibility behavior.
 - Separate external, browser, real-backend, load, and intentionally failing demonstrations behind existing profiles/tags so the default suite remains deterministic.
 
+## Preconditions (setup the test needs, not what it tests)
+
+| Need | Use | Scope |
+|---|---|---|
+| Logged-in browser state | `@PreCondition("login")` on the test + `@ConditionProvider("login")` method in a `BaseConditions` subclass, registered in `META-INF/services/io.testfly.precondition.BaseConditions` or with `PreConditionRegistry.register(...)` | Browser only: caches cookies and localStorage per thread, restores them for the next test, reruns the provider on retry. TestNG reads it from the method; JUnit 5 from the method, then the class. Cucumber does not read it. Example: `examples/conditions/SauceDemoConditions.java` + `examples/testng/SauceDemoLoginTest.java`. |
+| Backend must be up | `@DependsOnApi("https://…/health")` (repeatable, class or method) | Any test (web, API, mobile): skipped, not failed, when the URL is not 2xx; checked once per URL per suite. |
+| Named API auth | `@UseAuth("admin")` | TestNG and JUnit 5 API tests; Cucumber applies `ApiAuth` in a step. See `testfly-api-write`. |
+| Data the test creates | Arrange step or `@BeforeMethod`/`@BeforeEach` through `ApiClient`, cleaned up in `@AfterMethod`/`@AfterEach` | Per test; never share mutable fixtures across parallel tests. |
+| Cucumber shared steps | `Background:` in the feature | Per scenario. |
+| Native mobile | page `ready()` methods, `@BeforeMethod`, `Background`; `mobile.app.reset` | `@PreCondition` does not apply to app sessions. See `testfly-mobile-write`. |
+
+Prefer API calls over UI clicks to create preconditions; a precondition provider must not assert the behaviour under test.
+
 ## Verify and document
 
 Run the new test alone, then the narrowest relevant `testfly-verify` mode. If it is a public example, keep Java 21 compatibility and update its English/Turkish explanation through `testfly-docs`. Record any environment or profile required to execute it.
