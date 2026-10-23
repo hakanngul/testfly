@@ -2739,6 +2739,8 @@ public final class TestFlyConfig {
      * <pre>
      * mobile:
      *   serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+     *   autoStartServer: true        # start a loopback server with mobilecliPath when it is down
+     *   mobilecliPath: mobilecli
      *   platform: android            # android | ios
      *   deviceId: ""                 # exact id; wins over deviceName
      *   deviceName: ""               # regex
@@ -2753,6 +2755,7 @@ public final class TestFlyConfig {
      *     pollMs: 100
      *     rpcMs: 30000
      *     reserveMs: 300000
+     *     serverStartMs: 20000
      *   allowRemote: false
      *   headers: {}
      *   screenshotOnFailure: true
@@ -2771,6 +2774,8 @@ public final class TestFlyConfig {
         private App app = new App();
         private Timeouts timeouts = new Timeouts();
         private boolean allowRemote = false;
+        private boolean autoStartServer = true;
+        private String mobilecliPath = "mobilecli";
         private java.util.Map<String, String> headers = new java.util.LinkedHashMap<>();
         private boolean screenshotOnFailure = true;
 
@@ -2858,6 +2863,24 @@ public final class TestFlyConfig {
         }
 
         /** Static headers sent with every request, e.g. {@code Authorization} for a TLS/auth proxy. */
+        /** Start {@code mobilecli server start} when a loopback {@code serverUrl} does not answer. */
+        public boolean isAutoStartServer() {
+            return autoStartServer;
+        }
+
+        public void setAutoStartServer(boolean autoStartServer) {
+            this.autoStartServer = autoStartServer;
+        }
+
+        /** The mobilecli command used by {@code autoStartServer}; a full path when it is not on PATH. */
+        public String getMobilecliPath() {
+            return mobilecliPath;
+        }
+
+        public void setMobilecliPath(String mobilecliPath) {
+            this.mobilecliPath = mobilecliPath == null || mobilecliPath.isBlank() ? "mobilecli" : mobilecliPath.trim();
+        }
+
         public java.util.Map<String, String> getHeaders() {
             return headers;
         }
@@ -2914,6 +2937,7 @@ public final class TestFlyConfig {
             private long pollMs = 100;
             private long rpcMs = 30000;
             private long reserveMs = 300000;
+            private long serverStartMs = 20000;
 
             /** Auto-wait budget of one action or assertion. */
             public long getActionMs() {
@@ -2949,6 +2973,15 @@ public final class TestFlyConfig {
 
             public void setReserveMs(long reserveMs) {
                 this.reserveMs = reserveMs;
+            }
+
+            /** How long {@code autoStartServer} waits for a started mobilecli server to answer. */
+            public long getServerStartMs() {
+                return serverStartMs;
+            }
+
+            public void setServerStartMs(long serverStartMs) {
+                this.serverStartMs = serverStartMs;
             }
         }
     }

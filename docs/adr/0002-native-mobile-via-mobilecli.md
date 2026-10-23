@@ -53,7 +53,7 @@ Native mobile becomes a **fourth test domain** next to web, API and load. It liv
 
 ### D1. Consume mobilecli as-is; do not fork
 
-TestFly depends on mobilecli's **protocol**, not its code. It never bundles, downloads, patches or redistributes the binary. Users install it themselves, and TestFly connects to `mobile.serverUrl`.
+TestFly depends on mobilecli's **protocol**, not its code. It never bundles, downloads, patches or redistributes the binary. Users install it themselves, and TestFly connects to `mobile.serverUrl`. Since 2026-10-23 TestFly may also *run* the user-installed binary: with `mobile.autoStartServer` (default on) it starts `mobilecli server start` for a loopback `serverUrl` that does not answer, once per JVM, and stops it at JVM exit; remote servers are never started.
 
 - **Gaps:** a gap in mobilecli is handled in this order:
   1. Solve it in Java. Locators, waiting and gesture composition are TestFly code anyway.

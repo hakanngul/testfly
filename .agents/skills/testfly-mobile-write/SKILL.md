@@ -9,7 +9,7 @@ Write tests against the public `io.testfly.mobile` API only; never import `io.te
 
 ## Find locators on a running device
 
-Needs `mobilecli server start` (default `http://localhost:12000`) and `mobilecli agent install --device <id>`. If either is missing, say so and stop; do not guess selectors.
+Needs a mobilecli server (`mobilecli server start`, default `http://localhost:12000`; tests start it themselves via `mobile.autoStartServer`, but locator finding needs it running) and `mobilecli agent install --device <id>`. If either is missing, say so and stop; do not guess selectors.
 
 1. `mobilecli devices` gives the device id (iOS: simulator UDID, Android: AVD name or serial).
 2. Read the screen tree; the first call on a fresh iOS simulator can take minutes (DeviceKit start), so allow 180 s:

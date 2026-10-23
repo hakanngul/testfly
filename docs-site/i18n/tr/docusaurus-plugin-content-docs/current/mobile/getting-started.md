@@ -15,7 +15,7 @@ TestFly, native Android ve iOS uygulamalarını Appium olmadan sürebilir. [mobi
 
 ## Ön koşullar
 
-1. mobilecli'yi (1.0.20 veya üstü) kurun ve sunucuyu başlatın:
+1. mobilecli'yi (1.0.20 veya üstü) kurun. Sunucu çalışmıyorsa TestFly onu kendisi başlatır (`autoStartServer`); elle başlatmak için:
 
    ```bash
    mobilecli server start          # http://localhost:12000 adresini dinler
@@ -38,6 +38,8 @@ TestFly, native Android ve iOS uygulamalarını Appium olmadan sürebilir. [mobi
 ```yaml
 mobile:
   serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+  autoStartServer: true        # loopback sunucu cevap vermezse mobilecli'yi başlat
+  mobilecliPath: mobilecli     # mobilecli PATH'te değilse tam yolu
   platform: android            # android | ios (zorunlu)
   deviceId: ""                 # tam kimlik; deviceName'e göre önceliklidir
   deviceName: ""               # cihaz adına uygulanan regex
@@ -52,6 +54,7 @@ mobile:
     pollMs: 100                # ekranın iki okuması arasındaki bekleme
     rpcMs: 30000               # mobilecli'ye tek bir isteğin üst sınırı
     reserveMs: 300000          # aynı JVM'de başka bir testin tuttuğu cihaz için bekleme
+    serverStartMs: 20000       # otomatik başlatılan sunucunun cevap vermesi için bekleme
   allowRemote: false
   headers: {}                  # örn. Authorization: Bearer ${MOBILECLI_TOKEN}
   screenshotOnFailure: true
@@ -60,6 +63,7 @@ mobile:
 - **Cihaz seçimi.** `deviceId`, platformun tam olarak bir çevrimiçi cihazıyla eşleşmelidir; yoksa `deviceName` regex'i eşleşmelidir; o da yoksa platformun tam olarak bir çevrimiçi cihazı olmalıdır. Sıfır veya birden çok eşleşme, mobilecli'nin bildirdiği cihazların listesiyle hata verir.
 - **Cihaz havuzu (paralel koşum).** Cihazları `devices: [id1, id2]` ile listeleyin ya da `pool: true` ile platformun `deviceName` ile eşleşen tüm çevrimiçi cihazlarını kullanın. Her test boş bir cihaz alır; hepsi kullanımdaysa `reserveMs` kadar bekler, sonra `MobileTimeoutException` ile hata verir. Paralel mobil worker sayısı cihaz sayısını geçmemelidir. `devices`, `deviceId` veya `pool` ile birlikte kullanılamaz. `devices` içindeki çevrimdışı kimlikler bir uyarıyla atlanır.
 - **Uygulama sıfırlama.** `relaunch` her testten önce `bundleId`'yi kapatıp açar; `clearData` verisini silip açar; `none` dokunmaz. `none` dışında uygulama testten sonra kapatılır.
+- **Sunucuyu otomatik başlatma.** `serverUrl` bir loopback adresiyse ve cevap gelmiyorsa TestFly JVM başına bir kez `<mobilecliPath> server start --listen <host:port>` çalıştırır, çıktıyı `target/mobilecli-autostart.log` dosyasına yazar, `serverStartMs` kadar bekler ve JVM kapanırken bu sunucuyu durdurur. Sizin başlattığınız sunucuya dokunulmaz. Uzak sunucular hiçbir zaman başlatılmaz. Eski davranış için `autoStartServer: false` yapın.
 - **Güvenlik.** mobilecli'de kimlik doğrulama yoktur, bu yüzden yalnızca loopback adresleri kabul edilir. Uzak bir sunucu için `allowRemote: true` ve `https://` adresi gerekir; örneğin TLS sonlandıran, kimlik doğrulayan bir proxy veya SSH tüneli arkasında mobilecli.
 
 ## Test yazmak
@@ -123,7 +127,7 @@ Hazır örnekler cihazdaki yerleşik Ayarlar uygulamasını kullanır, uygulama 
 | iOS simülatörü | `src/test/java/io/testfly/examples/mobile/IosSettingsExampleTest.java` | `mvn test -Dtestfly.profile=mobile-ios -Dtest=IosSettingsExampleTest` |
 | Android emülatörü | `src/test/java/io/testfly/examples/mobile/AndroidSettingsExampleTest.java` | `mvn test -Dtestfly.profile=mobile-android -Dtest=AndroidSettingsExampleTest` |
 
-Profiller `src/test/resources/testfly-mobile-ios.yml` ve `testfly-mobile-android.yml` dosyalarıdır. Önce `mobilecli server start` ile sunucuyu başlatın ve simülatörü ya da emülatörü açın; metinler İngilizce cihaz varsayar. `Mobile Emulator Smoke` iş akışı iki örneği de GitHub Actions'ta çalıştırır.
+Profiller `src/test/resources/testfly-mobile-ios.yml` ve `testfly-mobile-android.yml` dosyalarıdır. Önce simülatörü ya da emülatörü açın (gerekirse TestFly `mobilecli server`'ı başlatır); metinler İngilizce cihaz varsayar. `Mobile Emulator Smoke` iş akışı iki örneği de GitHub Actions'ta çalıştırır.
 
 ## Locator'lar
 
@@ -199,7 +203,7 @@ Eylemler rapora adım olarak yazılır ("Tap getByText(…)"); yazılan metin ka
 
 | İstisna | Ne zaman |
 |---|---|
-| `MobileServerUnavailableException` | mobilecli'ye ulaşılamıyor: `mobilecli server start` ile başlatın |
+| `MobileServerUnavailableException` | mobilecli'ye ulaşılamıyor ve başlatılamadı: mobilecli yok (`mobilecliPath`), kapandı veya `serverStartMs` içinde cevap vermedi; mesaj log dosyasını gösterir |
 | `MobileVersionException` | mobilecli 1.0.20'den eski |
 | `DeviceSelectionException` | seçiciler sıfır veya birden çok çevrimiçi cihazla eşleşiyor ya da havuzdaki hiçbir cihaz çevrimiçi değil |
 | `DeviceNotFoundException` | mobilecli cihazı tanımıyor |

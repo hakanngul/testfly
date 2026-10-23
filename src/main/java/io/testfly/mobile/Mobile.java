@@ -9,11 +9,13 @@ import io.testfly.mobile.internal.DeviceReservations.Reservation;
 import io.testfly.mobile.internal.DeviceSelector;
 import io.testfly.mobile.internal.JsonRpcClient;
 import io.testfly.mobile.internal.MobileCliDriver;
+import io.testfly.mobile.internal.MobileServerLauncher;
 import io.testfly.mobile.internal.MobileServerUrl;
 import io.testfly.mobile.internal.MobileSession;
 import io.testfly.mobile.internal.ServerVersion;
 import io.testfly.mobile.spi.MobileDriver;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
@@ -56,11 +58,10 @@ public final class Mobile {
     /** Opens the device described by {@code mobile}, through mobilecli at {@code mobile.serverUrl}. */
     public static MobileDevice connect(TestFlyConfig.Mobile mobile) {
         validate(mobile);
-        JsonRpcClient rpc = new JsonRpcClient(MobileServerUrl.rpcEndpoint(mobile.getServerUrl(), mobile.isAllowRemote()),
-                mobile.getHeaders());
-        MobileCliDriver driver = new MobileCliDriver(rpc);
+        URI endpoint = MobileServerUrl.rpcEndpoint(mobile.getServerUrl(), mobile.isAllowRemote());
+        MobileCliDriver driver = new MobileCliDriver(new JsonRpcClient(endpoint, mobile.getHeaders()));
         Duration rpcTimeout = Duration.ofMillis(mobile.getTimeouts().getRpcMs());
-        ServerVersion.require(driver.serverVersion(rpcTimeout));
+        ServerVersion.require(MobileServerLauncher.serverVersion(mobile, endpoint, driver, rpcTimeout));
         return connect(driver, mobile);
     }
 
@@ -152,6 +153,7 @@ public final class Mobile {
         positive("mobile.timeouts.actionMs", t.getActionMs());
         positive("mobile.timeouts.pollMs", t.getPollMs());
         positive("mobile.timeouts.rpcMs", t.getRpcMs());
+        positive("mobile.timeouts.serverStartMs", t.getServerStartMs());
         if (t.getReserveMs() < 0) {
             throw new ConfigurationException("mobile.timeouts.reserveMs must be >= 0, got: " + t.getReserveMs());
         }

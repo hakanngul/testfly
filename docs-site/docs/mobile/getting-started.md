@@ -15,7 +15,7 @@ Everything in `io.testfly.mobile` is incubating: it is not annotated `@TestFlyAp
 
 ## Prerequisites
 
-1. Install mobilecli (1.0.20 or newer) and start the server:
+1. Install mobilecli (1.0.20 or newer). TestFly starts the server itself when it is not running (`autoStartServer`); to run it yourself:
 
    ```bash
    mobilecli server start          # listens on http://localhost:12000
@@ -38,6 +38,8 @@ Nothing mobile loads unless `testfly.yml` has a `mobile:` section.
 ```yaml
 mobile:
   serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+  autoStartServer: true        # start mobilecli when the loopback server does not answer
+  mobilecliPath: mobilecli     # full path when mobilecli is not on PATH
   platform: android            # android | ios (required)
   deviceId: ""                 # exact id; wins over deviceName
   deviceName: ""               # regex on the device name
@@ -52,6 +54,7 @@ mobile:
     pollMs: 100                # pause between two reads of the screen
     rpcMs: 30000               # upper bound of one request to mobilecli
     reserveMs: 300000          # wait for a device another test in this JVM holds
+    serverStartMs: 20000       # wait for an auto-started server to answer
   allowRemote: false
   headers: {}                  # e.g. Authorization: Bearer ${MOBILECLI_TOKEN}
   screenshotOnFailure: true
@@ -60,6 +63,7 @@ mobile:
 - **Device selection.** `deviceId` must match exactly one online device of the platform; otherwise the `deviceName` regex must; otherwise exactly one online device of the platform must exist. Zero or several matches fail with a list of the devices mobilecli reported.
 - **Device pool (parallel runs).** List the devices in `devices: [id1, id2]`, or set `pool: true` to use every online device of the platform that matches `deviceName`. Each test gets a free device; when all are in use it waits up to `reserveMs`, then fails with `MobileTimeoutException`. Run at most as many parallel mobile workers as there are devices. `devices` cannot be combined with `deviceId` or `pool`. Offline ids in `devices` are skipped with a warning.
 - **App reset.** `relaunch` terminates and launches `bundleId` before each test; `clearData` clears its data and launches it; `none` leaves it alone. Except with `none`, the app is terminated after the test.
+- **Server auto-start.** When `serverUrl` is a loopback address and nothing answers, TestFly runs `<mobilecliPath> server start --listen <host:port>` once per JVM, logs to `target/mobilecli-autostart.log`, waits up to `serverStartMs`, and stops that server when the JVM exits. A server you started is never touched. Remote servers are never started. Set `autoStartServer: false` to keep the old behaviour.
 - **Security.** mobilecli has no authentication, so only loopback addresses are accepted. A remote server needs `allowRemote: true` and an `https://` URL, for example mobilecli behind a TLS-terminating, authenticating proxy or an SSH tunnel.
 
 ## Writing tests
@@ -123,7 +127,7 @@ Ready-to-run examples drive the built-in Settings app, so no app file is needed:
 | iOS simulator | `src/test/java/io/testfly/examples/mobile/IosSettingsExampleTest.java` | `mvn test -Dtestfly.profile=mobile-ios -Dtest=IosSettingsExampleTest` |
 | Android emulator | `src/test/java/io/testfly/examples/mobile/AndroidSettingsExampleTest.java` | `mvn test -Dtestfly.profile=mobile-android -Dtest=AndroidSettingsExampleTest` |
 
-The profiles are `src/test/resources/testfly-mobile-ios.yml` and `testfly-mobile-android.yml`. Start `mobilecli server start` and boot the simulator or emulator first; the texts assume an English device. The `Mobile Emulator Smoke` workflow runs both examples on GitHub Actions.
+The profiles are `src/test/resources/testfly-mobile-ios.yml` and `testfly-mobile-android.yml`. Boot the simulator or emulator first (TestFly starts `mobilecli server` if needed); the texts assume an English device. The `Mobile Emulator Smoke` workflow runs both examples on GitHub Actions.
 
 ## Locators
 
@@ -199,7 +203,7 @@ Actions are logged as report steps ("Tap getByText(…)"); typed text is not log
 
 | Exception | When |
 |---|---|
-| `MobileServerUnavailableException` | mobilecli is not reachable: start `mobilecli server start` |
+| `MobileServerUnavailableException` | mobilecli is not reachable and could not be started: mobilecli is missing (`mobilecliPath`), exited, or did not answer within `serverStartMs`; the message names the log |
 | `MobileVersionException` | mobilecli is older than 1.0.20 |
 | `DeviceSelectionException` | the selectors match zero or several online devices, or no pool device is online |
 | `DeviceNotFoundException` | mobilecli does not know the device |

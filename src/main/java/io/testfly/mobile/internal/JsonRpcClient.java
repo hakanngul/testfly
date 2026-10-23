@@ -168,7 +168,7 @@ public final class JsonRpcClient {
 
     private MobileServerUnavailableException unavailable(Exception e) {
         return new MobileServerUnavailableException("Cannot reach the mobilecli server at " + endpoint
-                + ". Start it with 'mobilecli server start' (or set mobile.serverUrl).", e);
+                + ". Start it with 'mobilecli server start', enable mobile.autoStartServer, or set mobile.serverUrl.", e);
     }
 
     private static String abbreviate(String s) {

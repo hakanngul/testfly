@@ -44,8 +44,13 @@ final class FakeMobilecliServer implements AutoCloseable {
     private final List<Map<String, List<String>>> requestHeaders = new ArrayList<>();
 
     FakeMobilecliServer() {
+        this(0);
+    }
+
+    /** On a fixed loopback {@code port} (0 = any free port). */
+    FakeMobilecliServer(int port) {
         try {
-            server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+            server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), port), 0);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
