@@ -2,7 +2,7 @@
   "name": "testfly-mobile-inspector",
   "displayName": "TestFly Mobile Inspector",
   "description": "Inspect iOS and Android screens through mobilecli: live screenshot, UI tree with @eN refs, element details and ready-to-paste TestFly @MobileFind selectors.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "hakanngul",
   "license": "Apache-2.0",
   "repository": {
