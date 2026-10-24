@@ -16,6 +16,34 @@ public final class MobilePages {
     private MobilePages() {
     }
 
+    /** The selector string of {@code find} for {@code platform}: a typed attribute, else ios/android, else value. */
+    static String selector(MobileFind find, MobilePlatform platform, String name) {
+        boolean ios = platform == MobilePlatform.IOS;
+        String[][] typed = ios
+                ? new String[][] {{"accessibility=", find.iosAccessibility()}, {"id=", find.iosId()}, {"xpath=", find.iosXpath()},
+                        {"chain=", find.iosClassChain()}, {"predicate=", find.iosPredicate()}, {"type=", find.iosClassName()}}
+                : new String[][] {{"accessibility=", find.androidAccessibility()}, {"id=", find.androidId()},
+                        {"xpath=", find.androidXpath()}, {"type=", find.androidClassName()}};
+        String platformSelector = ios ? find.ios() : find.android();
+        String chosen = null;
+        int set = platformSelector.isEmpty() ? 0 : 1;
+        for (String[] t : typed) {
+            if (!t[1].isEmpty()) {
+                set++;
+                chosen = t[0] + t[1];
+            }
+        }
+        if (set > 1) {
+            throw new MobileException("@MobileFind on " + name + " sets more than one " + platform.wireName()
+                    + " selector; keep one of " + (ios ? "ios, iosAccessibility, iosId, iosXpath, iosClassChain, iosPredicate, iosClassName"
+                            : "android, androidAccessibility, androidId, androidXpath, androidClassName"));
+        }
+        if (chosen != null) {
+            return chosen;
+        }
+        return platformSelector.isEmpty() ? find.value() : platformSelector;
+    }
+
     /**
      * Creates {@code type} with its no-argument constructor and fills its fields for {@code screen}.
      * A {@link MobilePage} sets up itself on the current test's device, so {@code screen} is ignored for it.
@@ -58,10 +86,7 @@ public final class MobilePages {
                 if (field.getType() != MobileLocator.class || Modifier.isStatic(field.getModifiers())) {
                     throw new MobileException("@MobileFind field " + name + " must be a non-static MobileLocator");
                 }
-                String selector = platform == MobilePlatform.IOS ? find.ios() : find.android();
-                if (selector.isEmpty()) {
-                    selector = find.value();
-                }
+                String selector = selector(find, platform, name);
                 MobileLocator locator = selector.isEmpty()
                         ? screen.locator(LocatorEngine.missing(name + ": no " + platform.wireName() + " selector in @MobileFind"))
                         : screen.locate(selector);

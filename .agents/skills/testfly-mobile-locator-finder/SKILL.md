@@ -37,6 +37,9 @@ In this order, and only if it matches exactly one element on the screen (count i
 | 4 | `placeholder` | `placeholder=Username` |
 | 5 | `text` | `text=Welcome back` (depends on the device language; say which language you read) |
 | last | `type` | `type=XCUIElementTypeSwitch` only when nothing else is unique |
+| fallback | structure, when nothing above is unique (e.g. repeated ids in list rows) | `xpath=//*[@resource-id='com.app:id/row'][2]`, ``chain=**/Cell[`label == 'Orders'`]/StaticText``, `predicate=label BEGINSWITH 'Sign'`; build them from the `dump ui` JSON, not from Appium Inspector paths (mobilecli prunes unlabeled containers) |
+
+Typed attributes are equivalent and may be used when the user prefers Appium-style fields: `@MobileFind(iosAccessibility = …, androidId = …)`, also `iosId`, `iosXpath`, `iosClassChain`, `iosPredicate`, `iosClassName`, `androidAccessibility`, `androidXpath`, `androidClassName`. One selector per platform.
 
 Strict mode: a selector that matches two elements fails at run time. A typical iOS case is a row Button that holds a StaticText with the same label: prefer the Button's `role=button;name=…` or its id.
 

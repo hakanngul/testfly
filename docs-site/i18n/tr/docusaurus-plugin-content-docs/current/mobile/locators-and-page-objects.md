@@ -23,6 +23,15 @@ description: "MobileLocator sorguları, seçici dizeleri, @MobileFind ve @WaitFo
 
 `first()`, `last()`, `nth(i)`, `within(container)`, `or(other)`, `and(other)`, `filterHasText(...)`, `filterHasNotText(...)`, `filterHas(locator)`, `filterHasNot(locator)` ve `withTimeout(Duration)` ile daraltın.
 
+### Koddan locator
+
+`MobileLocator`'da Appium ve web `Locator` adlarıyla statik fabrikalar vardır: `id(...)`, `accessibilityId(...)`, `xpath(...)`, `iosClassChain(...)`, `iosPredicate(...)`, `className(...)`, `byTestId`, `byText`, `byLabel`, `byPlaceholder`, `byRole(role[, name])` ve `of(seçiciDizesi)`. Her kullanımda o anki testin cihazına bağlanırlar; bu yüzden `static final` alan paralel koşularda güvenlidir. Açık cihazı olmayan bir thread'de kullanılırsa `MobileException` verirler.
+
+```java
+private static final MobileLocator SIGN_IN = MobileLocator.xpath("//*[@text='Sign in']");
+SIGN_IN.tap();
+```
+
 Test id'lerini tercih edin (iOS'ta `accessibilityIdentifier`, Android'de `resource-id`): cihaz diliyle değişmezler. Ardından isimli roller, en son metinler gelir.
 
 ## Seçici dizeleri {#selector-strings}
@@ -38,6 +47,17 @@ Test id'lerini tercih edin (iOS'ta `accessibilityIdentifier`, Android'de `resour
 | `placeholder=Username` | `getByPlaceholder("Username")` |
 | `type=XCUIElementTypeSwitch` | `getByType("XCUIElementTypeSwitch")` |
 | `role=button` / `role=button;name=Sign in` | `getByRole(MobileRole.BUTTON[, "Sign in"])` |
+| `id=com.app:id/btnLogin` | `testid=` ile aynı (Appium `id`) |
+| `accessibility=loginButton` | iOS identifier, name veya label; Android content-desc (Appium `accessibilityId`) |
+| `xpath=//android.widget.Button[@text='Sign in']` | görünüm ağacı üzerinde XPath 1.0 |
+| ``chain=**/XCUIElementTypeCell[`label == 'Orders'`]`` | iOS class chain (ortak alt küme) |
+| `predicate=label BEGINSWITH 'Sign'` | iOS NSPredicate (ortak alt küme) |
+
+XPath, class chain ve predicate, mobilecli'nin döndürdüğü ağaç üzerinde TestFly içinde çalışır; mobilecli'de bu sorgular yoktur. Sınırlar:
+
+- **XPath:** öğeler `XCUIElementType…` (iOS) veya Android sınıf adıyla, bir `hierarchy` kökü altında adlandırılır. Öznitelikler: `resource-id`, `content-desc`, `text`, `name`, `label`, `value`, `placeholder`, `type`, `class`, `enabled`, `visible`, `selected`, `checked`, `focused`, `x`, `y`, `width`, `height`. mobilecli etiketsiz kapsayıcıları atar; Appium Inspector'dan kopyalanan tam yollu XPath'ler eşleşmeyebilir, id, metin veya tipe dayalı olanlar eşleşir.
+- **Class chain:** `/` ile ayrılmış adımlar, her derinlik için `**/`, bir tip (`XCUIElementType` önekli veya öneksiz) ya da `*`, ve ``[`predicate`]`` veya `[n]` (1 tabanlı, negatif sondan) filtreleri.
+- **Predicate:** `==`, `!=`, `BEGINSWITH`, `ENDSWITH`, `CONTAINS`, `LIKE`, `MATCHES` ve `[c]`/`[d]`; `AND`, `OR`, `NOT` ve parantezle birleşir; `name`, `label`, `value`, `type`, `identifier`, `text`, `placeholderValue` ve durum bayrakları üzerinde.
 
 Bilinmeyen bir anahtar, bilinmeyen bir rol veya boş değer, geçerli biçimleri listeleyen bir `MobileLocatorException` verir.
 
@@ -94,6 +114,12 @@ Kurallar:
 - Alanlar statik olmayan `MobileLocator` olmalıdır; başka bir tip sayfa oluşturulurken hata verir.
 - `tapIfShown(locator)` şu an görünen bir öğeye dokunur ve kaybolmasını bekler; öğe görünmüyorsa beklemeden `false` döner.
 - Sayfa oluşturmak ekranını bekler. Cucumber'da sayfa örneklerini adımlar arasında step sınıfının alanlarında tutun; ekranı çoktan gitmiş bir sayfayı yeniden oluşturmayın.
+- Seçici dizesi yerine bir alan, Appium'daki `@iOSXCUITFindBy(accessibility = …)` gibi platform başına bir tipli öznitelik kullanabilir: `iosAccessibility`, `iosId`, `iosXpath`, `iosClassChain`, `iosPredicate`, `iosClassName`, `androidAccessibility`, `androidId`, `androidXpath`, `androidClassName`. Bir platform için iki tane vermek (örneğin `android` ve `androidId`) sayfa oluşturulurken hata verir.
+
+  ```java
+  @MobileFind(iosAccessibility = "LoginScreen.loginButton", androidId = "com.example:id/btnLogin")
+  private MobileLocator login;
+  ```
 - Düz sınıflar da çalışır: `page(Type.class)` (`MobileSupport`'tan) veya `MobilePages.init(page, screen)`, `@MobileFind` alanlarını bekleme ve `onLoad()` olmadan doldurur.
 
 Örnek sayfalar `src/test/java/io/testfly/examples/mobile/HomePage.java` ve `LoginPage.java` dosyalarıdır.
@@ -150,7 +176,8 @@ public void showsTheBalance() { /* giriş yapılmış olarak başlar */ }
 ## Eylemler ve doğrulamalar
 
 - **Eylemler:** `tap()`, `doubleTap()`, `longPress()`, `fill(text)` (`type(text)` ile aynı; önce temizler), `append(text)`, `clear()`, `swipe(SwipeDirection)`. Tam olarak bir öğe eşleşene ve görünür, etkin ve sabit olana kadar bekler, sonra öğenin ortasında işlem yapar. Birden çok eşleşme, `first()`, `last()` veya `nth(i)` biri seçmedikçe hata verir (strict mode).
-- **Okumalar:** `getText()`, `getValue()`, `node()` görünür bir öğeyi bekler; `count()`, `nodes()`, `isVisible()` beklemeden o anki ekranı okur; `waitForVisible()` ve `waitForHidden()` açıkça bekler.
+- **Kaydırma:** `scrollIntoView()` yukarı (veya `scrollIntoView(SwipeDirection)` yönünde) kaydırır, ta ki tek bir eşleşme görünene kadar; liste sonunda veya `timeouts.actionMs` dolunca hata verir.
+- **Okumalar:** `getText()`, `getValue()`, `getAttribute(name)` ve `node()` görünür bir öğeyi bekler; `getAttribute`, `resource-id`, `content-desc` ve `class` adlarını da kabul eder, olmayan öznitelik için `null` döner. `count()`, `nodes()`, `allTexts()`, `isVisible()`, `isPresent()`, `isHidden()`, `isEnabled()`, `isDisabled()`, `isSelected()`, `isChecked()` ve `isFocused()` beklemeden o anki ekranı okur; `is…` durum okumaları birden fazla eşleşmede hata verir (strict). `waitForVisible()` ve `waitForHidden()` açıkça bekler.
 - **Doğrulamalar:** `expect(locator)` ile `toBeVisible()`, `toBeHidden()`, `toBeEnabled()`, `toBeDisabled()`, `toBeSelected()`, `toBeChecked()`, `toBeFocused()`, `toHaveText(...)`, `toContainText(...)`, `toHaveValue(...)`, `toHaveCount(n)` ve `not()`. `timeouts.actionMs` bitene kadar yeniden dener.
 - **Cihaz:** `device()`; `launchApp`, `terminateApp`, `clearAppData`, `installApp`, `openUrl` (deep link), `pressButton("BACK")`, `screenSize()` ve `screenshot()` sunar; `screen().swipe(...)` ekran boyunca kaydırır.
 - **Cihaz ayarları:** `device().setOrientation(MobileOrientation.LANDSCAPE)` ve `orientation()`; `setLocation(enlem, boylam)` ve `clearLocation()`. İkisi de cihaz kapanırken geri alınır, böylece sonraki test eski yönde ve gerçek konumla başlar. `startRecording(path)` / `stopRecording()` ekranı elle kaydeder; otomatik kayıt için [`recordVideo`](configuration#screen-recording).

@@ -194,6 +194,10 @@ public final class MobileDevice implements AutoCloseable {
         }
     }
 
+    MobileSession session() {
+        return session;
+    }
+
     /** Default auto-wait budget of locators created from {@link #screen()}. */
     public Duration actionTimeout() {
         return session.actionTimeout();

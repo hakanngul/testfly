@@ -33,6 +33,9 @@ final class FakeApp {
     /** The file a running screen recording writes to, else null. */
     String recordingTo;
 
+    /** The home list was swiped up once, revealing its "Help" row (scrollIntoView tests). */
+    boolean scrolled;
+
     /** Polls left before the Sign in button stops moving (stability check). */
     int buttonMoves;
 
@@ -58,6 +61,10 @@ final class FakeApp {
         });
         server.on("device.io.tap", p -> {
             tap(p.path("x").asInt(), p.path("y").asInt());
+            return null;
+        });
+        server.on("device.io.swipe", p -> {
+            if (screen.equals("home") && p.path("y1").asInt() > p.path("y2").asInt()) scrolled = true;
             return null;
         });
         server.on("device.io.text", p -> {
@@ -169,6 +176,11 @@ final class FakeApp {
             ObjectNode settings = el(children, "android.widget.LinearLayout", 3);
             settings.put("text", "Settings");
             rect(settings, 40, 420, 1000, 120);
+            if (scrolled) {
+                ObjectNode help = el(children, "android.widget.LinearLayout", 3);
+                help.put("text", "Help").put("identifier", BUNDLE + ":id/help");
+                rect(help, 40, 560, 1000, 120);
+            }
             ObjectNode signOut = el(children, "android.widget.Button", 4);
             signOut.put("text", "Sign out");
             rect(signOut, 40, 1000, 1000, 120);

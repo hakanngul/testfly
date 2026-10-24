@@ -144,6 +144,32 @@ public final class LocatorEngine {
         };
     }
 
+    /** Appium's accessibility id: the iOS accessibility identifier / name, or the Android content-desc (label). */
+    public static Query byAccessibilityId(String id) {
+        return new Leaf() {
+            boolean matches(MobileNode n) {
+                return id.equals(n.identifier()) || id.equals(n.name()) || id.equals(n.label());
+            }
+
+            public String describe() {
+                return "accessibilityId(\"" + id + "\")";
+            }
+        };
+    }
+
+    /** Nodes for which {@code test} holds, described as {@code description}. */
+    public static Query where(java.util.function.Predicate<MobileNode> test, String description) {
+        return new Leaf() {
+            boolean matches(MobileNode n) {
+                return test.test(n);
+            }
+
+            public String describe() {
+                return description;
+            }
+        };
+    }
+
     /** A query that fails with {@code message} when used, e.g. a page field without a definition for this platform. */
     public static Query missing(String message) {
         return new Query() {

@@ -15,7 +15,8 @@ import java.util.Locale;
  */
 public final class SelectorParser {
 
-    static final String FORMATS = "LoginScreen.loginButton (test id), testid=…, text=…, label=…, placeholder=…, type=…, role=button[;name=…]";
+    static final String FORMATS = "LoginScreen.loginButton (test id), testid=… / id=…, accessibility=…, text=…, label=…, "
+            + "placeholder=…, type=…, role=button[;name=…], xpath=…, chain=… (iOS class chain), predicate=… (iOS NSPredicate)";
 
     private SelectorParser() {
     }
@@ -34,7 +35,11 @@ public final class SelectorParser {
             throw invalid(selector, "'" + key + "' has no value");
         }
         return switch (key) {
-            case "testid" -> LocatorEngine.byTestId(value);
+            case "testid", "id" -> LocatorEngine.byTestId(value);
+            case "accessibility" -> LocatorEngine.byAccessibilityId(value);
+            case "xpath" -> new XPathQuery(value);
+            case "chain" -> new ClassChainQuery(value);
+            case "predicate" -> LocatorEngine.where(NsPredicate.parse(value), "iosPredicate(\"" + value + "\")");
             case "text" -> LocatorEngine.byText(TextMatch.exact(value));
             case "label" -> LocatorEngine.byLabel(TextMatch.exact(value));
             case "placeholder" -> LocatorEngine.byPlaceholder(TextMatch.exact(value));

@@ -23,6 +23,15 @@ description: "MobileLocator queries, selector strings, MobilePage page objects w
 
 Refine with `first()`, `last()`, `nth(i)`, `within(container)`, `or(other)`, `and(other)`, `filterHasText(...)`, `filterHasNotText(...)`, `filterHas(locator)`, `filterHasNot(locator)` and `withTimeout(Duration)`.
 
+### Locators in code
+
+`MobileLocator` has static factories named like Appium's and the web `Locator`'s: `id(...)`, `accessibilityId(...)`, `xpath(...)`, `iosClassChain(...)`, `iosPredicate(...)`, `className(...)`, `byTestId`, `byText`, `byLabel`, `byPlaceholder`, `byRole(role[, name])` and `of(selectorString)`. They bind to the current test's device each time they are used, so a `static final` field is safe in parallel runs. Used on a thread without an open device they fail with `MobileException`.
+
+```java
+private static final MobileLocator SIGN_IN = MobileLocator.xpath("//*[@text='Sign in']");
+SIGN_IN.tap();
+```
+
 Prefer test ids (`accessibilityIdentifier` on iOS, `resource-id` on Android): they do not change with the device language. Roles with a name come next; texts last.
 
 ## Selector strings {#selector-strings}
@@ -38,6 +47,17 @@ Prefer test ids (`accessibilityIdentifier` on iOS, `resource-id` on Android): th
 | `placeholder=Username` | `getByPlaceholder("Username")` |
 | `type=XCUIElementTypeSwitch` | `getByType("XCUIElementTypeSwitch")` |
 | `role=button` / `role=button;name=Sign in` | `getByRole(MobileRole.BUTTON[, "Sign in"])` |
+| `id=com.app:id/btnLogin` | same as `testid=` (Appium `id`) |
+| `accessibility=loginButton` | iOS identifier, name or label; Android content-desc (Appium `accessibilityId`) |
+| `xpath=//android.widget.Button[@text='Sign in']` | XPath 1.0 over the view tree |
+| ``chain=**/XCUIElementTypeCell[`label == 'Orders'`]`` | iOS class chain (common subset) |
+| `predicate=label BEGINSWITH 'Sign'` | iOS NSPredicate (common subset) |
+
+XPath, class chain and predicate run in TestFly on the tree mobilecli returns; mobilecli has no such queries. Limits:
+
+- **XPath:** elements are named `XCUIElementType…` (iOS) or by their Android class under a `hierarchy` root. Attributes: `resource-id`, `content-desc`, `text`, `name`, `label`, `value`, `placeholder`, `type`, `class`, `enabled`, `visible`, `selected`, `checked`, `focused`, `x`, `y`, `width`, `height`. mobilecli drops unlabeled containers, so full-path XPaths copied from Appium Inspector may not match; XPaths by id, text or type do.
+- **Class chain:** `/`-separated segments, `**/` for any depth, a type (with or without `XCUIElementType`) or `*`, and filters ``[`predicate`]`` or `[n]` (1-based, negative from the end).
+- **Predicate:** `==`, `!=`, `BEGINSWITH`, `ENDSWITH`, `CONTAINS`, `LIKE`, `MATCHES` with `[c]`/`[d]`, joined by `AND`, `OR`, `NOT` and parentheses, on `name`, `label`, `value`, `type`, `identifier`, `text`, `placeholderValue` and the state flags.
 
 An unknown key, an unknown role or an empty value fails with `MobileLocatorException`, listing the valid formats.
 
@@ -94,6 +114,12 @@ Rules:
 - Fields must be non-static `MobileLocator`s; another type fails when the page is created.
 - `tapIfShown(locator)` taps an element that is visible now and waits for it to disappear; it returns `false` at once when the element is not shown.
 - Creating a page waits for its screen. In Cucumber, keep page instances in step-class fields between steps instead of creating a page whose screen has already gone.
+- Instead of a selector string, a field can use one typed attribute per platform, as Appium's `@iOSXCUITFindBy(accessibility = …)` does: `iosAccessibility`, `iosId`, `iosXpath`, `iosClassChain`, `iosPredicate`, `iosClassName`, `androidAccessibility`, `androidId`, `androidXpath`, `androidClassName`. Setting two for one platform (say `android` and `androidId`) fails when the page is created.
+
+  ```java
+  @MobileFind(iosAccessibility = "LoginScreen.loginButton", androidId = "com.example:id/btnLogin")
+  private MobileLocator login;
+  ```
 - Plain classes work too: `page(Type.class)` (from `MobileSupport`) or `MobilePages.init(page, screen)` fill `@MobileFind` fields without the wait and `onLoad()`.
 
 The example pages are `src/test/java/io/testfly/examples/mobile/HomePage.java` and `LoginPage.java`.
@@ -150,7 +176,8 @@ public void showsTheBalance() { /* starts signed in */ }
 ## Actions and assertions
 
 - **Actions:** `tap()`, `doubleTap()`, `longPress()`, `fill(text)` (same as `type(text)`; clears first), `append(text)`, `clear()`, `swipe(SwipeDirection)`. They wait until exactly one element matches and it is visible, enabled and stable, then act on the centre of the element. Several matches fail unless `first()`, `last()` or `nth(i)` picks one (strict mode).
-- **Reads:** `getText()`, `getValue()`, `node()` wait for a visible element; `count()`, `nodes()`, `isVisible()` read the current screen without waiting; `waitForVisible()` and `waitForHidden()` wait explicitly.
+- **Scrolling:** `scrollIntoView()` swipes up (or `scrollIntoView(SwipeDirection)`) until exactly one match is visible; it fails at the end of the list or when `timeouts.actionMs` runs out.
+- **Reads:** `getText()`, `getValue()`, `getAttribute(name)` and `node()` wait for a visible element; `getAttribute` takes `resource-id`, `content-desc` and `class` as aliases and returns `null` for a missing attribute. `count()`, `nodes()`, `allTexts()`, `isVisible()`, `isPresent()`, `isHidden()`, `isEnabled()`, `isDisabled()`, `isSelected()`, `isChecked()` and `isFocused()` read the current screen without waiting; the `is…` state reads fail on several matches (strict). `waitForVisible()` and `waitForHidden()` wait explicitly.
 - **Assertions:** `expect(locator)` with `toBeVisible()`, `toBeHidden()`, `toBeEnabled()`, `toBeDisabled()`, `toBeSelected()`, `toBeChecked()`, `toBeFocused()`, `toHaveText(...)`, `toContainText(...)`, `toHaveValue(...)`, `toHaveCount(n)`, and `not()`. They retry until `timeouts.actionMs` runs out.
 - **Device:** `device()` offers `launchApp`, `terminateApp`, `clearAppData`, `installApp`, `openUrl` (deep links), `pressButton("BACK")`, `screenSize()` and `screenshot()`; `screen().swipe(...)` swipes across the screen.
 - **Device settings:** `device().setOrientation(MobileOrientation.LANDSCAPE)` and `orientation()`; `setLocation(latitude, longitude)` and `clearLocation()`. Both are undone when the device closes, so the next test starts in the original orientation with the real location. `startRecording(path)` / `stopRecording()` record the screen by hand; automatic recording is [`recordVideo`](configuration#screen-recording).
