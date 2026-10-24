@@ -113,7 +113,15 @@ public final class Mobile {
             return;
         }
         if (reset.equals("cleardata")) {
-            session.driver().clearAppData(bundleId, rpc);
+            try {
+                session.driver().clearAppData(bundleId, rpc);
+            } catch (MobileRpcException e) {
+                // An iOS simulator app that was never launched has no data container yet: nothing to clear.
+                String m = e.getMessage();
+                if (m == null || !m.contains("failed to read data container") || !m.contains("no such file or directory")) {
+                    throw e;
+                }
+            }
         } else {
             try {
                 session.driver().terminateApp(bundleId, rpc);

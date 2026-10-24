@@ -6,6 +6,7 @@ import io.testfly.mobile.DeviceSelectionException;
 import io.testfly.mobile.Mobile;
 import io.testfly.mobile.MobileAssertionError;
 import io.testfly.mobile.MobileDevice;
+import io.testfly.mobile.MobileRpcException;
 import io.testfly.mobile.MobileLocator;
 import io.testfly.mobile.MobileLocatorException;
 import io.testfly.mobile.MobilePlatform;
@@ -231,6 +232,25 @@ public class MobileDeviceTest {
             assertFalse(server.methods().contains("device.apps.launch"));
             assertFalse(server.methods().contains("device.apps.terminate"));
             assertEquals(app.foreground, FakeApp.BUNDLE);
+        }
+    }
+
+    @Test
+    public void clearDataSkipsAnAppWithoutADataContainerButFailsOnOtherErrors() {
+        String id = uniqueId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            new FakeApp(id).install(server);
+            // mobilecli 1.0.20 on an iOS simulator app that was never launched.
+            server.on("device.apps.clear", p -> FakeMobilecliServer.error(-32000, "Server error",
+                    "failed to clear app on device " + id + ": failed to read data container: open /x/Application/ABC: no such file or directory"));
+            TestFlyConfig.Mobile cfg = config(server, id);
+            cfg.getApp().setReset("clearData");
+            try (MobileDevice device = Mobile.connect(cfg)) {
+                expect(device.screen().getByText("Welcome back")).toBeVisible();
+            }
+
+            server.on("device.apps.clear", p -> FakeMobilecliServer.error(-32000, "Server error", "permission denied"));
+            expectThrows(MobileRpcException.class, () -> Mobile.connect(cfg));
         }
     }
 
