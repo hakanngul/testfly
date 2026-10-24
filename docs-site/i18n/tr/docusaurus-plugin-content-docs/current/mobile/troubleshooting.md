@@ -1,7 +1,7 @@
 ---
 id: troubleshooting
 title: Mobil Sorun Giderme
-sidebar_position: 5
+sidebar_position: 12
 description: "TestFly native mobil modülünün istisnaları, mobilecli, cihazlar ve locator'larla ilgili sık sorunlar ve mevcut sınırlar."
 ---
 
@@ -41,5 +41,5 @@ description: "TestFly native mobil modülünün istisnaları, mobilecli, cihazla
 - Test başına bir cihaz; JVM genelindeki rezervasyon bir cihazı aynı anda yalnızca bir testin kullanmasına izin verir. Havuz olmadan paralel worker'lar tek cihazı sırayla paylaşır. Cihazları paylaşan ayrı JVM'ler veya makineler koordine edilmez.
 - Uygulama durumu tarayıcı çerezleri gibi saklanamaz; bu yüzden mobil `@PreCondition`, `mobile.app.reset: none` uygulama durumunu korumadıkça her testten önce yeniden çalışır. Cucumber `@PreCondition`'ı okumaz; `Background` kullanın.
 - `launchApp` uygulamanın ön plana gelmesini beklemez; bunun yerine ilk locator çağrısı bekler.
-- WebView ve WebSocket desteği henüz yok. Ekran kaydı yerel bir mobilecli sunucusu gerektirir; kayıt yapamayan bir cihaz uyarı yazar ve videosuz çalışır.
+- WebView'ler debug edilebilir (Android) veya inspect edilebilir (iOS) bir webview ister, bkz. [WebView'ler](webviews#requirements). Ekran kaydı yerel bir mobilecli sunucusu gerektirir; kayıt yapamayan bir cihaz uyarı yazar ve videosuz çalışır.
 - Özel backend'ler `io.testfly.mobile.spi.MobileDriver` arayüzünü uygulayıp `Mobile.connect(driver, settings)` ile cihaz açabilir.

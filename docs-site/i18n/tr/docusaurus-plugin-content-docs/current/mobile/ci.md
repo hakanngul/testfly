@@ -1,7 +1,7 @@
 ---
 id: ci
 title: CI'da Mobil Testler
-sidebar_position: 4
+sidebar_position: 11
 description: "Native mobil testleri GitHub Actions'ta KVM hızlandırmalı bir Android emülatörüyle veya macOS'ta bir iOS simülatörüyle çalıştırın; TestFly'ın kendi Mobile Emulator Smoke iş akışında olduğu gibi."
 ---
 

@@ -14,6 +14,9 @@ All notable changes to TestFly are documented here.
 ## [Unreleased]
 
 ### Added
+- **Mobile Inspector (`tools/`, outside the Maven artifact)**: a VS Code extension (0.2.0) and an IntelliJ IDEA plugin for mobilecli devices. They show the screen, the view tree and TestFly selectors ranked by match count, and generate `@MobileFind` fields. Record mode turns taps, typing, swipes and buttons into a `MobilePage` class.
+- **Mobile launcher activity**: `mobile.app.activity` (Android) picks the launcher activity for apps that have several, such as debug builds with LeakCanary. The `mobile.ios` and `mobile.android` blocks can override it.
+- **Android login example**: the JUnit 5 example also checks the account summary and the popup confirmation after sign-in (`AndroidLoginJUnit5ExampleTest`).
 - **Native mobile (incubating, `io.testfly.mobile`)**: drives Android and iOS apps through a user-installed [mobilecli](https://github.com/mobile-next/mobilecli) server, without Appium (ADR 0002). `screen().getByRole/Text/Label/TestId/Placeholder/Type` locators with auto-waiting actions (`tap`, `fill`, `swipe`, …), strict mode and `expect(...)` assertions; `device()` for apps, deep links and screenshots. Mobile tests run on TestNG (`BaseMobileTest`, `@MobileTest`), JUnit 5 (`BaseJUnit5MobileTest`) and Cucumber (`@mobile`); the browser is skipped and the device is opened per test. Configured with the new `mobile:` block. Not `@TestFlyApi` yet; may change in a minor release.
 - **Mobile platform per test**: `@MobileTest(platform = MobilePlatform.IOS)` (next to `@Test`) runs a test on that platform, overriding `mobile.platform`; new `mobile.ios:` / `mobile.android:` blocks hold each platform's device and app, so one config serves both. New `Mobile.connect(MobilePlatform)` and `TestFlyConfig.Mobile.forPlatform(...)`.
 - **Mobile Appium parity**: `mobile.alerts` also answers Android runtime permission dialogs (like `autoGrantPermissions`). `MobileLocator.pinchIn()`, `pinchOut()` and `dragTo(target)`; `MobileDevice` clipboard (`clipboard`, `setClipboard`, `clearClipboard`), files (`pushFile`, `pullFile`, up to 1 MB), crash reports (`crashReports`, `crashReport`; new crashes are saved to `target/reports/crashes/` when a test fails), apps (`isAppInstalled`, `foregroundApp`, `uninstallApp`, `backgroundApp`), keyboard (`isKeyboardShown`, `hideKeyboard`), settings (`setAnimations`, `setAppearance`, and `mobile.animations` / `mobile.appearance`) and webviews (`webViews()`, `webView()`, new `MobileWebView`). New optional `MobileDriver` default methods and `MobileCrashReport`.
@@ -54,6 +57,7 @@ All notable changes to TestFly are documented here.
 - **WireMock helpers**: `ApiMockServer.stubFor(MappingBuilder)`, `stubJson(method, urlPattern, status, json)` and `resetOwnStubs()` for parallel tests.
 
 ### Changed
+- **ReportPortal JUnit 5 agent** is upgraded from 5.3.1 to 5.5.8.
 - **Schema and OpenAPI failures** throw `ApiAssertionError`, a subclass of `AssertionError`, so existing `catch (AssertionError)` code keeps working.
 - **`ApiAuth.digest(...)`** now performs RFC 7616 challenge/response. It previously sent `Digest base64(user:password)`, which no server accepted.
 - **Cookie jar** (`withCookies()`): cookies are sent only to their host or `Domain`, honour `Path`, `Secure`, `Max-Age` and `Expires`, and foreign `Domain` cookies are rejected. A cookie without `Path` still applies to `/`. Previously every cookie went to every host.
@@ -66,6 +70,8 @@ All notable changes to TestFly are documented here.
 - **`ApiAuth.hmac(apiKey, secret, algorithm)`**: signs only the API key. Use `ApiAuth.hmacSigner()`. Its headers are unchanged.
 
 ### Fixed
+- **Mobile iOS first view-tree read**: on a freshly started simulator the first read could time out while DeviceKit was still starting. The driver now calls `device.apps.foreground` first, so DeviceKit is ready before the app launches.
+- **JUnit 5 ReportPortal test items**: the test item was not started through the agent's lifecycle before the test ran, so results were not reported correctly. `TestFlyExtension` now calls `ReportPortalJUnit5Bridge.startTestItem`, which invokes the agent's `interceptTestMethod`, before the test body runs.
 - **`ApiResponseSpec` content-type failures** named the request as `null null`; they now include the method and URL.
 - **JSON paths with keys containing `/` or `~`** resolved incorrectly through JSON Pointer; they now work with bracket notation.
 - **A lower-case `content-type` header** could be duplicated by a request spec's content type.

@@ -13,7 +13,7 @@ Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/inte
 ## Kullanım
 
 - Soldaki **TestFly Mobile** penceresi → **Open Mobile Inspector**, ya da **Tools → TestFly: Open Mobile Inspector**. Inspector bir editör sekmesinde açılır.
-- Ekran, `@eN` ref'li UI ağacı, Snapshot sekmesi, öğe özellikleri, eşleşme sayılı TestFly seçicileri ve `@MobileFind` alanları, dokunma / uzun basma / yazma / Back / Home / kaydırma: VS Code eklentisindeki gibi. Tuşlar: `R`, `I`, `T`, `/`, `Esc`.
+- Ekran, `@eN` ref'li UI ağacı, Snapshot sekmesi, öğe özellikleri, eşleşme sayılı TestFly seçicileri ve `@MobileFind` alanları, dokunma / uzun basma / yazma / Back / Home / kaydırma ve **Record** modu (dokunma, yazma, kaydırma ve butonlar `@MobileFind` alanlı bir `MobilePage` olur): VS Code eklentisindeki gibi. Tuşlar: `R`, `I`, `T`, `E`, `/`, `Esc`.
 - Settings → Tools → **TestFly Mobile Inspector**: mobilecli sunucu adresi (`http://localhost:12000`), mobilecli yolu, otomatik başlatma, eylemden sonra yenileme.
 
 [mobilecli](https://github.com/mobile-next/mobilecli) ve açık bir simülatör, emülatör veya cihaz gerekir (iOS: bir kez `mobilecli agent install --device <udid>`).
