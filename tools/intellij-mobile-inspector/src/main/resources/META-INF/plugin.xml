@@ -1,0 +1,30 @@
+<idea-plugin>
+    <id>io.testfly.mobile-inspector</id>
+    <name>TestFly Mobile Inspector</name>
+    <vendor url="https://github.com/hakanngul/testfly">TestFly</vendor>
+    <description><![CDATA[
+    Inspect iOS and Android screens through <a href="https://github.com/mobile-next/mobilecli">mobilecli</a>,
+    like Appium Inspector: device screenshot, the UI tree with mobilecli's <code>@eN</code> refs, element
+    attributes, and ranked TestFly selectors with per-screen match counts, ready to paste as
+    <code>@MobileFind</code> fields. Tap, long press, type, Back, Home and swipe from the IDE.
+    The same UI as the TestFly Mobile Inspector VS Code extension.
+    ]]></description>
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="io.testfly.inspector.InspectorSettings"/>
+        <applicationConfigurable parentId="tools" instance="io.testfly.inspector.InspectorConfigurable"
+                                 id="io.testfly.inspector.settings" displayName="TestFly Mobile Inspector"/>
+        <fileEditorProvider implementation="io.testfly.inspector.InspectorEditorProvider"/>
+        <toolWindow id="TestFly Mobile" anchor="left" secondary="false" icon="/icons/toolwindow.svg"
+                    factoryClass="io.testfly.inspector.InspectorToolWindowFactory"/>
+    </extensions>
+
+    <actions>
+        <action id="io.testfly.inspector.Open" class="io.testfly.inspector.OpenInspectorAction"
+                text="TestFly: Open Mobile Inspector" description="Inspect an iOS or Android screen through mobilecli"
+                icon="/icons/inspector.svg">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>

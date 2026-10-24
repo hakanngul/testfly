@@ -1,0 +1,5 @@
+build/
+.gradle/
+.intellijPlatform/
+*.zip
+!dist/*.zip
