@@ -76,6 +76,7 @@ public final class Locator extends By {
     private String filterCss;
     private String withText;
     private By withinContainer;
+    private By eachContainer; // withinEach(...): evaluate the chain once per container
     private int nthIndex = -1; // -1 = no nth filter
     private boolean selectLast = false;
     private boolean force = false; // skip the stable / not-covered actionability checks
@@ -225,6 +226,7 @@ public final class Locator extends By {
         this.filterCss = other.filterCss;
         this.withText = other.withText;
         this.withinContainer = other.withinContainer;
+        this.eachContainer = other.eachContainer;
         this.nthIndex = other.nthIndex;
         this.selectLast = other.selectLast;
         this.force = other.force;
@@ -287,6 +289,40 @@ public final class Locator extends By {
     public Locator within(By container) {
         Locator copy = new Locator(this);
         copy.withinContainer = container;
+        return copy;
+    }
+
+    /**
+     * Evaluates the chain separately inside every element matched by
+     * {@code containers} and returns the combined matches, in container order.
+     * Unlike {@link #within(By)}, which searches only the first container,
+     * {@code nth()}, {@code first()}, {@code last()}, {@code filter()} and
+     * {@code withText()} apply per container, so a whole table column becomes one
+     * locator:
+     *
+     * <pre>
+     * getByRole(Role.CELL).nth(2).withinEach(getByRole(Role.ROW)).allTexts()
+     * // ["Apple", "Banana", "Cherry"]
+     * </pre>
+     *
+     * <p>
+     * Containers with too few matches for {@code nth()} (for example a header row
+     * without {@code td} cells) are skipped. When combined with
+     * {@link #within(By)}, a plain {@code By} container is searched inside that
+     * scope. The result usually holds several elements: read it with
+     * {@link #allTexts()}, {@link #count()} or {@code assertThat(...)}, and narrow
+     * it again with a new locator before acting on a single cell.
+     *
+     * @param containers the repeated container, such as a table row
+     * @return a new locator; this one is unchanged
+     */
+    @TestFlyApi(since = "1.1.0")
+    public Locator withinEach(By containers) {
+        if (containers == null) {
+            throw new IllegalArgumentException("withinEach container cannot be null");
+        }
+        Locator copy = new Locator(this);
+        copy.eachContainer = containers;
         return copy;
     }
 
@@ -999,7 +1035,8 @@ public final class Locator extends By {
     }
 
     private WebElement pick(List<WebElement> candidates) {
-        if (candidates.size() > 1 && nthIndex < 0 && !selectLast && strictMode()) {
+        boolean narrowed = eachContainer == null && (nthIndex >= 0 || selectLast);
+        if (candidates.size() > 1 && !narrowed && strictMode()) {
             // Count visible candidates only: responsive layouts routinely keep hidden
             // duplicates (mobile/desktop navs, hidden modals) in the DOM.
             List<WebElement> visible = candidates.stream().filter(Locator::safeDisplayed).toList();
@@ -1058,7 +1095,7 @@ public final class Locator extends By {
      * True when any chain filter (filter/withText/within/nth/name/last) is applied.
      */
     private boolean hasChainFilters() {
-        return filterCss != null || withText != null || withinContainer != null
+        return filterCss != null || withText != null || withinContainer != null || eachContainer != null
                 || nthIndex >= 0 || accessibleName != null || selectLast;
     }
 
@@ -1069,6 +1106,9 @@ public final class Locator extends By {
 
         WebDriver d = driver();
         By effectiveRoot = buildRoot();
+        if (eachContainer != null) {
+            return resolvePerContainer(d, effectiveRoot);
+        }
         List<WebElement> candidates;
 
         if (withinContainer != null) {
@@ -1110,6 +1150,53 @@ public final class Locator extends By {
         }
 
         return candidates;
+    }
+
+    /**
+     * {@link #withinEach(By)}: runs the root search and the chain filters inside
+     * every container, applies {@code nth}/{@code last} per container, and joins
+     * the results in container order without duplicates.
+     */
+    private List<WebElement> resolvePerContainer(WebDriver d, By effectiveRoot) {
+        List<WebElement> containers;
+        if (eachContainer instanceof Locator chain) {
+            containers = chain.resolveAll(); // a Locator resolves its own chain from the page
+        } else if (withinContainer != null) {
+            try {
+                containers = d.findElement(withinContainer).findElements(eachContainer);
+            } catch (Exception e) {
+                throw new LocatorException("Container not found: " + withinContainer + " — " + e.getMessage());
+            }
+        } else {
+            containers = d.findElements(eachContainer);
+        }
+
+        java.util.LinkedHashSet<WebElement> combined = new java.util.LinkedHashSet<>();
+        for (WebElement container : containers) {
+            List<WebElement> candidates = container.findElements(effectiveRoot);
+            if (accessibleName != null) {
+                candidates = filterByName(d, candidates, accessibleName, exact);
+            }
+            if (filterCss != null) {
+                candidates = filterByCss(d, candidates, filterCss);
+            }
+            if (withText != null) {
+                candidates = filterByText(d, candidates, withText, exact);
+            }
+            if (candidates.isEmpty()) {
+                continue;
+            }
+            if (nthIndex >= 0) {
+                if (nthIndex < candidates.size()) {
+                    combined.add(candidates.get(nthIndex));
+                }
+            } else if (selectLast) {
+                combined.add(candidates.getLast());
+            } else {
+                combined.addAll(candidates);
+            }
+        }
+        return new ArrayList<>(combined);
     }
 
     /**
@@ -1372,6 +1459,8 @@ public final class Locator extends By {
             sb.append(".exact()");
         if (withinContainer != null)
             sb.append(" within(").append(withinContainer).append(")");
+        if (eachContainer != null)
+            sb.append(" withinEach(").append(eachContainer).append(")");
         if (filterCss != null)
             sb.append(".filter(\"").append(filterCss).append("\")");
         if (withText != null)

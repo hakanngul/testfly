@@ -1,0 +1,8 @@
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "name": "mobilecli",
+        "version": "1.0.20"
+    },
+    "id": 1
+}

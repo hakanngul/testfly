@@ -19,7 +19,13 @@ TestFly is a Java 21/Maven SDK for multi-domain test automation. Selenium is one
 - Activate `testfly-triage` for failing, flaky, hanging, or environment-dependent tests and builds.
 - Activate `testfly-docs` for documentation audits and changes in `README.md`, `docs/`, `docs-site/`, or release text.
 - Activate `testfly-verify` for implementation handoff, API/SPI/consumer validation, or release-readiness checks.
-- Skills live in `.agents/skills/` and load on demand. Kiro adapters live in `.kiro/`.
+- Activate `testfly-mobile` for the incubating native mobile module (`io.testfly.mobile`) and its engine bridges.
+- Activate `testfly-mobile-locator-finder` to scan a native app screen with mobilecli and extract `@MobileFind` page-object fields for iOS and Android.
+- Activate `testfly-mobile-write` to author iOS/Android page-object tests with `io.testfly.mobile`.
+- Activate `testfly-k6-write` for k6 load test scripts under `load/k6/`.
+- Activate `testfly-review` for read-only review of a diff before it is committed.
+- Activate `testfly-research` to investigate an external library, tool or protocol from primary sources.
+- Skills live in `.agents/skills/` (linked as `.claude/skills/`) and load on demand. Subagents for team-lead delegation live in `.claude/agents/`, including test writers per engine (TestNG, JUnit 5, Cucumber, TDD), domain (API, iOS, Android, k6) and `mobile-locator-finder`.
 
 ## Invariants
 

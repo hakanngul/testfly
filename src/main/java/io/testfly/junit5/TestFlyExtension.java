@@ -20,6 +20,8 @@ import io.testfly.loadtest.internal.LoadTestDetector;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.network.NetworkMock;
 import io.testfly.recording.RecordingManager;
+import io.testfly.mobile.internal.MobileSessions;
+import io.testfly.mobile.internal.MobileTestDetector;
 import io.testfly.reporting.ScreenshotManager;
 import io.testfly.session.MultiSessionManager;
 import io.testfly.steps.StepLogger;
@@ -151,6 +153,12 @@ public class TestFlyExtension
             }
         }
 
+        if (isMobileTest(context)) {
+            MobileSessions.open(MobileTestDetector.platform(context.getRequiredTestClass(), context.getRequiredTestMethod()));
+            // Native mobile tests skip the browser branch above, so their @PreCondition runs here.
+            PreConditionRunner.run(context.getRequiredTestMethod(), false);
+        }
+
         autoClearEmailIfEnabled();
         applyUseAuth(context);
         loadTestData(context);
@@ -222,7 +230,7 @@ public class TestFlyExtension
                     }
                 }
 
-                String screenshotPath = noBrowser ? null : ScreenshotManager.capture(testName);
+                String screenshotPath = failureScreenshot(context, noBrowser, testName);
                 ExecutionMetrics.recordScreenshot(testId, screenshotPath);
                 ExecutionMetrics.recordError(testId, cause);
                 ExecutionMetrics.recordStatus(testId, "FAILED");
@@ -273,7 +281,7 @@ public class TestFlyExtension
                 if (softCollector.hasFailed()) {
                     List<String> softFailures = softCollector.getFailures();
                     softFailures.forEach(msg -> StepLogger.step("[Soft Assertion Failed] " + msg, StepStatus.FAIL));
-                    String screenshotPath = noBrowser ? null : ScreenshotManager.capture(testName);
+                    String screenshotPath = failureScreenshot(context, noBrowser, testName);
                     ExecutionMetrics.recordScreenshot(testId, screenshotPath);
                     String combined = softFailures.size() + " soft assertion(s) failed:\n" +
                             String.join("\n", softFailures);
@@ -338,6 +346,7 @@ public class TestFlyExtension
             io.testfly.browser.GeoLocation.autoReset();
             if (!noBrowser && DriverManager.shouldQuitAfterTest())
                 DriverManager.quitDriver();
+            MobileSessions.close();
             TestFlyContext.clearCurrentTest();
         }
     }
@@ -503,10 +512,24 @@ public class TestFlyExtension
         Class<?> clazz = context.getRequiredTestClass();
         Method m = context.getRequiredTestMethod();
         if (io.testfly.test.BaseApiTest.class.isAssignableFrom(clazz) ||
-                BaseJUnit5ApiTest.class.isAssignableFrom(clazz)) {
+                BaseJUnit5ApiTest.class.isAssignableFrom(clazz) ||
+                isMobileTest(context)) {
             return true;
         }
         return LoadTestDetector.skipsBrowser(clazz, m);
+    }
+
+    /** Native mobile test (ADR 0002): {@code @MobileTest} on the class (inherited) or method. */
+    private boolean isMobileTest(ExtensionContext context) {
+        return MobileTestDetector.isMobileTest(context.getRequiredTestClass(), context.getRequiredTestMethod());
+    }
+
+    /** Browser screenshot for web tests, device screenshot for mobile tests, none otherwise. */
+    private String failureScreenshot(ExtensionContext context, boolean noBrowser, String testName) {
+        if (isMobileTest(context)) {
+            return MobileSessions.captureFailure(testName);
+        }
+        return noBrowser ? null : ScreenshotManager.capture(testName);
     }
 
     private void applyUseAuth(ExtensionContext context) {

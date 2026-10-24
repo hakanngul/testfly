@@ -23,6 +23,8 @@ import io.testfly.precondition.DependsOnApi;
 import io.testfly.precondition.PreConditionRunner;
 import io.testfly.recording.RecordingManager;
 import io.testfly.loadtest.internal.LoadTestDetector;
+import io.testfly.mobile.internal.MobileSessions;
+import io.testfly.mobile.internal.MobileTestDetector;
 import io.testfly.reporting.ScreenshotManager;
 import io.testfly.email.MailboxClient;
 import io.testfly.clock.TestClock;
@@ -126,6 +128,10 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
                 ExecutionMetrics.recordSessionUrl(testId, sessionUrl);
             startRecordingIfEnabled();
         }
+        if (isMobileTest(result)) {
+            MobileSessions.open(MobileTestDetector.platform(result.getTestClass().getRealClass(),
+                    result.getMethod().getConstructorOrMethod().getMethod()));
+        }
         autoClearEmailIfEnabled();
         applyUseAuth(result);
         PreConditionRunner.run(result);
@@ -167,8 +173,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
             // Log each failure as a step entry
             softFailures.forEach(msg -> StepLogger.step("[Soft Assertion Failed] " + msg, StepStatus.FAIL));
             // Single screenshot at flush time
-            String screenshotPath = !skipBrowser(result) ? ScreenshotManager.capture(result.getMethod().getMethodName())
-                    : null;
+            String screenshotPath = failureScreenshot(result, result.getMethod().getMethodName());
             ExecutionMetrics.recordScreenshot(result.getMethod().getQualifiedName(), screenshotPath);
             // Build combined error message
             String combined = softFailures.size() + " soft assertion(s) failed:\n" +
@@ -206,6 +211,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         io.testfly.browser.GeoLocation.autoReset();
         if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest())
             DriverManager.quitDriver();
+        MobileSessions.close();
         MultiSessionManager.clearAll();
         DbConnectionFactory.closeAll();
         io.testfly.testdata.TestDataStore.clear();
@@ -295,6 +301,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         io.testfly.browser.GeoLocation.autoReset();
         if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest())
             DriverManager.quitDriver();
+        MobileSessions.close();
         MultiSessionManager.clearAll();
         DbConnectionFactory.closeAll();
         io.testfly.testdata.TestDataStore.clear();
@@ -322,6 +329,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         io.testfly.browser.GeoLocation.autoReset();
         if (!skipBrowser(result) && DriverManager.shouldQuitAfterTest())
             DriverManager.quitDriver();
+        MobileSessions.close();
         MultiSessionManager.clearAll();
         DbConnectionFactory.closeAll();
         io.testfly.testdata.TestDataStore.clear();
@@ -405,9 +413,23 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
         return LoadTestDetector.isLoadTest(clazz, m);
     }
 
+    /** Native mobile test (ADR 0002): {@code @MobileTest} on the class (inherited) or method. */
+    private boolean isMobileTest(ITestResult result) {
+        return MobileTestDetector.isMobileTest(result.getTestClass().getRealClass(),
+                result.getMethod().getConstructorOrMethod().getMethod());
+    }
+
     /** Returns true for tests that must not create/use a WebDriver. */
     private boolean skipBrowser(ITestResult result) {
-        return isApiTest(result) || isNoBrowserTest(result) || isLoadTest(result);
+        return isApiTest(result) || isNoBrowserTest(result) || isLoadTest(result) || isMobileTest(result);
+    }
+
+    /** Browser screenshot for web tests, device screenshot for mobile tests, none otherwise. */
+    private String failureScreenshot(ITestResult result, String testName) {
+        if (isMobileTest(result)) {
+            return MobileSessions.captureFailure(testName);
+        }
+        return skipBrowser(result) ? null : ScreenshotManager.capture(testName);
     }
 
     private void applyUseAuth(ITestResult result) {
@@ -531,7 +553,7 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
      */
     private void captureFailureArtifacts(ITestResult result, String testId, String testName) {
         // Capture screenshot (stored in metrics for post-hoc adapters like Allure)
-        String screenshotPath = skipBrowser(result) ? null : ScreenshotManager.capture(testName);
+        String screenshotPath = failureScreenshot(result, testName);
         ExecutionMetrics.recordScreenshot(testId, screenshotPath);
 
         // AI analysis (stored in metrics for post-hoc adapters like Allure)

@@ -53,7 +53,7 @@ Native mobile becomes a **fourth test domain** next to web, API and load. It liv
 
 ### D1. Consume mobilecli as-is; do not fork
 
-TestFly depends on mobilecli's **protocol**, not its code. It never bundles, downloads, patches or redistributes the binary. Users install it themselves, and TestFly connects to `mobile.serverUrl`.
+TestFly depends on mobilecli's **protocol**, not its code. It never bundles, downloads, patches or redistributes the binary. Users install it themselves, and TestFly connects to `mobile.serverUrl`. Since 2026-10-23 TestFly may also *run* the user-installed binary: with `mobile.autoStartServer` (default on) it starts `mobilecli server start` for a loopback `serverUrl` that does not answer, once per JVM, and stops it at JVM exit; remote servers are never started.
 
 - **Gaps:** a gap in mobilecli is handled in this order:
   1. Solve it in Java. Locators, waiting and gesture composition are TestFly code anyway.
@@ -140,6 +140,7 @@ mobile:
     actionMs: 5000             # auto-wait budget per action/assertion
     pollMs: 100
     rpcMs: 30000               # upper bound per JSON-RPC HTTP request
+    reserveMs: 300000          # wait for a device another session in this JVM holds
   allowRemote: false           # non-loopback serverUrl needs this and https://
   headers: {}                  # e.g. Authorization for a TLS/auth proxy
   screenshotOnFailure: true
@@ -180,6 +181,8 @@ The defaults live in one place: `TestFlyConfig.Mobile` field initialisers, plus 
   - `MobileRpcException`: other JSON-RPC errors.
 - **Deadlines.** Every JSON-RPC HTTP request uses `HttpRequest.timeout(min(rpcMs, remaining action budget))`. A stalled mobilecli call therefore cannot hold an action or assertion past `actionMs`; the `Poller` regains control and fails with `MobileTimeoutException`. A timed-out state-changing call may still complete on the device, and the error message says so.
 - **Retries.** Read-only calls (`dump.ui`, `info`, `devices.list`) may be retried once on I/O failure. State-changing calls (tap, text, launch) are **never** retried by the transport, because a duplicate tap is worse than a clear failure.
+- **Closed connections.** mobilecli 1.0.20 closes the connection without a JSON-RPC answer when its device daemon times out (60 s). The client reports this as `MobileRpcException`, not a parse error or a hang.
+- **Connect timeouts.** A refused connection means no server (`MobileServerUnavailableException`); a connection that is only slow to open is a `MobileTimeoutException`, so polling keeps going until its budget runs out.
 
 ### D7. Parallelism and scale
 
@@ -283,7 +286,7 @@ The main risks:
 | Risk | Mitigation |
 |---|---|
 | Protocol drift or undocumented methods | `MobileDriver` SPI isolation; minimum-version check; contract tests against fixtures recorded from a real device |
-| Licensing interpretation | No redistribution; maintainers confirm before Phase 1 merges |
+| Licensing interpretation | No redistribution; confirmed by the maintainer (2026-10-22) |
 | Slow or flaky device I/O | One tree per poll cycle; strict actionability; no transport retries for actions; device screenshot on failure |
 | No devices in CI | Unit and contract tests on an in-process fake JSON-RPC server (`com.sun.net.httpserver`); real-device runs as a separate, optional job |
 
@@ -307,29 +310,77 @@ The main risks:
 ## Action items
 
 **Phase 0: prerequisites (maintainer)**
-1. [ ] Confirm the licensing position: no redistribution, plus NOTICE attribution.
+1. [x] Confirm the licensing position: no redistribution, plus NOTICE attribution. Confirmed by the maintainer on 2026-10-22.
 2. [x] Already observed against mobilecli 1.0.20 without a device: `server.info` returns `{name, version}`; `devices.list` returns `{devices: [...]}` (an object, not the bare array the OpenRPC spec shows); an unknown device returns `-32000` rather than `-32010`; an unknown method returns `-32601`. Code must follow observed behaviour, not the published spec.
-3. [ ] On a real Android emulator, record `server.info`, `devices.list`, `device.info`, `device.dump.ui`, `device.screenshot` and the error responses as JSON fixtures. Pin the minimum mobilecli version.
+3. [~] On a real Android emulator, record `server.info`, `devices.list`, `device.info`, `device.dump.ui`, `device.screenshot` and the error responses as JSON fixtures. Pin the minimum mobilecli version.
+   - Done (2026-10-22, mobilecli 1.0.20, Android 14 emulator without hardware acceleration): `server.info`, `devices.list`, `device.info` and the error responses are in `src/test/resources/mobile/mobilecli-1.0.20/`. Minimum version: 1.0.20.
+   - Observed: the Android emulator id is the AVD name, not the adb serial. A slow device can make the server close the connection after 60 s with **no JSON-RPC response**, so the client must map an empty reply to a transport error.
+   - Open: successful `device.dump.ui` and `device.screenshot`. The unaccelerated emulator was too slow; record them on an accelerated emulator or a real device.
 
 **Phase 1: foundation (no device needed; verified with the fake server)**
-4. [ ] `JsonRpcClient`, `MobileDriver` SPI, `MobileCliDriver`, and the `MobileException` hierarchy; loopback/`allowRemote` validation, deterministic device selection, deadline-bounded requests, and the JVM-wide device reservation.
-5. [ ] `TestFlyConfig.Mobile`, with defaults and validation.
-6. [ ] `MobileNode`, `LocatorEngine` (role table), `Poller`, `MobileLocator`, `MobileScreen`, `MobileDevice` and `MobileAssertions`.
-7. [ ] `Mobile.connect()` for explicit use.
-8. [ ] Run `scripts/agent/verify.sh code` and `api`.
+4. [x] `JsonRpcClient`, `MobileDriver` SPI, `MobileCliDriver`, and the `MobileException` hierarchy; loopback/`allowRemote` validation, deterministic device selection, deadline-bounded requests, and the JVM-wide device reservation.
+5. [x] `TestFlyConfig.Mobile`, with defaults and validation.
+6. [x] `MobileNode`, `LocatorEngine` (role table), `Poller`, `MobileLocator`, `MobileScreen`, `MobileDevice` and `MobileAssertions`.
+7. [x] `Mobile.connect()` for explicit use.
+8. [x] Run `scripts/agent/verify.sh code` and `api`.
+
+   Phase 1 notes (2026-10-22):
+   - Verified against an in-process fake server (`src/test/java/io/testfly/unit/mobile`) that serves the recorded 1.0.20 responses and a small fake app; no device was used.
+   - Added `mobile.timeouts.reserveMs` (D5, D7): how long a session waits for a device that another session in the same JVM holds.
+   - Not in Phase 1: the mobilecli **agent**. Mobilewright runs `mobilecli agent status/install --device <id>` before connecting; without the on-device agent, UI calls can fail (likely the cause of the failed `device.dump.ui` recording). Decided in Phase 2 (see below).
+   - `launchApp` does not yet wait for the app to reach the foreground (Mobilewright polls `device.apps.foreground`); the first locator call auto-waits instead.
 
 **Phase 2: domain integration**
-9. [ ] `MobileSupport`, `BaseMobileTest` and `@MobileTest`, plus the `isMobileTest` branch in `TestExecutionListener`.
-10. [ ] `BaseJUnit5MobileTest` and the `TestFlyExtension` branch; the Cucumber `@mobile` tag in `CucumberHooks`.
-11. [ ] Failure screenshot and step logging through `StepLogger`.
-12. [ ] English and Turkish docs (`docs-site/`), a sample `testfly.yml`, and NOTICE.
-13. [ ] Run `scripts/agent/verify.sh code`, `api` and `docs`.
+9. [x] `MobileSupport`, `BaseMobileTest` and `@MobileTest`, plus the `isMobileTest` branch in `TestExecutionListener`.
+10. [x] `BaseJUnit5MobileTest` and the `TestFlyExtension` branch; the Cucumber `@mobile` tag in `CucumberHooks`.
+11. [x] Failure screenshot and step logging through `StepLogger`.
+12. [x] English and Turkish docs (`docs-site/`), a sample `testfly.yml`, and NOTICE.
+13. [x] Run `scripts/agent/verify.sh code`, `api` and `docs`.
+
+   Phase 2 notes (2026-10-22):
+   - Engine bridges verified in-process with real TestNG, JUnit 5 and Cucumber runs against the fake server (`MobileEngineBridgeTest`): the device opens before and closes after each test, no browser starts, and a failing test gets a device screenshot (`target/reports/screenshots/<test>_mobile_<ts>.png`, also logged as a step).
+   - `@MobileTest` is `@Inherited` (unlike `@NoBrowser`), so the base classes carry it and detection never loads a JUnit type.
+   - Mobile actions are logged as steps like web actions ("Tap getByText(...)"); typed text is not logged.
+   - Agent decision: TestFly does not run `mobilecli agent status/install` itself, because the server may be remote and the CLI may not be on the test machine. The docs list the agent as a prerequisite, and a failed UI dump names the `mobilecli agent status --device <id>` check in its error.
 
 **Phase 3: real devices and scale**
-14. [ ] An Android emulator smoke suite, as an optional CI job or a documented local run.
-15. [ ] iOS simulator and real-device validation on a macOS runner.
-16. [ ] `mobile.devices` pool and allocator for parallel runs; deep links, orientation and geolocation.
+14. [x] An Android emulator smoke suite, as an optional CI job or a documented local run.
+15. [~] iOS simulator and real-device validation on a macOS runner.
+   - Done (2026-10-23): `IosSettingsExampleTest` passes on an iOS simulator in the `ios-simulator-smoke` job, after a DeviceKit warm-up before the first app launch. Open: real iOS and Android devices.
+16. [~] `mobile.devices` pool and allocator for parallel runs; deep links, orientation and geolocation.
+   - Done (2026-10-22): device pool. `mobile.devices: [ids]` or `mobile.pool: true` (every online match of `deviceName`). `DeviceReservations.acquireAny` hands each session the first free device and wakes waiters on release (`reserveMs`). Verified with the fake server: two parallel TestNG workers get different devices; 40 sessions on 3 devices never share one. Deep links work through `MobileDevice.openUrl`.
+   - Done (2026-10-23): orientation and geolocation (`MobileDevice.setOrientation/orientation`, `setLocation/clearLocation`, undone at close) and screen recording (`startRecording/stopRecording`, `mobile.recordVideo: off|failures|always`), as optional `MobileDriver` default methods.
+   - Open: pools across JVMs or machines.
 
 **Phase 4: stabilise**
 17. [ ] Promote validated types to `@TestFlyApi`.
 18. [ ] Evaluate WebSocket, WebView and screencast support.
+
+   Phase 4 preparation (2026-10-22). Nothing is promoted yet: D9 requires one shipped minor release and validation on real Android **and** iOS devices, and neither has happened.
+
+   **Promotion candidates** (all in `io.testfly.mobile` unless noted):
+   - YAML locators (added 2026-10-23): `MobileLocators` (load, get, keys).
+   - Platform per test (added 2026-10-24): `@MobileTest(platform)` with `mobile.ios` / `mobile.android` override blocks. It sits next to the engine's `@Test`: TestNG has no meta-annotations, and a class-level `@Test` on `BaseMobileTest` would turn existing public helper methods into tests.
+   - Appium parity (added 2026-10-24): `mobile.alerts` (iOS alerts by label, Android permission dialogs by resource-id), `mobile.animations`/`appearance`, pinch/drag, clipboard, files (base64 over JSON-RPC, 1 MB cap in mobilecli), crash reports saved on failure, app state, keyboard (full `dump.ui`), `MobileWebView`. Device logs are left out: mobilecli serves them only as a websocket stream.
+   - Structural selectors (added 2026-10-24): `xpath=`, `chain=`, `predicate=`, `id=`, `accessibility=` strings and the typed `@MobileFind` attributes; `MobileLocator` static factories that bind to the thread's device when used. mobilecli has no query command, so XPath (JDK `javax.xml.xpath` over a DOM built from the tree), class chain and NSPredicate subsets run client-side on mobilecli's pruned tree; Appium full-path XPaths may not match.
+   - Preconditions (added 2026-10-23): `MobileConditions`, `MobileDevice.keepsAppState()`; `@PreCondition` routes to them on mobile tests.
+   - Page objects (added 2026-10-23): `MobilePage` (fluent base class: fields set, `@WaitFor` awaited, `onLoad()`), `WaitFor`, `MobileFind` (iOS/Android/shared selector per field), `MobilePages`, `MobileSupport.page(Class)`, `MobileScreen.locate(String)`.
+   - Entry and session: `Mobile`, `MobileDevice`, `MobileScreen`, `MobileLocator`, `MobileSupport`, `MobileTest`, `BaseMobileTest`, `junit5.BaseJUnit5MobileTest`.
+   - Assertions: `MobileAssertions`, `MobileLocatorAssert`, `MobileAssertionError`.
+   - Values: `MobileRole`, `MobilePlatform`, `SwipeDirection`, `MobileNode`, `MobileBounds`, `MobileDeviceInfo`, `MobileScreenSize`.
+   - Errors: `MobileException` and its subclasses.
+   - Kept incubating longer: `spi.MobileDriver`, because a second backend has not shaped it yet; `internal.*` is never public API.
+
+   **Checklist before promotion:**
+   - [x] Web naming parity. `MobileLocator.type` now clears like web `Locator.type`; `append` adds text; reads are `getText()` and `getValue()` (changed while incubating).
+   - [ ] Records. `MobileNode`, `MobileBounds`, `MobileDeviceInfo` and `MobileScreenSize` are records, and adding a component later breaks their canonical constructor. Either accept that, or turn the ones likely to grow (`MobileNode`, `MobileDeviceInfo`) into final classes before promotion.
+   - [ ] `MobileSupport.expect(MobileLocator)` next to web `AssertionSupport` in a class that mixes both: confirm overload resolution in a consumer compile test (`scripts/agent/verify.sh consumer`).
+   - [ ] Real-device evidence: Android (the smoke workflow) and iOS (phase 3).
+   - [ ] One minor release shipped with the module marked incubating.
+   - [ ] Annotate with `@TestFlyApi(since = "<that minor>")`, then run `scripts/agent/verify.sh api` and `consumer`.
+
+   **Evaluation (item 18):**
+   - **WebView:** feasible. mobilecli exposes `device.webview.list/evaluate/goto/goBack/goForward/reload/url/title/waitForLoadState`; Mobilewright drives web content through `evaluate` plus an injected DOM query script. A Java port needs that script, which is Mobilewright code (Apache-2.0, attribution). Size: large. Recommendation: a separate ADR when a consumer needs hybrid apps.
+   - **Screen recording:** cheap. `device.screenrecord {output, timeLimit}` and `device.screenrecord.stop` already exist; wire them to `recording.mode: retain-on-failure` like web video. Note that `output` is a path on the mobilecli machine, so a remote server needs a way to return the file. Recommendation: do it next, for local servers first.
+   - **Live screencast:** `mobilecli screencapture -f mjpeg` streams MJPEG. It is useful for a live view, but tests do not need it. Recommendation: not now.
+   - **WebSocket transport (`/ws`):** Mobilewright uses one persistent socket instead of an HTTP request per call. It would save connection setup per poll, but the per-request deadline and no-retry rules (D6) must hold on a multiplexed socket. Recommendation: measure `dump.ui` latency over HTTP on a real device first; switch only if connection setup is a visible share.

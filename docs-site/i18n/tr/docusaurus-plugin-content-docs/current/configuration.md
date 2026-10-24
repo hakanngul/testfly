@@ -398,6 +398,31 @@ loadtest:
   resultsDir: target/loadtest       # yük testi çıktı ve rapor dizini
   reportEnabled: true               # bağımsız HTML yük testi raporu oluştur
   requestTimeoutSeconds: 30         # HTTP istek zaman aşımı (saniye)
+# ── Native Mobil (deneysel) ──────────────────────────────────────────────────
+# Yalnızca bu blok varsa yüklenir. Kullanıcının kurduğu mobilecli gerekir. Bkz. mobile/configuration.
+mobile:
+  serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+  autoStartServer: true             # loopback sunucu cevap vermezse mobilecli'yi başlat
+  mobilecliPath: mobilecli          # mobilecli PATH'te değilse tam yolu
+  platform: android                 # android | ios (zorunlu)
+  deviceId: ${MOBILE_DEVICE_ID:-}   # tam kimlik (AVD adı / seri no / simülatör UDID)
+  deviceName: ""                    # deviceId boşken cihaz adına uygulanan regex
+  devices: []                       # cihaz havuzu: her teste bir kimlik verilir
+  pool: false                       # deviceName ile eşleşen tüm çevrimiçi cihazları havuza al
+  app:
+    bundleId: com.example.app       # Android paketi / iOS bundle id
+    install: ""                     # cihaz açılırken kurulan isteğe bağlı .apk/.ipa/.app
+    reset: relaunch                 # none | relaunch | clearData
+  timeouts:
+    actionMs: 5000                  # bir eylemin veya doğrulamanın bekleme bütçesi
+    pollMs: 100                     # iki ekran okuması arasındaki bekleme
+    rpcMs: 30000                    # tek bir mobilecli isteğinin üst sınırı
+    reserveMs: 300000               # başka bir testin tuttuğu cihaz için bekleme
+    serverStartMs: 20000            # otomatik başlatılan sunucu için bekleme
+  allowRemote: false                # loopback olmayan sunucular true + https:// ister
+  headers: {}                       # örn. Authorization: Bearer ${MOBILECLI_TOKEN}
+  screenshotOnFailure: true
+  recordVideo: off                  # off | failures | always
 ```
 
 ---
@@ -911,6 +936,35 @@ Gatling ve Java Sanal İş Parçacığı (Virtual Threads) tabanlı eşzamanlı 
 | `resultsDir` | `string` | `target/loadtest` | Yük testi metrik ve rapor dosyalarının yazılacağı dizin. |
 | `reportEnabled` | `boolean` | `true` | Müstakil HTML yük testi raporunun ve Gatling bağlantılarının üretilmesini sağlar. |
 | `requestTimeoutSeconds` | `int` | `30` | HTTP bağlantı ve istek zaman aşımı süresi (saniye). |
+
+---
+
+## Native Mobil {#mobile}
+
+Kullanıcının kurduğu mobilecli sunucusu üzerinden native Android ve iOS testi (deneysel). Blok isteğe bağlıdır: o olmadan mobil tarafta hiçbir şey yüklenmez. Tam rehber: [Native Mobil](mobile/getting-started), [Mobil Yapılandırma](mobile/configuration).
+
+| Özellik | Tip | Varsayılan | Açıklama |
+|---|---|---|---|
+| `serverUrl` | `string` | `http://localhost:12000` | mobilecli sunucusu; istekler `<serverUrl>/rpc` adresine gider. `allowRemote` olmadan yalnızca loopback adresleri. |
+| `autoStartServer` | `boolean` | `true` | Loopback sunucu cevap vermezse `<mobilecliPath> server start` çalıştırır; JVM kapanırken durdurulur. |
+| `mobilecliPath` | `string` | `mobilecli` | `autoStartServer`'ın kullandığı komut. |
+| `platform` | `string` | — | `android` veya `ios` (zorunlu). |
+| `deviceId` | `string` | `""` | Tam cihaz kimliği: AVD adı, seri numarası veya simülatör UDID'si. |
+| `deviceName` | `string` | `""` | `deviceId` boşken cihaz adına uygulanan regex. |
+| `devices` | `list` | `[]` | Paralel koşum için cihaz havuzu; her teste bir kimlik. `deviceId` veya `pool` ile birlikte kullanılamaz. |
+| `pool` | `boolean` | `false` | Platformun `deviceName` ile eşleşen tüm çevrimiçi cihazlarını havuza alır. |
+| `app.bundleId` | `string` | `""` | Test edilen uygulamanın Android paketi veya iOS bundle id'si. |
+| `app.install` | `string` | `""` | Cihaz açılırken kurulan `.apk`/`.ipa`/`.app`. |
+| `app.reset` | `string` | `relaunch` | Her testten önce: `none`, `relaunch` (kapat + aç) veya `clearData`. |
+| `timeouts.actionMs` | `long` | `5000` | Bir eylemin, okumanın, doğrulamanın veya `@WaitFor`'un bekleme bütçesi. |
+| `timeouts.pollMs` | `long` | `100` | İki ekran okuması arasındaki bekleme. |
+| `timeouts.rpcMs` | `long` | `30000` | Tek bir mobilecli isteğinin üst sınırı. |
+| `timeouts.reserveMs` | `long` | `300000` | Bir testin, başka bir testin tuttuğu havuz cihazını ne kadar bekleyeceği. |
+| `timeouts.serverStartMs` | `long` | `20000` | Otomatik başlatılan sunucunun cevap vermesi için ne kadar beklenir. |
+| `allowRemote` | `boolean` | `false` | Loopback olmayan bir `serverUrl`'e izin verir; `https://` gerekir. |
+| `headers` | `map` | `{}` | Her mobilecli isteğine eklenen HTTP başlıkları (örn. ortam değişkeninden bir proxy token'ı). |
+| `screenshotOnFailure` | `boolean` | `true` | Başarısız testlere cihaz ekran görüntüsü ekler. |
+| `recordVideo` | `string` | `off` | Test başına ekran kaydı: `off`, `failures` (başarısız testler için `target/reports/videos/` altında saklanır) veya `always`. |
 
 ---
 

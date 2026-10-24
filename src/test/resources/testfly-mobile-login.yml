@@ -1,0 +1,43 @@
+# Profile for the login examples on iOS and Android (an app that is already installed on the device).
+# Each test picks its platform with @MobileTest(platform = ...); the ios: / android: blocks below hold
+# that platform's device and app, the rest is shared. Run:
+#   MOBILE_LOGIN_USER=<member id> MOBILE_LOGIN_PASSWORD=<password> \
+#     mvn test -Dtest='IosLoginExampleTest,AndroidLoginExampleTest'   (the tests select this profile)
+# With one online simulator / emulator per platform the device ids may stay empty.
+# mobilecli is started automatically when its server is down (mobile.autoStartServer); install the mobilecli agent on the simulator once.
+# Credentials come from the environment only; never commit them.
+
+mobile:
+  serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+  platform: ios                 # tests without @MobileTest(platform = ...), e.g. the Cucumber scenarios
+  app:
+    reset: clearData
+  alerts: dismiss               # closes the tracking prompt / permission dialogs that clearData brings back
+  timeouts:
+    actionMs: 30000
+    pollMs: 500
+    rpcMs: 60000
+  ios:
+    deviceId: ${MOBILE_IOS_DEVICE_ID:-}
+    app:
+      bundleId: ${MOBILE_IOS_BUNDLE_ID:-com.nesine.new-bet-dev}
+  android:
+    deviceId: ${MOBILE_ANDROID_DEVICE_ID:-}
+    app:
+      bundleId: ${MOBILE_ANDROID_BUNDLE_ID:-com.starlettech.letsbet.stage}
+      # The stage build has two launcher activities (SplashActivity and LeakCanary's); without this Android shows a chooser.
+      activity: ${MOBILE_ANDROID_ACTIVITY:-com.newbet.SplashActivity}
+
+# ReportPortal. The API key comes from REPORTPORTAL_API_KEY (git-ignored .env or the shell); never commit it.
+reporting:
+  allureEnabled: true
+  reportPortal:
+    enabled: true
+    endpoint: ${REPORTPORTAL_ENDPOINT}
+    apiKey: ${REPORTPORTAL_API_KEY}
+    project: demo-web
+    launch: "LetsBet Mobile Test Automation"
+    description: "LetsBet Mobile Test Automation Suite"
+    attributes: "framework:testfly;runner:testng"
+    type: auto
+    mode: default

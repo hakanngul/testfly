@@ -1,0 +1,121 @@
+name: Mobile Emulator Smoke
+
+# Native mobile smoke test (ADR 0002 phase 3): a KVM-accelerated Android emulator, a real mobilecli
+# server and the emulator's built-in Settings app. Optional: it never gates the main CI workflow.
+# mobilecli is installed from npm on the runner at job time; TestFly does not ship it.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - development
+    paths:
+      - 'src/main/java/io/testfly/mobile/**'
+      - 'src/test/java/io/testfly/integration/mobile/**'
+      - 'scripts/ci/*-mobile-smoke.sh'
+      - 'src/test/java/io/testfly/examples/mobile/**'
+      - '.github/workflows/mobile-emulator-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android-emulator-smoke:
+    name: Android emulator smoke (API ${{ matrix.api-level }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [30, 34]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install mobilecli
+        run: npm install -g mobilecli@1.0.20
+
+      - name: Build TestFly
+        run: mvn -B --no-transfer-progress -DskipTests -Djacoco.skip=true install
+
+      - name: Run smoke test on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: bash scripts/ci/android-mobile-smoke.sh
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: mobile-smoke-api-${{ matrix.api-level }}
+          path: |
+            target/failsafe-reports/
+            target/surefire-reports/
+            target/reports/screenshots/
+            target/mobilecli-server.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  ios-simulator-smoke:
+    name: iOS simulator smoke
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install mobilecli
+        run: npm install -g mobilecli@1.0.20
+
+      - name: Build TestFly
+        run: mvn -B --no-transfer-progress -DskipTests -Djacoco.skip=true install
+
+      - name: Run the iOS example on a simulator
+        run: bash scripts/ci/ios-mobile-smoke.sh
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: mobile-smoke-ios
+          path: |
+            target/surefire-reports/
+            target/reports/screenshots/
+            target/mobilecli-server.log
+          if-no-files-found: ignore
+          retention-days: 14

@@ -115,6 +115,7 @@ TestFly **bu tekerleği yeniden icat etme derdini bitirir** — endüstri standa
 | **Hangi test'lerin gelecekte flaky olacağını bilin** | Flakiness prediction — geçmiş çalışmalardan risk skoru, raporda radar grafik |
 | **Mevcut verilerinizden test sürdürün** | Harici test verisi — `@TestData("csv:...")`, `@TestData(value="excel:...", sheet="Login")`, `@TestData("db:SELECT...")` |
 | **Zamana bağlı davranışı deterministik test edin** | Clock mocking — `clock().set("2030-01-01T00:00:00Z")`, JS `Date` override, otomatik reset |
+| **Native iOS ve Android uygulamalarını aynı suite'te test edin** | [Native mobil](/docs/mobile/getting-started) (deneysel) — `@MobileFind(ios = …, android = …)` ile `MobilePage` page object'leri, otomatik bekleyen locator'lar, cihaz havuzu, Appium yok |
 
 ---
 
@@ -134,3 +135,4 @@ TestFly **bu tekerleği yeniden icat etme derdini bitirir** — endüstri standa
 - [Hızlı Başlangıç](/docs/getting-started) — 5 dakikadan kısa sürede kur ve ilk testini çalıştır
 - [Yapılandırma Referansı](/docs/configuration) — tüm YAML config seçenekleri
 - [Temel Rehberler](/docs/guides/base-test) — her özelliğin derinlemesine anlatımı
+- [Native Mobil](/docs/mobile/getting-started) — mobilecli üzerinden iOS ve Android testleri (deneysel)

@@ -293,6 +293,10 @@ public final class ConfigurationLoader {
     private static void validate(TestFlyConfig config) {
         Objects.requireNonNull(config, "Configuration must not be null");
 
+        if (config.getMobile() != null) {
+            fillWebBlocksForMobileOnly(config);
+        }
+
         if (config.getBrowser() == null) {
             throw new IllegalStateException("Browser configuration must be specified");
         }
@@ -336,6 +340,39 @@ public final class ConfigurationLoader {
                 throw new IllegalStateException(
                         "actionability.stabilityIntervalMs must be between 10 and 5000, got: " + interval);
             }
+        }
+    }
+
+    /**
+     * A config with a {@code mobile:} block may leave out the web blocks: mobile tests never open a
+     * browser. Only missing values are filled (headless local Chrome, {@code http://localhost},
+     * 10 s / 30 s); anything the file sets is kept and validated as usual.
+     */
+    private static void fillWebBlocksForMobileOnly(TestFlyConfig config) {
+        if (config.getBrowser() == null) {
+            TestFlyConfig.Browser browser = new TestFlyConfig.Browser();
+            browser.setName("chrome");
+            browser.setHeadless(true);
+            config.setBrowser(browser);
+        }
+        if (config.getExecution() == null) {
+            config.setExecution(new TestFlyConfig.Execution());
+        }
+        TestFlyConfig.Execution execution = config.getExecution();
+        if (execution.getMode() == null) {
+            execution.setMode("local");
+        }
+        if (execution.getBaseUrl() == null || execution.getBaseUrl().isBlank()) {
+            execution.setBaseUrl("http://localhost");
+        }
+        if (config.getTimeouts() == null) {
+            config.setTimeouts(new TestFlyConfig.Timeouts());
+        }
+        if (config.getTimeouts().getExplicit() == 0) {
+            config.getTimeouts().setExplicit(10);
+        }
+        if (config.getTimeouts().getPageLoad() == 0) {
+            config.getTimeouts().setPageLoad(30);
         }
     }
 }

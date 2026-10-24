@@ -19,49 +19,18 @@ required_files=(
   .agents/skills/testfly-test-authoring/SKILL.md
   .agents/skills/testfly-triage/SKILL.md
   .agents/skills/testfly-verify/SKILL.md
+  .agents/skills/testfly-mobile/SKILL.md
+  .agents/skills/testfly-review/SKILL.md
+  .agents/skills/testfly-research/SKILL.md
+  .agents/skills/testfly-mobile-write/SKILL.md
+  .agents/skills/testfly-k6-write/SKILL.md
+  .agents/skills/testfly-mobile-locator-finder/SKILL.md
   .agents/skills/graphify/SKILL.md
-  .kiro/agents/testfly.json
-  .kiro/steering/api-test-authoring.md
-  .kiro/steering/web-test-authoring.md
-  .kiro/steering/documentation.md
-  .kiro/steering/java-sdk.md
-  .kiro/steering/test-authoring.md
-  .kiro/steering/test-triage.md
-  .kiro/steering/verification.md
 )
 
 for path in "${required_files[@]}"; do
   [[ -f "$path" ]] || fail "missing $path"
 done
-
-if git check-ignore -q .kiro/agents/testfly.json; then
-  fail ".kiro is ignored and cannot be shared"
-fi
-
-python3 -m json.tool .kiro/agents/testfly.json >/dev/null
-
-python3 - <<'PY'
-import json
-from pathlib import Path
-
-config = json.loads(Path(".kiro/agents/testfly.json").read_text())
-resources = config.get("resources", [])
-required = {"file://./AGENTS.md", "skill://.agents/skills/*/SKILL.md"}
-missing = required.difference(resources)
-if missing:
-    raise SystemExit(f"agent validation: Kiro agent missing resources: {sorted(missing)}")
-PY
-
-if command -v kiro-cli >/dev/null 2>&1; then
-  kiro-cli agent validate --path .kiro/agents/testfly.json
-  kiro_agents="$(kiro-cli agent list 2>&1)"
-  if ! rg -q '(^|[[:space:]])testfly([[:space:]]|$)' <<< "$kiro_agents"; then
-    fail "Kiro CLI did not discover the workspace agent"
-  fi
-  echo "agent validation: Kiro workspace agent discovered"
-else
-  echo "agent validation: Kiro CLI unavailable; runtime discovery not checked"
-fi
 
 skill_count=0
 for skill_file in .agents/skills/*/SKILL.md; do
@@ -75,25 +44,25 @@ for skill_file in .agents/skills/*/SKILL.md; do
   [[ "$skill_name" == "$skill_dir" ]] || fail "$skill_file name must match its directory"
   [[ -n "$description" ]] || fail "$skill_file has no description"
 done
-[[ "$skill_count" -eq 9 ]] || fail "expected 9 shared skills, found $skill_count"
+[[ "$skill_count" -eq 15 ]] || fail "expected 15 shared skills, found $skill_count"
 
-for steering in .kiro/steering/*.md; do
-  inclusion="$(sed -n '2,/^---$/s/^inclusion:[[:space:]]*//p' "$steering" | head -n 1)"
-  case "$inclusion" in
-    always)
-      ;;
-    auto)
-      rg -q '^name:' "$steering" || fail "$steering auto inclusion has no name"
-      rg -q '^description:' "$steering" || fail "$steering auto inclusion has no description"
-      ;;
-    fileMatch)
-      rg -q '^fileMatchPattern:' "$steering" || fail "$steering has no file match pattern"
-      ;;
-    *)
-      fail "$steering is not conditionally included"
-      ;;
-  esac
+# Claude Code discovers the shared skills through this link.
+[[ -L .claude/skills && "$(readlink .claude/skills)" == "../.agents/skills" ]] || fail ".claude/skills must link to ../.agents/skills"
+
+# Subagents: name matches the file, description present, every listed skill exists.
+agent_count=0
+for agent_file in .claude/agents/*.md; do
+  [[ -f "$agent_file" ]] || continue
+  agent_count=$((agent_count + 1))
+  [[ "$(sed -n '1p' "$agent_file")" == "---" ]] || fail "$agent_file has no YAML frontmatter"
+  agent_name="$(sed -n '2,/^---$/s/^name:[[:space:]]*//p' "$agent_file" | head -n 1)"
+  [[ "$agent_name" == "$(basename "$agent_file" .md)" ]] || fail "$agent_file name must match its file name"
+  [[ -n "$(sed -n '2,/^---$/s/^description:[[:space:]]*//p' "$agent_file" | head -n 1)" ]] || fail "$agent_file has no description"
+  while IFS= read -r skill; do
+    [[ -f ".agents/skills/$skill/SKILL.md" ]] || fail "$agent_file lists unknown skill $skill"
+  done < <(sed -n '2,/^---$/p' "$agent_file" | sed -n 's/^[[:space:]]*-[[:space:]]*\([a-z][a-z0-9-]*\)[[:space:]]*$/\1/p')
 done
+
 
 obsolete_paths=(
   .agents/.obsidian
@@ -107,11 +76,11 @@ for path in "${obsolete_paths[@]}"; do
   [[ ! -e "$path" ]] || fail "obsolete path remains: $path"
 done
 
-if rg -n '/Users/|\.agents/memories|memory-sync|\.agents/\.obsidian' AGENTS.md .agents/skills .kiro; then
+if rg -n '/Users/|\.agents/memories|memory-sync|\.agents/\.obsidian' AGENTS.md .agents/skills .claude/agents; then
   fail "new agent configuration contains machine-specific or retired infrastructure references"
 fi
 
 agents_lines="$(wc -l < AGENTS.md | tr -d ' ')"
 [[ "$agents_lines" -le 80 ]] || fail "AGENTS.md exceeds the 80-line context budget"
 
-echo "agent validation: PASS ($skill_count skills, $agents_lines AGENTS.md lines)"
+echo "agent validation: PASS ($skill_count skills, $agent_count subagents, $agents_lines AGENTS.md lines)"

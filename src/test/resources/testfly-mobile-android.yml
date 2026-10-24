@@ -1,0 +1,16 @@
+# Profile for the native mobile examples (src/test/java/io/testfly/examples/mobile).
+# Run: mvn test -Dtestfly.profile=mobile-android -Dtest=AndroidSettingsExampleTest
+# mobilecli's server is started automatically when it is down; needs one booted Android emulator with the mobilecli agent installed.
+
+mobile:
+  serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+  platform: android
+  deviceId: ${MOBILE_DEVICE_ID:-}
+  app:
+    bundleId: com.android.settings        # the built-in Settings app: no app file needed
+    reset: relaunch
+  alerts: dismiss
+  timeouts:
+    actionMs: 30000            # simulators and emulators are slow right after a launch
+    pollMs: 500
+    rpcMs: 60000

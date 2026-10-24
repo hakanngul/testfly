@@ -417,6 +417,31 @@ loadtest:
   resultsDir: target/loadtest       # target directory for metrics and reports
   reportEnabled: true               # generate standalone HTML load test report
   requestTimeoutSeconds: 30         # HTTP connection and request read timeout in seconds
+# ── Native Mobile (incubating) ───────────────────────────────────────────────
+# Loaded only when this block exists. Needs a user-installed mobilecli. See mobile/configuration.
+mobile:
+  serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+  autoStartServer: true             # start mobilecli when the loopback server does not answer
+  mobilecliPath: mobilecli          # full path when mobilecli is not on PATH
+  platform: android                 # android | ios (required)
+  deviceId: ${MOBILE_DEVICE_ID:-}   # exact id (AVD name / serial / simulator UDID)
+  deviceName: ""                    # regex on the device name, used when deviceId is empty
+  devices: []                       # device pool: ids handed out one per test
+  pool: false                       # pool every online device matching deviceName
+  app:
+    bundleId: com.example.app       # Android package / iOS bundle id
+    install: ""                     # optional .apk/.ipa/.app installed when the device opens
+    reset: relaunch                 # none | relaunch | clearData
+  timeouts:
+    actionMs: 5000                  # auto-wait budget of one action or assertion
+    pollMs: 100                     # pause between two screen reads
+    rpcMs: 30000                    # upper bound of one mobilecli request
+    reserveMs: 300000               # wait for a device another test holds
+    serverStartMs: 20000            # wait for an auto-started server
+  allowRemote: false                # non-loopback servers need true + https://
+  headers: {}                       # e.g. Authorization: Bearer ${MOBILECLI_TOKEN}
+  screenshotOnFailure: true
+  recordVideo: off                  # off | failures | always
 ```
 
 ---
@@ -930,6 +955,35 @@ Configuration for concurrent load testing powered by Gatling or Java Virtual Thr
 | `resultsDir` | `string` | `target/loadtest` | Output directory where load test metrics and reports are saved. |
 | `reportEnabled` | `boolean` | `true` | Generates standalone HTML load test report and correlates native Gatling interactive reports. |
 | `requestTimeoutSeconds` | `int` | `30` | HTTP connection and request read timeout in seconds. |
+
+---
+
+## Native Mobile {#mobile}
+
+Native Android and iOS testing through a user-installed mobilecli server (incubating). The block is optional: nothing mobile loads without it. Full guide: [Native Mobile](mobile/getting-started), [Mobile Configuration](mobile/configuration).
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `serverUrl` | `string` | `http://localhost:12000` | mobilecli server; requests go to `<serverUrl>/rpc`. Only loopback addresses unless `allowRemote`. |
+| `autoStartServer` | `boolean` | `true` | Run `<mobilecliPath> server start` when a loopback server does not answer; stopped at JVM exit. |
+| `mobilecliPath` | `string` | `mobilecli` | Command used by `autoStartServer`. |
+| `platform` | `string` | — | `android` or `ios` (required). |
+| `deviceId` | `string` | `""` | Exact device id: AVD name, serial or simulator UDID. |
+| `deviceName` | `string` | `""` | Regex on the device name, used when `deviceId` is empty. |
+| `devices` | `list` | `[]` | Device pool for parallel runs; one id per test. Not combinable with `deviceId` or `pool`. |
+| `pool` | `boolean` | `false` | Pool every online device of the platform matching `deviceName`. |
+| `app.bundleId` | `string` | `""` | Android package or iOS bundle id of the app under test. |
+| `app.install` | `string` | `""` | `.apk`/`.ipa`/`.app` installed when the device opens. |
+| `app.reset` | `string` | `relaunch` | Before each test: `none`, `relaunch` (terminate + launch) or `clearData`. |
+| `timeouts.actionMs` | `long` | `5000` | Auto-wait budget of one action, read, assertion or `@WaitFor`. |
+| `timeouts.pollMs` | `long` | `100` | Pause between two screen reads. |
+| `timeouts.rpcMs` | `long` | `30000` | Upper bound of one mobilecli request. |
+| `timeouts.reserveMs` | `long` | `300000` | How long a test waits for a pooled device another test holds. |
+| `timeouts.serverStartMs` | `long` | `20000` | How long an auto-started server may take to answer. |
+| `allowRemote` | `boolean` | `false` | Allow a non-loopback `serverUrl`; requires `https://`. |
+| `headers` | `map` | `{}` | Extra HTTP headers on every mobilecli request (e.g. a proxy token from an environment variable). |
+| `screenshotOnFailure` | `boolean` | `true` | Attach a device screenshot to failed tests. |
+| `recordVideo` | `string` | `off` | Screen recording per test: `off`, `failures` (kept in `target/reports/videos/` for failed tests) or `always`. |
 
 ---
 

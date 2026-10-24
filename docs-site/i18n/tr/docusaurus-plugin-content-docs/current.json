@@ -38,5 +38,9 @@
   "sidebar.docsSidebar.category.Load Testing": {
     "message": "Yük Testi",
     "description": "The label for category Load Testing in sidebar docsSidebar"
+  },
+  "sidebar.docsSidebar.category.Native Mobile (Incubating)": {
+    "message": "Native Mobil (Deneysel)",
+    "description": "The label for category Native Mobile (Incubating) in sidebar docsSidebar"
   }
 }

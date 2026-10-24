@@ -1,0 +1,9 @@
+{
+    "jsonrpc": "2.0",
+    "error": {
+        "code": -32000,
+        "data": "failed to dump UI from device tf34: failed to get view tree dump: no XML content found in uiautomator dump",
+        "message": "Server error"
+    },
+    "id": 6
+}
