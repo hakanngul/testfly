@@ -51,7 +51,14 @@ final class FakeApp {
     final java.util.List<String> crashes = new java.util.ArrayList<>();
     String webViewUrl = "https://demo.testfly.dev/terms";
 
-    /** The home list was swiped up once, revealing its "Help" row (scrollIntoView tests). */
+    /** Shows a "Remember me" checkbox under the login button (check/uncheck tests). */
+    boolean showRemember;
+    boolean rememberMe;
+    String fold;
+    JsonNode lastScreenshot;
+    JsonNode lastLaunch;
+
+        /** The home list was swiped up once, revealing its "Help" row (scrollIntoView tests). */
     boolean scrolled;
 
     /** Polls left before the Sign in button stops moving (stability check). */
@@ -169,7 +176,12 @@ final class FakeApp {
             if (p.path("bundleId").asText().equals(foreground)) foreground = "com.android.launcher";
             return null;
         });
+        server.on("device.fold.set", p -> {
+            fold = p.path("state").asText();
+            return null;
+        });
         server.on("device.apps.launch", p -> {
+            lastLaunch = p;
             foreground = p.path("bundleId").asText();
             screen = "login";
             return null;
@@ -202,6 +214,7 @@ final class FakeApp {
             return MAPPER.createObjectNode().put("status", "ok");
         });
         server.on("device.screenshot", p -> {
+            lastScreenshot = p;
             ObjectNode r = MAPPER.createObjectNode();
             r.put("data", "data:image/png;base64," + Base64.getEncoder().encodeToString(new byte[] {(byte) 0x89, 'P', 'N', 'G'}));
             return r;
@@ -286,6 +299,9 @@ final class FakeApp {
             ObjectNode button = el(children, "android.widget.Button", 3);
             button.put("text", "Sign in").put("identifier", BUNDLE + ":id/sign_in").put("enabled", !username.isEmpty());
             rect(button, 40, 100 + 3 * 160 + shift, 1000, 120);
+            if (showRemember) {
+                el(children, "android.widget.CheckBox", 4).put("text", "Remember me").put("checked", rememberMe);
+            }
         } else {
             el(children, "android.widget.TextView", 0).put("text", "Hello, " + username).put("identifier", BUNDLE + ":id/greeting");
             ObjectNode list = el(children, "androidx.recyclerview.widget.RecyclerView", 1);
@@ -343,7 +359,8 @@ final class FakeApp {
             else if (inside(y, 3) && !username.isEmpty()) {
                 screen = "home";
                 focused = null;
-            } else focused = null;
+            } else if (showRemember && inside(y, 4)) rememberMe = !rememberMe;
+            else focused = null;
         } else if (y >= 1000 && y <= 1120) {
             screen = "login";
             username = "";

@@ -6,6 +6,11 @@ import io.testfly.mobile.Mobile;
 import io.testfly.mobile.MobileCrashReport;
 import io.testfly.mobile.MobileDevice;
 import io.testfly.mobile.MobileException;
+import io.testfly.mobile.MobileAssertionError;
+import io.testfly.mobile.MobileBounds;
+import io.testfly.mobile.MobileLocator;
+import io.testfly.mobile.MobileOrientation;
+import io.testfly.mobile.MobileTimeoutException;
 import io.testfly.mobile.MobileWebView;
 import io.testfly.mobile.internal.MobileSessions;
 import org.testng.annotations.Test;
@@ -16,6 +21,7 @@ import java.time.Duration;
 import java.util.List;
 
 import static io.testfly.mobile.MobileAssertions.expect;
+import static io.testfly.mobile.MobileAssertions.expectPoll;
 import static org.testng.Assert.*;
 
 /** Appium-parity extras on the fake app: gestures, clipboard, files, crash reports, webviews, settings, apps, keyboard, permission dialogs. */
@@ -85,6 +91,62 @@ public class MobileExtrasTest {
     }
 
     @Test
+    public void mobilewrightParity() {
+        String id = uniqueId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            FakeApp app = new FakeApp(id);
+            app.showRemember = true;
+            try (MobileDevice device = Mobile.connect(config(server, app, id))) {
+                MobileLocator remember = device.screen().getByText("Remember me");
+                remember.check();
+                assertTrue(app.rememberMe);
+                remember.check();
+                assertTrue(app.rememberMe, "check() leaves a checked box alone");
+                expect(remember).toBeChecked();
+                remember.setChecked(false);
+                assertFalse(app.rememberMe);
+                remember.uncheck();
+                assertFalse(app.rememberMe, "uncheck() leaves an unchecked box alone");
+
+                MobileLocator welcome = device.screen().getByText("Welcome back");
+                assertEquals(welcome.bounds(), new MobileBounds(40, 100, 1000, 120));
+                assertEquals(welcome.screenshot().length, 4);
+                assertEquals(app.lastScreenshot.path("clip").toString(), "{\"x\":40,\"y\":100,\"width\":1000,\"height\":120}");
+
+                List<MobileLocator> fields = device.screen().getByType("android.widget.EditText").all();
+                assertEquals(fields.size(), 2);
+                assertEquals(fields.get(1).getAttribute("label"), "Password");
+
+                MobileLocator signIn = device.screen().getByText("Sign in");
+                signIn.waitForDisabled();
+                expectThrows(MobileTimeoutException.class, () -> signIn.withTimeout(Duration.ofMillis(200)).waitForEnabled());
+                expect(device.screen().getByPlaceholder("Username")).toBeEmpty();
+                device.screen().getByPlaceholder("Username").fill("ada");
+                signIn.waitForEnabled();
+                expect(device.screen().getByPlaceholder("Username")).not().toBeEmpty();
+                expect(welcome).toHaveText("  WELCOME   back ", true);
+                expectThrows(MobileAssertionError.class,
+                        () -> expect(welcome).withTimeout(Duration.ofMillis(100)).toHaveText("welcome", true));
+
+                device.screen().tap(500, 640);
+                assertEquals(app.screen, "home", "a raw tap on the Sign in button");
+
+                device.setFoldState("half-open");
+                assertEquals(app.fold, "half-open");
+                expectThrows(IllegalArgumentException.class, () -> device.setFoldState("bent"));
+                assertEquals(device.installedApps(), List.of(FakeApp.BUNDLE));
+                device.launchApp(FakeApp.BUNDLE, List.of("fr-FR", "en-US"));
+                assertEquals(app.lastLaunch.path("locales").toString(), "[\"fr-FR\",\"en-US\"]");
+
+                expectPoll(device::orientation).toBe(MobileOrientation.PORTRAIT);
+                MobileAssertionError e = expectThrows(MobileAssertionError.class,
+                        () -> expectPoll(device::foregroundApp).withTimeout(Duration.ofMillis(300)).toBe("com.other"));
+                assertTrue(e.getMessage().contains("last value: " + FakeApp.BUNDLE), e.getMessage());
+            }
+        }
+    }
+
+        @Test
     public void settingsFromConfigAreAppliedWhenTheDeviceOpens() {
         String id = uniqueId();
         try (FakeMobilecliServer server = new FakeMobilecliServer()) {

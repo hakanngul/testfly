@@ -91,6 +91,28 @@ public final class MobileLocatorAssert {
         text("toHaveText(/" + expected.pattern() + "/)", TextMatch.regex(expected));
     }
 
+    /**
+     * Displayed text equals {@code expected}; {@code ignoreCase} also ignores case, and whitespace
+     * runs and leading/trailing blanks are normalized (as Playwright's {@code ignoreCase}).
+     */
+    public void toHaveText(String expected, boolean ignoreCase) {
+        if (!ignoreCase) {
+            toHaveText(expected);
+            return;
+        }
+        String words = String.join("\\s+", java.util.Arrays.stream(expected.strip().split("\\s+")).map(Pattern::quote).toList());
+        text("toHaveText(\"" + expected + "\", ignoreCase)",
+                TextMatch.regex(Pattern.compile("^\\s*" + words + "\\s*$", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)));
+    }
+
+    /**
+     * No text and no value (an empty text field; an iOS field showing only its placeholder counts
+     * as empty).
+     */
+    public void toBeEmpty() {
+        single("toBeEmpty", MobileLocatorAssert::empty, negated ? "the element is empty" : "the element has content");
+    }
+
     /** Displayed text contains {@code expected} (case-insensitive). */
     public void toContainText(String expected) {
         text("toContainText(\"" + expected + "\")", TextMatch.contains(expected));
@@ -108,6 +130,12 @@ public final class MobileLocatorAssert {
     }
 
     // ── engine ──────────────────────────────────────────────────────────
+
+    private static boolean empty(MobileNode n) {
+        boolean noText = n.text() == null || n.text().isBlank();
+        boolean noValue = n.value() == null || n.value().isBlank() || n.value().equals(n.placeholder());
+        return noText && noValue;
+    }
 
     private void text(String name, TextMatch match) {
         single(name, n -> match.test(n.displayText()), "text differs");

@@ -89,6 +89,14 @@ public final class MobileDevice implements AutoCloseable {
         session.driver().launchApp(bundleId, session.rpcTimeout());
     }
 
+    /**
+     * Launches the app in {@code locales} (BCP 47, e.g. {@code fr-FR}) for this launch only; on
+     * Android the configured {@code mobile.app.activity} is kept.
+     */
+    public void launchApp(String bundleId, List<String> locales) {
+        session.driver().launchApp(bundleId, activity, List.copyOf(locales), session.rpcTimeout());
+    }
+
     public void terminateApp(String bundleId) {
         session.driver().terminateApp(bundleId, session.rpcTimeout());
     }
@@ -125,7 +133,15 @@ public final class MobileDevice implements AutoCloseable {
         session.driver().setOrientation(orientation, session.rpcTimeout());
     }
 
-    /** Overrides the device location (degrees); cleared again when the device closes. */
+    /** Sets the hinge of a foldable simulator/emulator: {@code folded}, {@code half-open} or {@code open}. */
+    public void setFoldState(String state) {
+        if (!List.of("folded", "half-open", "open").contains(state)) {
+            throw new IllegalArgumentException("fold state must be folded, half-open or open, got " + state);
+        }
+        session.driver().setFoldState(state, session.rpcTimeout());
+    }
+
+        /** Overrides the device location (degrees); cleared again when the device closes. */
     public void setLocation(double latitude, double longitude) {
         if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
             throw new IllegalArgumentException("latitude must be in [-90, 90] and longitude in [-180, 180], got "
@@ -300,6 +316,11 @@ public final class MobileDevice implements AutoCloseable {
     }
 
     // ── apps ────────────────────────────────────────────────────────────
+
+    /** Bundle ids / package names of the installed apps. */
+    public List<String> installedApps() {
+        return session.driver().installedApps(session.rpcTimeout());
+    }
 
     public boolean isAppInstalled(String bundleId) {
         return session.driver().installedApps(session.rpcTimeout()).contains(bundleId);

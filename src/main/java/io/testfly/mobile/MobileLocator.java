@@ -219,7 +219,26 @@ public final class MobileLocator {
         });
     }
 
-    /** Swipes from the element's centre in {@code direction}, half the element's size or at least 200 px. */
+    /** Taps a checkbox, radio or switch when it is not checked yet. */
+    public void check() {
+        setChecked(true);
+    }
+
+    /** Taps a checkbox or switch when it is checked. */
+    public void uncheck() {
+        setChecked(false);
+    }
+
+    /** {@link #check()} or {@link #uncheck()} by {@code checked}. */
+    public void setChecked(boolean checked) {
+        act(checked ? "check" : "uncheck", (node, rpc) -> {
+            if (node.checked() != checked) {
+                session().driver().tap(cx(node), cy(node), rpc.get());
+            }
+        });
+    }
+
+        /** Swipes from the element's centre in {@code direction}, half the element's size or at least 200 px. */
     public void swipe(SwipeDirection direction) {
         act("swipe", (node, rpc) -> {
             int x = cx(node);
@@ -264,7 +283,33 @@ public final class MobileLocator {
         }
     }
 
+    /** Waits until the element is enabled. */
+    public void waitForEnabled() {
+        waitFor("waitForEnabled", MobileNode::enabled, "the element is disabled");
+    }
+
+    /** Waits until the element is disabled. */
+    public void waitForDisabled() {
+        waitFor("waitForDisabled", n -> !n.enabled(), "the element is enabled");
+    }
+
     // ── reads ───────────────────────────────────────────────────────────
+
+    /** One locator per match in the current screen (no waiting), e.g. to loop over list rows. */
+    public List<MobileLocator> all() {
+        return java.util.stream.IntStream.range(0, count()).mapToObj(this::nth).toList();
+    }
+
+    /** Waits for the element and returns its bounds in screen points. */
+    public MobileBounds bounds() {
+        return resolveVisible("bounds").bounds();
+    }
+
+    /** Waits for the element and returns a PNG of just its bounds. */
+    public byte[] screenshot() {
+        MobileNode n = resolveVisible("screenshot");
+        return session().driver().screenshot(n.bounds(), session().rpcTimeout());
+    }
 
     /** Number of matches in the current screen (no waiting). */
     public int count() {
@@ -469,7 +514,22 @@ public final class MobileLocator {
         return outcome.value();
     }
 
-    /**
+    private void waitFor(String action, java.util.function.Predicate<MobileNode> condition, String failure) {
+        Outcome<MobileNode> outcome = Poller.poll(session(), timeout(), tree -> {
+            List<MobileNode> matches = query.evaluate(tree);
+            strict(matches, action);
+            if (matches.isEmpty()) {
+                return Step.retry("no element matches", List.of());
+            }
+            MobileNode n = matches.get(0);
+            return condition.test(n) ? Step.done(n) : Step.retry(failure, matches);
+        });
+        if (!outcome.passed()) {
+            throw timeout(action, outcome);
+        }
+    }
+
+        /**
      * Resolves an actionable element, then runs {@code action}. Every request of the action is
      * bounded by {@code min(rpcMs, time left of this locator's budget)} (ADR 0002 D6), so a stalled
      * server cannot hold the caller past the budget.
