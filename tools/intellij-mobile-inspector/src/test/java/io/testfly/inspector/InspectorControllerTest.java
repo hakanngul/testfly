@@ -114,6 +114,7 @@ public class InspectorControllerTest {
         assertTrue(calls.contains("device.io.swipe {\"deviceId\":\"sim-1\",\"x1\":195,\"y1\":633,\"x2\":195,\"y2\":211}"));
         assertTrue(types().contains("screen"));
         assertTrue("warm refresh posts the screenshot early", types().contains("shot"));
+        assertTrue(calls.contains("device.screenshot {\"deviceId\":\"sim-1\",\"format\":\"jpeg\",\"quality\":80,\"maxSize\":1400}"));
         assertTrue(posted.get(posted.size() - 1).get("text").getAsString().contains("@e2 [Button]"));
         assertEquals(List.of("selector:btnLogin"), copied);
     }

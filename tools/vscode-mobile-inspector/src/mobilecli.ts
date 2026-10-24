@@ -129,7 +129,8 @@ export class MobileCli {
 
     /** PNG/JPEG as a data URL. */
     async screenshot(deviceId: string): Promise<string> {
-        return (await this.call<any>('device.screenshot', { deviceId, format: 'png' }))?.data ?? '';
+        // A small JPEG is several times lighter than a full PNG and plenty for the inspector pane.
+        return (await this.call<any>('device.screenshot', { deviceId, format: 'jpeg', quality: 80, maxSize: 1400 }))?.data ?? '';
     }
 
     tap(deviceId: string, x: number, y: number) {

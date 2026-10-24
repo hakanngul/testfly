@@ -22,7 +22,7 @@ mobilecli's `@eN` refs, every attribute of the element you pick, and the TestFly
 ## Install and use
 
 ```bash
-code --install-extension testfly-mobile-inspector-0.1.3.vsix
+code --install-extension testfly-mobile-inspector-0.1.4.vsix
 ```
 
 Command palette → **TestFly: Open Mobile Inspector**. Keys: `R` refresh, `I` inspect, `T` tap, `/` filter, `Esc` clear.

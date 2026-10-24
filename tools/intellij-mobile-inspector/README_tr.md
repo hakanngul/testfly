@@ -8,7 +8,7 @@ IDE temasına uyar. [English](README.md)
 
 ## Kurulum
 
-Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/intellij-mobile-inspector/dist/testfly-mobile-inspector-0.1.3.zip`, ardından IDE'yi yeniden başlatın.
+Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/intellij-mobile-inspector/dist/testfly-mobile-inspector-0.1.4.zip`, ardından IDE'yi yeniden başlatın.
 
 ## Kullanım
 

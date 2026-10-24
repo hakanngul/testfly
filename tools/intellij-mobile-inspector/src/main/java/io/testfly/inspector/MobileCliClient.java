@@ -163,7 +163,10 @@ public final class MobileCliClient implements AutoCloseable {
     /** The screenshot as a data URL. */
     public String screenshot(String deviceId) {
         JsonObject p = device(deviceId);
-        p.addProperty("format", "png");
+        // A small JPEG is several times lighter than a full PNG and plenty for the inspector pane.
+        p.addProperty("format", "jpeg");
+        p.addProperty("quality", 80);
+        p.addProperty("maxSize", 1400);
         JsonElement result = call("device.screenshot", p);
         return result.isJsonObject() ? str(result.getAsJsonObject(), "data") : "";
     }

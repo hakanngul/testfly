@@ -43,6 +43,7 @@ test('reads devices, screen and tree, and acts on the device', async () => {
         assert.strictEqual((await cli.dump('sim-1'))[0].children[0].ref, '@e2');
         assert.match(await cli.snapshotText('sim-1'), /@e2 \[Button\]/);
         assert.strictEqual(await cli.screenshot('sim-1'), 'data:image/png;base64,AAAA');
+        assert.deepStrictEqual(calls.find(c => c.method === 'device.screenshot').params, { deviceId: 'sim-1', format: 'jpeg', quality: 80, maxSize: 1400 });
         await cli.tap('sim-1', 10.4, 20.6);
         await cli.typeText('sim-1', 'ada');
         await cli.pressButton('sim-1', 'HOME');
