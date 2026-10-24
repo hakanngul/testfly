@@ -22,7 +22,7 @@ gösterir. [English](README.md)
 ## Kurulum ve kullanım
 
 ```bash
-code --install-extension testfly-mobile-inspector-0.1.2.vsix
+code --install-extension testfly-mobile-inspector-0.1.3.vsix
 ```
 
 Komut paleti → **TestFly: Open Mobile Inspector**. Tuşlar: `R` yenile, `I` inceleme, `T` dokunma, `/` filtre, `Esc` seçimi kaldır.

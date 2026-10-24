@@ -39,6 +39,7 @@ class InspectorPanel {
     private device?: DeviceInfo;
     private screen?: ScreenSize;
     private busy = false;
+    private warm = false; // mobilecli's agent is up for this device: tree and screenshot can run together
 
     constructor(private readonly context: vscode.ExtensionContext, private readonly onDispose: () => void) {
         const cfg = vscode.workspace.getConfiguration('testflyInspector');
@@ -125,6 +126,7 @@ class InspectorPanel {
         const devices = known ?? (await this.cli.devices());
         this.device = devices.find(d => d.id === id);
         this.screen = undefined;
+        this.warm = false;
         if (!this.device) {
             throw new Error(`Device ${id} is not online any more.`);
         }
@@ -142,9 +144,17 @@ class InspectorPanel {
         try {
             const started = Date.now();
             this.screen ??= await this.cli.screenSize(device.id);
-            // The tree first: on iOS it also starts mobilecli's agent, which the screenshot then reuses.
-            const elements = await this.cli.dump(device.id);
-            const screenshot = await this.cli.screenshot(device.id);
+            let elements, screenshot;
+            if (this.warm) {
+                // Both at once; the picture is shown as soon as it arrives, the tree follows.
+                const shot = this.cli.screenshot(device.id).then(s => (this.post({ type: 'shot', screenshot: s }), s));
+                [elements, screenshot] = await Promise.all([this.cli.dump(device.id), shot]);
+            } else {
+                // The tree first: on iOS it also starts mobilecli's agent, which the screenshot then reuses.
+                elements = await this.cli.dump(device.id);
+                screenshot = await this.cli.screenshot(device.id);
+                this.warm = true;
+            }
             this.post({ type: 'screen', device, screen: this.screen, elements, screenshot, ms: Date.now() - started });
         } finally {
             this.busy = false;
@@ -155,7 +165,7 @@ class InspectorPanel {
         const device = this.requireDevice();
         await action(device.id);
         if (vscode.workspace.getConfiguration('testflyInspector').get('autoRefreshAfterAction', true)) {
-            await new Promise(r => setTimeout(r, 600)); // let the UI settle (animations, navigation)
+            await new Promise(r => setTimeout(r, 300)); // let the UI settle (animations, navigation)
             await this.refresh();
         }
     }

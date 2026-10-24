@@ -6,6 +6,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 
 /**
@@ -28,6 +30,7 @@ public final class InspectorController implements AutoCloseable {
     private JsonObject device;
     private JsonObject screen;
     private boolean busy;
+    private boolean warm; // mobilecli's agent is up for this device: tree and screenshot can run together
 
     public InspectorController(MobileCliClient cli, Consumer<JsonObject> post, Ide ide) {
         this.cli = cli;
@@ -92,6 +95,7 @@ public final class InspectorController implements AutoCloseable {
         JsonArray devices = known != null ? known : cli.onlineDevices();
         device = null;
         screen = null;
+        warm = false;
         for (JsonElement d : devices) {
             if (MobileCliClient.str(d.getAsJsonObject(), "id").equals(id)) {
                 device = d.getAsJsonObject();
@@ -120,9 +124,27 @@ public final class InspectorController implements AutoCloseable {
             if (screen == null) {
                 screen = cli.screenSize(id);
             }
-            // The tree first: on iOS it also starts mobilecli's agent, which the screenshot then reuses.
-            JsonArray elements = cli.dump(id);
-            String screenshot = cli.screenshot(id);
+            JsonArray elements;
+            String screenshot;
+            if (warm) {
+                // Both at once; the picture is shown as soon as it arrives, the tree follows.
+                CompletableFuture<String> shot = CompletableFuture.supplyAsync(() -> {
+                    String s = cli.screenshot(id);
+                    post(msg("shot").withText("screenshot", s));
+                    return s;
+                });
+                elements = cli.dump(id);
+                try {
+                    screenshot = shot.join();
+                } catch (CompletionException e) {
+                    throw e.getCause() instanceof RuntimeException r ? r : e;
+                }
+            } else {
+                // The tree first: on iOS it also starts mobilecli's agent, which the screenshot then reuses.
+                elements = cli.dump(id);
+                screenshot = cli.screenshot(id);
+                warm = true;
+            }
             JsonObject m = msg("screen").withText("screenshot", screenshot).json;
             m.add("device", device);
             m.add("screen", screen);
@@ -144,7 +166,7 @@ public final class InspectorController implements AutoCloseable {
         String id = requireDevice();
         action.run(id);
         if (ide.autoRefreshAfterAction()) {
-            sleep(600); // let the UI settle (animations, navigation)
+            sleep(300); // let the UI settle (animations, navigation)
             refresh();
         }
     }

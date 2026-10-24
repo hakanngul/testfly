@@ -30,6 +30,7 @@
             case 'devices': return onDevices(m.devices);
             case 'device': return onDevice(m.device);
             case 'screen': return onScreen(m);
+            case 'shot': $('shot').src = m.screenshot; return; // early picture; the tree comes with 'screen'
             case 'snapshotText': state.snapshot = m.text; return renderSnapshot();
             case 'status': return setStatus(m.state, m.message);
             case 'error': return onError(m.message, m.unreachable);
