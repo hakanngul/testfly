@@ -50,6 +50,9 @@ final class FakeApp {
     final java.util.Map<String, byte[]> files = new java.util.HashMap<>();
     final java.util.List<String> crashes = new java.util.ArrayList<>();
     String webViewUrl = "https://demo.testfly.dev/terms";
+    String webViewValue = "";
+    /** Arguments of every MobileWebViewLocator script call. */
+    final java.util.List<String> webViewCalls = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     /** Shows a "Remember me" checkbox under the login button (check/uncheck tests). */
     boolean showRemember;
@@ -82,6 +85,9 @@ final class FakeApp {
         });
         server.on("device.dump.ui", p -> {
             requireDevice(p);
+            if ("text".equals(p.path("format").asText())) {
+                return MAPPER.createObjectNode().put("text", "@e1 [FrameLayout]\n  @e2 [TextView] \"" + (screen.equals("login") ? "Welcome back" : "Hello") + "\"");
+            }
             return tree(p.path("full").asBoolean(false));
         });
         server.on("device.io.button", p -> {
@@ -147,7 +153,22 @@ final class FakeApp {
             webViewUrl = p.path("url").asText();
             return MAPPER.createObjectNode().put("status", "ok");
         });
-        server.on("device.webview.evaluate", p -> MAPPER.getNodeFactory().numberNode(p.path("expression").asText().length()));
+        server.on("device.webview.evaluate", p -> {
+            JsonNode args = p.path("args");
+            if (!args.isArray() || args.isEmpty()) return MAPPER.getNodeFactory().numberNode(p.path("expression").asText().length());
+            // MobileWebViewLocator's script: [css, name, op, arg]; one visible element unless the css says "missing".
+            webViewCalls.add(args.toString());
+            boolean found = !args.get(0).asText().contains("missing");
+            return switch (args.get(2).asText()) {
+                case "count" -> MAPPER.getNodeFactory().numberNode(found ? 1 : 0);
+                case "state" -> MAPPER.getNodeFactory().textNode(found ? "visible" : "matches:0");
+                case "fill" -> { webViewValue = args.get(3).asText(); yield MAPPER.getNodeFactory().booleanNode(true); }
+                case "value" -> MAPPER.getNodeFactory().textNode(webViewValue);
+                case "text" -> MAPPER.getNodeFactory().textNode("Terms");
+                case "attr" -> MAPPER.getNodeFactory().textNode("#" + args.get(3).asText());
+                default -> MAPPER.getNodeFactory().booleanNode(true);
+            };
+        });
         server.on("device.webview.query", p -> {
             ArrayNode list = MAPPER.createArrayNode();
             list.addObject().put("tag", "h1").put("text", "Terms");

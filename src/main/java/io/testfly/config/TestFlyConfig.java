@@ -2760,6 +2760,7 @@ public final class TestFlyConfig {
      *   allowRemote: false
      *   headers: {}
      *   screenshotOnFailure: true
+     *   viewTreeOnFailure: true      # save the view tree as text next to the failure screenshot
      *   recordVideo: off             # off | failures | always
      *   alerts: none                 # none | accept | dismiss (iOS alerts, Android permission dialogs)
      *   animations: ""               # on | off; empty leaves the device as it is
@@ -2787,6 +2788,7 @@ public final class TestFlyConfig {
         private String mobilecliPath = "mobilecli";
         private java.util.Map<String, String> headers = new java.util.LinkedHashMap<>();
         private boolean screenshotOnFailure = true;
+        private boolean viewTreeOnFailure = true;
         private String recordVideo = "off";
         private String alerts = "none";
         private String animations = "";
@@ -2912,6 +2914,15 @@ public final class TestFlyConfig {
             this.screenshotOnFailure = screenshotOnFailure;
         }
 
+        /** Whether a failed test also saves the screen's view tree ({@code mobilecli snapshot} text). */
+        public boolean isViewTreeOnFailure() {
+            return viewTreeOnFailure;
+        }
+
+        public void setViewTreeOnFailure(boolean viewTreeOnFailure) {
+            this.viewTreeOnFailure = viewTreeOnFailure;
+        }
+
         /** Screen recording per test: {@code off} (default), {@code failures} (kept for failed tests) or {@code always}. */
         public String getRecordVideo() {
             return recordVideo;
@@ -2994,6 +3005,7 @@ public final class TestFlyConfig {
             m.mobilecliPath = mobilecliPath;
             m.headers = new java.util.LinkedHashMap<>(headers);
             m.screenshotOnFailure = screenshotOnFailure;
+            m.viewTreeOnFailure = viewTreeOnFailure;
             m.recordVideo = recordVideo;
             m.alerts = alerts;
             m.animations = animations;

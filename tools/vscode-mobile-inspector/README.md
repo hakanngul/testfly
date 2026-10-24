@@ -10,6 +10,7 @@ mobilecli's `@eN` refs, every attribute of the element you pick, and the TestFly
 ## What it does
 
 - **Screen**: the device screenshot with hover outlines; click to select the smallest element under the cursor. In **Tap** mode a click taps the device and the screen is read again.
+- **Record** (codegen): in **Record** mode every tap, typed text (element panel), swipe and device button runs on the device and becomes a step. The **Recorded** tab shows a `MobilePage` with one `@MobileFind` field per element (best unique selector) and a `recordedFlow()` method; **Copy** puts it on the clipboard.
 - **UI tree**: the `mobilecli dump ui` tree with types, texts, ids and `@eN` refs; filter with `/`, arrow keys to move. The **Snapshot** tab shows the same text as `mobilecli snapshot`.
 - **Element**: attributes, state flags and bounds; ranked TestFly selectors (id, `role=…;name=…`, `label=`, `placeholder=`, `text=`, `xpath=`) with how many elements each one matches on this screen (✓ unique or *N matches*), copyable one by one or as an `@MobileFind` field.
 - **Actions**: tap, long press, tap and type, Back, Home, swipe; copy the equivalent `mobilecli io tap --device … @eN` command.
@@ -22,10 +23,10 @@ mobilecli's `@eN` refs, every attribute of the element you pick, and the TestFly
 ## Install and use
 
 ```bash
-code --install-extension testfly-mobile-inspector-0.1.4.vsix
+code --install-extension testfly-mobile-inspector-0.2.0.vsix
 ```
 
-Command palette → **TestFly: Open Mobile Inspector**. Keys: `R` refresh, `I` inspect, `T` tap, `/` filter, `Esc` clear.
+Command palette → **TestFly: Open Mobile Inspector**. Keys: `R` refresh, `I` inspect, `T` tap, `E` record, `/` filter, `Esc` clear.
 
 | Setting | Default | |
 |---|---|---|

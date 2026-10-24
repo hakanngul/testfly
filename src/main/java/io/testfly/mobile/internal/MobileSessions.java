@@ -101,7 +101,18 @@ public final class MobileSessions {
             LOGGER.info("[TestFly] Crash report of {} saved: {}", testName, crash);
             StepLogger.step("Crash report: " + crash, StepStatus.FAIL);
         }
-        if (!screenshotOnFailure()) {
+        if (setting(TestFlyConfig.Mobile::isViewTreeOnFailure)) {
+            try {
+                Path dir = Paths.get(SCREENSHOT_DIR);
+                Files.createDirectories(dir);
+                Path tree = dir.resolve(sanitize(testName) + "_mobile_" + System.currentTimeMillis() + ".txt");
+                Files.writeString(tree, device.viewTreeText());
+                StepLogger.step("Device view tree: " + tree.toAbsolutePath(), StepStatus.FAIL);
+            } catch (IOException | RuntimeException e) {
+                LOGGER.warn("Could not save the view tree for {}: {}", testName, e.getMessage());
+            }
+        }
+        if (!setting(TestFlyConfig.Mobile::isScreenshotOnFailure)) {
             return null;
         }
         try {
@@ -119,13 +130,14 @@ public final class MobileSessions {
         }
     }
 
-    private static boolean screenshotOnFailure() {
+    /** A failure-capture switch of the loaded config; on when there is no config. */
+    private static boolean setting(java.util.function.Predicate<TestFlyConfig.Mobile> flag) {
         try {
             if (!TestFlyContext.isInitialized()) {
                 return true;
             }
             TestFlyConfig.Mobile mobile = TestFlyContext.getConfig().getMobile();
-            return mobile == null || mobile.isScreenshotOnFailure();
+            return mobile == null || flag.test(mobile);
         } catch (RuntimeException e) {
             return true;
         }

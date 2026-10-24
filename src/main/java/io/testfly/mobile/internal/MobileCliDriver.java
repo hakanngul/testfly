@@ -284,6 +284,13 @@ public final class MobileCliDriver implements MobileDriver {
     }
 
     @Override
+    public String viewTreeText(Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        p.put("format", "text");
+        return deviceCall("device.dump.ui", p, timeout, true).path("text").asText("");
+    }
+
+    @Override
     public void pinch(int x, int y, boolean out, int distance, Duration duration, Duration timeout) {
         ObjectNode p = JsonRpcClient.params();
         p.put("x", x);

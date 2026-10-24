@@ -80,6 +80,11 @@ public final class MobileDevice implements AutoCloseable {
         return session.driver().screenshot(session.rpcTimeout());
     }
 
+    /** The current screen as mobilecli's text snapshot, one indented line per element. */
+    public String viewTreeText() {
+        return session.driver().viewTreeText(session.rpcTimeout());
+    }
+
     /** The configured app ({@code mobile.app.bundleId}), or empty. */
     public String bundleId() {
         return bundleId;

@@ -10,6 +10,7 @@ gösterir. [English](README.md)
 ## Neler yapar
 
 - **Ekran**: üzerine gelince çerçevelenen cihaz ekran görüntüsü; tıklayınca imlecin altındaki en küçük öğe seçilir. **Tap** modunda tıklama cihaza dokunur ve ekran yeniden okunur.
+- **Record** (codegen): **Record** modunda her dokunma, yazılan metin (öğe paneli), kaydırma ve cihaz butonu cihazda çalışır ve bir adım olur. **Recorded** sekmesi, her öğe için bir `@MobileFind` alanı (en iyi tekil seçici) ve `recordedFlow()` metodu olan bir `MobilePage` gösterir; **Copy** panoya kopyalar.
 - **UI ağacı**: tipler, metinler, id'ler ve `@eN` ref'leriyle `mobilecli dump ui` ağacı; `/` ile filtre, ok tuşlarıyla gezinme. **Snapshot** sekmesi `mobilecli snapshot` ile aynı metni gösterir.
 - **Öğe**: özellikler, durum bayrakları ve sınırlar; sıralı TestFly seçicileri (id, `role=…;name=…`, `label=`, `placeholder=`, `text=`, `xpath=`) ve her birinin bu ekranda kaç öğeyle eşleştiği (✓ tekil veya *N eşleşme*); tek tek ya da `@MobileFind` alanı olarak kopyalanır.
 - **Eylemler**: dokunma, uzun basma, dokunup yazma, Back, Home, kaydırma; karşılık gelen `mobilecli io tap --device … @eN` komutunu kopyalama.
@@ -22,10 +23,10 @@ gösterir. [English](README.md)
 ## Kurulum ve kullanım
 
 ```bash
-code --install-extension testfly-mobile-inspector-0.1.4.vsix
+code --install-extension testfly-mobile-inspector-0.2.0.vsix
 ```
 
-Komut paleti → **TestFly: Open Mobile Inspector**. Tuşlar: `R` yenile, `I` inceleme, `T` dokunma, `/` filtre, `Esc` seçimi kaldır.
+Komut paleti → **TestFly: Open Mobile Inspector**. Tuşlar: `R` yenile, `I` inceleme, `T` dokunma, `E` kayıt, `/` filtre, `Esc` seçimi kaldır.
 
 | Ayar | Varsayılan | |
 |---|---|---|

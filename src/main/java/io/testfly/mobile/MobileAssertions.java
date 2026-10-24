@@ -20,6 +20,14 @@ public final class MobileAssertions {
     }
 
     /**
+     * Soft assertions: failures are collected and thrown together by
+     * {@link MobileSoftAssertions#assertAll()}.
+     */
+    public static MobileSoftAssertions softly() {
+        return new MobileSoftAssertions();
+    }
+
+    /**
      * Retries {@code supplier} until its value passes the assertion or the timeout (5 s, see
      * {@link MobilePollAssert#withTimeout}) runs out: {@code expectPoll(device::orientation).toBe(LANDSCAPE)}.
      */

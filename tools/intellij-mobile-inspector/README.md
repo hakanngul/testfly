@@ -8,7 +8,7 @@ following the IDE theme. [Türkçe](README_tr.md)
 
 ## Install
 
-Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/intellij-mobile-inspector/dist/testfly-mobile-inspector-0.1.4.zip`, then restart the IDE.
+Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/intellij-mobile-inspector/dist/testfly-mobile-inspector-0.2.0.zip`, then restart the IDE.
 
 ## Use
 

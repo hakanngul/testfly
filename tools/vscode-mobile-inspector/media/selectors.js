@@ -156,7 +156,43 @@
         return '@MobileFind(' + attr + ' = "' + escaped + '")\nprivate MobileLocator ' + fieldName(el) + ';';
     }
 
-    /** Smallest element whose rect contains (x, y), in device coordinates. */
+    /**
+     * Java for recorded steps: a MobilePage with one @MobileFind field per distinct selector and a
+     * recordedFlow() method. Steps: {action: tap|longPress|fill, el, selector, text?},
+     * {action: tapAt, x, y}, {action: swipe, direction}, {action: button, button}.
+     */
+    function codegen(steps, platform) {
+        const names = new Map();
+        const fields = [];
+        const lines = [];
+        const str = v => '"' + String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"';
+        const field = st => {
+            if (!names.has(st.selector)) {
+                const base = fieldName(st.el);
+                let name = base;
+                for (let i = 2; [...names.values()].includes(name); i++) name = base + i;
+                names.set(st.selector, name);
+                fields.push(mobileFind(st.el, st.selector, platform).replace(/\S+;$/, name + ';'));
+            }
+            return names.get(st.selector);
+        };
+        for (const st of steps) {
+            switch (st.action) {
+                case 'tap': lines.push(field(st) + '.tap();'); break;
+                case 'longPress': lines.push(field(st) + '.longPress();'); break;
+                case 'fill': lines.push(field(st) + '.fill(' + str(st.text) + ');'); break;
+                case 'tapAt': lines.push('screen().tap(' + Math.round(st.x) + ', ' + Math.round(st.y) + ');'); break;
+                case 'swipe': lines.push('screen().swipe(SwipeDirection.' + String(st.direction).toUpperCase() + ');'); break;
+                case 'button': lines.push('device().pressButton(' + str(st.button) + ');'); break;
+            }
+        }
+        const indent = (text, pad) => text.split('\n').map(l => pad + l).join('\n');
+        return 'public class RecordedPage extends MobilePage {\n\n'
+            + fields.map(f => indent(f, '    ') + '\n\n').join('')
+            + '    public void recordedFlow() {\n' + lines.map(l => '        ' + l + '\n').join('') + '    }\n}\n';
+    }
+
+        /** Smallest element whose rect contains (x, y), in device coordinates. */
     function hitTest(elements, x, y) {
         let best = null;
         let bestArea = Infinity;
@@ -174,5 +210,5 @@
         return best;
     }
 
-    return { flatten, bareType, roleOf, displayText, suggest, toXml, fieldName, mobileFind, hitTest, xpathName };
+    return { flatten, bareType, roleOf, displayText, suggest, toXml, fieldName, mobileFind, hitTest, xpathName, codegen };
 });

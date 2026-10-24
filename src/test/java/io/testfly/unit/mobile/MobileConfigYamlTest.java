@@ -91,6 +91,7 @@ public class MobileConfigYamlTest {
         assertFalse(m.isAllowRemote());
         assertTrue(m.getHeaders().isEmpty());
         assertTrue(m.isScreenshotOnFailure());
+        assertTrue(m.isViewTreeOnFailure());
     }
 
     @Test
@@ -158,7 +159,8 @@ public class MobileConfigYamlTest {
                 + "  allowRemote: true\n"
                 + "  headers:\n"
                 + "    Authorization: Bearer token\n"
-                + "  screenshotOnFailure: false\n");
+                + "  screenshotOnFailure: false\n"
+                + "  viewTreeOnFailure: false\n");
         assertEquals(m.getServerUrl(), "https://lab.example.com");
         assertEquals(m.getPlatform(), "ios");
         assertEquals(m.getDeviceName(), "iPhone 1[56]");
@@ -174,6 +176,7 @@ public class MobileConfigYamlTest {
         assertTrue(m.isAllowRemote());
         assertEquals(m.getHeaders(), Map.of("Authorization", "Bearer token"));
         assertFalse(m.isScreenshotOnFailure());
+        assertFalse(m.isViewTreeOnFailure());
     }
 
     @Test

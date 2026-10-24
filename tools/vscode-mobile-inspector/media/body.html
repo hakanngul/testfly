@@ -25,6 +25,9 @@
       <button data-mode="tap" title="Click taps the device (T)">
         <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><circle cx="8" cy="8" r="5.5"/></svg><span>Tap</span>
       </button>
+      <button data-mode="record" title="Click taps the device and records a page-object step (E)">
+        <svg viewBox="0 0 16 16"><circle class="rec-dot" cx="8" cy="8" r="4"/></svg><span>Record</span>
+      </button>
     </div>
 
     <div class="group" role="group" aria-label="Device controls">
@@ -89,6 +92,7 @@
       <div class="pane-header tabs" role="tablist">
         <button class="tab active" data-tab="tree" role="tab">UI Tree</button>
         <button class="tab" data-tab="snapshot" role="tab">Snapshot</button>
+        <button class="tab" data-tab="recorded" role="tab">Recorded <span class="tab-count" id="recordedCount" hidden></span></button>
         <span class="spacer"></span>
         <span class="muted" id="treeCount"></span>
       </div>
@@ -103,6 +107,13 @@
           <button class="link" id="copySnapshot">Copy</button>
         </div>
         <pre class="snapshot" id="snapshot"></pre>
+      </div>
+      <div class="snapshot-wrap" id="recordedWrap" hidden>
+        <div class="snapshot-bar">
+          <span>Steps recorded in Record mode</span>
+          <span><button class="link" id="copyRecorded">Copy</button> · <button class="link" id="clearRecorded">Clear</button></span>
+        </div>
+        <pre class="snapshot" id="recorded"></pre>
       </div>
     </section>
 

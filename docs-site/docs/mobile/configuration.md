@@ -33,6 +33,7 @@ mobile:
   allowRemote: false
   headers: {}                  # e.g. Authorization: Bearer ${MOBILECLI_TOKEN}
   screenshotOnFailure: true
+  viewTreeOnFailure: true
   recordVideo: off             # off | failures | always
   alerts: none                 # none | accept | dismiss (iOS alerts, Android permission dialogs)
   animations: ""               # on | off; empty leaves the device as it is
@@ -60,6 +61,7 @@ mobile:
 | `allowRemote` | `false` | Allow a non-loopback `serverUrl` (needs `https://`). |
 | `headers` | `{}` | Extra HTTP headers on every request, e.g. for an authenticating proxy. |
 | `screenshotOnFailure` | `true` | Attach a device screenshot to a failed test. |
+| `viewTreeOnFailure` | `true` | Save the screen's view tree (`mobilecli snapshot` text) next to the failure screenshot, as `target/reports/screenshots/<test>_mobile_<time>.txt`. |
 | `recordVideo` | `off` | Screen recording per test: `off`, `failures` (kept for failed tests) or `always`; see [Screen recording](#screen-recording). |
 | `alerts` | `none` | System alerts that cover the app: `accept` or `dismiss` them before every read of the screen, like Appium's `autoAcceptAlerts` / `autoDismissAlerts` (and `autoGrantPermissions` on Android). iOS (tracking, location, notifications): `accept` taps `Allow`/`OK`, `dismiss` taps `Don't Allow`/`Ask App Not to Track`/`Cancel`; with other labels (another device language) the last or first button. Android runtime permission dialogs: by button id, in any language. `none` leaves them to the test. |
 | `animations` | (empty) | `on` or `off`, set when the device opens; `off` makes tests faster and steadier. Empty leaves the device as it is. |

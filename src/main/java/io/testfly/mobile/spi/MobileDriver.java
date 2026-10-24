@@ -186,6 +186,11 @@ public interface MobileDriver extends AutoCloseable {
         throw unsupported("screenshot(clip)");
     }
 
+    /** The view tree as mobilecli's indented text snapshot ({@code @e1 [Button] "Sign in"}). */
+    default String viewTreeText(Duration timeout) {
+        throw unsupported("viewTreeText");
+    }
+
     /** Fold state of a foldable simulator/emulator: {@code folded}, {@code half-open} or {@code open}. */
     default void setFoldState(String state, Duration timeout) {
         throw unsupported("setFoldState");

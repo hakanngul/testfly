@@ -262,3 +262,12 @@ select {
   .panes { grid-template-columns: 1fr; grid-template-rows: 45% 1fr 1fr; }
   .resizer { display: none; }
 }
+
+/* record mode */
+.rec-dot { fill: var(--vscode-errorForeground, #f14c4c); stroke: none; }
+body.recording .screen { box-shadow: 0 0 0 2px var(--vscode-errorForeground, #f14c4c); }
+.tab-count { display: inline-block; min-width: 16px; padding: 0 5px; margin-left: 4px; border-radius: 8px; font-size: 10px; line-height: 16px;
+  text-align: center; background: var(--vscode-errorForeground, #f14c4c); color: #fff; }
+.snapshot .ann { color: var(--warn); }
+.snapshot .str { color: var(--ok); }
+.snapshot .kw { color: var(--info); }

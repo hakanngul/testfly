@@ -7,6 +7,8 @@ import io.testfly.mobile.MobileCrashReport;
 import io.testfly.mobile.MobileDevice;
 import io.testfly.mobile.MobileException;
 import io.testfly.mobile.MobileAssertionError;
+import io.testfly.mobile.MobileAssertions;
+import io.testfly.mobile.MobileSoftAssertions;
 import io.testfly.mobile.MobileBounds;
 import io.testfly.mobile.MobileLocator;
 import io.testfly.mobile.MobileOrientation;
@@ -178,6 +180,18 @@ public class MobileExtrasTest {
                 terms.navigate("https://demo.testfly.dev/privacy");
                 terms.waitForLoad();
                 assertEquals(terms.url(), "https://demo.testfly.dev/privacy");
+
+                terms.getByRole("textbox", "Email").fill("ada@x.dev");
+                assertEquals(terms.getByRole("textbox", "Email").getValue(), "ada@x.dev");
+                terms.getByTestId("sign-in").click();
+                assertEquals(terms.getByText("Terms").getText(), "Terms");
+                assertEquals(terms.locator("a.help").getAttribute("href"), "#href");
+                assertTrue(terms.locator("h1").isVisible());
+                assertEquals(terms.locator("#missing").count(), 0);
+                MobileTimeoutException e = expectThrows(MobileTimeoutException.class, () -> terms.locator("#missing").click());
+                assertTrue(e.getMessage().contains("0 element(s) match"), e.getMessage());
+                assertTrue(app.webViewCalls.contains("[\"[data-testid=\\\"sign-in\\\"]\",null,\"click\",null]"), app.webViewCalls.toString());
+                assertTrue(app.webViewCalls.stream().anyMatch(c -> c.contains("textarea") && c.contains("\"Email\",\"fill\",\"ada@x.dev\"")));
             }
         }
     }
@@ -231,6 +245,10 @@ public class MobileExtrasTest {
                 assertEquals(device.crashReports(), List.of(new MobileCrashReport("old-crash", "Demo", "2026-10-24-120000")));
                 app.crashes.add("new-crash");
                 MobileSessions.captureFailure("extras.crashTest");
+                try (var files = Files.list(Path.of("target/reports/screenshots"))) {
+                    assertTrue(files.anyMatch(f -> f.getFileName().toString().startsWith("extras.crashTest_mobile_")
+                            && f.toString().endsWith(".txt") && readQuietly(f).contains("@e2 [TextView] \"Welcome back\"")), "view tree saved");
+                }
                 Path saved = Path.of("target/reports/crashes/extras.crashTest_new-crash.txt");
                 assertTrue(Files.readString(saved).contains("EXC_CRASH (new-crash)"));
                 assertFalse(Files.exists(Path.of("target/reports/crashes/extras.crashTest_old-crash.txt")), "only crashes of this test");
@@ -238,6 +256,34 @@ public class MobileExtrasTest {
                 MobileSessions.close();
                 MobileSessions.setOpener(null);
             }
+        }
+    }
+
+    @Test
+    public void softAssertionsCollectFailures() {
+        String id = uniqueId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            FakeApp app = new FakeApp(id);
+            try (MobileDevice device = Mobile.connect(config(server, app, id))) {
+                MobileSoftAssertions soft = MobileAssertions.softly();
+                soft.expect(device.screen().getByText("Welcome back")).toBeVisible();
+                soft.expect(device.screen().getByText("Nope").withTimeout(Duration.ofMillis(100)), "banner").toBeVisible();
+                soft.expect(device.screen().getByText("Sign in")).withTimeout(Duration.ofMillis(100)).not().toBeDisabled();
+                assertEquals(soft.failures().size(), 2);
+                MobileAssertionError all = expectThrows(MobileAssertionError.class, soft::assertAll);
+                assertTrue(all.getMessage().startsWith("2 mobile assertion(s) failed:"), all.getMessage());
+                assertTrue(all.getMessage().contains("banner"), all.getMessage());
+                assertEquals(all.getSuppressed().length, 2);
+                soft.assertAll(); // cleared after throwing
+            }
+        }
+    }
+
+    private static String readQuietly(Path file) {
+        try {
+            return Files.readString(file);
+        } catch (java.io.IOException e) {
+            return "";
         }
     }
 

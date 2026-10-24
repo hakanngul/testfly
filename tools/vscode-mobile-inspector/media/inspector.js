@@ -20,7 +20,7 @@
     const state = {
         devices: [], device: null, screen: null, elements: [], flat: [], paths: new Map(),
         selected: null, hovered: null, expanded: new Set(saved.expanded || []), collapsedAll: false,
-        mode: saved.mode || 'inspect', tab: 'tree', filter: '', xml: null, snapshot: null, ms: 0,
+        mode: saved.mode || 'inspect', tab: 'tree', filter: '', xml: null, snapshot: null, ms: 0, steps: [],
     };
 
     // ── host messages ───────────────────────────────────────────────────
@@ -251,7 +251,7 @@
         const p = toDevice(e);
         const hit = S.hitTest(state.elements, p.x, p.y);
         if (hit !== state.hovered) {
-            state.hovered = state.mode === 'inspect' ? hit : null;
+            state.hovered = state.mode !== 'tap' ? hit : null;
             renderHover();
         }
     });
@@ -262,7 +262,15 @@
     screenEl.addEventListener('click', e => {
         if (!state.screen) return;
         const p = toDevice(e);
-        if (state.mode === 'tap') {
+        if (state.mode === 'record') {
+            ripple(e);
+            const hit = S.hitTest(state.elements, p.x, p.y);
+            const r = hit && hit.rect;
+            const x = r ? r.x + r.width / 2 : p.x, y = r ? r.y + r.height / 2 : p.y;
+            record(hit, 'tap', { x: p.x, y: p.y });
+            send({ type: 'tap', x, y });
+            setStatus('loading', 'Tapping…');
+        } else if (state.mode === 'tap') {
             ripple(e);
             send({ type: 'tap', x: p.x, y: p.y });
             setStatus('loading', `Tapping ${Math.round(p.x)}, ${Math.round(p.y)}…`);
@@ -426,6 +434,40 @@
         }
     });
 
+    // ── recording ───────────────────────────────────────────────────────
+    /** Adds a step in Record mode; an element without a selector falls back to a coordinate tap. */
+    function record(el, action, extra) {
+        if (state.mode !== 'record') return;
+        const suggestions = el ? S.suggest(el, state.elements, countXpath) : [];
+        const best = suggestions.find(x => x.count === 1) || suggestions[0];
+        if (best) state.steps.push({ action, el, selector: best.selector, ...extra });
+        else if (action === 'tap') state.steps.push({ action: 'tapAt', x: extra.x, y: extra.y });
+        else return toast('This element has no selector; the step was not recorded', true);
+        renderRecorded();
+    }
+
+    function recordDevice(step) {
+        if (state.mode !== 'record') return;
+        state.steps.push(step);
+        renderRecorded();
+    }
+
+    function recordedCode() {
+        return S.codegen(state.steps, state.device ? state.device.platform : 'android');
+    }
+
+    function renderRecorded() {
+        const n = state.steps.length;
+        $('recordedCount').hidden = !n;
+        $('recordedCount').textContent = n;
+        $('recorded').innerHTML = n ? esc(recordedCode()).replace(
+            /(@MobileFind)|(&quot;(?:\\&quot;|(?!&quot;).)*?&quot;)|\b(public|private|class|extends|void)\b/g,
+            (m, ann, str) => `<span class="${ann ? 'ann' : str ? 'str' : 'kw'}">${m}</span>`)
+            : '<span class="r">Switch to Record and use the device: taps, typing, swipes and buttons appear here as Java.</span>';
+    }
+    $('copyRecorded').addEventListener('click', () => state.steps.length && copy(recordedCode(), 'recorded page object'));
+    $('clearRecorded').addEventListener('click', () => { state.steps = []; renderRecorded(); });
+
     // ── snapshot tab ────────────────────────────────────────────────────
     function renderSnapshot() {
         const pre = $('snapshot');
@@ -440,9 +482,11 @@
         state.tab = tab.dataset.tab;
         document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
         const snap = state.tab === 'snapshot';
-        $('tree').hidden = snap;
-        $('searchBox').hidden = snap;
+        $('tree').hidden = state.tab !== 'tree';
+        $('searchBox').hidden = state.tab !== 'tree';
         $('snapshotWrap').hidden = !snap;
+        $('recordedWrap').hidden = state.tab !== 'recorded';
+        renderRecorded();
         if (snap && state.snapshot == null && state.device) send({ type: 'snapshotText' });
         renderSnapshot();
     }));
@@ -548,8 +592,8 @@
         const r = el.rect || { x: 0, y: 0, width: 0, height: 0 };
         const x = r.x + r.width / 2, y = r.y + r.height / 2;
         switch (t.dataset.act) {
-            case 'tap': send({ type: 'tap', x, y }); return setStatus('loading', 'Tapping…');
-            case 'longPress': send({ type: 'longPress', x, y }); return setStatus('loading', 'Long-pressing…');
+            case 'tap': record(el, 'tap', { x, y }); send({ type: 'tap', x, y }); return setStatus('loading', 'Tapping…');
+            case 'longPress': record(el, 'longPress', {}); send({ type: 'longPress', x, y }); return setStatus('loading', 'Long-pressing…');
             case 'cli': return copy(`mobilecli io tap --device ${state.device ? state.device.id : '<device-id>'} ${el.ref || ''}`.trim(), 'CLI command');
             case 'type': return typeInto(el, x, y);
         }
@@ -564,6 +608,7 @@
     function typeInto(el, x, y) {
         const text = $('typeText').value;
         if (!text) return toast('Enter the text to type first');
+        record(el, 'fill', { text });
         send({ type: 'tapType', x, y, text });
         setStatus('loading', 'Typing…');
     }
@@ -574,10 +619,12 @@
     $('refresh').addEventListener('click', refresh);
     $('showBounds').addEventListener('change', renderBounds);
     document.querySelectorAll('[data-button]').forEach(b => b.addEventListener('click', () => {
+        recordDevice({ action: 'button', button: b.dataset.button });
         send({ type: 'button', button: b.dataset.button });
         setStatus('loading', `Pressing ${b.dataset.button}…`);
     }));
     document.querySelectorAll('[data-swipe]').forEach(b => b.addEventListener('click', () => {
+        recordDevice({ action: 'swipe', direction: b.dataset.swipe });
         send({ type: 'swipe', direction: b.dataset.swipe });
         setStatus('loading', `Swiping ${b.dataset.swipe}…`);
     }));
@@ -591,8 +638,9 @@
     function setMode(mode) {
         state.mode = mode;
         document.querySelectorAll('#mode button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-        screenEl.classList.toggle('tap-mode', mode === 'tap');
+        screenEl.classList.toggle('tap-mode', mode === 'tap' || mode === 'record');
         screenEl.classList.toggle('inspect-mode', mode === 'inspect');
+        document.body.classList.toggle('recording', mode === 'record');
         state.hovered = null;
         renderHover();
         persist();
@@ -609,6 +657,7 @@
         else if (e.key === '/') { e.preventDefault(); $('search').focus(); }
         else if (e.key === 'i') setMode('inspect');
         else if (e.key === 't') setMode('tap');
+        else if (e.key === 'e') setMode('record');
     });
 
     // ── resizable panes ─────────────────────────────────────────────────
