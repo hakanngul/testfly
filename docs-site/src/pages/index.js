@@ -419,8 +419,8 @@ export default function Home() {
         {/* ── Native mobile (incubating) ───────────────────────────────────── */}
         <section className={styles.featuresSection}>
           <div className="container">
-            <div className={styles.installBanner} data-reveal>
-              <div className={styles.installText}>
+            <div className={styles.mobileShowcase} data-reveal>
+              <div className={styles.mobileText}>
                 <span className={styles.sectionEyebrow}>
                   {isTr ? 'Native Mobil · Deneysel' : 'Native Mobile · Incubating'}
                 </span>
@@ -439,7 +439,7 @@ export default function Home() {
                   {isTr ? 'Mobil başlangıç rehberi' : 'Mobile getting started'}
                 </Link>
               </div>
-              <div className={styles.installCodeWrap}>
+              <div className={styles.mobileCode}>
                 <CodeWindow
                   filename="AndroidLoginExampleTest.java"
                   language="java"
