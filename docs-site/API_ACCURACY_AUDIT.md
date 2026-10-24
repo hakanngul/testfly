@@ -6,6 +6,8 @@ Scope: current `docs-site/` content compared with the current production source 
 
 Result: 24 confirmed documentation defects; no Java or product-documentation corrections were made in this phase.
 
+Status on 2026-10-24: the original findings were re-checked against current `docs-site/` and source. Sampled findings WEB-04, WEB-05, API-02, CORE-01 and LOAD-01 are already corrected in the documentation. `scripts/agent/check-doc-accuracy.sh` rejects the invalid patterns of WEB-01, WEB-03 and LOAD-05, so they cannot reappear unnoticed. A correction pass then fixed the cloud execution mode statement, a non-existent `ExecutionEngine` reference in `docs/public-api.md`, and the README compiler plugin version. Individual status of the remaining findings has not been re-verified; treat this table as historical until it is re-audited.
+
 ## Executive summary
 
 | Severity | Count |

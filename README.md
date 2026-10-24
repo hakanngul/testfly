@@ -37,7 +37,7 @@ Three files. Copy them as-is and `mvn test` goes green against a real Chrome.
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.11.0</version>
+            <version>3.13.0</version>
         </plugin>
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
@@ -198,7 +198,7 @@ Also pin the compiler plugin and add Surefire so `mvn test` discovers TestNG tes
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.11.0</version>
+            <version>3.13.0</version>
         </plugin>
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
