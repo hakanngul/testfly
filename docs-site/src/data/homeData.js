@@ -169,7 +169,7 @@ export function getFlagshipFeatures(isTr) {
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
         </svg>
       ),
-      title: isTr ? 'Sıfır Konfigürasyon & Boilerplate' : 'Zero Boilerplate Architecture',
+      title: isTr ? 'Minimum Kod Tekrarı' : 'Minimal Boilerplate Architecture',
       description: isTr
         ? "BaseTest'i extend edin, @Test metodunuzu yazın. Driver yaşam döngüsü, ThreadLocal izolasyonu, akıllı beklemeler, otomatik retry ve raporlama tamamen yönetilir."
         : 'Extend BaseTest, write @Test methods, and go. ThreadLocal driver lifecycle, waits, retries, reports, and screenshots are all managed out of the box.',
@@ -209,10 +209,10 @@ byIntent("Proceed to payment").click();`,
           <path d="m9 12 2 2 4-4" />
         </svg>
       ),
-      title: isTr ? 'AI Self-Healing & Otomatik Git Yaması (Auto-PR)' : 'AI Self-Healing & Auto-PR Patches',
+      title: isTr ? 'AI Self-Healing ve İncelenebilir Yamalar' : 'AI Self-Healing & Reviewable Patches',
       description: isTr
-        ? 'Seçiciler kırıldığında DomPruner DOM ağacını 8K token altına budar, LLM semantik yedeği bulup testi kurtarır. Kalıcı hatalarda ise target/remediations/*.patch Unified Git Diff dosyası üretir.'
-        : 'When locators break, DomPruner compresses the DOM to <8K tokens and synthesizes a healed selector. On permanent failure, it generates target/remediations/*.patch ready for git apply.',
+        ? 'Seçiciler kırıldığında DomPruner DOM ağacını 8K token altına budar, LLM semantik yedeği bulup testi kurtarır. ai.generatePatch açıksa kalıcı hatalarda git apply öncesinde incelenebilecek target/remediations/*.patch dosyası üretilebilir.'
+        : 'When locators break, DomPruner compresses the DOM to <8K tokens and synthesizes a healed selector. With ai.generatePatch enabled, a permanent failure can produce a target/remediations/*.patch file to review before git apply.',
     },
     {
       icon: (
@@ -415,9 +415,17 @@ export function getMoreFeatures(isTr) {
       icon: '🧩',
       title: isTr ? 'IDE Eklentileri (IntelliJ & VS Code)' : 'IDE Plugins (IntelliJ & VS Code)',
       short: isTr
-        ? 'IntelliJ ve VS Code için ayrı eklentiler; kurulum, MCP yapılandırması ve ortam doğrulaması gerektirir.'
-        : 'Separate IntelliJ and VS Code extensions requiring installation, MCP setup, and environment checks.',
+        ? 'IntelliJ ve VS Code için ayrı depodaki eklentiler; yayın doğrulanmadı, kurulum ve MCP yapılandırması gerektirir.'
+        : 'Separate IntelliJ and VS Code extensions in another repository; release not verified, setup and MCP configuration required.',
       requirement: isTr ? 'Ayrı IDE eklentileri' : 'Separate IDE extensions',
+    },
+    {
+      icon: '📱',
+      title: 'Mobile Inspector (VS Code & IntelliJ)',
+      short: isTr
+        ? 'Mobil ekranı, görünüm ağacını ve TestFly locator seçicilerini inceleyen; kayıt modunda dokunmaları @MobileFind alanlarına dönüştüren eklentiler.'
+        : 'Extensions that inspect a mobile screen, its view tree and TestFly selectors, and record taps into @MobileFind fields.',
+      requirement: isTr ? 'Ayrı tools/ paketi; mobilecli gerekir' : 'Separate tools/ package; needs mobilecli',
     },
     ],
   };
@@ -511,8 +519,8 @@ find("#pay-now").click();
 // Test kesintisiz geçer. target/remediations/*.patch dosyası hazır üretilir!`,
     badgeBeforeEn: 'Pipeline broken · Manual PR needed',
     badgeBeforeTr: 'Pipeline çöker · Manuel kod düzeltmesi şart',
-    badgeAfterEn: 'Zero downtime · Auto-PR patch created',
-    badgeAfterTr: 'Sıfır duruş · Otomatik PR yaması üretilir',
+    badgeAfterEn: 'Patch file ready to review',
+    badgeAfterTr: 'İncelenmeye hazır yama dosyası',
   },
   {
     id: 'auth',
@@ -721,10 +729,137 @@ export function getFaqs(isTr) {
 }
 
 export const stats = [
-  { value: '1', label: 'Single Maven Dependency', labelTr: 'Tek Maven Bağımlılığı' },
-  { value: '1.0.7', label: 'SDK Source Version', labelTr: 'SDK Kaynak Sürümü' },
-  { value: '0', label: 'LLM Calls on Cache Hit', labelTr: 'Önbellek İsabetinde LLM Çağrısı' },
-  { value: '6', label: 'Separate Bridge Tools', labelTr: 'Ayrı Köprü Aracı' },
+  { value: '4', label: 'Test domains: web, API, load, mobile', labelTr: 'Test alanı: web, API, yük, mobil' },
+  { value: '3', label: 'Runners: TestNG, JUnit 5, Cucumber', labelTr: 'Çalıştırıcı: TestNG, JUnit 5, Cucumber' },
+  { value: '1.0.7', label: 'Latest release on Maven Central', labelTr: 'Maven Central son sürümü' },
+  { value: 'EN · TR', label: 'Docs in both languages', labelTr: 'Dokümantasyon iki dilde' },
+];
+
+export const testingDomains = [
+  {
+    id: 'web',
+    titleEn: 'Web UI',
+    titleTr: 'Web UI',
+    descEn: 'Selenium browser tests with semantic locators, auto-waiting actions and step logging.',
+    descTr: 'Semantik locator’lar, otomatik beklemeli eylemler ve adım günlüğü ile Selenium tarayıcı testleri.',
+    statusEn: 'Public API · TestNG, JUnit 5, Cucumber',
+    statusTr: 'Public API · TestNG, JUnit 5, Cucumber',
+    href: '/docs/getting-started',
+  },
+  {
+    id: 'api',
+    titleEn: 'API',
+    titleTr: 'API',
+    descEn: 'REST clients with authentication, schema and OpenAPI validation, and mocks.',
+    descTr: 'Kimlik doğrulama, şema ve OpenAPI doğrulama ile mock destekli REST istemcileri.',
+    statusEn: 'Public API · TestNG, JUnit 5',
+    statusTr: 'Public API · TestNG, JUnit 5',
+    href: '/docs/guides/api-requests',
+  },
+  {
+    id: 'load',
+    titleEn: 'Load',
+    titleTr: 'Yük',
+    descEn: 'Load and stress scenarios with the built-in JDK engine or Gatling.',
+    descTr: 'Yerleşik JDK motoru veya Gatling ile yük ve stres senaryoları.',
+    statusEn: 'Public API · TestNG',
+    statusTr: 'Public API · TestNG',
+    href: '/docs/loadtest/getting-started',
+  },
+  {
+    id: 'mobile',
+    titleEn: 'Native mobile',
+    titleTr: 'Yerel mobil',
+    descEn: 'Native Android and iOS tests through mobilecli, without Appium.',
+    descTr: 'mobilecli üzerinden, Appium olmadan yerel Android ve iOS testleri.',
+    statusEn: 'Incubating · not yet @TestFlyApi',
+    statusTr: 'Deneysel · henüz @TestFlyApi değil',
+    href: '/docs/mobile/getting-started',
+  },
+];
+
+export const mobileShowcase = {
+  titleEn: 'Native Android tests with page objects',
+  titleTr: 'Sayfa nesneleriyle yerel Android testleri',
+  subtitleEn:
+    'Element ids from the screen, actions that wait until the element is visible and enabled, and expectations that retry. Mobile is incubating: the API may change in a minor release.',
+  subtitleTr:
+    'Ekrandaki öğe kimlikleri, öğe görünür ve etkin olana kadar bekleyen eylemler ve yeniden deneyen beklentiler. Mobil deneysel aşamada: API bir minor sürümde değişebilir.',
+  badgesEn: ['Incubating', 'Android', 'mobilecli', 'No Appium'],
+  badgesTr: ['Deneysel', 'Android', 'mobilecli', 'Appium yok'],
+  noteEn:
+    'Shortened from examples/mobile/AndroidLoginExampleTest.java: the cookie consent handling and the environment checks are left out.',
+  noteTr:
+    'examples/mobile/AndroidLoginExampleTest.java dosyasından kısaltıldı: çerez onayı ve ortam kontrolleri çıkarıldı.',
+  code: `import io.testfly.mobile.BaseMobileTest;
+import io.testfly.mobile.MobilePlatform;
+import io.testfly.mobile.MobileTest;
+import org.testng.annotations.Test;
+
+public class AndroidLoginExampleTest extends BaseMobileTest {
+
+    @Test
+    @MobileTest(platform = MobilePlatform.ANDROID)
+    public void loginWithMemberId() {
+        String memberId = System.getenv("MOBILE_LOGIN_USER");
+        String password = System.getenv("MOBILE_LOGIN_PASSWORD");
+
+        screen().getByTestId("btnLogin").tap();
+        screen().getByTestId("etUserName").fill(memberId);
+        screen().getByTestId("etPassword").fill(password);
+        screen().getByTestId("btnLogin").tap();
+
+        expect(screen().getByTestId("etUserName")).toBeHidden();
+    }
+}`,
+};
+
+export const stabilityHeaders = {
+  en: ['Area', 'TestNG', 'JUnit 5', 'Cucumber', 'Public API'],
+  tr: ['Alan', 'TestNG', 'JUnit 5', 'Cucumber', 'Halka açık API'],
+};
+
+export const stabilityRows = [
+  {
+    id: 'web',
+    areaEn: 'Web UI',
+    areaTr: 'Web UI',
+    testng: 'BaseTest',
+    junit5: 'BaseJUnit5Test',
+    cucumber: 'BaseCucumberTest',
+    publicEn: 'Yes',
+    publicTr: 'Evet',
+  },
+  {
+    id: 'api',
+    areaEn: 'API',
+    areaTr: 'API',
+    testng: 'BaseApiTest',
+    junit5: 'BaseJUnit5ApiTest',
+    cucumber: '—',
+    publicEn: 'Yes',
+    publicTr: 'Evet',
+  },
+  {
+    id: 'load',
+    areaEn: 'Load',
+    areaTr: 'Yük',
+    testng: 'BaseLoadTest',
+    junit5: '—',
+    cucumber: '—',
+    publicEn: 'Yes',
+    publicTr: 'Evet',
+  },
+  {
+    id: 'mobile',
+    areaEn: 'Native mobile',
+    areaTr: 'Yerel mobil',
+    testng: 'BaseMobileTest',
+    junit5: 'BaseJUnit5MobileTest',
+    cucumber: '@mobile steps',
+    publicEn: 'Incubating: not yet @TestFlyApi',
+    publicTr: 'Deneysel: henüz @TestFlyApi değil',
+  },
 ];
 
 export const recorderTabs = [
