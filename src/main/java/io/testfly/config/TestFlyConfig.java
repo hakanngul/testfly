@@ -2763,6 +2763,10 @@ public final class TestFlyConfig {
      *   alerts: none                 # none | accept | dismiss (iOS alerts, Android permission dialogs)
      *   animations: ""               # on | off; empty leaves the device as it is
      *   appearance: ""               # light | dark; empty leaves the device as it is
+     *   ios:                         # laid over this block for iOS tests (@MobileTest(platform = IOS))
+     *     deviceId: ""
+     *     app: { bundleId: "" }
+     *   android: { deviceId: "", app: { bundleId: "" } }
      * </pre>
      *
      * The defaults live in the field initialisers below; {@code io.testfly.mobile.Mobile}
@@ -2786,6 +2790,8 @@ public final class TestFlyConfig {
         private String alerts = "none";
         private String animations = "";
         private String appearance = "";
+        private PlatformSettings ios;
+        private PlatformSettings android;
 
         public String getServerUrl() {
             return serverUrl;
@@ -2943,6 +2949,151 @@ public final class TestFlyConfig {
 
         public void setAppearance(String appearance) {
             this.appearance = appearance == null ? "" : appearance.trim();
+        }
+
+        /** Device and app settings used only for iOS tests; {@code null} when the block is missing. */
+        public PlatformSettings getIos() {
+            return ios;
+        }
+
+        public void setIos(PlatformSettings ios) {
+            this.ios = ios;
+        }
+
+        /** Device and app settings used only for Android tests; {@code null} when the block is missing. */
+        public PlatformSettings getAndroid() {
+            return android;
+        }
+
+        public void setAndroid(PlatformSettings android) {
+            this.android = android;
+        }
+
+        /**
+         * A copy of this block for {@code platform} ({@code ios}/{@code android}; {@code null} or blank:
+         * {@link #getPlatform()}), with that platform's {@code ios:}/{@code android:} block laid over it.
+         * Values the platform block leaves out keep this block's values.
+         */
+        public Mobile forPlatform(String platform) {
+            Mobile m = new Mobile();
+            m.serverUrl = serverUrl;
+            m.platform = platform == null || platform.isBlank() ? this.platform : platform.trim();
+            m.deviceId = deviceId;
+            m.deviceName = deviceName;
+            m.devices = new java.util.ArrayList<>(devices);
+            m.pool = pool;
+            m.app = new App();
+            m.app.bundleId = app.bundleId;
+            m.app.install = app.install;
+            m.app.reset = app.reset;
+            m.timeouts = timeouts;
+            m.allowRemote = allowRemote;
+            m.autoStartServer = autoStartServer;
+            m.mobilecliPath = mobilecliPath;
+            m.headers = new java.util.LinkedHashMap<>(headers);
+            m.screenshotOnFailure = screenshotOnFailure;
+            m.recordVideo = recordVideo;
+            m.alerts = alerts;
+            m.animations = animations;
+            m.appearance = appearance;
+            m.ios = ios;
+            m.android = android;
+            String wire = m.platform == null ? "" : m.platform.toLowerCase(java.util.Locale.ROOT);
+            PlatformSettings over = wire.equals("ios") ? ios : wire.equals("android") ? android : null;
+            if (over != null) {
+                if (over.deviceId != null) {
+                    m.setDeviceId(over.deviceId);
+                }
+                if (over.deviceName != null) {
+                    m.setDeviceName(over.deviceName);
+                }
+                if (over.devices != null) {
+                    m.devices = new java.util.ArrayList<>(over.devices);
+                }
+                if (over.app != null) {
+                    if (over.app.bundleId != null) {
+                        m.app.setBundleId(over.app.bundleId);
+                    }
+                    if (over.app.install != null) {
+                        m.app.setInstall(over.app.install);
+                    }
+                    if (over.app.reset != null) {
+                        m.app.setReset(over.app.reset);
+                    }
+                }
+            }
+            return m;
+        }
+
+        /** The {@code mobile.ios} / {@code mobile.android} block; every value is optional. */
+        public static final class PlatformSettings {
+            private String deviceId;
+            private String deviceName;
+            private java.util.List<String> devices;
+            private PlatformApp app;
+
+            public String getDeviceId() {
+                return deviceId;
+            }
+
+            public void setDeviceId(String deviceId) {
+                this.deviceId = deviceId;
+            }
+
+            public String getDeviceName() {
+                return deviceName;
+            }
+
+            public void setDeviceName(String deviceName) {
+                this.deviceName = deviceName;
+            }
+
+            public java.util.List<String> getDevices() {
+                return devices;
+            }
+
+            public void setDevices(java.util.List<String> devices) {
+                this.devices = devices;
+            }
+
+            public PlatformApp getApp() {
+                return app;
+            }
+
+            public void setApp(PlatformApp app) {
+                this.app = app;
+            }
+        }
+
+        /** The {@code app:} part of a platform block; every value is optional. */
+        public static final class PlatformApp {
+            private String bundleId;
+            private String install;
+            private String reset;
+
+            public String getBundleId() {
+                return bundleId;
+            }
+
+            public void setBundleId(String bundleId) {
+                this.bundleId = bundleId;
+            }
+
+            public String getInstall() {
+                return install;
+            }
+
+            public void setInstall(String install) {
+                this.install = install;
+            }
+
+            public String getReset() {
+                return reset;
+            }
+
+            public void setReset(String reset) {
+                this.reset = reset;
+            }
         }
 
         /** The app under test. */

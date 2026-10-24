@@ -104,6 +104,38 @@ With `recordVideo: failures` or `always`, every mobile test records the screen f
 
 Record by hand with `device().startRecording(path)` and `device().stopRecording()`.
 
+## iOS and Android in one config {#platform-per-test}
+
+Give each platform its own block under `mobile:`; the values it leaves out come from the shared block. Each test picks its platform with `@MobileTest(platform = …)` next to the engine's `@Test` (a method's value wins over its class's). Tests without one run on `mobile.platform`.
+
+```yaml
+mobile:
+  platform: ios                # used by tests without @MobileTest(platform = …)
+  alerts: dismiss              # shared
+  app:
+    reset: relaunch
+  ios:
+    deviceId: ${IOS_UDID:-}
+    app: { bundleId: com.example.ios }
+  android:
+    deviceId: ${ANDROID_AVD:-}
+    app: { bundleId: com.example.android }
+```
+
+```java
+public class LoginTest extends BaseMobileTest {
+    @Test
+    @MobileTest(platform = MobilePlatform.IOS)
+    public void loginOnIos() { ... }
+
+    @Test
+    @MobileTest(platform = MobilePlatform.ANDROID)
+    public void loginOnAndroid() { ... }
+}
+```
+
+A platform block takes `deviceId`, `deviceName`, `devices` and `app` (`bundleId`, `install`, `reset`). A run with both platforms needs a simulator and an emulator (or devices) online. Cucumber scenarios use `mobile.platform`.
+
 ## Profiles
 
 Keep mobile settings in a profile, `src/test/resources/testfly-<name>.yml`, and select it with `-Dtestfly.profile=<name>`. One profile per app and platform keeps the same tests running on iOS and Android:

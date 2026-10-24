@@ -129,7 +129,8 @@ public final class TestExecutionListener implements ITestListener, IInvokedMetho
             startRecordingIfEnabled();
         }
         if (isMobileTest(result)) {
-            MobileSessions.open();
+            MobileSessions.open(MobileTestDetector.platform(result.getTestClass().getRealClass(),
+                    result.getMethod().getConstructorOrMethod().getMethod()));
         }
         autoClearEmailIfEnabled();
         applyUseAuth(result);

@@ -151,7 +151,7 @@ public class MobileSelectorsTest {
         expectThrows(MobileException.class, USERNAME::count);
         try (FakeMobilecliServer server = new FakeMobilecliServer()) {
             TestFlyConfig.Mobile m = config(server, "android");
-            MobileSessions.setOpener(() -> Mobile.connect(m));
+            MobileSessions.setOpener(p -> Mobile.connect(m));
             try {
                 MobileSessions.open();
                 assertTrue(USERNAME.isPresent());

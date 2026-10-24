@@ -47,6 +47,17 @@ public class MobileEngineBridgeTest {
         useFakeDevice(server, id, reset, "off");
     }
 
+    private static TestFlyConfig.Mobile config(FakeMobilecliServer server, String id) {
+        TestFlyConfig.Mobile m = new TestFlyConfig.Mobile();
+        m.setServerUrl(server.url());
+        m.setPlatform("android");
+        m.setDeviceId(id);
+        m.getApp().setBundleId(FakeApp.BUNDLE);
+        m.getTimeouts().setActionMs(1500);
+        m.getTimeouts().setPollMs(20);
+        return m;
+    }
+
     private static void useFakeDevice(FakeMobilecliServer server, String id, String reset, String recordVideo) {
         FakeApp app = new FakeApp(id).install(server);
         APP.set(app);
@@ -59,7 +70,7 @@ public class MobileEngineBridgeTest {
         m.setRecordVideo(recordVideo);
         m.getTimeouts().setActionMs(1500);
         m.getTimeouts().setPollMs(20);
-        MobileSessions.setOpener(() -> Mobile.connect(m));
+        MobileSessions.setOpener(p -> Mobile.connect(m));
     }
 
     /**
@@ -102,6 +113,32 @@ public class MobileEngineBridgeTest {
             assertTrue(failed.getThrowable().getMessage().contains("Not on this screen"), failed.getThrowable().getMessage());
             assertScreenshotTaken(server, "failsOnPurpose");
             assertDeviceClosed(server);
+        }
+    }
+
+    @Test
+    public void mobileTestPlatformReachesTheOpenerOnTestNgAndJUnit() {
+        String id = deviceId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            useFakeDevice(server, id);
+            List<String> requested = new ArrayList<>();
+            TestFlyConfig.Mobile m = config(server, id);
+            MobileSessions.setOpener(p -> {
+                synchronized (requested) {
+                    requested.add(String.valueOf(p));
+                }
+                return Mobile.connect(m);
+            });
+            TestNG testng = new TestNG(false);
+            testng.setTestClasses(new Class<?>[] {MobileBridgeSamples.TestNgPlatformSample.class});
+            testng.setVerbose(0);
+            testng.run();
+            assertEquals(requested.stream().sorted().toList(), List.of("ANDROID", "IOS"), "method wins over class");
+
+            requested.clear();
+            LauncherFactory.create().execute(LauncherDiscoveryRequestBuilder.request()
+                    .selectors(selectClass(MobileBridgeSamples.JUnitPlatformSample.class)).build());
+            assertEquals(requested.stream().sorted().toList(), List.of("IOS", "null"), "no platform: the configured one");
         }
     }
 
@@ -164,7 +201,7 @@ public class MobileEngineBridgeTest {
             m.getApp().setBundleId(FakeApp.BUNDLE);
             m.getApp().setReset("none");
             m.getTimeouts().setPollMs(20);
-            MobileSessions.setOpener(() -> Mobile.connect(m));
+            MobileSessions.setOpener(p -> Mobile.connect(m));
 
             TestListenerAdapter results = new TestListenerAdapter();
             TestNG testng = new TestNG(false);

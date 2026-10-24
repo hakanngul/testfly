@@ -5,6 +5,7 @@ import io.testfly.internal.TestFlyContext;
 import io.testfly.mobile.Mobile;
 import io.testfly.mobile.MobileDevice;
 import io.testfly.mobile.MobileException;
+import io.testfly.mobile.MobilePlatform;
 import io.testfly.steps.StepLogger;
 import io.testfly.steps.StepStatus;
 import org.slf4j.Logger;
@@ -17,7 +18,7 @@ import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 /**
  * One device session per test thread (ADR 0002 D4), opened and closed by the engine bridges
@@ -31,7 +32,7 @@ public final class MobileSessions {
 
     private static final ThreadLocal<MobileDevice> CURRENT = new ThreadLocal<>();
     private static final Set<MobileDevice> OPEN = ConcurrentHashMap.newKeySet();
-    private static volatile Supplier<MobileDevice> opener = Mobile::connect;
+    private static volatile Function<MobilePlatform, MobileDevice> opener = Mobile::connect;
 
     static {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> OPEN.forEach(MobileSessions::closeQuietly),
@@ -43,8 +44,13 @@ public final class MobileSessions {
 
     /** Opens the device for the current thread, closing a session left over from a previous attempt. */
     public static MobileDevice open() {
+        return open(null);
+    }
+
+    /** Like {@link #open()}, for {@code platform} ({@code null}: the configured {@code mobile.platform}). */
+    public static MobileDevice open(MobilePlatform platform) {
         close();
-        MobileDevice device = opener.get();
+        MobileDevice device = opener.apply(platform);
         OPEN.add(device);
         CURRENT.set(device);
         return device;
@@ -125,8 +131,11 @@ public final class MobileSessions {
         }
     }
 
-    /** Replaces how sessions are opened (tests, custom runners); {@code null} restores {@link Mobile#connect()}. */
-    public static void setOpener(Supplier<MobileDevice> newOpener) {
+    /**
+     * Replaces how sessions are opened (tests, custom runners); it gets the requested platform or
+     * {@code null}. {@code null} restores {@link Mobile#connect(MobilePlatform)}.
+     */
+    public static void setOpener(Function<MobilePlatform, MobileDevice> newOpener) {
         opener = newOpener != null ? newOpener : Mobile::connect;
     }
 

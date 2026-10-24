@@ -104,6 +104,38 @@ Zaten cevap veren bir sunucu olduğu gibi kullanılır ve hiç durdurulmaz. Uzak
 
 Elle kayıt için `device().startRecording(path)` ve `device().stopRecording()` kullanın.
 
+## Tek yapılandırmada iOS ve Android {#platform-per-test}
+
+Her platforma `mobile:` altında kendi bloğunu verin; blokta olmayan değerler ortak bloktan gelir. Her test platformunu motorun `@Test`'inin yanına yazılan `@MobileTest(platform = …)` ile seçer (metottaki değer sınıftakini geçer). Platformu olmayan testler `mobile.platform` ile koşar.
+
+```yaml
+mobile:
+  platform: ios                # @MobileTest(platform = …) olmayan testler için
+  alerts: dismiss              # ortak
+  app:
+    reset: relaunch
+  ios:
+    deviceId: ${IOS_UDID:-}
+    app: { bundleId: com.example.ios }
+  android:
+    deviceId: ${ANDROID_AVD:-}
+    app: { bundleId: com.example.android }
+```
+
+```java
+public class LoginTest extends BaseMobileTest {
+    @Test
+    @MobileTest(platform = MobilePlatform.IOS)
+    public void loginOnIos() { ... }
+
+    @Test
+    @MobileTest(platform = MobilePlatform.ANDROID)
+    public void loginOnAndroid() { ... }
+}
+```
+
+Platform bloğu `deviceId`, `deviceName`, `devices` ve `app` (`bundleId`, `install`, `reset`) alır. İki platformlu bir koşu için hem simülatör hem emülatör (veya cihazlar) açık olmalıdır. Cucumber senaryoları `mobile.platform` kullanır.
+
 ## Profiller
 
 Mobil ayarları bir profilde tutun, `src/test/resources/testfly-<ad>.yml`, ve `-Dtestfly.profile=<ad>` ile seçin. Uygulama ve platform başına bir profil, aynı testlerin iOS'ta ve Android'de koşmasını sağlar:

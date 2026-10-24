@@ -163,7 +163,7 @@ public class MobileExtrasTest {
             FakeApp app = new FakeApp(id);
             app.crashes.add("old-crash");
             TestFlyConfig.Mobile m = config(server, app, id);
-            MobileSessions.setOpener(() -> Mobile.connect(m));
+            MobileSessions.setOpener(p -> Mobile.connect(m));
             try {
                 MobileDevice device = MobileSessions.open();
                 assertEquals(device.crashReports(), List.of(new MobileCrashReport("old-crash", "Demo", "2026-10-24-120000")));

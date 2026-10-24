@@ -94,6 +94,51 @@ public class MobileConfigYamlTest {
     }
 
     @Test
+    public void platformBlocksLayOverTheSharedBlock() {
+        TestFlyConfig.Mobile m = parse("mobile:\n"
+                + "  platform: ios\n"
+                + "  deviceId: shared\n"
+                + "  alerts: dismiss\n"
+                + "  app:\n"
+                + "    bundleId: com.shared\n"
+                + "    reset: clearData\n"
+                + "  ios:\n"
+                + "    deviceId: sim-udid\n"
+                + "    app:\n"
+                + "      bundleId: com.example.ios\n"
+                + "  android:\n"
+                + "    deviceName: Pixel.*\n"
+                + "    app: { bundleId: com.example.android, reset: relaunch }\n");
+
+        TestFlyConfig.Mobile ios = m.forPlatform(null);
+        assertEquals(ios.getPlatform(), "ios", "no platform asked: mobile.platform");
+        assertEquals(ios.getDeviceId(), "sim-udid");
+        assertEquals(ios.getApp().getBundleId(), "com.example.ios");
+        assertEquals(ios.getApp().getReset(), "clearData", "left out of the ios block: shared value");
+        assertEquals(ios.getAlerts(), "dismiss");
+
+        TestFlyConfig.Mobile android = m.forPlatform("android");
+        assertEquals(android.getPlatform(), "android");
+        assertEquals(android.getDeviceId(), "shared");
+        assertEquals(android.getDeviceName(), "Pixel.*");
+        assertEquals(android.getApp().getBundleId(), "com.example.android");
+        assertEquals(android.getApp().getReset(), "relaunch");
+
+        assertEquals(m.getApp().getBundleId(), "com.shared", "forPlatform copies; the original is unchanged");
+        assertEquals(parse("mobile:\n  platform: android\n").forPlatform("ios").getPlatform(), "ios", "works without blocks");
+    }
+
+    @Test
+    public void mobileTestTakesOnePlatform() {
+        @io.testfly.mobile.MobileTest(platform = {io.testfly.mobile.MobilePlatform.IOS, io.testfly.mobile.MobilePlatform.ANDROID})
+        class Both {
+        }
+        assertThrows(io.testfly.mobile.MobileException.class,
+                () -> io.testfly.mobile.internal.MobileTestDetector.platform(Both.class, null));
+        assertNull(io.testfly.mobile.internal.MobileTestDetector.platform(Object.class, null));
+    }
+
+    @Test
     public void fullBlockBinds() {
         TestFlyConfig.Mobile m = parse("mobile:\n"
                 + "  serverUrl: https://lab.example.com\n"

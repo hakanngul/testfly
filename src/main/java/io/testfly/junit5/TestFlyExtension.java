@@ -154,7 +154,7 @@ public class TestFlyExtension
         }
 
         if (isMobileTest(context)) {
-            MobileSessions.open();
+            MobileSessions.open(MobileTestDetector.platform(context.getRequiredTestClass(), context.getRequiredTestMethod()));
             // Native mobile tests skip the browser branch above, so their @PreCondition runs here.
             PreConditionRunner.run(context.getRequiredTestMethod(), false);
         }

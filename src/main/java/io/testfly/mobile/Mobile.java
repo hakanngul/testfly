@@ -48,17 +48,28 @@ public final class Mobile {
      * framework's configuration when TestFly is running, else {@code testfly.yml} loaded directly.
      */
     public static MobileDevice connect() {
+        return connect((MobilePlatform) null);
+    }
+
+    /**
+     * Like {@link #connect()}, for {@code platform} ({@code null}: {@code mobile.platform}), with the
+     * {@code mobile.ios:} / {@code mobile.android:} block of that platform applied.
+     */
+    public static MobileDevice connect(MobilePlatform platform) {
         TestFlyConfig config = TestFlyContext.isInitialized() ? TestFlyContext.getConfig() : ConfigurationLoader.load();
         TestFlyConfig.Mobile mobile = config != null ? config.getMobile() : null;
         if (mobile == null) {
             throw new ConfigurationException("Native mobile needs a 'mobile:' section in testfly.yml "
                     + "(at least mobile.platform: android|ios). See ADR 0002.");
         }
-        return connect(mobile);
+        return connect(mobile.forPlatform(platform == null ? null : platform.wireName()));
     }
 
     /** Opens the device described by {@code mobile}, through mobilecli at {@code mobile.serverUrl}. */
     public static MobileDevice connect(TestFlyConfig.Mobile mobile) {
+        if (mobile != null) {
+            mobile = mobile.forPlatform(null); // applies the mobile.ios / mobile.android block
+        }
         validate(mobile);
         URI endpoint = MobileServerUrl.rpcEndpoint(mobile.getServerUrl(), mobile.isAllowRemote());
         MobileCliDriver driver = new MobileCliDriver(new JsonRpcClient(endpoint, mobile.getHeaders()));

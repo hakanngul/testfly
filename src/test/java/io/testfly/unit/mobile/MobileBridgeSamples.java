@@ -37,6 +37,32 @@ final class MobileBridgeSamples {
         }
     }
 
+    /** Platform per test: the class says Android, one method says iOS, one says nothing. */
+    @io.testfly.mobile.MobileTest(platform = io.testfly.mobile.MobilePlatform.ANDROID)
+    public static class TestNgPlatformSample extends BaseMobileTest {
+
+        @Test
+        @io.testfly.mobile.MobileTest(platform = io.testfly.mobile.MobilePlatform.IOS)
+        public void onIos() {
+        }
+
+        @Test
+        public void onTheClassPlatform() {
+        }
+    }
+
+    public static class JUnitPlatformSample extends BaseJUnit5MobileTest {
+
+        @org.junit.jupiter.api.Test
+        @io.testfly.mobile.MobileTest(platform = io.testfly.mobile.MobilePlatform.IOS)
+        void onIos() {
+        }
+
+        @org.junit.jupiter.api.Test
+        void onTheConfiguredPlatform() {
+        }
+    }
+
     public static class JUnitSample extends BaseJUnit5MobileTest {
 
         @org.junit.jupiter.api.Test
