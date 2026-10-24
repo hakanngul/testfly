@@ -25,6 +25,7 @@
 
     // ── host messages ───────────────────────────────────────────────────
     window.addEventListener('message', e => {
+        if (e.source !== window || !e.data || typeof e.data !== 'object') return;
         const m = e.data;
         switch (m.type) {
             case 'devices': return onDevices(m.devices);
