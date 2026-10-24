@@ -145,7 +145,7 @@ mvn test -Dtestfly.profile=myapp-ios     -Dtest=LoginTest
 mvn test -Dtestfly.profile=myapp-android -Dtest=LoginTest
 ```
 
-A profile with a `mobile:` block needs no `browser`, `execution` or `timeouts` block: missing web values get inert defaults (headless local Chrome, `http://localhost`, 10 s / 30 s) and values you set are kept. The examples `testfly-mobile-ios.yml`, `testfly-mobile-android.yml` and `testfly-mobile-ios-login.yml` show a complete profile.
+A profile with a `mobile:` block needs no `browser`, `execution` or `timeouts` block: missing web values get inert defaults (headless local Chrome, `http://localhost`, 10 s / 30 s) and values you set are kept. The examples `testfly-mobile-ios.yml`, `testfly-mobile-android.yml` and `testfly-mobile-login.yml` show a complete profile.
 
 ## Security
 

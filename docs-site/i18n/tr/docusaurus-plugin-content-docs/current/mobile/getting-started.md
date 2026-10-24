@@ -121,7 +121,8 @@ try (MobileDevice device = Mobile.connect()) {   // testfly.yml'i okur
 |---|---|---|
 | `examples/mobile/IosSettingsExampleTest` | TestNG, iOS Ayarlar uygulaması | `mvn test -Dtestfly.profile=mobile-ios -Dtest=IosSettingsExampleTest` |
 | `examples/mobile/AndroidSettingsExampleTest` | TestNG, Android Ayarlar uygulaması | `mvn test -Dtestfly.profile=mobile-android -Dtest=AndroidSettingsExampleTest` |
-| `examples/mobile/IosLoginExampleTest` | TestNG, `HomePage`/`LoginPage` page object'leri | `MOBILE_LOGIN_USER=… MOBILE_LOGIN_PASSWORD=… mvn test -Dtest=IosLoginExampleTest` (`testfly-mobile-ios-login.yml`'i kendisi seçer) |
+| `examples/mobile/IosLoginExampleTest`, `AndroidLoginExampleTest` | TestNG, `HomePage`/`LoginPage` page object'leri, `@MobileTest(platform = …)` | `MOBILE_LOGIN_USER=… MOBILE_LOGIN_PASSWORD=… mvn test -Dtest='IosLoginExampleTest,AndroidLoginExampleTest'` (`ios:` ve `android:` bloklu tek profil `testfly-mobile-login.yml`'i kendileri seçer) |
+| `examples/mobile/IosLoginJUnit5ExampleTest`, `AndroidLoginJUnit5ExampleTest` | JUnit 5, aynı sayfalar ve profil | `MOBILE_LOGIN_USER=… MOBILE_LOGIN_PASSWORD=… mvn test -Dtest='*LoginJUnit5ExampleTest'` |
 | `examples/cucumber/mobile/IosLoginCucumberRunner` | Cucumber, `features-mobile/ios_login.feature` | `mvn test -Dtest=IosLoginCucumberRunner` |
 
 Tüm yollar `src/test/java/io/testfly/` altındadır. Ayarlar örnekleri uygulama dosyası gerektirmez; metinler İngilizce cihaz varsayar. Kimlik bilgileri yalnızca ortam değişkenlerinden gelir.

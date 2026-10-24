@@ -121,7 +121,8 @@ try (MobileDevice device = Mobile.connect()) {   // reads testfly.yml
 |---|---|---|
 | `examples/mobile/IosSettingsExampleTest` | TestNG, iOS Settings app | `mvn test -Dtestfly.profile=mobile-ios -Dtest=IosSettingsExampleTest` |
 | `examples/mobile/AndroidSettingsExampleTest` | TestNG, Android Settings app | `mvn test -Dtestfly.profile=mobile-android -Dtest=AndroidSettingsExampleTest` |
-| `examples/mobile/IosLoginExampleTest` | TestNG, page objects `HomePage`/`LoginPage` | `MOBILE_LOGIN_USER=… MOBILE_LOGIN_PASSWORD=… mvn test -Dtest=IosLoginExampleTest` (selects `testfly-mobile-ios-login.yml` itself) |
+| `examples/mobile/IosLoginExampleTest`, `AndroidLoginExampleTest` | TestNG, page objects `HomePage`/`LoginPage`, `@MobileTest(platform = …)` | `MOBILE_LOGIN_USER=… MOBILE_LOGIN_PASSWORD=… mvn test -Dtest='IosLoginExampleTest,AndroidLoginExampleTest'` (select `testfly-mobile-login.yml`, one profile with `ios:` and `android:` blocks) |
+| `examples/mobile/IosLoginJUnit5ExampleTest`, `AndroidLoginJUnit5ExampleTest` | JUnit 5, same pages and profile | `MOBILE_LOGIN_USER=… MOBILE_LOGIN_PASSWORD=… mvn test -Dtest='*LoginJUnit5ExampleTest'` |
 | `examples/cucumber/mobile/IosLoginCucumberRunner` | Cucumber, `features-mobile/ios_login.feature` | `mvn test -Dtest=IosLoginCucumberRunner` |
 
 All paths are under `src/test/java/io/testfly/`. The Settings examples need no app file; their texts assume an English device. Credentials come only from environment variables.

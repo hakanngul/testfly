@@ -3,7 +3,7 @@ package io.testfly.examples.cucumber.mobile;
 import io.cucumber.java.Before;
 
 /**
- * Selects the {@code mobile-ios-login} TestFly profile when none was given, so the scenarios also run
+ * Selects the {@code mobile-login} TestFly profile when none was given, so the scenarios also run
  * from tools that cannot pass {@code -Dtestfly.profile} (for example the Cucumber Java Runner
  * extension). An explicit {@code -Dtestfly.profile=...} always wins.
  *
@@ -12,7 +12,7 @@ import io.cucumber.java.Before;
  */
 public class IosLoginHooks {
 
-    private static final String PROFILE = "mobile-ios-login";
+    private static final String PROFILE = "mobile-login";
 
     @Before(order = 1)
     public void selectProfile() {

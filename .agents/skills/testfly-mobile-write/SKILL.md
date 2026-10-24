@@ -65,4 +65,4 @@ new LoginPage().signIn("ada").shouldShowGreeting("ada");
 
 - Compile: `mvn -q test-compile`. Without a device you can only compile; say so.
 - With a device: run the test alone and report `Tests run/Failures/Skipped`. A test that never reached the device (`Skipped`) is not a pass.
-- Examples to imitate: `src/test/java/io/testfly/examples/mobile/` (`LoginPage`, `HomePage`, `IosLoginExampleTest`, `IosSettingsExampleTest`) and `examples/cucumber/mobile/`.
+- Examples to imitate: `src/test/java/io/testfly/examples/mobile/` (`LoginPage`, `HomePage`, `IosLoginExampleTest`, `AndroidLoginExampleTest` (+ `testfly-mobile-login.yml`), `IosSettingsExampleTest`) and `examples/cucumber/mobile/`.

@@ -9,7 +9,7 @@ import io.testfly.cucumber.BaseCucumberTest;
  * <pre>
  * mobilecli server start                      # keep it running
  * export MOBILE_LOGIN_USER=... MOBILE_LOGIN_PASSWORD=...
- * mvn test -Dtestfly.profile=mobile-ios-login -Dtest=IosLoginCucumberRunner
+ * mvn test -Dtestfly.profile=mobile-login -Dtest=IosLoginCucumberRunner
  * </pre>
  *
  * The glue is limited to this package plus the framework hooks, so the web Cucumber runners never
