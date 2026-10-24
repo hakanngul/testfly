@@ -233,7 +233,9 @@ export default function Home() {
             <div className={styles.heroContent}>
               <div className={styles.heroHeader}>
                 <span className={styles.heroEyebrow}>
-                  Java 21 · TestNG · JUnit 5 · Cucumber · Web · API · Load · Mobile (incubating)
+                  {isTr
+                    ? 'Java 21 · TestNG · JUnit 5 · Cucumber · Web · API · Yük · Mobil (deneysel)'
+                    : 'Java 21 · TestNG · JUnit 5 · Cucumber · Web · API · Load · Mobile (incubating)'}
                 </span>
                 <h1 className={styles.heroTitle}>
                   {isTr ? (

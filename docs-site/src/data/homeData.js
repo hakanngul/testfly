@@ -779,8 +779,8 @@ export const testingDomains = [
 ];
 
 export const mobileShowcase = {
-  titleEn: 'Native Android tests with page objects',
-  titleTr: 'Sayfa nesneleriyle yerel Android testleri',
+  titleEn: 'Native Android login test',
+  titleTr: 'Yerel Android giriş testi',
   subtitleEn:
     'Element ids from the screen, actions that wait until the element is visible and enabled, and expectations that retry. Mobile is incubating: the API may change in a minor release.',
   subtitleTr:
@@ -788,9 +788,9 @@ export const mobileShowcase = {
   badgesEn: ['Incubating', 'Android', 'mobilecli', 'No Appium'],
   badgesTr: ['Deneysel', 'Android', 'mobilecli', 'Appium yok'],
   noteEn:
-    'Shortened from examples/mobile/AndroidLoginExampleTest.java: the cookie consent handling and the environment checks are left out.',
+    'Shortened from examples/mobile/AndroidLoginExampleTest.java: the example also waits for the home screen first, and the environment checks are left out.',
   noteTr:
-    'examples/mobile/AndroidLoginExampleTest.java dosyasından kısaltıldı: çerez onayı ve ortam kontrolleri çıkarıldı.',
+    'examples/mobile/AndroidLoginExampleTest.java dosyasından kısaltıldı: örnek önce ana ekranın gelmesini de bekler; ortam kontrolleri çıkarıldı.',
   code: `import io.testfly.mobile.BaseMobileTest;
 import io.testfly.mobile.MobilePlatform;
 import io.testfly.mobile.MobileTest;
@@ -804,6 +804,10 @@ public class AndroidLoginExampleTest extends BaseMobileTest {
         String memberId = System.getenv("MOBILE_LOGIN_USER");
         String password = System.getenv("MOBILE_LOGIN_PASSWORD");
 
+        // A cookie consent sheet can cover the home screen on a fresh start.
+        if (screen().getByTestId("btnAcceptAll").count() > 0) {
+            screen().getByTestId("btnAcceptAll").tap();
+        }
         screen().getByTestId("btnLogin").tap();
         screen().getByTestId("etUserName").fill(memberId);
         screen().getByTestId("etPassword").fill(password);
