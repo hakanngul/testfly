@@ -2,7 +2,7 @@
   "name": "testfly-mobile-inspector",
   "displayName": "TestFly Mobile Inspector",
   "description": "Inspect iOS and Android screens through mobilecli: live screenshot, UI tree with @eN refs, element details and ready-to-paste TestFly @MobileFind selectors.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "hakanngul",
   "license": "Apache-2.0",
   "repository": {
@@ -13,8 +13,18 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Testing", "Other"],
-  "keywords": ["mobilecli", "testfly", "appium", "inspector", "ios", "android"],
+  "categories": [
+    "Testing",
+    "Other"
+  ],
+  "keywords": [
+    "mobilecli",
+    "testfly",
+    "appium",
+    "inspector",
+    "ios",
+    "android"
+  ],
   "icon": "media/icon.png",
   "main": "./out/extension.js",
   "activationEvents": [],
@@ -51,6 +61,38 @@
           "description": "Read the screen again after a tap, swipe, text or button action."
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "testflyInspector",
+          "title": "TestFly Mobile",
+          "icon": "media/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "testflyInspector": [
+        {
+          "id": "testflyInspector.home",
+          "name": "Mobile Inspector"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "testflyInspector.home",
+        "contents": "Inspect an iOS or Android screen through mobilecli: screenshot, UI tree with @eN refs and ready-to-paste TestFly selectors.\n[$(device-mobile) Open Mobile Inspector](command:testflyInspector.open)\nNeeds mobilecli and a booted simulator, emulator or device. [Settings](command:workbench.action.openSettings?%5B%22testflyInspector%22%5D)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "testflyInspector.open",
+          "when": "view == testflyInspector.home",
+          "group": "navigation"
+        }
+      ]
     }
   },
   "scripts": {
