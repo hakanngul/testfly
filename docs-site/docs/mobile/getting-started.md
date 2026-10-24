@@ -125,4 +125,6 @@ try (MobileDevice device = Mobile.connect()) {   // reads testfly.yml
 | `examples/mobile/IosLoginJUnit5ExampleTest`, `AndroidLoginJUnit5ExampleTest` | JUnit 5, same pages and profile | `MOBILE_LOGIN_USER=… MOBILE_LOGIN_PASSWORD=… mvn test -Dtest='*LoginJUnit5ExampleTest'` |
 | `examples/cucumber/mobile/IosLoginCucumberRunner` | Cucumber, `features-mobile/ios_login.feature` | `mvn test -Dtest=IosLoginCucumberRunner` |
 
+To inspect a screen while writing page objects, the VS Code extension in `tools/vscode-mobile-inspector/` shows the screenshot, the UI tree with `@eN` refs and ready-to-paste `@MobileFind` selectors (build it with `npm run package`).
+
 All paths are under `src/test/java/io/testfly/`. The Settings examples need no app file; their texts assume an English device. Credentials come only from environment variables.

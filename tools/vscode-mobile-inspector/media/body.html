@@ -1,0 +1,122 @@
+<div class="app" id="app">
+  <header class="toolbar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" class="logo" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18.5h4"/><path d="M9.5 9.5l2 2 3.5-4"/></svg>
+      <span>Mobile Inspector</span>
+    </div>
+
+    <div class="device-picker">
+      <span class="platform-badge" id="platform" hidden></span>
+      <select id="device" aria-label="Device"><option value="">No device</option></select>
+      <button class="icon" id="reloadDevices" title="Reload devices">
+        <svg viewBox="0 0 16 16"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>
+      </button>
+    </div>
+
+    <button class="primary" id="refresh" title="Read the screen again (R)">
+      <svg viewBox="0 0 16 16"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>
+      <span>Refresh</span>
+    </button>
+
+    <div class="segmented" id="mode" role="radiogroup" aria-label="Click mode">
+      <button data-mode="inspect" class="active" title="Click selects an element (I)">
+        <svg viewBox="0 0 16 16"><path d="M3 2l9 4.5-4 1.5-1.5 4z"/></svg><span>Inspect</span>
+      </button>
+      <button data-mode="tap" title="Click taps the device (T)">
+        <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><circle cx="8" cy="8" r="5.5"/></svg><span>Tap</span>
+      </button>
+    </div>
+
+    <div class="group" role="group" aria-label="Device controls">
+      <button class="icon" data-button="BACK" title="Back (Android)">
+        <svg viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></svg>
+      </button>
+      <button class="icon" data-button="HOME" title="Home">
+        <svg viewBox="0 0 16 16"><path d="M2.5 7.5L8 3l5.5 4.5"/><path d="M4 6.5V13h8V6.5"/></svg>
+      </button>
+      <button class="icon" data-swipe="up" title="Swipe up (scroll down)">
+        <svg viewBox="0 0 16 16"><path d="M8 13V3"/><path d="M4 7l4-4 4 4"/></svg>
+      </button>
+      <button class="icon" data-swipe="down" title="Swipe down (scroll up)">
+        <svg viewBox="0 0 16 16"><path d="M8 3v10"/><path d="M4 9l4 4 4-4"/></svg>
+      </button>
+    </div>
+
+    <div class="spacer"></div>
+    <div class="status" id="status" data-state="connecting">
+      <span class="dot"></span><span id="statusText">Starting…</span>
+    </div>
+  </header>
+
+  <main class="panes" id="panes">
+    <section class="pane screen-pane">
+      <div class="pane-header">
+        <span class="pane-title">Screen</span>
+        <span class="muted" id="screenMeta"></span>
+        <span class="spacer"></span>
+        <label class="toggle" title="Outline every element">
+          <input type="checkbox" id="showBounds"><span>Bounds</span>
+        </label>
+      </div>
+      <div class="stage" id="stage">
+        <div class="device-frame" id="deviceFrame" hidden>
+          <div class="screen" id="screen">
+            <img id="shot" alt="Device screenshot" draggable="false">
+            <div class="overlay" id="overlay"></div>
+            <div class="hover-box" id="hoverBox" hidden></div>
+            <div class="select-box" id="selectBox" hidden></div>
+            <div class="tap-ripple" id="ripple" hidden></div>
+          </div>
+        </div>
+        <div class="empty-state" id="emptyScreen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18.5h4"/></svg>
+          <p class="title">No screen yet</p>
+          <p id="emptyHint">Connecting to mobilecli…</p>
+        </div>
+        <div class="loading-bar" id="loadingBar" hidden></div>
+      </div>
+    </section>
+
+    <div class="resizer" data-resize="0" title="Drag to resize"></div>
+
+    <section class="pane tree-pane">
+      <div class="pane-header tabs" role="tablist">
+        <button class="tab active" data-tab="tree" role="tab">UI Tree</button>
+        <button class="tab" data-tab="snapshot" role="tab">Snapshot</button>
+        <span class="spacer"></span>
+        <span class="muted" id="treeCount"></span>
+      </div>
+      <div class="search" id="searchBox">
+        <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+        <input id="search" type="search" placeholder="Filter by text, id, type or @ref  ( / )" spellcheck="false">
+      </div>
+      <div class="tree" id="tree" role="tree" tabindex="0"></div>
+      <div class="snapshot-wrap" id="snapshotWrap" hidden>
+        <div class="snapshot-bar">
+          <code>mobilecli snapshot</code>
+          <button class="link" id="copySnapshot">Copy</button>
+        </div>
+        <pre class="snapshot" id="snapshot"></pre>
+      </div>
+    </section>
+
+    <div class="resizer" data-resize="1" title="Drag to resize"></div>
+
+    <section class="pane details-pane">
+      <div class="pane-header">
+        <span class="pane-title">Element</span>
+        <span class="spacer"></span>
+        <span class="ref-chip" id="selRef" hidden></span>
+      </div>
+      <div class="details" id="details">
+        <div class="empty-state small">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l14 7-6 2-2 6z"/></svg>
+          <p class="title">Nothing selected</p>
+          <p>Click an element on the screen or in the tree to see its attributes and TestFly selectors.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>

@@ -25,6 +25,8 @@ If any step fails, report it and stop.
 2. **Ids (JSON)**: `mobilecli dump ui --device <id> > /tmp/<screen>.json`. Each element has `type`, `text`, `label`, `name`, `value`, `identifier`, `placeholder`, `rect` and, on Android, often `resourceId`. The first call on a fresh iOS simulator can take a minute (DeviceKit start); retry once before giving up.
 3. Add `--full` to either command when an element is missing (it includes elements such as the on-screen keyboard).
 
+When the user has VS Code, the TestFly Mobile Inspector extension (`tools/vscode-mobile-inspector/`) shows the same tree with match counts per selector; use the CLI steps above when working without it.
+
 ## Pick one selector per element
 
 In this order, and only if it matches exactly one element on the screen (count it in the JSON):

@@ -125,4 +125,6 @@ try (MobileDevice device = Mobile.connect()) {   // testfly.yml'i okur
 | `examples/mobile/IosLoginJUnit5ExampleTest`, `AndroidLoginJUnit5ExampleTest` | JUnit 5, aynı sayfalar ve profil | `MOBILE_LOGIN_USER=… MOBILE_LOGIN_PASSWORD=… mvn test -Dtest='*LoginJUnit5ExampleTest'` |
 | `examples/cucumber/mobile/IosLoginCucumberRunner` | Cucumber, `features-mobile/ios_login.feature` | `mvn test -Dtest=IosLoginCucumberRunner` |
 
+Page object yazarken ekranı incelemek için `tools/vscode-mobile-inspector/` altındaki VS Code eklentisi ekran görüntüsünü, `@eN` ref'li UI ağacını ve yapıştırmaya hazır `@MobileFind` seçicilerini gösterir (`npm run package` ile derlenir).
+
 Tüm yollar `src/test/java/io/testfly/` altındadır. Ayarlar örnekleri uygulama dosyası gerektirmez; metinler İngilizce cihaz varsayar. Kimlik bilgileri yalnızca ortam değişkenlerinden gelir.
