@@ -10,6 +10,8 @@
     The same UI as the TestFly Mobile Inspector VS Code extension.
     ]]></description>
     <depends>com.intellij.modules.platform</depends>
+    <!-- 2026.2+ ships JCEF as its own bundled plugin; before that it is part of the platform and this id does not exist. -->
+    <depends optional="true" config-file="testfly-jcef.xml">com.intellij.modules.jcef</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="io.testfly.inspector.InspectorSettings"/>

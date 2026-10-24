@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.testfly"
-version = "0.1.0"
+version = "0.1.1"
 
 repositories {
     mavenCentral()
@@ -17,6 +17,7 @@ repositories {
 dependencies {
     intellijPlatform {
         intellijIdeaCommunity("2024.1.7")
+        pluginVerifier()
     }
     testImplementation("junit:junit:4.13.2")
 }
@@ -34,6 +35,12 @@ intellijPlatform {
         }
     }
     buildSearchableOptions = false
+    pluginVerification {
+        ides {
+            ide(org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdeaUltimate, "2026.2")
+            ide(org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdeaCommunity, "2024.1.7")
+        }
+    }
 }
 
 // The webview UI is shared with the VS Code extension: one design, one source.

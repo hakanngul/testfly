@@ -1,0 +1,2 @@
+<!-- Makes the JCEF plugin's classes visible on IntelliJ 2026.2+; nothing to register. -->
+<idea-plugin/>
