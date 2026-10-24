@@ -26,10 +26,11 @@ class AndroidLoginJUnit5ExampleTest extends BaseJUnit5MobileTest {
 
     @Test
     @MobileTest(platform = MobilePlatform.ANDROID)
-    void loginWithMemberId() {
+    void loginWithMemberId() throws InterruptedException {
         new HomePage()
                 .openLogin()
                 .signIn(requiredEnv("MOBILE_LOGIN_USER"), requiredEnv("MOBILE_LOGIN_PASSWORD"))
                 .shouldBeClosed();
+        
     }
 }
