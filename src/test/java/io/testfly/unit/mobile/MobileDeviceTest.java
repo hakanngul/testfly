@@ -254,6 +254,37 @@ public class MobileDeviceTest {
         }
     }
 
+    @Test
+    public void alertsSettingAcceptsOrDismissesSystemAlerts() {
+        for (String mode : new String[] {"dismiss", "accept"}) {
+            String id = uniqueId();
+            try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+                FakeApp app = new FakeApp(id).install(server);
+                TestFlyConfig.Mobile cfg = config(server, id);
+                cfg.setAlerts(mode);
+                try (MobileDevice device = Mobile.connect(cfg)) {
+                    app.alert = true;
+                    expect(device.screen().getByText("Welcome back")).toBeVisible();
+                }
+                assertEquals(app.alertAnswer, mode.equals("accept") ? "allow" : "deny");
+            }
+        }
+
+        String id = uniqueId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            FakeApp app = new FakeApp(id).install(server);
+            TestFlyConfig.Mobile cfg = config(server, id);
+            cfg.getTimeouts().setActionMs(300);
+            try (MobileDevice device = Mobile.connect(cfg)) {
+                app.alert = true;
+                expectThrows(MobileAssertionError.class, () -> expect(device.screen().getByText("Welcome back")).toBeVisible());
+            }
+            assertNull(app.alertAnswer, "mobile.alerts: none leaves the alert to the test");
+            cfg.setAlerts("maybe");
+            expectThrows(ConfigurationException.class, () -> Mobile.connect(cfg));
+        }
+    }
+
     // ── device settings and recording ───────────────────────────────────
 
     @Test

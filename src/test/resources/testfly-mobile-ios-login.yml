@@ -12,6 +12,7 @@ mobile:
   app:
     bundleId: ${MOBILE_APP_BUNDLE_ID:-com.nesine.new-bet-dev}
     reset: clearData
+  alerts: dismiss               # closes the tracking prompt that clearData brings back
   timeouts:
     actionMs: 30000
     pollMs: 500

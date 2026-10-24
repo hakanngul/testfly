@@ -33,6 +33,9 @@ mobile:
   headers: {}                  # örn. Authorization: Bearer ${MOBILECLI_TOKEN}
   screenshotOnFailure: true
   recordVideo: off             # off | failures | always
+  alerts: none                 # none | accept | dismiss (iOS alerts, Android permission dialogs)
+  animations: ""               # on | off; empty leaves the device as it is
+  appearance: ""               # light | dark; empty leaves the device as it is
 ```
 
 | Anahtar | Varsayılan | Açıklama |
@@ -57,6 +60,9 @@ mobile:
 | `headers` | `{}` | Her istekte gönderilen ek HTTP başlıkları, örneğin kimlik doğrulayan bir proxy için. |
 | `screenshotOnFailure` | `true` | Başarısız teste cihaz ekran görüntüsü ekler. |
 | `recordVideo` | `off` | Test başına ekran kaydı: `off`, `failures` (başarısız testler için saklanır) veya `always`; bkz. [Ekran kaydı](#screen-recording). |
+| `alerts` | `none` | Uygulamanın üstüne çıkan sistem uyarıları: Appium'daki `autoAcceptAlerts` / `autoDismissAlerts` (Android'de `autoGrantPermissions`) gibi, ekranın her okunuşundan önce `accept` ile kabul edilir veya `dismiss` ile kapatılır. iOS (izleme, konum, bildirim): `accept`, `Allow`/`OK`'a; `dismiss`, `Don't Allow`/`Ask App Not to Track`/`Cancel`'a dokunur; başka etiketlerde (farklı cihaz dili) son veya ilk butona. Android izin pencereleri: buton kimliğiyle, her dilde. `none` uyarıyı teste bırakır. |
+| `animations` | (boş) | `on` veya `off`; cihaz açılırken ayarlanır. `off` testleri hızlandırır ve kararlı yapar. Boş, cihaza dokunmaz. |
+| `appearance` | (boş) | `light` veya `dark`; cihaz açılırken ayarlanır. Boş, cihaza dokunmaz. |
 
 Değerler bilinen yer tutucuları destekler (`${MOBILE_DEVICE_ID:-}`); bkz. [Yapılandırma](../configuration).
 

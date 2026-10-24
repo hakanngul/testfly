@@ -38,6 +38,8 @@ Everything in `io.testfly.mobile` is incubating: it is not annotated `@TestFlyAp
    mobilecli agent status --device <device-id>
    ```
 
+   A **real iPhone** needs the agent signed for it: `mobilecli agent install --device <udid> --provisioning-profile /path/to/profile.mobileprovision` (a valid Apple provisioning profile). Webviews and Safari tabs on a real device also need **Settings > Apps > Safari > Advanced > Web Inspector** on. File push/pull is not available on real iPhones.
+
 You do not need to start the server yourself: when `http://localhost:12000` does not answer, TestFly runs `mobilecli server start` and stops it when the JVM exits (see [server auto-start](configuration#server-auto-start)). Starting it yourself (`mobilecli server start`) also works.
 
 ## Minimal configuration

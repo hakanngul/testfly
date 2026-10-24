@@ -1,5 +1,6 @@
 package io.testfly.mobile.spi;
 
+import io.testfly.mobile.MobileCrashReport;
 import io.testfly.mobile.MobileDeviceInfo;
 import io.testfly.mobile.MobileNode;
 import io.testfly.mobile.MobileOrientation;
@@ -8,6 +9,7 @@ import io.testfly.mobile.MobileScreenSize;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The replaceable seam between TestFly's mobile API and whatever drives the device (incubating,
@@ -96,6 +98,79 @@ public interface MobileDriver extends AutoCloseable {
     /** Stops the running screen recording and finishes its file. */
     default void stopRecording(Duration timeout) {
         throw unsupported("stopRecording");
+    }
+
+    // ── gestures, device data and apps (optional: the defaults report them as unsupported) ──
+
+    /** The view tree; {@code full} also includes windows normally left out, such as the on-screen keyboard. */
+    default List<MobileNode> viewTree(boolean full, Duration timeout) {
+        if (full) {
+            throw unsupported("viewTree(full)");
+        }
+        return viewTree(timeout);
+    }
+
+    /** Two-finger pinch centred on (x, y): {@code out} spreads the fingers (zoom in), otherwise they close. */
+    default void pinch(int x, int y, boolean out, int distance, Duration duration, Duration timeout) {
+        throw unsupported("pinch");
+    }
+
+    /** One-finger press at (x1, y1), move to (x2, y2) over {@code duration}, release. */
+    default void drag(int x1, int y1, int x2, int y2, Duration duration, Duration timeout) {
+        throw unsupported("drag");
+    }
+
+    default String clipboard(Duration timeout) {
+        throw unsupported("clipboard");
+    }
+
+    default void setClipboard(String text, Duration timeout) {
+        throw unsupported("setClipboard");
+    }
+
+    default List<MobileCrashReport> crashReports(Duration timeout) {
+        throw unsupported("crashReports");
+    }
+
+    default String crashReport(String id, Duration timeout) {
+        throw unsupported("crashReport");
+    }
+
+    default void pushFile(byte[] content, String remotePath, Duration timeout) {
+        throw unsupported("pushFile");
+    }
+
+    default byte[] pullFile(String remotePath, Duration timeout) {
+        throw unsupported("pullFile");
+    }
+
+    /**
+     * A webview operation ({@code list}, {@code url}, {@code title}, {@code content}, {@code query},
+     * {@code evaluate}, {@code goto}, {@code reload}, {@code goBack}, {@code goForward},
+     * {@code waitForLoadState}) on webview {@code id} ({@code null} for {@code list}); the result as
+     * plain Java values ({@code Map}, {@code List}, {@code String}, numbers, booleans) or {@code null}.
+     */
+    default Object webView(String operation, String id, Map<String, Object> params, Duration timeout) {
+        throw unsupported("webView");
+    }
+
+    /** {@code animations}: {@code on}/{@code off}; {@code appearance}: {@code light}/{@code dark}; {@code null} leaves one as it is. */
+    default void applySettings(String animations, String appearance, Duration timeout) {
+        throw unsupported("applySettings");
+    }
+
+    /** Bundle ids / package names of the installed apps. */
+    default List<String> installedApps(Duration timeout) {
+        throw unsupported("installedApps");
+    }
+
+    /** Bundle id / package name of the app in front. */
+    default String foregroundApp(Duration timeout) {
+        throw unsupported("foregroundApp");
+    }
+
+    default void uninstallApp(String bundleId, Duration timeout) {
+        throw unsupported("uninstallApp");
     }
 
     private UnsupportedOperationException unsupported(String operation) {

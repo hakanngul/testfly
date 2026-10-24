@@ -102,7 +102,7 @@ public final class MobileScreen {
 
     /** The current view tree (no waiting). */
     public List<MobileNode> viewTree() {
-        return session.driver().viewTree(session.rpcTimeout());
+        return session.viewTree(session.rpcTimeout());
     }
 
     /** PNG bytes of the current screen. */

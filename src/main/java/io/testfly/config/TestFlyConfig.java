@@ -2760,6 +2760,9 @@ public final class TestFlyConfig {
      *   headers: {}
      *   screenshotOnFailure: true
      *   recordVideo: off             # off | failures | always
+     *   alerts: none                 # none | accept | dismiss (iOS alerts, Android permission dialogs)
+     *   animations: ""               # on | off; empty leaves the device as it is
+     *   appearance: ""               # light | dark; empty leaves the device as it is
      * </pre>
      *
      * The defaults live in the field initialisers below; {@code io.testfly.mobile.Mobile}
@@ -2780,6 +2783,9 @@ public final class TestFlyConfig {
         private java.util.Map<String, String> headers = new java.util.LinkedHashMap<>();
         private boolean screenshotOnFailure = true;
         private String recordVideo = "off";
+        private String alerts = "none";
+        private String animations = "";
+        private String appearance = "";
 
         public String getServerUrl() {
             return serverUrl;
@@ -2906,6 +2912,37 @@ public final class TestFlyConfig {
 
         public void setRecordVideo(String recordVideo) {
             this.recordVideo = recordVideo == null || recordVideo.isBlank() ? "off" : recordVideo.trim();
+        }
+
+        /**
+         * iOS system alerts (permissions, tracking) that cover the app: {@code none} (default, left
+         * to the test), {@code accept} or {@code dismiss}, like Appium's {@code autoAcceptAlerts} /
+         * {@code autoDismissAlerts}.
+         */
+        public String getAlerts() {
+            return alerts;
+        }
+
+        public void setAlerts(String alerts) {
+            this.alerts = alerts == null || alerts.isBlank() ? "none" : alerts.trim();
+        }
+
+        /** System animations set when the device opens: {@code on}, {@code off}, or empty (default) to leave them. */
+        public String getAnimations() {
+            return animations;
+        }
+
+        public void setAnimations(String animations) {
+            this.animations = animations == null ? "" : animations.trim();
+        }
+
+        /** Appearance set when the device opens: {@code light}, {@code dark}, or empty (default) to leave it. */
+        public String getAppearance() {
+            return appearance;
+        }
+
+        public void setAppearance(String appearance) {
+            this.appearance = appearance == null ? "" : appearance.trim();
         }
 
         /** The app under test. */

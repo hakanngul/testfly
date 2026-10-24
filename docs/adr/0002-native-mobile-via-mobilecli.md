@@ -360,6 +360,7 @@ The main risks:
 
    **Promotion candidates** (all in `io.testfly.mobile` unless noted):
    - YAML locators (added 2026-10-23): `MobileLocators` (load, get, keys).
+   - Appium parity (added 2026-10-24): `mobile.alerts` (iOS alerts by label, Android permission dialogs by resource-id), `mobile.animations`/`appearance`, pinch/drag, clipboard, files (base64 over JSON-RPC, 1 MB cap in mobilecli), crash reports saved on failure, app state, keyboard (full `dump.ui`), `MobileWebView`. Device logs are left out: mobilecli serves them only as a websocket stream.
    - Structural selectors (added 2026-10-24): `xpath=`, `chain=`, `predicate=`, `id=`, `accessibility=` strings and the typed `@MobileFind` attributes; `MobileLocator` static factories that bind to the thread's device when used. mobilecli has no query command, so XPath (JDK `javax.xml.xpath` over a DOM built from the tree), class chain and NSPredicate subsets run client-side on mobilecli's pruned tree; Appium full-path XPaths may not match.
    - Preconditions (added 2026-10-23): `MobileConditions`, `MobileDevice.keepsAppState()`; `@PreCondition` routes to them on mobile tests.
    - Page objects (added 2026-10-23): `MobilePage` (fluent base class: fields set, `@WaitFor` awaited, `onLoad()`), `WaitFor`, `MobileFind` (iOS/Android/shared selector per field), `MobilePages`, `MobileSupport.page(Class)`, `MobileScreen.locate(String)`.

@@ -38,6 +38,7 @@ public final class Mobile {
 
     private static final Set<String> RESETS = Set.of("none", "relaunch", "cleardata");
     private static final Set<String> RECORD_MODES = Set.of("off", "failures", "always");
+    private static final Set<String> ALERT_MODES = Set.of("none", "accept", "dismiss");
 
     private Mobile() {
     }
@@ -84,10 +85,16 @@ public final class Mobile {
             MobileDeviceInfo device = candidates.stream().filter(d -> d.id().equals(reservedId)).findFirst().orElseThrow();
             driver.useDevice(device);
             MobileSession session = new MobileSession(driver, device, platform, Duration.ofMillis(t.getActionMs()),
-                    Duration.ofMillis(t.getPollMs()), rpcTimeout);
+                    Duration.ofMillis(t.getPollMs()), rpcTimeout, mobile.getAlerts().toLowerCase(Locale.ROOT));
+            String animations = mobile.getAnimations().toLowerCase(Locale.ROOT);
+            String appearance = mobile.getAppearance().toLowerCase(Locale.ROOT);
+            if (!animations.isEmpty() || !appearance.isEmpty()) {
+                driver.applySettings(animations.isEmpty() ? null : animations, appearance.isEmpty() ? null : appearance, rpcTimeout);
+            }
             String reset = mobile.getApp().getReset().toLowerCase(Locale.ROOT);
             prepareApp(session, mobile.getApp(), reset);
             MobileDevice opened = new MobileDevice(session, reservation, mobile.getApp().getBundleId(), !reset.equals("none"));
+            opened.rememberCrashReports();
             opened.startAutoRecording(mobile.getRecordVideo().toLowerCase(Locale.ROOT));
             return opened;
         } catch (RuntimeException e) {
@@ -150,6 +157,15 @@ public final class Mobile {
         }
         if (!RECORD_MODES.contains(mobile.getRecordVideo().toLowerCase(Locale.ROOT))) {
             throw new ConfigurationException("mobile.recordVideo must be off, failures or always, got: " + mobile.getRecordVideo());
+        }
+        if (!Set.of("", "on", "off").contains(mobile.getAnimations().toLowerCase(Locale.ROOT))) {
+            throw new ConfigurationException("mobile.animations must be on or off, got: " + mobile.getAnimations());
+        }
+        if (!Set.of("", "light", "dark").contains(mobile.getAppearance().toLowerCase(Locale.ROOT))) {
+            throw new ConfigurationException("mobile.appearance must be light or dark, got: " + mobile.getAppearance());
+        }
+        if (!ALERT_MODES.contains(mobile.getAlerts().toLowerCase(Locale.ROOT))) {
+            throw new ConfigurationException("mobile.alerts must be none, accept or dismiss, got: " + mobile.getAlerts());
         }
         if (!mobile.getDevices().isEmpty()) {
             if (mobile.getDevices().stream().anyMatch(id -> id == null || id.isBlank())) {

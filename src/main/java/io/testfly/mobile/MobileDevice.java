@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.List;
 
 /**
  * One open device session (incubating, ADR 0002). Open with {@link Mobile#connect()}, use from one
@@ -22,6 +23,7 @@ import java.time.Duration;
 public final class MobileDevice implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MobileDevice.class);
+    private static final String CRASH_DIR = "target/reports/crashes";
     private static final String VIDEO_DIR = "target/reports/videos";
 
     private final MobileSession session;
@@ -34,6 +36,8 @@ public final class MobileDevice implements AutoCloseable {
     private MobileOrientation orientationBefore;
     /** The running recording's file, or {@code null}. */
     private Path recording;
+    /** Crash report ids present when the device opened; {@code null} when the driver cannot list them. */
+    private java.util.Set<String> crashesAtOpen;
     /** {@code off}, {@code failures} or {@code always} for the recording started with the device. */
     private String recordMode = "off";
 
@@ -192,6 +196,187 @@ public final class MobileDevice implements AutoCloseable {
         } catch (RuntimeException e) {
             LOGGER.warn("[TestFly] Screen recording is not available on {}: {}", id(), e.getMessage());
         }
+    }
+
+    /** Remembers the crash reports already on the device, so a failed test attaches only new ones; never throws. */
+    void rememberCrashReports() {
+        try {
+            crashesAtOpen = crashReports().stream().map(MobileCrashReport::id).collect(java.util.stream.Collectors.toSet());
+        } catch (RuntimeException e) {
+            LOGGER.debug("Crash reports are not available on {}: {}", id(), e.getMessage());
+        }
+    }
+
+    /**
+     * Saves the crash reports written since the device opened as {@code target/reports/crashes/<name>_<id>.txt}
+     * and returns their paths; empty when there are none or the device cannot list them. Never throws.
+     */
+    public List<Path> saveNewCrashReports(String name) {
+        if (crashesAtOpen == null) {
+            return List.of();
+        }
+        List<Path> saved = new java.util.ArrayList<>();
+        try {
+            for (MobileCrashReport report : crashReports()) {
+                if (crashesAtOpen.add(report.id())) {
+                    Path dir = Files.createDirectories(Paths.get(CRASH_DIR));
+                    String file = (name + "_" + report.id()).replaceAll("[^a-zA-Z0-9._-]", "_") + ".txt";
+                    saved.add(Files.writeString(dir.resolve(file), crashReport(report.id())).toAbsolutePath());
+                }
+            }
+        } catch (IOException | RuntimeException e) {
+            LOGGER.warn("Could not save the crash reports of {}: {}", id(), e.getMessage());
+        }
+        return saved;
+    }
+
+    // ── clipboard, files and crash reports ─────────────────────────────
+
+    public String clipboard() {
+        return session.driver().clipboard(session.rpcTimeout());
+    }
+
+    public void setClipboard(String text) {
+        session.driver().setClipboard(java.util.Objects.requireNonNull(text, "text"), session.rpcTimeout());
+    }
+
+    public void clearClipboard() {
+        session.driver().setClipboard("", session.rpcTimeout());
+    }
+
+    /**
+     * Copies a local file to {@code remotePath} on the device (Android, iOS simulator), e.g.
+     * {@code /sdcard/Download/photo.jpg} or an app container path; mobilecli takes at most 1 MB.
+     */
+    public void pushFile(Path local, String remotePath) {
+        try {
+            session.driver().pushFile(Files.readAllBytes(local), remotePath, session.rpcTimeout());
+        } catch (IOException e) {
+            throw new MobileException("Cannot read " + local + ": " + e.getMessage(), e);
+        }
+    }
+
+    /** Copies {@code remotePath} from the device to {@code local} (at most 1 MB); returns {@code local}. */
+    public Path pullFile(String remotePath, Path local) {
+        byte[] content = session.driver().pullFile(remotePath, session.rpcTimeout());
+        try {
+            if (local.toAbsolutePath().getParent() != null) {
+                Files.createDirectories(local.toAbsolutePath().getParent());
+            }
+            return Files.write(local, content);
+        } catch (IOException e) {
+            throw new MobileException("Cannot write " + local + ": " + e.getMessage(), e);
+        }
+    }
+
+    /** Crash reports on the device (iOS simulator: the Mac's DiagnosticReports; Android: logcat crash buffer). */
+    public List<MobileCrashReport> crashReports() {
+        return session.driver().crashReports(session.rpcTimeout());
+    }
+
+    /** The text of one crash report. */
+    public String crashReport(String id) {
+        return session.driver().crashReport(id, session.rpcTimeout());
+    }
+
+    // ── device settings ─────────────────────────────────────────────────
+
+    /** Turns system animations on or off; off makes waits shorter and screens steadier. */
+    public void setAnimations(boolean on) {
+        session.driver().applySettings(on ? "on" : "off", null, session.rpcTimeout());
+    }
+
+    /** {@code light} or {@code dark} mode. */
+    public void setAppearance(String appearance) {
+        String a = appearance == null ? "" : appearance.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!a.equals("light") && !a.equals("dark")) {
+            throw new IllegalArgumentException("appearance must be light or dark, got: " + appearance);
+        }
+        session.driver().applySettings(null, a, session.rpcTimeout());
+    }
+
+    // ── apps ────────────────────────────────────────────────────────────
+
+    public boolean isAppInstalled(String bundleId) {
+        return session.driver().installedApps(session.rpcTimeout()).contains(bundleId);
+    }
+
+    /** Bundle id / package name of the app in front. */
+    public String foregroundApp() {
+        return session.driver().foregroundApp(session.rpcTimeout());
+    }
+
+    public void uninstallApp(String bundleId) {
+        session.driver().uninstallApp(bundleId, session.rpcTimeout());
+    }
+
+    /** Sends the app under test ({@code mobile.app.bundleId}) to the background for {@code duration}, then brings it back. */
+    public void backgroundApp(Duration duration) {
+        if (bundleId.isEmpty()) {
+            throw new MobileException("backgroundApp needs mobile.app.bundleId to bring the app back");
+        }
+        pressButton("HOME");
+        try {
+            Thread.sleep(duration.toMillis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new MobileException("Interrupted while the app was in the background", e);
+        }
+        launchApp(bundleId);
+    }
+
+    // ── keyboard ────────────────────────────────────────────────────────
+
+    /** Whether the on-screen keyboard is shown right now. */
+    public boolean isKeyboardShown() {
+        return io.testfly.mobile.internal.Keyboard.find(session.driver().viewTree(true, session.rpcTimeout())) != null;
+    }
+
+    /**
+     * Hides the on-screen keyboard if it is shown: Android presses BACK; iOS taps the keyboard's
+     * {@code Done}/{@code Return}/{@code Hide keyboard} key and fails when it has none (tap outside the field instead).
+     */
+    public void hideKeyboard() {
+        List<MobileNode> tree = session.driver().viewTree(true, session.rpcTimeout());
+        MobileNode keyboard = io.testfly.mobile.internal.Keyboard.find(tree);
+        if (keyboard == null) {
+            return;
+        }
+        if (session.platform() == MobilePlatform.ANDROID) {
+            pressButton("BACK");
+            return;
+        }
+        MobileNode key = io.testfly.mobile.internal.Keyboard.dismissKey(keyboard);
+        if (key == null) {
+            throw new MobileException("The keyboard has no Done, Return or Hide keyboard key; tap outside the field to close it");
+        }
+        session.driver().tap((int) Math.round(key.bounds().centerX()), (int) Math.round(key.bounds().centerY()), session.rpcTimeout());
+    }
+
+    // ── webviews ────────────────────────────────────────────────────────
+
+    /** Webviews of the app in front (and visible Chrome/Safari tabs), as listed now. */
+    @SuppressWarnings("unchecked")
+    public List<MobileWebView> webViews() {
+        Object result = session.driver().webView("list", null, null, session.rpcTimeout());
+        List<MobileWebView> out = new java.util.ArrayList<>();
+        if (result instanceof List<?> list) {
+            for (Object o : list) {
+                java.util.Map<String, Object> w = (java.util.Map<String, Object>) o;
+                out.add(new MobileWebView(session, String.valueOf(w.get("id")), (String) w.get("url"), (String) w.get("title"),
+                        Boolean.TRUE.equals(w.get("isVisible"))));
+            }
+        }
+        return out;
+    }
+
+    /** The one visible webview; fails when there is none or more than one. */
+    public MobileWebView webView() {
+        List<MobileWebView> visible = webViews().stream().filter(MobileWebView::isVisible).toList();
+        if (visible.size() != 1) {
+            throw new MobileException("Expected one visible webview, found " + visible.size() + ": " + webViews());
+        }
+        return visible.get(0);
     }
 
     MobileSession session() {

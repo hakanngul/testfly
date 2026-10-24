@@ -33,6 +33,9 @@ mobile:
   headers: {}                  # e.g. Authorization: Bearer ${MOBILECLI_TOKEN}
   screenshotOnFailure: true
   recordVideo: off             # off | failures | always
+  alerts: none                 # none | accept | dismiss (iOS alerts, Android permission dialogs)
+  animations: ""               # on | off; empty leaves the device as it is
+  appearance: ""               # light | dark; empty leaves the device as it is
 ```
 
 | Key | Default | Description |
@@ -57,6 +60,9 @@ mobile:
 | `headers` | `{}` | Extra HTTP headers on every request, e.g. for an authenticating proxy. |
 | `screenshotOnFailure` | `true` | Attach a device screenshot to a failed test. |
 | `recordVideo` | `off` | Screen recording per test: `off`, `failures` (kept for failed tests) or `always`; see [Screen recording](#screen-recording). |
+| `alerts` | `none` | System alerts that cover the app: `accept` or `dismiss` them before every read of the screen, like Appium's `autoAcceptAlerts` / `autoDismissAlerts` (and `autoGrantPermissions` on Android). iOS (tracking, location, notifications): `accept` taps `Allow`/`OK`, `dismiss` taps `Don't Allow`/`Ask App Not to Track`/`Cancel`; with other labels (another device language) the last or first button. Android runtime permission dialogs: by button id, in any language. `none` leaves them to the test. |
+| `animations` | (empty) | `on` or `off`, set when the device opens; `off` makes tests faster and steadier. Empty leaves the device as it is. |
+| `appearance` | (empty) | `light` or `dark`, set when the device opens. Empty leaves the device as it is. |
 
 Values support the usual placeholders (`${MOBILE_DEVICE_ID:-}`); see [Configuration](../configuration).
 

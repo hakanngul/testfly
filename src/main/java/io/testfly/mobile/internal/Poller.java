@@ -51,7 +51,7 @@ public final class Poller {
         boolean checked = false;
         while (true) {
             try {
-                List<MobileNode> tree = session.driver().viewTree(session.requestTimeout(deadline));
+                List<MobileNode> tree = session.viewTree(session.requestTimeout(deadline));
                 Step<T> step = check.apply(tree);
                 if (step.done()) {
                     return new Outcome<>(true, step.value(), null, List.of(), elapsed(start));

@@ -38,6 +38,8 @@ TestFly, native Android ve iOS uygulamalarını Appium olmadan sürebilir. **Siz
    mobilecli agent status --device <device-id>
    ```
 
+   **Gerçek iPhone**'da ajanın o cihaz için imzalanması gerekir: `mobilecli agent install --device <udid> --provisioning-profile /path/to/profile.mobileprovision` (geçerli bir Apple provisioning profile). Gerçek cihazda webview ve Safari sekmeleri için ayrıca **Ayarlar > Uygulamalar > Safari > İleri Düzey > Web Denetçisi** açık olmalıdır. Dosya push/pull gerçek iPhone'da yoktur.
+
 Sunucuyu kendiniz başlatmanız gerekmez: `http://localhost:12000` cevap vermezse TestFly `mobilecli server start` çalıştırır ve JVM kapanırken durdurur (bkz. [sunucuyu otomatik başlatma](configuration#server-auto-start)). Kendiniz başlatmanız da (`mobilecli server start`) çalışır.
 
 ## En küçük yapılandırma

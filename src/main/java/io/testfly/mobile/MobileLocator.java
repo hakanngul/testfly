@@ -232,6 +232,22 @@ public final class MobileLocator {
         });
     }
 
+    /** Two-finger pinch out (zoom in) centred on the element. */
+    public void pinchOut() {
+        act("pinchOut", (node, rpc) -> session().driver().pinch(cx(node), cy(node), true, 0, null, rpc.get()));
+    }
+
+    /** Two-finger pinch in (zoom out) centred on the element. */
+    public void pinchIn() {
+        act("pinchIn", (node, rpc) -> session().driver().pinch(cx(node), cy(node), false, 0, null, rpc.get()));
+    }
+
+    /** Presses the element, drags it onto the centre of {@code target} and releases it (reordering, sliders). */
+    public void dragTo(MobileLocator target) {
+        MobileNode to = Objects.requireNonNull(target, "target").node();
+        act("dragTo", (node, rpc) -> session().driver().drag(cx(node), cy(node), cx(to), cy(to), null, rpc.get()));
+    }
+
     /** Waits until the element is visible. */
     public void waitForVisible() {
         resolveVisible("waitForVisible");
@@ -257,7 +273,7 @@ public final class MobileLocator {
 
     /** Matches in the current screen (no waiting). */
     public List<MobileNode> nodes() {
-        return query.evaluate(session().driver().viewTree(session().rpcTimeout()));
+        return query.evaluate(session().viewTree(session().rpcTimeout()));
     }
 
     /** Whether exactly one visible match exists right now (no waiting; strict). */
@@ -347,7 +363,7 @@ public final class MobileLocator {
         long deadline = System.nanoTime() + timeout().toNanos();
         String previous = null;
         while (true) {
-            List<MobileNode> tree = s.driver().viewTree(s.rpcTimeout());
+            List<MobileNode> tree = s.viewTree(s.rpcTimeout());
             List<MobileNode> matches = query.evaluate(tree);
             strict(matches, "scrollIntoView");
             if (matches.size() == 1 && matches.get(0).visible()) {

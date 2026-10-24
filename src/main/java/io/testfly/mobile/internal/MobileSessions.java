@@ -91,6 +91,10 @@ public final class MobileSessions {
             LOGGER.info("[TestFly] Device recording of {} saved: {}", testName, video);
             StepLogger.step("Device recording: " + video, StepStatus.FAIL);
         }
+        for (Path crash : device.saveNewCrashReports(testName)) {
+            LOGGER.info("[TestFly] Crash report of {} saved: {}", testName, crash);
+            StepLogger.step("Crash report: " + crash, StepStatus.FAIL);
+        }
         if (!screenshotOnFailure()) {
             return null;
         }

@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * {@link MobileDriver} for an unmodified, user-installed mobilecli server (ADR 0002 D1, D3).
@@ -28,6 +29,8 @@ import java.util.Map;
  * {@code server.info} and {@code devices.list} work before a device is chosen.
  */
 public final class MobileCliDriver implements MobileDriver {
+
+    private static final com.fasterxml.jackson.databind.ObjectMapper JSON = new com.fasterxml.jackson.databind.ObjectMapper();
 
     private final JsonRpcClient rpc;
     private MobileDeviceInfo device;
@@ -232,6 +235,137 @@ public final class MobileCliDriver implements MobileDriver {
     @Override
     public void stopRecording(Duration timeout) {
         deviceCall("device.screenrecord.stop", null, timeout, false);
+    }
+
+    @Override
+    public List<MobileNode> viewTree(boolean full, Duration timeout) {
+        if (!full) {
+            return viewTree(timeout);
+        }
+        ObjectNode p = JsonRpcClient.params();
+        p.put("full", true);
+        JsonNode result = deviceCall("device.dump.ui", p, timeout, true);
+        List<MobileNode> out = new ArrayList<>();
+        for (JsonNode el : result.isArray() ? result : result.path("elements")) {
+            out.add(toNode(el));
+        }
+        return out;
+    }
+
+    @Override
+    public void pinch(int x, int y, boolean out, int distance, Duration duration, Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        p.put("x", x);
+        p.put("y", y);
+        p.put("direction", out ? "out" : "in");
+        p.put("distance", distance);
+        p.put("duration", duration == null ? 0 : duration.toMillis());
+        deviceCall("device.io.pinch", p, timeout, false);
+    }
+
+    @Override
+    public void drag(int x1, int y1, int x2, int y2, Duration duration, Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        com.fasterxml.jackson.databind.node.ArrayNode actions = p.putArray("actions");
+        actions.addObject().put("type", "pointerMove").put("x", x1).put("y", y1).put("button", 0);
+        actions.addObject().put("type", "pointerDown").put("button", 0);
+        actions.addObject().put("type", "pause").put("duration", 200).put("button", 0); // hold, so lists start a drag
+        actions.addObject().put("type", "pointerMove").put("x", x2).put("y", y2)
+                .put("duration", duration == null ? 500 : duration.toMillis()).put("button", 0);
+        actions.addObject().put("type", "pointerUp").put("button", 0);
+        deviceCall("device.io.gesture", p, timeout, false);
+    }
+
+    @Override
+    public String clipboard(Duration timeout) {
+        return deviceCall("device.clipboard.get", null, timeout, true).path("text").asText("");
+    }
+
+    @Override
+    public void setClipboard(String text, Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        p.put("text", text);
+        deviceCall("device.clipboard.set", p, timeout, false);
+    }
+
+    @Override
+    public List<io.testfly.mobile.MobileCrashReport> crashReports(Duration timeout) {
+        List<io.testfly.mobile.MobileCrashReport> out = new ArrayList<>();
+        for (JsonNode c : deviceCall("device.crashes.list", null, timeout, true)) {
+            out.add(new io.testfly.mobile.MobileCrashReport(text(c, "id"), text(c, "processName"), text(c, "timestamp")));
+        }
+        return out;
+    }
+
+    @Override
+    public String crashReport(String id, Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        p.put("id", id);
+        return deviceCall("device.crashes.get", p, timeout, true).path("content").asText("");
+    }
+
+    @Override
+    public void pushFile(byte[] content, String remotePath, Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        p.put("remotePath", remotePath);
+        p.put("content", Base64.getEncoder().encodeToString(content));
+        deviceCall("device.fs.push", p, timeout, false);
+    }
+
+    @Override
+    public byte[] pullFile(String remotePath, Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        p.put("remotePath", remotePath);
+        return Base64.getDecoder().decode(deviceCall("device.fs.pull", p, timeout, true).path("content").asText(""));
+    }
+
+    @Override
+    public Object webView(String operation, String id, Map<String, Object> params, Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        if (id != null) {
+            p.put("id", id);
+        }
+        if (params != null) {
+            p.setAll((ObjectNode) JSON.valueToTree(params));
+        }
+        boolean readOnly = !Set.of("goto", "reload", "goBack", "goForward", "evaluate").contains(operation);
+        JsonNode result = deviceCall("device.webview." + operation, p, timeout, readOnly);
+        return result == null || result.isNull() || result.isMissingNode() ? null : JSON.convertValue(result, Object.class);
+    }
+
+    @Override
+    public void applySettings(String animations, String appearance, Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        if (animations != null) {
+            p.put("animations", animations);
+        }
+        if (appearance != null) {
+            p.put("appearance", appearance);
+        }
+        deviceCall("device.settings.apply", p, timeout, false);
+    }
+
+    @Override
+    public List<String> installedApps(Duration timeout) {
+        JsonNode result = deviceCall("device.apps.list", null, timeout, true);
+        List<String> out = new ArrayList<>();
+        for (JsonNode app : result.isArray() ? result : result.path("apps")) {
+            String id = text(app, "packageName");
+            out.add(id != null ? id : text(app, "bundleId"));
+        }
+        return out;
+    }
+
+    @Override
+    public String foregroundApp(Duration timeout) {
+        JsonNode app = deviceCall("device.apps.foreground", null, timeout, true);
+        String id = text(app, "packageName");
+        return id != null ? id : text(app, "bundleId");
+    }
+
+    @Override
+    public void uninstallApp(String bundleId, Duration timeout) {
+        deviceCall("device.apps.uninstall", bundle(bundleId), timeout, false);
     }
 
     // ── helpers ─────────────────────────────────────────────────────────
