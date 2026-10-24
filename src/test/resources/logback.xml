@@ -10,7 +10,8 @@
     <!-- ReportPortal appender: sends every log to the active RP launch/test -->
     <appender name="RP" class="com.epam.reportportal.logback.appender.ReportPortalAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%level] %msg%n</pattern>
+            <!-- ReportPortal stamps every entry with its own time, so no %d here -->
+            <pattern>[%level] %msg%n</pattern>
         </encoder>
     </appender>
 

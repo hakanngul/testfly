@@ -25,3 +25,17 @@ mobile:
     deviceId: ${MOBILE_ANDROID_DEVICE_ID:-}
     app:
       bundleId: ${MOBILE_ANDROID_BUNDLE_ID:-com.starlettech.letsbet.stage}
+
+# ReportPortal. The API key comes from REPORTPORTAL_API_KEY (git-ignored .env or the shell); never commit it.
+reporting:
+  allureEnabled: true
+  reportPortal:
+    enabled: true
+    endpoint: ${REPORTPORTAL_ENDPOINT}
+    apiKey: ${REPORTPORTAL_API_KEY}
+    project: demo-web
+    launch: "LetsBet Mobile Test Automation"
+    description: "LetsBet Mobile Test Automation Suite"
+    attributes: "framework:testfly;runner:testng"
+    type: auto
+    mode: default
