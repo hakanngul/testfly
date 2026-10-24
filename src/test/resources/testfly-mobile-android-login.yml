@@ -1,0 +1,29 @@
+# Profile for AndroidLoginExampleTest (native Android login on an app that is already installed on the emulator).
+# Run:
+#   MOBILE_LOGIN_USER=<member id> MOBILE_LOGIN_PASSWORD=<password> \
+#     mvn test -Dtestfly.profile=mobile-android-login -Dtest=AndroidLoginExampleTest
+# Needs a running `mobilecli server start` and one booted Android emulator (no agent install needed).
+# Credentials come from the environment only; never commit them.
+
+# browser, execution and timeouts are required by config validation even for mobile-only runs.
+browser:
+  name: chrome
+  headless: true
+execution:
+  mode: local
+  baseUrl: http://localhost
+timeouts:
+  explicit: 10
+  pageLoad: 30
+
+mobile:
+  serverUrl: ${MOBILECLI_URL:-http://localhost:12000}
+  platform: android
+  deviceId: ${MOBILE_DEVICE_ID:-}
+  app:
+    bundleId: ${MOBILE_APP_BUNDLE_ID:-com.starlettech.letsbet.stage}
+    reset: relaunch
+  timeouts:
+    actionMs: 30000
+    pollMs: 500
+    rpcMs: 60000

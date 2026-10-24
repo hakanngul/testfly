@@ -1,36 +1,52 @@
 package io.testfly.examples.mobile;
 
 import io.testfly.mobile.BaseMobileTest;
-import io.testfly.mobile.MobilePlatform;
-import io.testfly.mobile.MobileTest;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import static io.testfly.examples.mobile.IosLoginExampleTest.requiredEnv;
-
 /**
- * The {@link IosLoginExampleTest} flow on Android, with the same page objects and profile
- * ({@code testfly-mobile-login.yml}). The pages need their {@code android = "<package>:id/…"}
- * selectors first: find them with {@code mobilecli dump ui} (skill {@code testfly-mobile-locator-finder}).
+ * Native Android login with a member id on an app that is already installed on the emulator.
+ * Locators are Android resource ids; {@code getByTestId("btnLogin")} also matches
+ * {@code <package>:id/btnLogin}.
  *
  * <pre>
- * MOBILE_LOGIN_USER=&lt;member id&gt; MOBILE_LOGIN_PASSWORD=&lt;password&gt; mvn test -Dtest=AndroidLoginExampleTest
+ * emulator -avd &lt;name&gt;
+ * mobilecli server start                      # keep it running
+ * MOBILE_LOGIN_USER=&lt;member id&gt; MOBILE_LOGIN_PASSWORD=&lt;password&gt; \
+ *   mvn test -Dtestfly.profile=mobile-android-login -Dtest=AndroidLoginExampleTest
  * </pre>
+ *
+ * The app comes from {@code MOBILE_APP_BUNDLE_ID} (default in testfly-mobile-android-login.yml).
+ * Texts assume an English app.
  */
 public class AndroidLoginExampleTest extends BaseMobileTest {
 
-    static {
-        String profile = System.getProperty("testfly.profile");
-        if (profile == null || profile.isBlank()) {
-            System.setProperty("testfly.profile", "mobile-login");
-        }
-    }
+    private static final String COOKIE_ACCEPT_BUTTON = "btnAcceptAll";
+    private static final String HOME_LOGIN_BUTTON = "btnLogin";
+    private static final String USERNAME_FIELD = "etUserName";
+    private static final String PASSWORD_FIELD = "etPassword";
 
     @Test
-    @MobileTest(platform = MobilePlatform.ANDROID)
     public void loginWithMemberId() {
-        new HomePage()
-                .openLogin()
-                .signIn(requiredEnv("MOBILE_LOGIN_USER"), requiredEnv("MOBILE_LOGIN_PASSWORD"))
-                .shouldBeClosed();
+        String memberId = MobileEnv.required("MOBILE_LOGIN_USER");
+        String password = MobileEnv.required("MOBILE_LOGIN_PASSWORD");
+
+        // A cookie consent sheet covers the home screen on a fresh start.
+        screen().getByTestId(HOME_LOGIN_BUTTON).or(screen().getByTestId(COOKIE_ACCEPT_BUTTON)).first()
+                .waitForVisible();
+        if (screen().getByTestId(COOKIE_ACCEPT_BUTTON).count() > 0) {
+            screen().getByTestId(COOKIE_ACCEPT_BUTTON).tap();
+            screen().getByTestId(COOKIE_ACCEPT_BUTTON).waitForHidden();
+        }
+        screen().getByTestId(HOME_LOGIN_BUTTON).tap();
+
+        expect(screen().getByTestId(USERNAME_FIELD)).toBeVisible();
+        screen().getByTestId(USERNAME_FIELD).fill(memberId);
+        screen().getByTestId(PASSWORD_FIELD).fill(password);
+        // The form's submit button has the same id as the home screen's "LOG IN" button.
+        screen().getByTestId(HOME_LOGIN_BUTTON).tap();
+
+        // The login form is gone once the session is open.
+        expect(screen().getByTestId(USERNAME_FIELD)).toBeHidden();
     }
 }
