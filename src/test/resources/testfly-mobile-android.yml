@@ -9,6 +9,7 @@ mobile:
   app:
     bundleId: com.android.settings        # the built-in Settings app: no app file needed
     reset: relaunch
+  alerts: dismiss
   timeouts:
     actionMs: 30000            # simulators and emulators are slow right after a launch
     pollMs: 500

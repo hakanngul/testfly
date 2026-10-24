@@ -104,7 +104,8 @@ public final class Mobile {
             }
             String reset = mobile.getApp().getReset().toLowerCase(Locale.ROOT);
             prepareApp(session, mobile.getApp(), reset);
-            MobileDevice opened = new MobileDevice(session, reservation, mobile.getApp().getBundleId(), !reset.equals("none"));
+            MobileDevice opened = new MobileDevice(session, reservation, mobile.getApp().getBundleId(),
+                    mobile.getApp().getActivity(), !reset.equals("none"));
             opened.rememberCrashReports();
             opened.startAutoRecording(mobile.getRecordVideo().toLowerCase(Locale.ROOT));
             return opened;
@@ -150,7 +151,7 @@ public final class Mobile {
                 }
             }
         }
-        session.driver().launchApp(bundleId, rpc);
+        session.driver().launchApp(bundleId, app.getActivity(), rpc);
     }
 
     /** Fails fast on a missing platform or invalid values (ADR 0002 D5). */

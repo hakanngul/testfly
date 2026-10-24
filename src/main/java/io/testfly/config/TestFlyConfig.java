@@ -2749,6 +2749,7 @@ public final class TestFlyConfig {
      *   app:
      *     bundleId: com.example.app
      *     install: ""
+     *     activity: ""               # Android launcher activity when the app has several
      *     reset: relaunch            # none | relaunch | clearData
      *   timeouts:
      *     actionMs: 5000
@@ -2985,6 +2986,7 @@ public final class TestFlyConfig {
             m.app = new App();
             m.app.bundleId = app.bundleId;
             m.app.install = app.install;
+            m.app.activity = app.activity;
             m.app.reset = app.reset;
             m.timeouts = timeouts;
             m.allowRemote = allowRemote;
@@ -3016,6 +3018,9 @@ public final class TestFlyConfig {
                     }
                     if (over.app.install != null) {
                         m.app.setInstall(over.app.install);
+                    }
+                    if (over.app.activity != null) {
+                        m.app.setActivity(over.app.activity);
                     }
                     if (over.app.reset != null) {
                         m.app.setReset(over.app.reset);
@@ -3069,6 +3074,7 @@ public final class TestFlyConfig {
         public static final class PlatformApp {
             private String bundleId;
             private String install;
+            private String activity;
             private String reset;
 
             public String getBundleId() {
@@ -3077,6 +3083,14 @@ public final class TestFlyConfig {
 
             public void setBundleId(String bundleId) {
                 this.bundleId = bundleId;
+            }
+
+            public String getActivity() {
+                return activity;
+            }
+
+            public void setActivity(String activity) {
+                this.activity = activity;
             }
 
             public String getInstall() {
@@ -3100,6 +3114,7 @@ public final class TestFlyConfig {
         public static final class App {
             private String bundleId = "";
             private String install = "";
+            private String activity = "";
             private String reset = "relaunch";
 
             /** iOS bundle id or Android package. Empty: no app is launched. */
@@ -3118,6 +3133,20 @@ public final class TestFlyConfig {
 
             public void setInstall(String install) {
                 this.install = install != null ? install : "";
+            }
+
+            /**
+             * Optional Android activity to launch, e.g. {@code com.example.app.SplashActivity} or
+             * {@code .SplashActivity}. Needed when the app has several launcher activities (a debug
+             * build with LeakCanary): without it Android shows an app chooser and the app never opens.
+             * Ignored on iOS. Empty: the app's default launcher activity.
+             */
+            public String getActivity() {
+                return activity;
+            }
+
+            public void setActivity(String activity) {
+                this.activity = activity != null ? activity : "";
             }
 
             /** {@code none}, {@code relaunch} (default) or {@code clearData}. */

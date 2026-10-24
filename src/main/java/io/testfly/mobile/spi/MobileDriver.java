@@ -60,6 +60,14 @@ public interface MobileDriver extends AutoCloseable {
 
     void launchApp(String bundleId, Duration timeout);
 
+    /**
+     * Launches {@code bundleId} through the Android launcher activity {@code activity} (blank: the
+     * app's default one). Drivers without activity support ignore it.
+     */
+    default void launchApp(String bundleId, String activity, Duration timeout) {
+        launchApp(bundleId, timeout);
+    }
+
     void terminateApp(String bundleId, Duration timeout);
 
     void clearAppData(String bundleId, Duration timeout);

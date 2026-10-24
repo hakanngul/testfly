@@ -25,6 +25,8 @@ mobile:
     deviceId: ${MOBILE_ANDROID_DEVICE_ID:-}
     app:
       bundleId: ${MOBILE_ANDROID_BUNDLE_ID:-com.starlettech.letsbet.stage}
+      # The stage build has two launcher activities (SplashActivity and LeakCanary's); without this Android shows a chooser.
+      activity: ${MOBILE_ANDROID_ACTIVITY:-com.newbet.SplashActivity}
 
 # ReportPortal. The API key comes from REPORTPORTAL_API_KEY (git-ignored .env or the shell); never commit it.
 reporting:

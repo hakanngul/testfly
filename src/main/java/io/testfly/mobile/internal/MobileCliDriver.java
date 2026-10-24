@@ -164,6 +164,11 @@ public final class MobileCliDriver implements MobileDriver {
 
     @Override
     public void launchApp(String bundleId, Duration timeout) {
+        launchApp(bundleId, null, timeout);
+    }
+
+    @Override
+    public void launchApp(String bundleId, String activity, Duration timeout) {
         if (MobilePlatform.fromWire(requireDevice().platform()) == MobilePlatform.IOS) {
             // iOS: start DeviceKit before the launch; its startup otherwise minimizes the new app (as Mobilewright does).
             try {
@@ -172,7 +177,13 @@ public final class MobileCliDriver implements MobileDriver {
                 // No foreground app yet is fine; DeviceKit is up.
             }
         }
-        deviceCall("device.apps.launch", bundle(bundleId), timeout, false);
+        ObjectNode p = bundle(bundleId);
+        if (activity != null && !activity.isBlank()
+                && MobilePlatform.fromWire(requireDevice().platform()) == MobilePlatform.ANDROID) {
+            // Several LAUNCHER activities (e.g. LeakCanary in a debug build) make Android show a chooser instead.
+            p.put("activity", activity);
+        }
+        deviceCall("device.apps.launch", p, timeout, false);
     }
 
     @Override

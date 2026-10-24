@@ -1,6 +1,9 @@
 package io.testfly.examples.mobile;
 
 import io.testfly.mobile.BaseMobileTest;
+import io.testfly.mobile.MobilePlatform;
+import io.testfly.mobile.MobileTest;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -27,6 +30,7 @@ public class AndroidLoginExampleTest extends BaseMobileTest {
     private static final String PASSWORD_FIELD = "etPassword";
 
     @Test
+    @MobileTest (platform = MobilePlatform.ANDROID)
     public void loginWithMemberId() {
         String memberId = MobileEnv.required("MOBILE_LOGIN_USER");
         String password = MobileEnv.required("MOBILE_LOGIN_PASSWORD");

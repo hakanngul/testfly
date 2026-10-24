@@ -22,6 +22,7 @@ mobile:
   app:
     bundleId: com.example.app  # Android paketi / iOS bundle id
     install: ""                # isteğe bağlı .apk/.ipa/.app yolu, cihaz açılırken kurulur
+    activity: ""               # yalnızca Android: birden çok başlatıcısı olan uygulamalar için (ör. debug'da LeakCanary)
     reset: relaunch            # none | relaunch | clearData
   timeouts:
     actionMs: 5000             # bir eylemin veya doğrulamanın bekleme bütçesi

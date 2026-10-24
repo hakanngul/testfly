@@ -22,6 +22,7 @@ mobile:
   app:
     bundleId: com.example.app  # Android package / iOS bundle id
     install: ""                # optional .apk/.ipa/.app path, installed when the device opens
+    activity: ""               # Android only: launcher activity, for apps with several (e.g. LeakCanary in debug)
     reset: relaunch            # none | relaunch | clearData
   timeouts:
     actionMs: 5000             # auto-wait budget of one action or assertion

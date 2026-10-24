@@ -30,6 +30,8 @@ public final class MobileDevice implements AutoCloseable {
     private final MobileScreen screen;
     private final Reservation reservation;
     private final String bundleId;
+    /** {@code mobile.app.activity}: the Android launcher activity, blank for the default one. */
+    private final String activity;
     private final boolean terminateOnClose;
     private boolean closed;
     private boolean locationOverridden;
@@ -41,11 +43,13 @@ public final class MobileDevice implements AutoCloseable {
     /** {@code off}, {@code failures} or {@code always} for the recording started with the device. */
     private String recordMode = "off";
 
-    MobileDevice(MobileSession session, Reservation reservation, String bundleId, boolean terminateOnClose) {
+    MobileDevice(MobileSession session, Reservation reservation, String bundleId, String activity,
+                 boolean terminateOnClose) {
         this.session = session;
         this.screen = new MobileScreen(session);
         this.reservation = reservation;
         this.bundleId = bundleId;
+        this.activity = activity != null ? activity : "";
         this.terminateOnClose = terminateOnClose;
     }
 
@@ -322,7 +326,7 @@ public final class MobileDevice implements AutoCloseable {
             Thread.currentThread().interrupt();
             throw new MobileException("Interrupted while the app was in the background", e);
         }
-        launchApp(bundleId);
+        session.driver().launchApp(bundleId, activity, session.rpcTimeout());
     }
 
     // ── keyboard ────────────────────────────────────────────────────────

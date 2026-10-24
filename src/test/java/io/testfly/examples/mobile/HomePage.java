@@ -4,7 +4,6 @@ import io.testfly.mobile.MobileFind;
 import io.testfly.mobile.MobileLocator;
 import io.testfly.mobile.MobilePage;
 import io.testfly.mobile.MobileTimeoutException;
-import io.testfly.mobile.WaitFor;
 
 import java.time.Duration;
 
@@ -17,11 +16,11 @@ public class HomePage extends MobilePage {
     // shortcut: iOS ids from an iPhone 17 simulator, Android ids from the Pixel_10
     // emulator (stage build).
     // Not on Android (left iOS-only): live bets button, pre-match/live tabs, cookie
-    // banner.
+    // reject/settings buttons.
 
     // Header
+    // No @WaitFor: a cookie sheet can hide this button from the view tree, so onLoad() waits for it or the sheet.
     @MobileFind(ios = "HomeScreen.loginButton", android = "com.starlettech.letsbet.stage:id/btnLogin")
-    @WaitFor
     private MobileLocator loginButton;
 
     @MobileFind(ios = "HomeScreen.signInButton", android = "com.starlettech.letsbet.stage:id/btnSignUp")
@@ -78,7 +77,7 @@ public class HomePage extends MobilePage {
     @MobileFind(ios = "cookieSettingBannerView")
     private MobileLocator cookieBanner;
 
-    @MobileFind(ios = "cookieBannerAcceptAllButton")
+    @MobileFind(ios = "cookieBannerAcceptAllButton", android = "com.starlettech.letsbet.stage:id/btnAcceptAll")
     private MobileLocator cookieAcceptButton;
 
     @MobileFind(ios = "cookieBannerRejectAllButton")
@@ -93,7 +92,9 @@ public class HomePage extends MobilePage {
 
     @Override
     protected void onLoad() {
-        tapIfShown(cookieAcceptButton); // the cookie banner may cover the page
+        // The page is up once the login button or the cookie banner that covers it is shown.
+        loginButton.or(cookieAcceptButton).first().waitForVisible();
+        tapIfShown(cookieAcceptButton);
     }
 
     public LoginPage openLogin() {
