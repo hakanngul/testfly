@@ -23,9 +23,15 @@ import org.testng.annotations.Test;
  * {@code -Dtestfly.profile} is
  * given; an explicit one wins. The app comes from {@code MOBILE_APP_BUNDLE_ID}
  * (default in that profile).
+ * The profile {@code testfly-mobile-ios-login.yml} is selected when no
+ * {@code -Dtestfly.profile} is
+ * given; an explicit one wins. The app comes from {@code MOBILE_APP_BUNDLE_ID}
+ * (default in that profile).
  */
 public class IosLoginExampleTest extends BaseMobileTest {
     static {
+        // Runs before TestFly loads the config at suite start, like IosLoginHooks does
+        // for Cucumber.
         // Runs before TestFly loads the config at suite start, like IosLoginHooks does
         // for Cucumber.
         String profile = System.getProperty("testfly.profile");
