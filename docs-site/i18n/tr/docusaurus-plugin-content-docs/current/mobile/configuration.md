@@ -1,7 +1,7 @@
 ---
 id: configuration
 title: Mobil Yapılandırma
-sidebar_position: 3
+sidebar_position: 10
 description: "testfly.yml'in mobile: bloğu: cihaz seçimi, paralel koşum için cihaz havuzu, uygulama sıfırlama, mobilecli sunucusunu otomatik başlatma, zaman aşımları, profiller ve güvenlik."
 ---
 

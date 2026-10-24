@@ -1,7 +1,7 @@
 ---
 id: configuration
 title: Mobile Configuration
-sidebar_position: 3
+sidebar_position: 10
 description: "The mobile: block of testfly.yml: device selection, device pool for parallel runs, app reset, mobilecli server auto-start, timeouts, profiles and security."
 ---
 

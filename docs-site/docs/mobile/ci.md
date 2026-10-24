@@ -1,7 +1,7 @@
 ---
 id: ci
 title: Mobile Tests in CI
-sidebar_position: 4
+sidebar_position: 11
 description: "Run native mobile tests on GitHub Actions with a KVM-accelerated Android emulator or an iOS simulator on macOS, as TestFly's own Mobile Emulator Smoke workflow does."
 ---
 

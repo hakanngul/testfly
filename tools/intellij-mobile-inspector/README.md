@@ -13,7 +13,7 @@ Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/inte
 ## Use
 
 - Left tool window **TestFly Mobile** → **Open Mobile Inspector**, or **Tools → TestFly: Open Mobile Inspector**. The inspector opens as an editor tab.
-- Screen, UI tree with `@eN` refs, Snapshot tab, element attributes, TestFly selectors with match counts and `@MobileFind` fields, tap / long press / type / Back / Home / swipe: as in the VS Code extension. Keys: `R`, `I`, `T`, `/`, `Esc`.
+- Screen, UI tree with `@eN` refs, Snapshot tab, element attributes, TestFly selectors with match counts and `@MobileFind` fields, tap / long press / type / Back / Home / swipe, and **Record** mode (taps, typing, swipes and buttons become a `MobilePage` with `@MobileFind` fields): as in the VS Code extension. Keys: `R`, `I`, `T`, `E`, `/`, `Esc`.
 - Settings → Tools → **TestFly Mobile Inspector**: mobilecli server URL (`http://localhost:12000`), mobilecli path, auto-start, refresh after actions.
 
 Needs [mobilecli](https://github.com/mobile-next/mobilecli) and a booted simulator, emulator or device (iOS: `mobilecli agent install --device <udid>` once).
