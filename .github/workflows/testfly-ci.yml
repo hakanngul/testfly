@@ -18,6 +18,24 @@ permissions:
   checks: write
 
 jobs:
+  agent-infrastructure:
+    name: Agent Infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install validator dependencies
+        run: python -m pip install --disable-pip-version-check pyyaml
+
+      - name: Validate skills, subagents, routing docs and guard hook
+        run: scripts/agent/verify.sh agent
+
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
