@@ -93,6 +93,11 @@ select {
 .status[data-state="error"] .dot { background: var(--err); }
 .status[data-state="error"] { color: var(--err); }
 @keyframes pulse { 50% { opacity: 0.35; } }
+button.server { gap: 6px; }
+button.server .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+button.server[data-running="true"] .dot { background: var(--ok); }
+button.server[data-running="false"] .dot { background: var(--err); }
+button.server.busy .dot { background: var(--info); animation: pulse 1s infinite; }
 
 /* ── panes ────────────────────────────────────────────────────────────── */
 .panes { display: grid; grid-template-columns: var(--col-0) 5px var(--col-1) 5px 1fr; min-height: 0; }

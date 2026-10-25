@@ -24,6 +24,7 @@ type Inbound =
     | { type: 'ready' }
     | { type: 'devices' }
     | { type: 'selectDevice'; id: string }
+    | { type: 'server'; action: 'start' | 'stop' }
     | { type: 'refresh' }
     | { type: 'snapshotText' }
     | { type: 'tap' | 'longPress'; x: number; y: number }
@@ -40,6 +41,7 @@ class InspectorPanel {
     private screen?: ScreenSize;
     private busy = false;
     private warm = false; // mobilecli's agent is up for this device: tree and screenshot can run together
+    private serverStopped = false; // stopped from the panel: no auto-start until it is started from the panel again
 
     constructor(private readonly context: vscode.ExtensionContext, private readonly onDispose: () => void) {
         const cfg = vscode.workspace.getConfiguration('testflyInspector');
@@ -77,6 +79,8 @@ class InspectorPanel {
                     return await this.loadDevices();
                 case 'selectDevice':
                     return await this.selectDevice(m.id);
+                case 'server':
+                    return m.action === 'start' ? await this.startServer() : await this.stopServer();
                 case 'refresh':
                     return await this.refresh();
                 case 'snapshotText':
@@ -103,13 +107,18 @@ class InspectorPanel {
                     return;
             }
         } catch (e) {
-            this.post({ type: 'error', message: (e as Error).message, unreachable: e instanceof RpcError && e.unreachable });
+            const unreachable = e instanceof RpcError && e.unreachable;
+            if (unreachable) {
+                this.post({ type: 'server', running: false });
+            }
+            this.post({ type: 'error', message: (e as Error).message, unreachable });
         }
     }
 
     private async loadDevices() {
         this.post({ type: 'status', state: 'connecting', message: 'Connecting to mobilecli…' });
-        const version = await this.cli.ensureServer();
+        const version = await this.cli.ensureServer(undefined, this.serverStopped ? false : undefined);
+        this.post({ type: 'server', running: true, version });
         const devices = (await this.cli.devices()).filter(d => d.state === 'online');
         this.post({ type: 'devices', devices, version });
         const keep = devices.find(d => d.id === this.device?.id) ?? (devices.length === 1 ? devices[0] : undefined);
@@ -120,6 +129,25 @@ class InspectorPanel {
         } else {
             this.post({ type: 'status', state: 'idle', message: 'Choose a device.' });
         }
+    }
+
+    private async startServer() {
+        this.serverStopped = false;
+        this.post({ type: 'status', state: 'connecting', message: 'Starting mobilecli server…' });
+        await this.cli.startServer();
+        await this.loadDevices();
+    }
+
+    private async stopServer() {
+        this.serverStopped = true;
+        this.post({ type: 'status', state: 'loading', message: 'Stopping mobilecli server…' });
+        await this.cli.stopServer();
+        this.device = undefined;
+        this.screen = undefined;
+        this.warm = false;
+        this.post({ type: 'server', running: false });
+        this.post({ type: 'devices', devices: [] });
+        this.post({ type: 'status', state: 'idle', message: 'mobilecli server stopped. Start it from the Server button.' });
     }
 
     private async selectDevice(id: string, known?: DeviceInfo[]) {

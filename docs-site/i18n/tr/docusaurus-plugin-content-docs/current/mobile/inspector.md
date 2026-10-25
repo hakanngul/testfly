@@ -25,14 +25,14 @@ Mobile Inspector, TestFly ve mobilecli için yapılmış, Appium Inspector benze
 **VS Code** (1.85 veya üstü):
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.2.2.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.2.3.vsix
 ```
 
 veya Extensions görünümü → `…` → **Install from VSIX…**.
 
 **IntelliJ IDEA** (2024.1 veya üstü, Community veya Ultimate ve diğer IntelliJ tabanlı IDE'ler): Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/intellij-mobile-inspector/dist/testfly-mobile-inspector-0.2.0.zip`, sonra IDE'yi yeniden başlatın. Önce eski sürümü kaldırın.
 
-**İkisi de** mobilecli 1.0.20 veya üstü ile açık bir simülatör, emülatör ya da bağlı bir cihaz ister. iOS'ta mobilecli agent'ını cihaz başına bir kez kurun (`mobilecli agent install --device <udid>`). `http://localhost:12000` cevap vermezse inspector `mobilecli server start`'ı kendisi çalıştırır.
+**İkisi de** mobilecli 1.0.20 veya üstü ile açık bir simülatör, emülatör ya da bağlı bir cihaz ister. iOS'ta mobilecli agent'ını cihaz başına bir kez kurun (`mobilecli agent install --device <udid>`). `http://localhost:12000` cevap vermezse inspector `mobilecli server start`'ı kendisi çalıştırır. VS Code'da cihaz listesinin yanındaki **Server** düğmesi sunucunun cevap verip vermediğini gösterir ve sunucuyu başlatır ya da durdurur; bunu kendi başlattığınız bir sunucu için de yapar. Durdurduktan sonra siz düğmeye basana kadar sunucu yeniden başlatılmaz.
 
 ## Açmak
 

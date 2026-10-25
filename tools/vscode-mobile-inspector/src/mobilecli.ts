@@ -75,14 +75,61 @@ export class MobileCli {
     }
 
     /** Checks the server; starts `mobilecli server start` once when a local server does not answer. */
-    async ensureServer(startTimeoutMs = 20_000): Promise<string> {
+    async ensureServer(startTimeoutMs = 20_000, autoStart = this.autoStart): Promise<string> {
         try {
             return await this.version();
         } catch (e) {
-            if (!(e instanceof RpcError) || !e.unreachable || !this.autoStart || !isLoopback(this.serverUrl) || this.server) {
+            if (!(e instanceof RpcError) || !e.unreachable || !autoStart || !isLoopback(this.serverUrl) || this.server) {
                 throw e;
             }
         }
+        return this.spawnServer(startTimeoutMs);
+    }
+
+    /** Starts a local server on request, whatever autoStartServer says; a running server is kept. */
+    async startServer(startTimeoutMs = 20_000): Promise<string> {
+        try {
+            return await this.version();
+        } catch (e) {
+            if (!(e instanceof RpcError) || !e.unreachable) {
+                throw e;
+            }
+        }
+        if (!isLoopback(this.serverUrl)) {
+            throw new RpcError(`Only a local mobilecli server can be started; start the one at ${this.serverUrl} on its host.`, undefined, true);
+        }
+        this.server?.kill(); // a server this client started earlier that no longer answers
+        this.server = undefined;
+        return this.spawnServer(startTimeoutMs);
+    }
+
+    /** Stops the server through `server.shutdown`, also one started outside this client, and waits until it is gone. */
+    async stopServer(stopTimeoutMs = 5_000): Promise<void> {
+        try {
+            await this.call('server.shutdown', {}, 3_000);
+        } catch (e) {
+            if (e instanceof RpcError && e.unreachable) {
+                return; // already down
+            }
+            throw e;
+        }
+        this.server = undefined; // the process exits by itself after server.shutdown
+        const deadline = Date.now() + stopTimeoutMs;
+        while (Date.now() < deadline) {
+            try {
+                await this.version();
+            } catch (e) {
+                if (e instanceof RpcError && e.unreachable) {
+                    return;
+                }
+                throw e;
+            }
+            await new Promise(r => setTimeout(r, 200));
+        }
+        throw new RpcError(`mobilecli server at ${this.serverUrl} still answers ${stopTimeoutMs} ms after server.shutdown`);
+    }
+
+    private async spawnServer(startTimeoutMs: number): Promise<string> {
         const port = new URL(this.serverUrl).port || '12000';
         this.server = spawn(this.mobilecliPath, ['server', 'start', '--listen', `localhost:${port}`], { stdio: 'ignore' });
         const spawnError = new Promise<never>((_, reject) => this.server!.once('error', err =>

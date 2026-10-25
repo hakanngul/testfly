@@ -26,10 +26,11 @@
 
     // ── host messages ───────────────────────────────────────────────────
     window.addEventListener('message', e => {
-        // VS Code delivers extension messages from the frame that hosts the webview, never from this window
-        if (e.source !== window.parent || !e.data || typeof e.data !== 'object') return;
+        // VS Code relays extension messages from its own webview origin; e.source matches no window here
+        if (e.origin !== window.location.origin || !e.data || typeof e.data !== 'object') return;
         const m = e.data;
         switch (m.type) {
+            case 'server': return onServer(m.running, m.version);
             case 'devices': return onDevices(m.devices);
             case 'device': return onDevice(m.device);
             case 'screen': return onScreen(m);
@@ -70,6 +71,7 @@
     }
 
     function onError(message, unreachable) {
+        $('server').classList.remove('busy');
         setStatus('error', unreachable ? 'mobilecli not reachable' : 'Error');
         toast(message, true);
         if (!state.elements.length) {
@@ -81,6 +83,27 @@
         send({ type: 'copy', text, label });
         toast('Copied ' + label);
     }
+
+    // ── server ──────────────────────────────────────────────────────────
+    function onServer(running, version) {
+        const b = $('server');
+        b.classList.remove('busy');
+        b.dataset.running = String(running);
+        $('serverText').textContent = running ? 'Server on' : 'Server off';
+        b.title = running ? `mobilecli server${version ? ' ' + version : ''} is running. Click to stop it.`
+            : 'mobilecli server is not running. Click to start it.';
+        if (!running) {
+            state.device = null;
+            $('platform').hidden = true;
+        }
+    }
+
+    $('server').addEventListener('click', () => {
+        const b = $('server');
+        if (b.classList.contains('busy')) return;
+        b.classList.add('busy');
+        send({ type: 'server', action: b.dataset.running === 'true' ? 'stop' : 'start' });
+    });
 
     // ── devices ─────────────────────────────────────────────────────────
     function onDevices(devices) {

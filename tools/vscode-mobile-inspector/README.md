@@ -14,6 +14,7 @@ mobilecli's `@eN` refs, every attribute of the element you pick, and the TestFly
 - **UI tree**: the `mobilecli dump ui` tree with types, texts, ids and `@eN` refs; filter with `/`, arrow keys to move. The **Snapshot** tab shows the same text as `mobilecli snapshot`.
 - **Element**: attributes, state flags and bounds; ranked TestFly selectors (id, `role=…;name=…`, `label=`, `placeholder=`, `text=`, `xpath=`) with how many elements each one matches on this screen (✓ unique or *N matches*), copyable one by one or as an `@MobileFind` field.
 - **Actions**: tap, long press, tap and type, Back, Home, swipe; copy the equivalent `mobilecli io tap --device … @eN` command.
+- **Server**: the button next to the device list shows whether the mobilecli server answers (green on, red off) and starts or stops it. Stopping works for a server started outside VS Code too (JSON-RPC `server.shutdown`); after a stop the extension does not start the server again until you press the button.
 
 ## Requirements
 
@@ -23,7 +24,7 @@ mobilecli's `@eN` refs, every attribute of the element you pick, and the TestFly
 ## Install and use
 
 ```bash
-code --install-extension testfly-mobile-inspector-0.2.2.vsix
+code --install-extension testfly-mobile-inspector-0.2.3.vsix
 ```
 
 Command palette → **TestFly: Open Mobile Inspector**. Keys: `R` refresh, `I` inspect, `T` tap, `E` record, `/` filter, `Esc` clear.

@@ -77,3 +77,37 @@ test('auto-start only for local servers and reports a missing mobilecli', async 
     await assert.rejects(cli.ensureServer(2000), e => /Could not run|did not answer/.test(e.message));
     cli.dispose();
 });
+
+test('stopServer shuts the server down through JSON-RPC and waits until it is gone', async () => {
+    let fake;
+    fake = await fakeServer({
+        'server.info': () => ({ version: '1.0.21' }),
+        'server.shutdown': () => (setImmediate(() => { fake.server.close(); fake.server.closeAllConnections(); }), { status: 'ok' }),
+    });
+    const cli = new MobileCli(fake.url, 'mobilecli', false);
+    await cli.stopServer();
+    assert.ok(fake.calls.some(c => c.method === 'server.shutdown'));
+    await assert.rejects(cli.version(), e => e instanceof RpcError && e.unreachable);
+    await cli.stopServer(); // already down: nothing to do
+});
+
+test('startServer keeps a running server, starts regardless of autoStartServer, and only locally', async () => {
+    const { server, calls, url } = await fakeServer({ 'server.info': () => ({ version: '1.0.21' }) });
+    try {
+        assert.strictEqual(await new MobileCli(url, '/nonexistent/mobilecli', false).startServer(), '1.0.21');
+        assert.deepStrictEqual(calls.map(c => c.method), ['server.info']);
+    } finally {
+        server.close();
+    }
+    const local = new MobileCli('http://127.0.0.1:1', '/nonexistent/mobilecli', false);
+    await assert.rejects(local.startServer(2000), e => /Could not run|did not answer/.test(e.message));
+    local.dispose();
+    const remote = new MobileCli('http://192.0.2.1:12000', 'mobilecli', false);
+    await assert.rejects(remote.startServer(), e => /Only a local mobilecli server/.test(e.message));
+});
+
+test('a server stopped on request is not auto-started again until asked', async () => {
+    const cli = new MobileCli('http://127.0.0.1:1', '/nonexistent/mobilecli', true);
+    await assert.rejects(cli.ensureServer(2000, false), e => e instanceof RpcError && e.unreachable && /not reachable/.test(e.message));
+    cli.dispose();
+});
