@@ -5,7 +5,7 @@ description: Write k6 load, stress, spike and soak test scripts (JavaScript) for
 
 # k6 load test authoring
 
-k6 scripts live in `load/k6/` and run with the k6 binary (`k6 run load/k6/<name>.js`). They are separate from the Maven build: no Java code, no new Maven dependency. Do not confuse them with `io.testfly.loadtest` (`BaseLoadTest`, `@LoadTest`), which is TestFly's own Java engine.
+k6 scripts live in `load/k6/` and run with the k6 binary (`k6 run load/k6/<name>.js`). `load/k6/` does not exist until the first script is added: create it (with `lib/` and `data/` as needed) then. They are separate from the Maven build: no Java code, no new Maven dependency. Do not confuse them with `io.testfly.loadtest` (`BaseLoadTest`, `@LoadTest`), which is TestFly's own Java engine.
 
 ## Layout
 

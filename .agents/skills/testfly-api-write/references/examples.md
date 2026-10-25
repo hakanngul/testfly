@@ -60,7 +60,7 @@ public final class UserApiTest extends BaseApiTest {
     public void validatesUserSchema() {
         users.get(42)
                 .assertStatus(200)
-                .assertSchema("schemas/user-response.json");
+                .assertSchema("schemas/api-user.schema.json");
     }
 
     record CreateUser(String name, String email) {}
@@ -89,7 +89,7 @@ public final class UserApiTest extends BaseApiTest {
 }
 ```
 
-`assertSchema` compiles through TestFly but needs `com.networknt:json-schema-validator:1.4.3` at runtime and a classpath resource such as `src/test/resources/schemas/user-response.json`.
+`assertSchema` compiles through TestFly but needs `com.networknt:json-schema-validator:1.4.3` at runtime and a classpath resource such as `src/test/resources/schemas/api-user.schema.json` (this repository ships that file; a consumer project adds its own schema under `src/test/resources/schemas/`).
 
 Current TestNG caveat: because `BaseApiTest` implements `MockSupport`, its teardown requires `org.wiremock:wiremock-standalone:3.5.4` on the runtime classpath even when the test itself does not start `ApiMockServer`.
 
