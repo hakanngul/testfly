@@ -1,5 +1,6 @@
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import io.testfly.loadtest.CheckCondition;
 import io.testfly.loadtest.LoadScenario;
 import io.testfly.loadtest.LoadStep;
 import io.testfly.loadtest.LoadTestAssert;
@@ -31,6 +32,7 @@ public class AuditHarness {
     static final AtomicInteger AUTH_OK = new AtomicInteger(), AUTH_FAIL = new AtomicInteger();
     static final AtomicInteger INFLIGHT = new AtomicInteger(), PEAK = new AtomicInteger();
     static final AtomicInteger TOKEN_SEQ = new AtomicInteger();
+    static final AtomicInteger FAILURES = new AtomicInteger();
     static String base;
 
     static void reset() {
@@ -104,8 +106,9 @@ public class AuditHarness {
             LoadTestMetrics m = scenario("V02").step("create").post("/created").check(LoadStep.status().is(201)).and()
                     .users(2).rampUp(Duration.ofSeconds(1)).hold(Duration.ofSeconds(2)).run().metrics();
             dump(m);
-            report(m.statusCodes().containsKey(201) && !m.statusCodes().containsKey(200),
-                    "server returned only 201; TestFly statusCodes=" + m.statusCodes());
+            report(m.statusCodes().equals(Map.of(201, (long) m.totalRequests())),
+                    "server returned only 201; expected {201=" + m.totalRequests() + "}, TestFly statusCodes="
+                            + m.statusCodes());
         });
 
         cases.put("V03_correlation_extract_token", () -> {
@@ -163,11 +166,14 @@ public class AuditHarness {
         });
 
         cases.put("V09_jsonPath_is_becomes_status_check", () -> {
+            CheckCondition check = LoadStep.jsonPath("$.id").is(5);
             LoadTestMetrics m = scenario("V09").step("c").get("/created")
-                    .check(LoadStep.jsonPath("$.id").is(5)).and()
+                    .check(check).and()
                     .users(1).rampUp(Duration.ofSeconds(1)).hold(Duration.ofSeconds(2)).run().metrics();
-            report(false, "jsonPath(\"$.id\").is(5) on body {id:'abc'} -> errorRate=" + m.errorRate()
-                    + " statusCodes=" + m.statusCodes() + " (type is STATUS_IS; semantics: expected status 5)");
+            // A JSONPath value check must keep its target and must not become a status-code check.
+            report(check.type() != CheckCondition.Type.STATUS_IS && "$.id".equals(check.target()),
+                    "jsonPath(\"$.id\").is(5) -> type=" + check.type() + " target=" + check.target()
+                            + "; run on body {id:'abc'}: errorRate=" + m.errorRate() + " statusCodes=" + m.statusCodes());
         });
 
         cases.put("V10_p90_fabricated", () -> {
@@ -205,7 +211,9 @@ public class AuditHarness {
             LoadTestMetrics m = scenario("V13").baseUrl("http://127.0.0.1:1").step("down").get("/x").and()
                     .users(1).rampUp(Duration.ofSeconds(1)).hold(Duration.ofSeconds(1)).run().metrics();
             dump(m);
-            report(!m.statusCodes().containsKey(500), "no HTTP response at all; statusCodes=" + m.statusCodes()
+            // No response was ever received, so no real HTTP status (100-599) may appear.
+            boolean noHttpStatus = m.statusCodes().keySet().stream().noneMatch(c -> c >= 100 && c <= 599);
+            report(noHttpStatus, "no HTTP response at all; statusCodes=" + m.statusCodes()
                     + " ko=" + m.failedRequests());
         });
 
@@ -231,13 +239,28 @@ public class AuditHarness {
                 }
             });
             runner.start();
-            sleep(6000);
+            // Interrupt only once the forked Gatling JVM is actually running and producing load.
+            long deadline = System.currentTimeMillis() + 30_000;
+            List<ProcessHandle> children = List.of();
+            while (System.currentTimeMillis() < deadline && (children.isEmpty() || HITS.get("/ok") == null)) {
+                sleep(200);
+                children = ProcessHandle.current().descendants().filter(ProcessHandle::isAlive).toList();
+            }
+            if (children.isEmpty()) {
+                report(false, "Gatling child JVM never observed within 30s; cannot evaluate cancellation");
+                runner.interrupt();
+                return;
+            }
             runner.interrupt();
-            sleep(2000);
-            long children = ProcessHandle.current().descendants().filter(ProcessHandle::isAlive)
-                    .filter(p -> p.info().commandLine().orElse("").contains("io.gatling.app.Gatling")).count();
-            report(children == 0, "after interrupt: live Gatling child JVMs=" + children);
-            ProcessHandle.current().descendants().forEach(ProcessHandle::destroyForcibly);
+            try { runner.join(10_000); } catch (InterruptedException ignored) {}
+            long stopDeadline = System.currentTimeMillis() + 5_000;
+            while (System.currentTimeMillis() < stopDeadline && children.stream().anyMatch(ProcessHandle::isAlive)) {
+                sleep(200);
+            }
+            long alive = children.stream().filter(ProcessHandle::isAlive).count();
+            report(alive == 0, "observed child pids=" + children.stream().map(ProcessHandle::pid).toList()
+                    + "; still alive 5s after interrupt=" + alive);
+            children.forEach(ProcessHandle::destroyForcibly);
         });
 
         cases.put("V16_concurrent_executions_serialized", () -> {
@@ -306,10 +329,11 @@ public class AuditHarness {
             reset();
             System.out.println("\n##### " + e.getKey());
             try { e.getValue().run(); }
-            catch (Throwable t) { System.out.println("RESULT: ERROR " + t); }
+            catch (Throwable t) { FAILURES.incrementAndGet(); System.out.println("RESULT: ERROR " + t); }
         }
         s.stop(0);
-        System.exit(0);
+        System.out.println("\nFAIL/ERROR results: " + FAILURES.get());
+        System.exit(FAILURES.get() == 0 ? 0 : 1);
     }
 
     static LoadScenario scenario(String name) {
@@ -324,6 +348,7 @@ public class AuditHarness {
     }
 
     static void report(boolean expectedBehaviour, String evidence) {
+        if (!expectedBehaviour) FAILURES.incrementAndGet();
         System.out.println("RESULT: " + (expectedBehaviour ? "PASS" : "FAIL") + " | " + evidence);
     }
 

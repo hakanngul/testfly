@@ -34,8 +34,11 @@ import java.time.Duration;
  * applied by the engines.
  *
  * <p>
- * BlazeDemo is a public demo site: keep user counts low.
+ * BlazeDemo is a public demo site: keep user counts low. The methods run one at
+ * a time ({@code singleThreaded}) so surefire's {@code parallel=methods} never
+ * stacks the scenarios against the site.
  */
+@Test(singleThreaded = true)
 public class BlazeDemoLoadTest extends BaseLoadTest {
 
     private static final String FORM = "application/x-www-form-urlencoded";
