@@ -128,6 +128,7 @@ public class HtmlReportGeneratorLoadTestTest {
                     lt.put("throughputRps", 49.5);
                     lt.put("meanLatencyMs", 65.0);
                     lt.put("p50LatencyMs", 50.0);
+                    lt.put("p75LatencyMs", null); // not measured: must render as n/a, not crash or show 0
                     lt.put("p90LatencyMs", 95.0);
                     lt.put("p95LatencyMs", 120.0);
                     lt.put("p99LatencyMs", 180.0);
@@ -169,6 +170,20 @@ public class HtmlReportGeneratorLoadTestTest {
                     // Verify embedded JSON contains the scenario data
                     assertTrue(html.contains("CheckoutFlow"), "Report data should contain scenario name");
                     assertTrue(html.contains("Step 1 - Login"), "Report data should contain step name");
+                    String data = Files.readString(new File(testDir.toFile(), "testfly-report-data.json").toPath(),
+                            StandardCharsets.UTF_8);
+                    assertTrue(data.matches("(?s).*\"p75LatencyMs\"\\s*:\\s*null.*"),
+                            "unmeasured p75 must stay null in report data");
+                    assertTrue(html.contains("function ltMs(v) { return ltMeasured(v) ? Math.round(v) + ' ms' : 'n/a'; }"),
+                            "template must render null latencies as n/a");
+                    assertTrue(html.contains("value: ltMeasured(lt.p75LatencyMs) ? Math.round(lt.p75LatencyMs) : 'n/a'"),
+                            "P75 tile must render null as n/a");
+                    assertTrue(html.contains("tdP95.textContent = ltMs(st.p95LatencyMs);"), "step p95 must use n/a");
+                    assertFalse(html.contains("LatencyMs || 0"), "no latency may be coerced to 0");
+                    // BUG-01: never fabricate a "200" slice when status codes were not measured
+                    assertFalse(html.contains("labels = ['200'];"), "status doughnut must not fabricate a 200 slice");
+                    assertTrue(html.contains("'Status codes not measured'"), "empty statusCodes must say not measured");
+                    assertTrue(html.contains("if (code === '-1') return 'No response';"), "-1 must render as No response");
                 } finally {
                     deleteRecursively(testDir);
                 }

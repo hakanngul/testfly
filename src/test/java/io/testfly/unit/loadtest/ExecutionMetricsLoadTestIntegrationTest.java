@@ -90,6 +90,28 @@ public class ExecutionMetricsLoadTestIntegrationTest {
     }
 
     @Test
+    public void testLoadTestMetricsToMapWritesUnmeasuredAsNull() throws Exception {
+        LoadTestMetrics m = new LoadTestMetrics("Unmeasured", 3, 3, 0, 1, 5, 4, Double.NaN, 9, 10, 1, 12, 0,
+                Map.of(201, 3L), 1000, 1, "gatling",
+                Map.of("s", new LoadTestMetrics.StepMetrics("s", 3, 3, 0, Double.NaN, 0)), 6);
+        Map<String, Object> map = ExecutionMetrics.loadTestMetricsToMap(m);
+
+        assertEquals(map.get("p75LatencyMs"), 6.0);
+        assertTrue(map.containsKey("p90LatencyMs"));
+        assertNull(map.get("p90LatencyMs"), "NaN must be written as null, never 0");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> step = (Map<String, Object>) ((Map<String, Object>) map.get("steps")).get("s");
+        assertNull(step.get("p95LatencyMs"));
+
+        String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(map);
+        assertTrue(json.contains("\"p90LatencyMs\":null"), json);
+        assertFalse(json.contains("NaN"), json);
+
+        // legacy constructor: p75 not measured → null
+        assertNull(ExecutionMetrics.loadTestMetricsToMap(sampleMetrics("Legacy")).get("p75LatencyMs"));
+    }
+
+    @Test
     public void testLoadTestMetricsToMap() {
         LoadTestMetrics metrics = sampleMetrics("MapScenario");
         Map<String, Object> map = ExecutionMetrics.loadTestMetricsToMap(metrics);

@@ -62,3 +62,23 @@ public class CheckoutLoadTest extends BaseLoadTest {
 | `LoadStep` | `get(path)`, `post(path)`, `put(path)`, `patch(path)`, `delete(path)`, `header`, `queryParam`, `formParam`, `body`, `check`, `extract`, `and`, `run` |
 
 `thinkTime(Duration)` sets a fixed pause; `thinkTime(minMs, maxMs)` sets a random pause between requests. `extract` makes a response value available to subsequent steps of the same virtual user. There is no `load(LoadScenario)` overload or `targetRps()` throttling API. Place load settings on the scenario and request settings on its steps.
+
+## Checks and request options
+
+Checks behave the same on the JDK and Gatling engines:
+
+| Check | Meaning |
+| --- | --- |
+| `status().is(code)`, `status().in(codes...)` | The HTTP status equals `code` or is one of `codes`. |
+| *(no status check)* | Default rule: the status must be 2xx (200–299) or 304. |
+| `jsonPath(p).exists()` | A value exists at the JSONPath `p`. |
+| `jsonPath(p).is(n)`, `jsonPath(p).in(n...)` | The JSON value at `p` equals `n` or is one of the values (compared as strings, so JSON number `5` matches `5`). |
+| `status().matches(regex)`, `jsonPath(p).matches(regex)` | The regex is found anywhere in the **whole response body** (`Matcher.find()`, no implicit DOTALL). The JSONPath is not used. |
+
+- `status().exists()` throws `IllegalStateException`; `exists()` is only valid on `jsonPath(...)`.
+- `extract(var, path)` marks the request as failed when `path` is not found.
+- `formParam(name, value)` sends an `application/x-www-form-urlencoded` body on both engines, unless you set a `Content-Type` header. A step cannot combine `body(...)` and `formParam(...)`.
+- `queryParam` values are URL-encoded (UTF-8, spaces as `%20`) after `${var}` substitution.
+- A step with a `body(...)` and no `Content-Type` header is sent as `application/json`.
+
+Unsupported input fails with `IllegalArgumentException` before any request is sent. Examples are a step with both a body and form parameters, a blank JSONPath, or an invalid regex. A path without a leading `$` is read as `$.` plus the path on both engines (`token` means `$.token`). The JDK engine supports only the JSONPath forms `$.a.b`, `$.a[0].b` and `$[0]`. On both engines a JSON `null` value counts as present: `exists()` passes and `extract(...)` stores `null`. Wildcards, deep scan (`..`), filters, slices and bracket keys such as `['x']` fail fast on the JDK engine and need `engine("gatling")`.

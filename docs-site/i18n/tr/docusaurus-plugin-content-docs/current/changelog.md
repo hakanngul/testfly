@@ -14,6 +14,9 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 ## [Unreleased]
 
 ### Eklenenler
+- **Mobil Inspector (`tools/`, Maven artifact'ının dışında)**: mobilecli cihazları için bir VS Code eklentisi (0.2.0) ve bir IntelliJ IDEA eklentisi. Ekranı, görünüm ağacını ve TestFly locator'larını eşleşme sayısına göre sıralı gösterir, `@MobileFind` alanları üretir. Kayıt (Record) modu dokunma, yazma, kaydırma ve düğmeleri bir `MobilePage` sınıfına dönüştürür.
+- **Mobil launcher activity**: `mobile.app.activity` (Android), birden çok launcher activity'si olan uygulamalarda hangisinin açılacağını seçer; örneğin LeakCanary'li debug derlemeleri. `mobile.ios` ve `mobile.android` blokları bunu geçersiz kılabilir.
+- **Android giriş örneği**: JUnit 5 örneği, girişten sonra hesap özetini ve açılır pencere onayını da doğrular (`AndroidLoginJUnit5ExampleTest`).
 - **Native mobil (deneysel, `io.testfly.mobile`)**: Android ve iOS uygulamalarını kullanıcının kurduğu bir [mobilecli](https://github.com/mobile-next/mobilecli) sunucusu üzerinden, Appium olmadan sürer (ADR 0002). Otomatik bekleyen eylemlerle (`tap`, `fill`, `swipe`, …), strict mode ve `expect(...)` doğrulamalarıyla `screen().getByRole/Text/Label/TestId/Placeholder/Type` locator'ları; uygulamalar, deep link'ler ve ekran görüntüleri için `device()`. Mobil testler TestNG'de (`BaseMobileTest`, `@MobileTest`), JUnit 5'te (`BaseJUnit5MobileTest`) ve Cucumber'da (`@mobile`) çalışır; tarayıcı atlanır ve cihaz test başına açılır. Yeni `mobile:` bloğuyla yapılandırılır. Henüz `@TestFlyApi` değil; bir minor sürümde değişebilir.
 - **Test başına mobil platform**: `@MobileTest(platform = MobilePlatform.IOS)` (`@Test`'in yanında) testi o platformda koşar ve `mobile.platform`'u geçersiz kılar; yeni `mobile.ios:` / `mobile.android:` blokları her platformun cihazını ve uygulamasını tutar, böylece tek yapılandırma ikisine de yeter. Yeni `Mobile.connect(MobilePlatform)` ve `TestFlyConfig.Mobile.forPlatform(...)`.
 - **Mobil Appium eşdeğerleri**: `mobile.alerts` artık Android çalışma zamanı izin pencerelerini de cevaplar (`autoGrantPermissions` gibi). `MobileLocator.pinchIn()`, `pinchOut()` ve `dragTo(target)`; `MobileDevice` için pano (`clipboard`, `setClipboard`, `clearClipboard`), dosyalar (`pushFile`, `pullFile`, en çok 1 MB), crash raporları (`crashReports`, `crashReport`; test düştüğünde yeni crash'ler `target/reports/crashes/` altına kaydedilir), uygulamalar (`isAppInstalled`, `foregroundApp`, `uninstallApp`, `backgroundApp`), klavye (`isKeyboardShown`, `hideKeyboard`), ayarlar (`setAnimations`, `setAppearance` ve `mobile.animations` / `mobile.appearance`) ve webview'ler (`webViews()`, `webView()`, yeni `MobileWebView`). Yeni isteğe bağlı `MobileDriver` default metotları ve `MobileCrashReport`.
@@ -54,6 +57,7 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 - **WireMock yardımcıları**: paralel testler için `ApiMockServer.stubFor(MappingBuilder)`, `stubJson(method, urlPattern, status, json)` ve `resetOwnStubs()`.
 
 ### Değişenler
+- **ReportPortal JUnit 5 agent'ı** 5.3.1'den 5.5.8'e yükseltildi.
 - **Şema ve OpenAPI hataları** `AssertionError` alt sınıfı olan `ApiAssertionError` fırlatır; mevcut `catch (AssertionError)` kodu çalışmaya devam eder.
 - **`ApiAuth.digest(...)`** artık RFC 7616 challenge/response uygular. Önceden hiçbir sunucunun kabul etmediği `Digest base64(user:password)` gönderiyordu.
 - **Cookie jar** (`withCookies()`): cookie'ler yalnızca kendi host'una veya `Domain`'ine gönderilir; `Path`, `Secure`, `Max-Age` ve `Expires` dikkate alınır, yabancı `Domain` cookie'leri reddedilir. `Path` içermeyen cookie yine `/` için geçerlidir. Önceden her cookie her host'a gidiyordu.
@@ -66,6 +70,8 @@ TestFly'deki tüm kayda değer değişiklikler burada belgelenmiştir.
 - **`ApiAuth.hmac(apiKey, secret, algorithm)`**: yalnızca API anahtarını imzalar. `ApiAuth.hmacSigner()` kullanın. Header'ları değişmedi.
 
 ### Düzeltilenler
+- **Mobil iOS ilk görünüm ağacı okuması**: yeni başlatılmış bir simülatörde ilk okuma, DeviceKit hâlâ açılırken zaman aşımına uğrayabiliyordu. Sürücü artık uygulama açılmadan önce `device.apps.foreground` çağırır.
+- **JUnit 5 ReportPortal test öğeleri**: test öğesi, test çalışmadan önce agent'ın yaşam döngüsü üzerinden başlatılmıyordu; sonuçlar doğru raporlanmıyordu. `TestFlyExtension` artık test gövdesi çalışmadan önce `ReportPortalJUnit5Bridge.startTestItem` çağırır; bu da agent'ın `interceptTestMethod` metodunu çalıştırır.
 - **`ApiResponseSpec` content-type hataları** isteği `null null` olarak gösteriyordu; artık metod ve URL'yi içerir.
 - **`/` veya `~` içeren anahtarlı JSON yolları** JSON Pointer üzerinden yanlış çözülüyordu; artık bracket notasyonuyla çalışır.
 - **Küçük harfli `content-type` header'ı** istek spec'inin content type'ı ile çoğaltılabiliyordu.

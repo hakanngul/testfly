@@ -90,9 +90,9 @@ Statistical stability analysis tracking intermittent failures across runs:
 
 ### 6. Load Testing & Performance Tab
 *(Automatically displayed when performance or Gatling tests are executed)*:
-- **Latency Distribution Chart:** Multi-color bar chart comparing Min, Mean, P50, P90, P95, P99, and Max latencies.
-- **HTTP Status Codes Doughnut:** Visual breakdown of 2xx, 3xx, 4xx, and 5xx response codes.
-- **Scenario Breakdown:** Virtual user concurrency, throughput (RPS), total requests, and error rate per scenario.
+- **Latency Distribution Chart:** Multi-color bar chart comparing Min, Mean, P50, P90, P95, P99, and Max latencies. Scenario cards also show P75 and P90 tiles. A percentile the engine did not measure (P90 on the Gatling engine) is shown as `n/a`, never as 0.
+- **HTTP Status Codes Doughnut:** One slice per recorded HTTP status code, colored by class (2xx, 3xx, 4xx, 5xx); requests that got no response appear under `-1`.
+- **Scenario Breakdown:** Virtual users (the configured `users` value), throughput (RPS), total requests, and error rate per scenario.
 - **Gatling Report Link:** Direct link to the native Gatling Highcharts report.
 
 ---

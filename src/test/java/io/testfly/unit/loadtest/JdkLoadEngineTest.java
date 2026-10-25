@@ -174,9 +174,10 @@ public class JdkLoadEngineTest {
 
         LoadTestMetrics metrics = LoadTestRunner.run(scenario).metrics();
 
-        // The /api/error endpoint returns 500 but the request itself succeeds
-        // (no exception thrown), so it counts as successful at the HTTP level
+        // The /api/error endpoint returns 500: without an explicit status check the default
+        // check (2xx or 304, same as Gatling) makes every request KO
         assertTrue(metrics.totalRequests() > 0);
+        assertEquals(metrics.failedRequests(), metrics.totalRequests());
     }
 
     // ── Assertions pass/fail ─────────────────────────────────────────────
@@ -286,6 +287,34 @@ public class JdkLoadEngineTest {
         assertNull(JdkLoadEngine.extractJsonPath("{\"a\":1}", null));
     }
 
+    @Test
+    public void testExtractJsonPathSupportedSubset() {
+        String json = "{\"id\":5,\"ratio\":1.5,\"ok\":true,\"n\":null,"
+                + "\"items\":[{\"id\":\"a\"},{\"id\":\"b\"}],\"tok\":\"x\\\"y\"}";
+        assertEquals(JdkLoadEngine.extractJsonPath(json, "$.id"), "5", "JSON number 5 → \"5\"");
+        assertEquals(JdkLoadEngine.extractJsonPath(json, "$.ratio"), "1.5");
+        assertEquals(JdkLoadEngine.extractJsonPath(json, "$.ok"), "true");
+        assertEquals(JdkLoadEngine.extractJsonPath(json, "$.items[1].id"), "b");
+        assertEquals(JdkLoadEngine.extractJsonPath(json, "$.tok"), "x\"y", "escaped quotes are decoded");
+        assertEquals(JdkLoadEngine.extractJsonPath("[{\"k\":1}]", "$[0]"), "{\"k\":1}");
+        assertNull(JdkLoadEngine.extractJsonPath(json, "$.n"), "JSON null counts as not found");
+        assertNull(JdkLoadEngine.extractJsonPath(json, "$.items[5].id"));
+        assertNull(JdkLoadEngine.extractJsonPath("not json", "$.id"));
+        // a key that only appears inside a string value must not be found (old indexOf-based bug)
+        assertNull(JdkLoadEngine.extractJsonPath("{\"msg\":\"\\\"id\\\": 1\"}", "$.id"));
+    }
+
+    @Test
+    public void testExtractJsonPathUnsupportedSyntaxThrows() {
+        for (String path : new String[] {"$..id", "$.items[*]", "$.a[?(@.x)]", "$.a[0:1]", "$['a']"}) {
+            assertThrows(IllegalArgumentException.class, () -> JdkLoadEngine.extractJsonPath("{}", path));
+            assertFalse(JdkLoadEngine.isSupportedJsonPath(path), path);
+        }
+        assertTrue(JdkLoadEngine.isSupportedJsonPath("$.a.b"));
+        assertTrue(JdkLoadEngine.isSupportedJsonPath("$.a[0].b"));
+        assertTrue(JdkLoadEngine.isSupportedJsonPath("$[0]"));
+    }
+
     // ── No steps validation ──────────────────────────────────────────────
 
     @Test(expectedExceptions = IllegalArgumentException.class)
@@ -391,5 +420,67 @@ public class JdkLoadEngineTest {
 
         assertTrue(metrics.totalRequests() > 0);
         assertEquals(metrics.failedRequests(), 0, "extract() must not fail without a feeder");
+    }
+
+    // ── Cancellation: interrupting the caller stops the run, never returns partial metrics ──
+
+    @Test
+    public void testInterruptCancelsRunWithException() throws Exception {
+        java.util.concurrent.atomic.AtomicReference<Throwable> outcome = new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.concurrent.atomic.AtomicBoolean interruptRestored = new java.util.concurrent.atomic.AtomicBoolean();
+        java.util.concurrent.atomic.AtomicReference<LoadTestMetrics> returned = new java.util.concurrent.atomic.AtomicReference<>();
+        Thread runner = new Thread(() -> {
+            try {
+                returned.set(LoadTestRunner.run(LoadScenario.named("Cancel JDK")
+                        .baseUrl("http://localhost:" + port)
+                        .get("/api/slow")
+                        .users(4)
+                        .rampUp(java.time.Duration.ofSeconds(0))
+                        .hold(java.time.Duration.ofSeconds(30))
+                        .engine("jdk")).metrics());
+            } catch (Throwable t) {
+                outcome.set(t);
+                interruptRestored.set(Thread.currentThread().isInterrupted());
+            }
+        }, "jdk-cancel-runner");
+
+        int before = requestCount.get();
+        runner.start();
+        long deadline = System.currentTimeMillis() + 10_000;
+        while (requestCount.get() - before < 4 && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20);
+        }
+        runner.interrupt();
+        runner.join(20_000);
+
+        assertFalse(runner.isAlive(), "run did not stop within 20s of interrupt");
+        assertNull(returned.get(), "a cancelled run must not return (partial) metrics");
+        assertNotNull(outcome.get(), "a cancelled run must throw");
+        assertFalse(outcome.get() instanceof java.util.ConcurrentModificationException, String.valueOf(outcome.get()));
+        assertTrue(outcome.get() instanceof IllegalStateException, String.valueOf(outcome.get()));
+        assertEquals(outcome.get().getMessage(), "[LoadTest] Scenario 'Cancel JDK' was cancelled");
+        assertTrue(interruptRestored.get(), "the interrupt flag must be restored");
+    }
+
+    // ── Backward compatibility: bare JSONPaths without '$' ───────────────
+
+    @Test
+    public void testBarePathsWithoutDollarStillWork() {
+        LoadScenario scenario = LoadScenario.named("Bare paths")
+                .baseUrl("http://localhost:" + port)
+                .users(1)
+                .rampUp(java.time.Duration.ofSeconds(0))
+                .hold(java.time.Duration.ofSeconds(1))
+                .engine("jdk");
+        scenario.step("health").get("/api/health")
+                .extract("state", "status")
+                .check(io.testfly.loadtest.LoadStep.jsonPath("status").exists());
+
+        LoadTestMetrics metrics = LoadTestRunner.run(scenario).metrics();
+
+        assertTrue(metrics.totalRequests() > 0);
+        assertEquals(metrics.failedRequests(), 0, "bare 'status' must be read as '$.status'");
+        assertEquals(JdkLoadEngine.extractJsonPath("{\"data\":{\"token\":\"t\"}}", "data.token"), "t");
+        assertEquals(JdkLoadEngine.extractJsonPath("{\"token\":\"t\"}", "token"), "t");
     }
 }

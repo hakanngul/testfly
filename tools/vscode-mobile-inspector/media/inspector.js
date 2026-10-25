@@ -26,12 +26,13 @@
 
     // ── host messages ───────────────────────────────────────────────────
     window.addEventListener('message', e => {
+        if (e.source !== window || !e.data || typeof e.data !== 'object') return;
         const m = e.data;
         switch (m.type) {
             case 'devices': return onDevices(m.devices);
             case 'device': return onDevice(m.device);
             case 'screen': return onScreen(m);
-            case 'shot': $('shot').src = m.screenshot; return; // early picture; the tree comes with 'screen'
+            case 'shot': $('shot').src = imageSrc(m.screenshot); return; // early picture; the tree comes with 'screen'
             case 'snapshotText': state.snapshot = m.text; return renderSnapshot();
             case 'status': return setStatus(m.state, m.message);
             case 'error': return onError(m.message, m.unreachable);
@@ -129,7 +130,7 @@
             renderBounds();
             renderSelection();
         };
-        img.src = m.screenshot;
+        img.src = imageSrc(m.screenshot);
         $('deviceFrame').hidden = false;
         $('emptyScreen').hidden = true;
         $('screenMeta').textContent = m.screen && m.screen.width ? `${m.screen.width}×${m.screen.height}` : '';
@@ -562,8 +563,8 @@
                 ? `<div class="val" data-copy="${attr(String(v))}" data-label="${key}" title="Click to copy">${esc(String(v))}</div>`
                 : `<div class="val none">—</div>`);
         }
-        html += `<div class="key">bounds</div><div class="val" data-copy="${r.x},${r.y},${r.width},${r.height}" data-label="bounds">x ${r.x}, y ${r.y}, ${r.width} × ${r.height}</div>`;
-        html += `<div class="key">center</div><div class="val" data-copy="${cx},${cy}" data-label="center">${cx}, ${cy}</div></div>`;
+        html += `<div class="key">bounds</div><div class="val" data-copy="${esc(r.x)},${esc(r.y)},${esc(r.width)},${esc(r.height)}" data-label="bounds">x ${esc(r.x)}, y ${esc(r.y)}, ${esc(r.width)} × ${esc(r.height)}</div>`;
+        html += `<div class="key">center</div><div class="val" data-copy="${esc(cx)},${esc(cy)}" data-label="center">${esc(cx)}, ${esc(cy)}</div></div>`;
 
         html += `<div class="section-title">State</div><div class="flags">` +
             flag('enabled', el.enabled !== false, true) + flag('selected', !!el.selected) + flag('checked', !!el.checked) +
@@ -693,6 +694,12 @@
 
     function attr(s) {
         return esc(s);
+    }
+
+    // Only an inline JPEG or PNG data URL may become an image source; anything else
+    // would let a message point the picture at an arbitrary URL.
+    function imageSrc(s) {
+        return /^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(String(s || '')) ? s : '';
     }
 
     setMode(state.mode);

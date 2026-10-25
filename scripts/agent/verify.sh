@@ -7,6 +7,11 @@ cd "$repo_root"
 mode="${1:-}"
 shift || true
 
+run_agent() {
+  scripts/agent/validate.sh
+  python3 -I scripts/agent/test_agent_infra.py
+}
+
 run_code() {
   mvn -B -ntp test
 }
@@ -31,7 +36,7 @@ usage() {
 
 case "$mode" in
   agent)
-    scripts/agent/validate.sh
+    run_agent
     ;;
   code)
     run_code
@@ -51,7 +56,7 @@ case "$mode" in
     run_docs
     ;;
   release)
-    scripts/agent/validate.sh
+    run_agent
     scripts/agent/check-release.sh
     mvn -B -ntp verify
     scripts/agent/check-public-api.sh "${1:-}"
@@ -59,7 +64,7 @@ case "$mode" in
     scripts/agent/verify-consumer.sh "${2:-}"
     ;;
   full)
-    scripts/agent/validate.sh
+    run_agent
     run_code
     scripts/agent/check-public-api.sh "${1:-}"
     run_spi

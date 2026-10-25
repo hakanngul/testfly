@@ -5,7 +5,7 @@ description: Work on TestFly's incubating native mobile module (io.testfly.mobil
 
 # TestFly native mobile
 
-Design and status: `docs/adr/0002-native-mobile-via-mobilecli.md`. Everything is incubating: not annotated `@TestFlyApi`. Promotion follows ADR D9 and the phase 4 checklist.
+Design and status: `docs/adr/0002-native-mobile-via-mobilecli.md`. Everything is incubating: not annotated `@TestFlyApi`. Promotion follows ADR D9 and the phase 4 checklist. Ownership: this skill owns `io.testfly.mobile` and the `@mobile` branches of the TestNG, JUnit 5 and Cucumber bridges; shared bridge lifecycle code belongs to `testfly-change`.
 
 ## Map
 

@@ -127,4 +127,47 @@ public class ReportPortalAttachmentSenderTest {
             dummyDir.delete();
         }
     }
+
+    // ── Load-test markdown: unmeasured latencies are "n/a", never "0 ms" ──
+
+    private static String loadTestMarkdown(io.testfly.loadtest.LoadTestMetrics m) throws Exception {
+        java.lang.reflect.Method build = ReportPortalAttachmentSender.class
+                .getDeclaredMethod("buildLoadTestMarkdown", io.testfly.loadtest.LoadTestMetrics.class);
+        build.setAccessible(true);
+        return (String) build.invoke(null, m);
+    }
+
+    @Test
+    public void loadTestMarkdown_unmeasuredLatencies_renderNa() throws Exception {
+        io.testfly.loadtest.LoadTestMetrics m = new io.testfly.loadtest.LoadTestMetrics(
+                "RpScenario", 10, 10, 0, 5, Double.NaN, 4, Double.NaN, 9, Double.NaN, Double.NaN, 40, 0,
+                java.util.Map.of(200, 10L), 1000, 2, "gatling",
+                java.util.Map.of("s", new io.testfly.loadtest.LoadTestMetrics.StepMetrics("s", 10, 10, 0, Double.NaN, 0)),
+                Double.NaN);
+
+        String md = loadTestMarkdown(m);
+
+        org.testng.Assert.assertTrue(md.contains("P50: 4 ms"), md);
+        org.testng.Assert.assertTrue(md.contains("P75: n/a"), md);
+        org.testng.Assert.assertTrue(md.contains("P90: n/a"), md);
+        org.testng.Assert.assertTrue(md.contains("P95: 9 ms"), md);
+        org.testng.Assert.assertTrue(md.contains("P99: n/a"), md);
+        org.testng.Assert.assertTrue(md.contains("Min: n/a"), md);
+        org.testng.Assert.assertTrue(md.contains("Mean: n/a"), md);
+        org.testng.Assert.assertTrue(md.contains("Max: 40 ms"), md);
+        org.testng.Assert.assertTrue(md.contains("| 0 | n/a | 0.0% |"), "step p95 must be n/a: " + md);
+        org.testng.Assert.assertFalse(md.contains("NaN"), md);
+    }
+
+    @Test
+    public void loadTestMarkdown_measuredLatencies_renderMs() throws Exception {
+        io.testfly.loadtest.LoadTestMetrics m = new io.testfly.loadtest.LoadTestMetrics(
+                "RpScenario2", 10, 10, 0, 5, 6, 4, 8, 9, 12, 1, 40, 0,
+                java.util.Map.of(200, 10L), 1000, 2, "jdk", java.util.Map.of(), 5);
+
+        String md = loadTestMarkdown(m);
+
+        org.testng.Assert.assertTrue(md.contains("P50: 4 ms | P75: 5 ms | P90: 8 ms | P95: 9 ms | P99: 12 ms"), md);
+        org.testng.Assert.assertTrue(md.contains("Min: 1 ms | Mean: 6 ms | Max: 40 ms"), md);
+    }
 }

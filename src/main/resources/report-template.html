@@ -3985,6 +3985,10 @@
 
         let loadTestChartInstances = [];
 
+        // Load-test latencies may be null (not measured by the engine): render "n/a", never 0
+        function ltMeasured(v) { return v != null && !Number.isNaN(Number(v)); }
+        function ltMs(v) { return ltMeasured(v) ? Math.round(v) + ' ms' : 'n/a'; }
+
         function renderLoadTests() {
             const loadTests = reportData.loadTests || [];
             const navLoadTest = document.getElementById('nav-loadtest');
@@ -4032,16 +4036,16 @@
             let totalSuccessful = 0;
             let totalFailed = 0;
             let totalThroughput = 0;
-            let maxP95 = 0;
-            let maxP99 = 0;
+            let maxP95 = null;
+            let maxP99 = null;
 
             loadTests.forEach(lt => {
                 totalRequests += (lt.totalRequests || 0);
                 totalSuccessful += (lt.successfulRequests || 0);
                 totalFailed += (lt.failedRequests || 0);
                 totalThroughput += (lt.throughputRps || 0);
-                if ((lt.p95LatencyMs || 0) > maxP95) maxP95 = lt.p95LatencyMs;
-                if ((lt.p99LatencyMs || 0) > maxP99) maxP99 = lt.p99LatencyMs;
+                if (ltMeasured(lt.p95LatencyMs) && (maxP95 == null || lt.p95LatencyMs > maxP95)) maxP95 = lt.p95LatencyMs;
+                if (ltMeasured(lt.p99LatencyMs) && (maxP99 == null || lt.p99LatencyMs > maxP99)) maxP99 = lt.p99LatencyMs;
             });
 
             const overallErrorRate = totalRequests > 0 ? (totalFailed / totalRequests) : 0;
@@ -4061,8 +4065,8 @@
             if (elReq) elReq.innerText = totalRequests.toLocaleString();
             if (elSuccMeta) elSuccMeta.innerText = totalSuccessful.toLocaleString() + ' successful';
             if (elThp) elThp.innerText = Math.round(totalThroughput).toLocaleString() + ' rps';
-            if (elP95) elP95.innerText = Math.round(maxP95) + ' ms';
-            if (elP99Meta) elP99Meta.innerText = 'Max P99: ' + Math.round(maxP99) + ' ms';
+            if (elP95) elP95.innerText = ltMs(maxP95);
+            if (elP99Meta) elP99Meta.innerText = 'Max P99: ' + ltMs(maxP99);
             if (elErr) elErr.innerText = errorRatePercent;
             if (elFailMeta) elFailMeta.innerText = totalFailed.toLocaleString() + ' failed requests';
             if (elErrBadge) {
@@ -4148,11 +4152,13 @@
                     miniGrid.className = 'loadtest-mini-grid';
 
                     const tiles = [
-                        { label: 'P50 Median', value: Math.round(lt.p50LatencyMs || 0), unit: 'ms', color: 'var(--primary)' },
-                        { label: 'P90', value: Math.round(lt.p90LatencyMs || 0), unit: 'ms' },
-                        { label: 'P95', value: Math.round(lt.p95LatencyMs || 0), unit: 'ms', color: 'var(--flaky)' },
-                        { label: 'P99', value: Math.round(lt.p99LatencyMs || 0), unit: 'ms', color: 'var(--bad)' },
-                        { label: 'Mean', value: Math.round(lt.meanLatencyMs || 0), unit: 'ms' },
+                        // latencies may be null (not measured by the engine, e.g. Gatling p90): show n/a, never 0
+                        { label: 'P50 Median', value: ltMeasured(lt.p50LatencyMs) ? Math.round(lt.p50LatencyMs) : 'n/a', unit: ltMeasured(lt.p50LatencyMs) ? 'ms' : '', color: 'var(--primary)' },
+                        { label: 'P75', value: ltMeasured(lt.p75LatencyMs) ? Math.round(lt.p75LatencyMs) : 'n/a', unit: ltMeasured(lt.p75LatencyMs) ? 'ms' : '' },
+                        { label: 'P90', value: ltMeasured(lt.p90LatencyMs) ? Math.round(lt.p90LatencyMs) : 'n/a', unit: ltMeasured(lt.p90LatencyMs) ? 'ms' : '' },
+                        { label: 'P95', value: ltMeasured(lt.p95LatencyMs) ? Math.round(lt.p95LatencyMs) : 'n/a', unit: ltMeasured(lt.p95LatencyMs) ? 'ms' : '', color: 'var(--flaky)' },
+                        { label: 'P99', value: ltMeasured(lt.p99LatencyMs) ? Math.round(lt.p99LatencyMs) : 'n/a', unit: ltMeasured(lt.p99LatencyMs) ? 'ms' : '', color: 'var(--bad)' },
+                        { label: 'Mean', value: ltMeasured(lt.meanLatencyMs) ? Math.round(lt.meanLatencyMs) : 'n/a', unit: ltMeasured(lt.meanLatencyMs) ? 'ms' : '' },
                         { label: 'Throughput', value: (lt.throughputRps || 0).toFixed(1), unit: 'rps', color: 'var(--good)' }
                     ];
 
@@ -4324,7 +4330,7 @@
                             tdP95.style.textAlign = 'right';
                             tdP95.style.fontFamily = 'var(--font-mono)';
                             tdP95.style.fontWeight = '600';
-                            tdP95.textContent = `${Math.round(st.p95LatencyMs || 0)} ms`;
+                            tdP95.textContent = ltMs(st.p95LatencyMs);
                             str.appendChild(tdP95);
 
                             // Error Rate
@@ -4371,18 +4377,22 @@
                 // 1. Latency Bar Chart
                 const latCanvas = document.getElementById(`lt-chart-latency-${idx}`);
                 if (latCanvas) {
-                    const min = Math.round(lt.minLatencyMs || 0);
-                    const mean = Math.round(lt.meanLatencyMs || 0);
-                    const p50 = Math.round(lt.p50LatencyMs || 0);
-                    const p90 = Math.round(lt.p90LatencyMs || 0);
-                    const p95 = Math.round(lt.p95LatencyMs || 0);
-                    const p99 = Math.round(lt.p99LatencyMs || 0);
-                    const max = Math.round(lt.maxLatencyMs || 0);
+                    // null = not measured: leave the bar empty (label "n/a") instead of drawing 0
+                    const bar = v => ltMeasured(v) ? Math.round(v) : null;
+                    const min = bar(lt.minLatencyMs);
+                    const mean = bar(lt.meanLatencyMs);
+                    const p50 = bar(lt.p50LatencyMs);
+                    const p90 = bar(lt.p90LatencyMs);
+                    const p95 = bar(lt.p95LatencyMs);
+                    const p99 = bar(lt.p99LatencyMs);
+                    const max = bar(lt.maxLatencyMs);
+                    const lbl = (name, v) => v == null ? name + ' (n/a)' : name;
 
                     const latChart = new Chart(latCanvas, {
                         type: 'bar',
                         data: {
-                            labels: ['Min', 'Mean', 'P50 (Median)', 'P90', 'P95', 'P99', 'Max'],
+                            labels: [lbl('Min', min), lbl('Mean', mean), lbl('P50 (Median)', p50), lbl('P90', p90),
+                                lbl('P95', p95), lbl('P99', p99), lbl('Max', max)],
                             datasets: [{
                                 label: 'Latency (ms)',
                                 data: [min, mean, p50, p90, p95, p99, max],
@@ -4415,7 +4425,7 @@
                                 legend: { display: false },
                                 tooltip: {
                                     callbacks: {
-                                        label: function(context) { return context.parsed.y + ' ms'; }
+                                        label: function(context) { return context.parsed.y == null ? 'n/a' : context.parsed.y + ' ms'; }
                                     }
                                 }
                             },
@@ -4446,9 +4456,19 @@
                     let labels = Object.keys(statusCodes);
                     let data = Object.values(statusCodes);
 
+                    // Never fabricate a status slice (BUG-01): empty map = not measured by the engine
                     if (labels.length === 0) {
-                        labels = ['200'];
-                        data = [lt.successfulRequests || 0];
+                        statusCanvas.style.display = 'none';
+                        if ((lt.totalRequests || 0) > 0 && !statusCanvas.parentNode.querySelector('.lt-status-not-measured')) {
+                            const note = document.createElement('div');
+                            note.className = 'lt-status-not-measured';
+                            note.style.textAlign = 'center';
+                            note.style.padding = '24px 8px';
+                            note.style.color = textColor;
+                            note.textContent = 'Status codes not measured';
+                            statusCanvas.parentNode.appendChild(note);
+                        }
+                        return;
                     }
 
                     const bgColors = labels.map(lbl => {
@@ -4462,6 +4482,7 @@
 
                     const displayLabels = labels.map(lbl => {
                         const code = String(lbl).trim().split(' ')[0];
+                        if (code === '-1') return 'No response';
                         if (code === '200') return '200 OK';
                         if (code === '201') return '201 Created';
                         if (code === '204') return '204 No Content';

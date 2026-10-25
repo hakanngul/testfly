@@ -5,7 +5,7 @@ description: Review a TestFly Java SDK diff for correctness bugs, public/binary 
 
 # TestFly Java review
 
-Review the diff (`git diff <base>...HEAD` or the working tree), then read the surrounding code and tests. Do not edit files.
+Review the diff (`git diff <base>...HEAD` or the working tree), then read the surrounding code and tests. Do not edit files and do not build: Maven and the `scripts/agent/verify.sh` gates write to `target/` and temporary directories, so the lead runs them and passes you the output. Ask for a specific gate when a finding depends on one.
 
 ## Checklist
 
@@ -14,7 +14,7 @@ Review the diff (`git diff <base>...HEAD` or the working tree), then read the su
    - `@TestFlyApi` types: no removed, renamed or narrowed members; descriptors unchanged.
    - New methods on stable interfaces need a compatible `default`.
    - Config keys and defaults unchanged, or documented.
-   - Confirm with `scripts/agent/check-public-api.sh <base>`.
+   - Ask the lead for `scripts/agent/verify.sh api <base>` output to confirm; do not run it yourself.
 3. **Concurrency:** WebDriver, session and device state stay thread-confined (`ThreadLocal`); no new shared mutable static state; parallel-safe under surefire `parallel=methods`.
 4. **Optional dependencies:** JUnit, Cucumber, Gatling, DB drivers and others are not loaded by core paths. No class literal of an optional type in always-loaded code.
 5. **Tests:**

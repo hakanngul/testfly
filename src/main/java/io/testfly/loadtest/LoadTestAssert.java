@@ -60,7 +60,20 @@ public final class LoadTestAssert {
         return assertPercentileBelow("p50", metrics.p50LatencyMs(), ms);
     }
 
-    /** Asserts p90 latency is below the given threshold (ms). */
+    /**
+     * Asserts p75 latency is below the given threshold (ms).
+     *
+     * @throws AssertionError if the threshold is not met or p75 was not measured by the engine
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LoadTestAssert assertP75Below(double ms) {
+        return assertPercentileBelow("p75", metrics.p75LatencyMs(), ms);
+    }
+
+    /**
+     * Asserts p90 latency is below the given threshold (ms). The Gatling engine does not
+     * measure p90; on such a run this assertion fails with a "not measured" error.
+     */
     public LoadTestAssert assertP90Below(double ms) {
         return assertPercentileBelow("p90", metrics.p90LatencyMs(), ms);
     }
@@ -146,6 +159,9 @@ public final class LoadTestAssert {
 
     // ── Status codes ─────────────────────────────────────────────────────
 
+    // Status-code assertions fail with "HTTP status codes were not measured" when
+    // LoadTestMetrics#statusCodesMeasured() is false, instead of passing or failing on fabricated data.
+
     /** Asserts that at least one response had the given status code. */
     public LoadTestAssert assertStatus(int status) {
         return assertStatusCodeCount(status, 1);
@@ -155,7 +171,8 @@ public final class LoadTestAssert {
      * Asserts that at least {@code minCount} responses had the given status code.
      */
     public LoadTestAssert assertStatusCodeCount(int status, long minCount) {
-        long actual = metrics.statusCodes().getOrDefault(status, 0L);
+        requireStatusCodesMeasured();
+        long actual = metrics.statusCodeCount(status);
         if (actual < minCount) {
             throw new AssertionError(String.format(
                     "[LoadTest] %s: status %d count %d is below minimum %d",
@@ -166,7 +183,8 @@ public final class LoadTestAssert {
 
     /** Asserts that no response had the given status code. */
     public LoadTestAssert assertNoStatus(int status) {
-        long count = metrics.statusCodes().getOrDefault(status, 0L);
+        requireStatusCodesMeasured();
+        long count = metrics.statusCodeCount(status);
         if (count > 0) {
             throw new AssertionError(String.format(
                     "[LoadTest] %s: expected no status %d but got %d occurrences",
@@ -185,6 +203,9 @@ public final class LoadTestAssert {
         if (step == null) {
             throw new AssertionError(String.format(
                     "[LoadTest] %s: step '%s' not found in metrics", metrics.scenarioName(), stepName));
+        }
+        if (!LoadTestMetrics.isMeasured(step.p95LatencyMs())) {
+            throw notMeasured("step '" + stepName + "' p95");
         }
         if (step.p95LatencyMs() >= ms) {
             throw new AssertionError(String.format(
@@ -219,11 +240,31 @@ public final class LoadTestAssert {
     // ── Internal ─────────────────────────────────────────────────────────
 
     private LoadTestAssert assertPercentileBelow(String label, double actual, double threshold) {
+        if (!LoadTestMetrics.isMeasured(actual)) {
+            throw notMeasured(label);
+        }
         if (actual >= threshold) {
             throw new AssertionError(String.format(
                     "[LoadTest] %s: %s latency %.0fms is not below %.0fms",
                     metrics.scenarioName(), label, actual, threshold));
         }
         return this;
+    }
+
+    private AssertionError notMeasured(String label) {
+        return new AssertionError(String.format(
+                "[LoadTest] %s: %s latency was not measured by engine '%s'",
+                metrics.scenarioName(), label, metrics.engine()));
+    }
+
+    /**
+     * Throws if the engine did not record real HTTP status codes for this run.
+     */
+    private void requireStatusCodesMeasured() {
+        if (!metrics.statusCodesMeasured()) {
+            throw new AssertionError(String.format(
+                    "[LoadTest] %s: HTTP status codes were not measured by engine '%s'",
+                    metrics.scenarioName(), metrics.engine()));
+        }
     }
 }
