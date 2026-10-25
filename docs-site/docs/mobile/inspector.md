@@ -25,7 +25,7 @@ Both packages are in the repository, so no marketplace access is needed.
 **VS Code** (1.85 or newer):
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.0.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.1.vsix
 ```
 
 or Extensions view → `…` → **Install from VSIX…**.

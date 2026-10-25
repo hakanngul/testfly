@@ -22,6 +22,8 @@ type Inbound =
     | { type: 'navigate'; url: string }
     | { type: 'viewport'; width: number; height: number }
     | { type: 'details'; index: number }
+    | { type: 'find'; query: string; keep?: boolean }
+    | { type: 'close' }
     | { type: 'clickAt'; x: number; y: number }
     | { type: 'click'; index: number }
     | { type: 'type'; index: number; text: string }
@@ -41,6 +43,17 @@ export class BrowserPanel {
     private tempProfile?: string;
     private starting?: Promise<void>;
     private busy = false;
+
+    /** True while the panel's browser runs on the kept-session profile, which must not be deleted then. */
+    static usesKeptSession(): boolean {
+        const p = BrowserPanel.current;
+        return !!p && !!p.browser && !p.browser.cdp.closed && p.launch.keepSession;
+    }
+
+    /** Where Keep session stores cookies and logins, one folder per browser. */
+    static profileRoot(context: vscode.ExtensionContext): string {
+        return path.join(context.globalStorageUri.fsPath, 'browser-profile');
+    }
 
     /** Closes the panel and its browser; used when the extension deactivates. */
     static disposeCurrent() {
@@ -106,6 +119,16 @@ export class BrowserPanel {
                         await this.applyViewport();
                         await this.read();
                     });
+                case 'find':
+                    if (!this.browser || this.browser.cdp.closed) {
+                        return;
+                    }
+                    return this.post({ type: 'found', query: m.query, keep: m.keep, ...(await this.agentCall(`find(${JSON.stringify(String(m.query))})`)) });
+                case 'close':
+                    await this.stopBrowser();
+                    this.post({ type: 'closed' });
+                    this.post({ type: 'status', state: 'idle', message: 'Browser closed. Refresh starts it again.' });
+                    return;
                 case 'details':
                     return this.post({ type: 'details', index: m.index, data: await this.agentCall(`details(${Number(m.index)}, ${this.agentOptions()})`) });
                 case 'clickAt':
@@ -139,7 +162,7 @@ export class BrowserPanel {
     private async open() {
         const l = this.launch;
         this.post({ type: 'status', state: 'connecting', message: `Starting ${l.browser.name}…` });
-        const profile = l.keepSession ? path.join(this.context.globalStorageUri.fsPath, 'browser-profile', l.browser.id) : this.newTempProfile();
+        const profile = l.keepSession ? path.join(BrowserPanel.profileRoot(this.context), l.browser.id) : this.newTempProfile();
         fs.mkdirSync(profile, { recursive: true });
         const browser = await launchBrowser({ executable: l.browser.path, userDataDir: profile, headless: l.headless, width: l.width, height: l.height });
         this.browser = browser;
@@ -293,6 +316,9 @@ export class BrowserPanel {
         const started = Date.now();
         this.post({ type: 'status', state: 'loading', message: 'Reading the page…' });
         const snap = await this.agentCall(`snapshot(${this.agentOptions()})`);
+        if (snap.url && snap.url !== 'about:blank') {
+            this.launch = { ...this.launch, url: snap.url }; // a restart after Close opens the page last read
+        }
         const width = Math.max(1, Math.min(snap.width, 4_000));
         const height = Math.max(1, Math.min(snap.height, MAX_SHOT_HEIGHT));
         const shot = await this.send<any>('Page.captureScreenshot', {

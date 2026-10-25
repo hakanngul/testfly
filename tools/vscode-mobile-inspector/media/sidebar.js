@@ -9,7 +9,7 @@
         url: saved.url || '',
         browser: saved.browser || '',
         viewport: saved.viewport || '1440x900',
-        headless: !!saved.headless,
+        showWindow: !!saved.showWindow, // default: no window, the page shows only in the inspector
         keepSession: saved.keepSession !== false,
         browsers: [],
     };
@@ -27,7 +27,7 @@
     });
 
     function persist() {
-        vscode.setState({ side: state.side, url: state.url, browser: state.browser, viewport: state.viewport, headless: state.headless, keepSession: state.keepSession });
+        vscode.setState({ side: state.side, url: state.url, browser: state.browser, viewport: state.viewport, showWindow: state.showWindow, keepSession: state.keepSession });
     }
 
     function setSide(side) {
@@ -91,7 +91,7 @@
             return;
         }
         const [width, height] = state.viewport.split('x').map(Number);
-        vscode.postMessage({ type: 'launch', browser: state.browser, url, width, height, headless: state.headless, keepSession: state.keepSession });
+        vscode.postMessage({ type: 'launch', browser: state.browser, url, width, height, headless: !state.showWindow, keepSession: state.keepSession });
     }
 
     document.querySelectorAll('[data-side]').forEach(b => b.addEventListener('click', () => setSide(b.dataset.side)));
@@ -104,8 +104,9 @@
     $('pageUrl').addEventListener('input', e => { state.url = e.target.value; persist(); });
     $('viewportSel').value = state.viewport;
     $('viewportSel').addEventListener('change', e => { state.viewport = e.target.value; persist(); });
-    $('headless').checked = state.headless;
-    $('headless').addEventListener('change', e => { state.headless = e.target.checked; persist(); });
+    $('showWindow').checked = state.showWindow;
+    $('showWindow').addEventListener('change', e => { state.showWindow = e.target.checked; persist(); });
+    $('clearSession').addEventListener('click', () => vscode.postMessage({ type: 'clearSession' }));
     $('keepSession').checked = state.keepSession;
     $('keepSession').addEventListener('change', e => { state.keepSession = e.target.checked; persist(); });
     $('launchForm').addEventListener('submit', e => { e.preventDefault(); launch(); });

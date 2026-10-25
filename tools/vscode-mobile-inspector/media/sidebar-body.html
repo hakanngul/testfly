@@ -35,8 +35,9 @@
         <option value="390x844">Mobile · 390 × 844</option>
       </select>
 
-      <label class="switch-row"><span>Headless<small>No browser window; the page shows only in the inspector</small></span><input type="checkbox" id="headless"><i></i></label>
+      <label class="switch-row"><span>Show browser window<small>Off: the page shows only in the inspector. On: also a browser window, to log in or use the page by hand</small></span><input type="checkbox" id="showWindow"><i></i></label>
       <label class="switch-row"><span>Keep session<small>Cookies and logins stay between runs</small></span><input type="checkbox" id="keepSession"><i></i></label>
+      <p class="muted small clear-row"><button type="button" class="link" id="clearSession">Clear saved session</button> removes the kept cookies and logins.</p>
 
       <button class="primary wide launch" id="launch" type="submit">
         <svg viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg>Launch and inspect

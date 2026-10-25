@@ -21,9 +21,9 @@ The **TestFly** icon in the activity bar opens a view with a **Mobile / Browser*
 
 ## Browser Inspector
 
-- **Start**: TestFly view → **Browser**: page URL, a detected browser (Chrome, Edge, Chromium), viewport, **Headless** and **Keep session** (cookies and logins kept in a TestFly profile), then **Launch and inspect**. Recent pages are one click away. Command palette → **TestFly: Open Browser Inspector** asks for a URL.
+- **Start**: TestFly view → **Browser**: page URL, a detected browser (Chrome, Edge, Chromium), viewport, **Show browser window** (off by default: the page shows only in the inspector) and **Keep session** (cookies and logins kept in a TestFly profile; **Clear saved session** removes them), then **Launch and inspect**. Recent pages are one click away. Command palette → **TestFly: Open Browser Inspector** asks for a URL. **Close browser** in the toolbar, or closing the tab, closes the browser.
 - **Page** (top): the whole page as one screenshot with hover outlines; click to select the smallest element under the cursor. In **Click** mode a click clicks the browser at that point and the page is read again. Back, forward, reload and an address bar.
-- **DOM tree** (bottom left): tags, texts, test ids, ids and classes; filter with `/`, arrow keys to move.
+- **DOM tree** (bottom left): tags, texts, test ids, ids and classes. The find box works like Chrome DevTools' *Find by string, selector, or XPath* (`#homepage-layout`, `.widget`, `//div[@id='x']` or text): matches are highlighted, *1 of N*, `Enter` / `Shift+Enter` move between them.
 - **Locators** (bottom right): `getByTestId`, `getByRole(Role.…, "name")`, `getByLabel`, `getByPlaceholder`, `findById`, `getByText` and a unique `find("css")`, unique first, each with its match count on the page, computed in the page with TestFly's own rules (`Role` selectors, accessible name, case-insensitive substring, innermost text). Copy one, or copy it as a field: `private final Locator signIn = getByTestId("sign-in");`. Click and Type act on the selected element. **Attributes** lists every attribute, role, accessible name and state.
 - No WebDriver or extra package: the browser is driven over the DevTools protocol through a pipe (`--remote-debugging-pipe`). Iframes and shadow roots are not listed.
 
@@ -36,10 +36,10 @@ The **TestFly** icon in the activity bar opens a view with a **Mobile / Browser*
 ## Install and use
 
 ```bash
-code --install-extension testfly-mobile-inspector-0.3.0.vsix
+code --install-extension testfly-mobile-inspector-0.3.1.vsix
 ```
 
-Activity bar → **TestFly**, or the command palette → **TestFly: Open Mobile Inspector** / **TestFly: Open Browser Inspector**. Mobile keys: `R` refresh, `I` inspect, `T` tap, `E` record, `/` filter, `Esc` clear. Browser keys: `R` refresh, `I` inspect, `C` click, `/` filter, `Esc` clear.
+Activity bar → **TestFly**, or the command palette → **TestFly: Open Mobile Inspector** / **TestFly: Open Browser Inspector**. Mobile keys: `R` refresh, `I` inspect, `T` tap, `E` record, `/` filter, `Esc` clear. Browser keys: `R` refresh, `I` inspect, `C` click, `/` find, `Esc` clear.
 
 | Setting | Default | |
 |---|---|---|

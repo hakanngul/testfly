@@ -3,7 +3,7 @@
 // FORM_CONTROL_CSS, case-insensitive substring matching by default and innermost-only text matching.
 (function () {
     'use strict';
-    var VERSION = 1;
+    var VERSION = 2;
     if (window.__testflyAgent && window.__testflyAgent.version === VERSION) return window.__testflyAgent;
 
     // Role.java, in declaration order; the first css match wins for implicit roles.
@@ -258,6 +258,43 @@
         };
     }
 
+    // Like Chrome DevTools' "Find by string, selector, or XPath": the union of a CSS selector match, an XPath match
+    // and a case-insensitive string match on the element's markup (<tag attr="value">) and own text.
+    function markup(e) {
+        var s = '<' + e.tagName.toLowerCase();
+        for (var a = 0; a < e.attributes.length; a++) s += ' ' + e.attributes[a].name + '="' + e.attributes[a].value + '"';
+        return (s + '>' + ownText(e)).toLowerCase();
+    }
+
+    function find(query) {
+        var q = String(query || '').trim();
+        var hits = new Set();
+        var kinds = [];
+        if (!q) return { indices: [], kinds: kinds };
+        if (/^(\/|\(|\.\/|\.\.\/)/.test(q)) {
+            try {
+                var r = document.evaluate(q, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                for (var i = 0; i < r.snapshotLength; i++) {
+                    var n = r.snapshotItem(i);
+                    hits.add(n.nodeType === 1 ? n : n.parentElement);
+                }
+                if (r.snapshotLength) kinds.push('XPath');
+            } catch (x) { /* not XPath */ }
+        }
+        try {
+            var css = document.querySelectorAll(q);
+            css.forEach(function (e) { hits.add(e); });
+            if (css.length) kinds.push('selector');
+        } catch (x) { /* not a selector */ }
+        var low = q.toLowerCase();
+        var before = hits.size;
+        els.forEach(function (e) { if (markup(e).indexOf(low) >= 0) hits.add(e); });
+        if (hits.size > before) kinds.push('text');
+        var indices = [];
+        els.forEach(function (e, idx) { if (hits.has(e)) indices.push(idx); });
+        return { indices: indices, kinds: kinds };
+    }
+
     /** Scrolls the element (or document point) into the middle of the viewport; returns its centre in viewport pixels. */
     function center(i) {
         var e = els[i];
@@ -273,5 +310,5 @@
         return !!e;
     }
 
-    return (window.__testflyAgent = { version: VERSION, snapshot: snapshot, details: details, center: center, focus: focus });
+    return (window.__testflyAgent = { version: VERSION, snapshot: snapshot, details: details, find: find, center: center, focus: focus });
 })()

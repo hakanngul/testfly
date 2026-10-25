@@ -39,6 +39,9 @@
     </div>
 
     <div class="spacer"></div>
+    <button id="closeBrowser" title="Close the browser; the panel stays and Refresh starts it again">
+      <svg viewBox="0 0 16 16"><path d="M8 2v6"/><path d="M4.5 4.2a5 5 0 1 0 7 0"/></svg><span>Close browser</span>
+    </button>
     <div class="status" id="status" data-state="connecting">
       <span class="dot"></span><span id="statusText">Starting…</span>
     </div>
@@ -70,11 +73,14 @@
         <div class="pane-header tabs" role="tablist">
           <button class="tab active" role="tab">DOM Tree</button>
           <span class="spacer"></span>
-          <div class="search inline" id="searchBox">
-            <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
-            <input id="search" type="search" placeholder="Filter by text, tag, test id or role  ( / )" spellcheck="false">
-          </div>
           <span class="muted" id="treeCount"></span>
+        </div>
+        <div class="search" id="searchBox">
+          <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+          <input id="search" type="search" placeholder="Find by string, selector, or XPath  ( / )" spellcheck="false" title="CSS selector (#id, .class, div > a), XPath (//div[@id='x']) or text; Enter: next match, Shift+Enter: previous">
+          <span class="find-count" id="findCount"></span>
+          <button class="icon mini" id="findPrev" title="Previous match (Shift+Enter)"><svg viewBox="0 0 16 16"><path d="M4 10l4-4 4 4"/></svg></button>
+          <button class="icon mini" id="findNext" title="Next match (Enter)"><svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg></button>
         </div>
         <div class="tree" id="tree" role="tree" tabindex="0"></div>
       </section>

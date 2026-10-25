@@ -9,7 +9,7 @@ const RECENT_KEY = 'testflyInspector.recentUrls';
 
 /** Messages the sidebar sends; see media/sidebar.js. */
 type Inbound =
-    | { type: 'ready' | 'rescan' | 'openMobile' | 'settings' }
+    | { type: 'ready' | 'rescan' | 'openMobile' | 'settings' | 'clearSession' }
     | { type: 'launch'; browser: string; url: string; width: number; height: number; headless: boolean; keepSession: boolean };
 
 /** The activity-bar view: a Mobile / Browser switch that opens either inspector. */
@@ -39,6 +39,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         return findBrowsers(vscode.workspace.getConfiguration('testflyInspector').get('browserPath', ''));
     }
 
+    private async clearSession() {
+        if (BrowserPanel.usesKeptSession()) {
+            void vscode.window.showWarningMessage('Close the browser first (Close browser in the Browser Inspector), then clear the session.');
+            return;
+        }
+        await fs.promises.rm(BrowserPanel.profileRoot(this.context), { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+        void vscode.window.showInformationMessage('Saved browser session cleared: the next launch starts without cookies or logins.');
+    }
+
     private async handle(m: Inbound) {
         switch (m.type) {
             case 'ready':
@@ -50,6 +59,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                 return vscode.commands.executeCommand('testflyInspector.open');
             case 'settings':
                 return vscode.commands.executeCommand('workbench.action.openSettings', 'testflyInspector');
+            case 'clearSession':
+                return this.clearSession();
             case 'launch': {
                 const browser = this.browsers().find(b => b.id === m.browser) ?? this.browsers()[0];
                 if (!browser) {

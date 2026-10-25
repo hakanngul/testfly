@@ -88,6 +88,16 @@ test('drives a real browser over the pipe and ranks TestFly locators', { skip: !
         const remember = await byKind(flat.find(n => n.id === 'remember'));
         assert.strictEqual(remember['ROLE getByRole(Role.CHECKBOX, "Remember me")'], 1);
 
+        // find, as in Chrome DevTools: CSS selector, XPath and text, as indices into the snapshot
+        const tagsOf = async q => { const r = await evaluate(`find(${JSON.stringify(q)})`); return [r.indices.map(i => flat.find(n => n.i === i).tag).join(' '), r.kinds.join(',')]; };
+        assert.deepStrictEqual(await tagsOf('#login'), ['form', 'selector']);
+        assert.deepStrictEqual(await tagsOf('form > button'), ['button', 'selector']);
+        assert.deepStrictEqual(await tagsOf("//input[@data-testid='email']"), ['input', 'XPath']);
+        assert.deepStrictEqual(await tagsOf('Remember me'), ['label', 'text']); // a selector that matches nothing: text wins
+        assert.deepStrictEqual(await tagsOf('sign-in'), ['button', 'text']); // attribute values count, as in Chrome
+        assert.deepStrictEqual(await tagsOf('#nope'), ['', '']);
+        assert.deepStrictEqual(await tagsOf('div[unclosed'), ['', '']); // invalid selector and no text: no match, no error
+
         // a custom test id attribute
         const custom = await evaluate('snapshot({ testIdAttribute: "placeholder" })');
         assert.ok(JSON.stringify(custom).includes('"testId":"you@example.com"'));

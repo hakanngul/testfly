@@ -21,7 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('testflyInspector.openBrowser', () => openBrowser(context)));
 }
 
-/** Command palette entry: asks for a URL and opens it in the first browser found, with a window and a kept session. */
+/** Command palette entry: asks for a URL and opens it in the first browser found, without a window and with a kept session. */
 async function openBrowser(context: vscode.ExtensionContext) {
     const browser = findBrowsers(vscode.workspace.getConfiguration('testflyInspector').get('browserPath', ''))[0];
     if (!browser) {
@@ -33,7 +33,7 @@ async function openBrowser(context: vscode.ExtensionContext) {
         return;
     }
     await rememberUrl(context, url);
-    BrowserPanel.show(context, { browser, url, width: 1440, height: 900, headless: false, keepSession: true });
+    BrowserPanel.show(context, { browser, url, width: 1440, height: 900, headless: true, keepSession: true });
 }
 
 export function deactivate() {

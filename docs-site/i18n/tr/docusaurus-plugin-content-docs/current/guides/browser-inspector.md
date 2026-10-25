@@ -20,7 +20,7 @@ Browser Inspector, TestFly VS Code eklentisinin bir parçasıdır ve [Mobile Ins
 Browser Inspector, Mobile Inspector ile aynı paketle gelir:
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.0.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.1.vsix
 ```
 
 VS Code 1.85 veya üstü ile Chrome, Edge ya da Chromium gerekir. Tarayıcı olağan kurulum yerinde bulunur; başka bir yer için `testflyInspector.browserPath` ayarını girin. WebDriver, Node paketi veya tarayıcı eklentisi gerekmez: inspector tarayıcıyı bir pipe üzerinden DevTools protokolüyle yönetir.
@@ -34,22 +34,34 @@ Etkinlik çubuğundaki **TestFly** simgesine tıklayın ve **Browser**'a geçin:
 | Page URL | açılacak sayfa; `example.com` → `https://example.com`, `localhost:3000` → `http://localhost:3000` |
 | Browser | bu makinede bulunan tarayıcılar; **Rescan** yeniden arar |
 | Viewport | Desktop 1440 × 900, Laptop 1280 × 800, Tablet 768 × 1024 veya Mobile 390 × 844 |
-| Headless | tarayıcı penceresi açılmaz; sayfa yalnızca inspector'da görünür |
-| Keep session | çerez ve oturumlar bir TestFly profilinde çalıştırmalar arasında korunur (kendi tarayıcı profiliniz asla kullanılmaz); kapalıyken geçici bir profil kullanılır |
+| Show browser window | kapalı (varsayılan): tarayıcı penceresiz çalışır, sayfa yalnızca inspector'da görünür; açık: ayrıca bir tarayıcı penceresi açılır, giriş yapmak ya da sayfayı elle kullanmak için |
+| Keep session | çerez ve oturumlar bir TestFly profilinde çalıştırmalar arasında korunur (kendi tarayıcı profiliniz asla kullanılmaz); kapalıyken geçici bir profil kullanılır. **Clear saved session** korunan profili siler (önce tarayıcıyı kapatın) |
 
-**Launch and inspect** paneli açar. Son açılan sayfalar **Recent** altında listelenir. Komut paletindeki **TestFly: Open Browser Inspector** bir URL sorar ve sayfayı tarayıcı penceresiyle ve korunan oturumla açar.
+**Launch and inspect** paneli açar. Son açılan sayfalar **Recent** altında listelenir. Komut paletindeki **TestFly: Open Browser Inspector** bir URL sorar ve sayfayı penceresiz ve korunan oturumla açar.
+
+Inspector'ın sayfayı çizmesi için her zaman çalışan bir tarayıcı gerekir; **Show browser window** kapalıyken bu tarayıcıyı hiç görmezsiniz.
 
 ## Panel
 
 | Alan | Gösterdiği |
 |---|---|
-| Araç çubuğu | tarayıcı ve sürümü, geri / ileri / yenile, adres çubuğu (URL yazıp Enter'a basın), viewport, **Refresh**, tıklama modu (Inspect / Click) ve durum |
+| Araç çubuğu | tarayıcı ve sürümü, geri / ileri / yenile, adres çubuğu (URL yazıp Enter'a basın), viewport, **Refresh**, tıklama modu (Inspect / Click), **Close browser** ve durum |
 | Sayfa (üstte) | sayfanın tamamı tek ekran görüntüsü olarak; üzerine gelince öğe çerçevelenir, tıklama öğeyi seçer (Inspect) ya da tarayıcıda tıklar (Click) |
-| **DOM Tree** (sol alt) | etiket, metin, test id, id ve sınıflarla öğe ağacı; metin, etiket, test id veya role göre filtre; ok tuşlarıyla gezinme ve açma |
+| **DOM Tree** (sol alt) | etiket, metin, test id, id ve sınıflarla öğe ağacı ve bir arama kutusu (aşağıya bakın); ok tuşlarıyla gezinme ve açma |
 | **Locators** (sağ alt) | seçilen öğenin TestFly locator'ları, page object alanı ve o öğe üzerinde Click / Type |
 | **Attributes** | tüm özellikler, rol, erişilebilir ad, metin, sınırlar ve durum |
 
-Sayfa ile çekmece arasındaki ya da ağaç ile ayrıntılar arasındaki sınırı sürükleyerek boyutlandırabilirsiniz; boyutlar hatırlanır. **Headless** kapalıyken tarayıcı penceresini doğrudan kullanıp sayfayı yeniden okumak için **Refresh**'e basabilirsiniz.
+Sayfa ile çekmece arasındaki ya da ağaç ile ayrıntılar arasındaki sınırı sürükleyerek boyutlandırabilirsiniz; boyutlar hatırlanır. **Show browser window** açıkken tarayıcı penceresini doğrudan kullanıp sayfayı yeniden okumak için **Refresh**'e basabilirsiniz.
+
+## Öğe aramak
+
+Ağacın üstündeki kutu, Chrome DevTools'taki **Find by string, selector, or XPath** gibi çalışır. Yazdığınız şey sayfanın içinde şöyle değerlendirilir:
+
+- CSS seçici: `#homepage-layout`, `.widget`, `div.homeWidget > .widget__live`, `[data-testid="email"]`;
+- `/`, `(` veya `./` ile başlıyorsa XPath: `//div[@id='homepage-middle']`;
+- metin: her öğenin işaretlemesinde ve kendi metninde büyük-küçük harf duyarsız aranır: `homepage`, `widget__footer`, `id="content"`, `Popular`.
+
+Eşleşmeler ağaçta vurgulanır (ağaç filtrelenmez) ve kutuda *1 of N* görünür; ilk eşleşme seçilir. **Enter** ve ↓ düğmesi sonraki eşleşmeye, **Shift+Enter** ve ↑ öncekine geçer; her eşleşme ağaçta açılır, sayfada çerçevelenir ve locator'ları gösterilir. Sayının üzerine gelince sorgunun seçici, XPath mi yoksa metin olarak mı eşleştiği görünür. Sorgu her yenilemeden ve işlemden sonra yeniden çalışır.
 
 ## Locator bulmak
 
@@ -89,7 +101,7 @@ Projeniz farklı bir test id özelliği okuyorsa (`locators.testIdAttribute`, ö
 |---|---|
 | `R` | Refresh |
 | `I` / `C` | Inspect / Click modu |
-| `/` | ağaç filtresine odaklan |
+| `/` | arama kutusuna odaklan; `Enter` / `Shift+Enter` sonraki / önceki eşleşme |
 | `↑` `↓` | ağaçta gezin |
 | `←` `→` | kapat / aç |
 | `Esc` | seçimi kaldır |
@@ -107,6 +119,10 @@ Projeniz farklı bir test id özelliği okuyorsa (`locators.testIdAttribute`, ö
 - iframe ve shadow root içindeki öğeler listelenmez.
 - Ağaç ilk 5.000 öğeyi, ekran görüntüsü uzun bir sayfanın ilk 12.000 CSS pikselini içerir.
 - Sayfa, yenilemede ve her işlemden sonra alınan bir anlık görüntüdür, canlı akış değildir.
+
+## Kapatmak
+
+Araç çubuğundaki **Close browser** tarayıcıyı kapatır, panel açık kalır; **Refresh** tarayıcıyı bulunduğunuz sayfada yeniden başlatır. Panel sekmesini kapatmak da tarayıcıyı kapatır. **Keep session** açıkken çerez ve oturumlar tarayıcı kapanırken kaydedilir; TestFly görünümündeki **Clear saved session** bunları siler.
 
 ## Sorun giderme
 

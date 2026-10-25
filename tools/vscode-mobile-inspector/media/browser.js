@@ -27,7 +27,8 @@
     const state = {
         page: null, tree: [], flat: [], byIndex: new Map(), paths: new Map(), parents: new Map(),
         selected: null, hovered: null, details: null, expanded: new Set(saved.expanded || []),
-        mode: saved.mode || 'inspect', tab: 'locators', filter: '',
+        mode: saved.mode || 'inspect', tab: 'locators',
+        find: { query: '', matches: [], set: new Set(), current: -1, kinds: [] },
     };
 
     // ── host messages ───────────────────────────────────────────────────
@@ -39,6 +40,8 @@
             case 'browser': return onBrowser(m);
             case 'page': return onPage(m);
             case 'details': return onDetails(m);
+            case 'found': return onFound(m);
+            case 'closed': return onClosed();
             case 'history': $('back').disabled = !m.canBack; $('forward').disabled = !m.canForward; return;
             case 'status': return setStatus(m.state, m.message);
             case 'error': return onError(m.message);
@@ -126,9 +129,18 @@
         $('treeCount').textContent = `${m.count} elements${m.truncated ? ' (first ' + m.count + ')' : ''}`;
         const host = hostOf(m.url);
         setStatus('ok', `${host ? host + ' · ' : ''}${m.count} elements · ${m.ms} ms`);
+        state.find.matches = [];
+        state.find.set = new Set();
         renderTree();
         renderDetails();
         if (state.selected) send({ type: 'details', index: state.selected.i });
+        if (state.find.query) send({ type: 'find', query: state.find.query, keep: true });
+        renderFindCount();
+    }
+
+    function onClosed() {
+        $('page').classList.add('closed');
+        $('closeBrowser').disabled = true;
     }
 
     function hostOf(url) {
@@ -159,7 +171,9 @@
     }
 
     function label(n) {
-        return n.tag + (n.testId ? ' · ' + n.testId : n.id ? '#' + n.id : n.name ? ' “' + n.name + '”' : '');
+        // like Chrome's breadcrumb: tag#id or tag.class, then the test id or name when there is one
+        const base = n.tag + (n.id ? '#' + n.id : n.cls ? '.' + n.cls[0] : '');
+        return base + (n.testId ? ' · ' + n.testId : !n.id && n.name ? ' “' + n.name + '”' : '');
     }
 
     function renderHover() {
@@ -283,12 +297,6 @@
         return { cls: 'other', label: n.tag.charAt(0).toUpperCase() };
     }
 
-    function matches(n, q) {
-        if (!q) return true;
-        return [n.tag, n.id, n.testId, n.text, n.name, n.role, n.placeholder, (n.cls || []).join(' ')]
-            .filter(Boolean).join(' ').toLowerCase().includes(q);
-    }
-
     function rowFor(n) {
         const key = state.paths.get(n);
         return key == null ? null : $('tree').querySelector(`.row[data-key="${key}"]`);
@@ -296,44 +304,30 @@
 
     function renderTree() {
         const tree = $('tree');
-        const q = state.filter.trim().toLowerCase();
-        const visible = new Set();
-        if (q) {
-            for (const n of state.flat) {
-                if (!matches(n, q)) continue;
-                for (let p = n; p; p = state.parents.get(p)) visible.add(state.paths.get(p));
-            }
-        }
         const frag = document.createDocumentFragment();
         const walk = (list, depth) => {
             for (const n of list) {
                 const key = state.paths.get(n);
-                if (q && !visible.has(key)) continue;
                 const kids = n.children || [];
-                const open = q ? true : state.expanded.has(key) || depth < 3;
-                frag.append(row(n, key, depth, kids.length > 0, open, q));
+                const open = state.expanded.has(key) || depth < 3;
+                frag.append(row(n, key, depth, kids.length > 0, open));
                 if (kids.length && open) walk(kids, depth + 1);
             }
         };
         walk(state.tree, 0);
         tree.innerHTML = '';
         if (!frag.childNodes.length) {
-            tree.innerHTML = `<div class="empty-state small"><p>${state.tree.length ? 'No element matches the filter.' : 'The DOM tree appears when the page is read.'}</p></div>`;
+            tree.innerHTML = '<div class="empty-state small"><p>The DOM tree appears when the page is read.</p></div>';
             return;
         }
         tree.append(frag);
     }
 
-    function hl(text, q) {
-        const t = esc(text);
-        if (!q) return t;
-        const i = text.toLowerCase().indexOf(q);
-        return i < 0 ? t : esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
-    }
-
-    function row(n, key, depth, hasKids, open, q) {
+    function row(n, key, depth, hasKids, open) {
         const r = document.createElement('div');
-        r.className = 'row' + (n === state.selected ? ' selected' : '') + (q && !matches(n, q) ? ' dim' : '') + (n.visible ? '' : ' hidden-el');
+        const f = state.find;
+        r.className = 'row' + (n === state.selected ? ' selected' : '') + (n.visible ? '' : ' hidden-el')
+            + (f.set.has(n.i) ? ' match' + (f.matches[f.current] === n.i ? ' current' : '') : '');
         r.dataset.key = key;
         r.setAttribute('role', 'treeitem');
         if (hasKids) r.setAttribute('aria-expanded', String(open));
@@ -344,10 +338,10 @@
             '<span class="indent"></span>' +
             ICON.chev.replace('class="chev"', `class="chev${hasKids ? (open ? ' open' : '') : ' none'}"`) +
             `<span class="kind ${k.cls}">${esc(k.label)}</span>` +
-            `<span class="tag-name">${hl(n.tag, q)}</span>` +
-            (text ? `<span class="txt">“<b>${hl(text, q)}</b>”</span>` : '') +
-            (n.testId ? `<span class="tid">${hl(n.testId, q)}</span>` : '') +
-            (attrs ? `<span class="attr">${hl(attrs.trim(), q)}</span>` : '');
+            `<span class="tag-name">${esc(n.tag)}</span>` +
+            (text ? `<span class="txt">“<b>${esc(text)}</b>”</span>` : '') +
+            (n.testId ? `<span class="tid">${esc(n.testId)}</span>` : '') +
+            (attrs ? `<span class="attr">${esc(attrs.trim())}</span>` : '');
         // set through the CSSOM: the webview CSP drops inline style="" attributes
         r.querySelector('.indent').style.width = `${depth * INDENT + 4}px`;
         r.addEventListener('click', ev => {
@@ -366,10 +360,62 @@
         renderTree();
     }
 
+    // ── find (string, CSS selector or XPath, evaluated in the page) ─────
+    let findTimer;
     $('search').addEventListener('input', e => {
-        state.filter = e.target.value;
-        renderTree();
+        clearTimeout(findTimer);
+        const query = e.target.value.trim();
+        state.find.query = query;
+        if (!query) {
+            state.find = { query: '', matches: [], set: new Set(), current: -1, kinds: [] };
+            renderTree();
+            renderFindCount();
+            return;
+        }
+        findTimer = setTimeout(() => send({ type: 'find', query }), 200);
     });
+    $('search').addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            step(e.shiftKey ? -1 : 1);
+        } else if (e.key === 'Escape' && $('search').value) {
+            e.stopPropagation();
+            $('search').value = '';
+            $('search').dispatchEvent(new Event('input'));
+        }
+    });
+    $('findNext').addEventListener('click', () => step(1));
+    $('findPrev').addEventListener('click', () => step(-1));
+
+    function onFound(m) {
+        if (m.query !== state.find.query) return; // an older answer
+        const keep = m.keep && state.selected ? m.indices.indexOf(state.selected.i) : -1;
+        state.find.matches = m.indices;
+        state.find.set = new Set(m.indices);
+        state.find.kinds = m.kinds || [];
+        state.find.current = keep;
+        if (!m.keep && m.indices.length) return step(1);
+        renderTree();
+        renderFindCount();
+    }
+
+    /** Moves to the next or previous match, like Enter / Shift+Enter in Chrome DevTools. */
+    function step(dir) {
+        const f = state.find;
+        if (!f.matches.length) return renderFindCount();
+        f.current = (f.current + dir + f.matches.length) % f.matches.length;
+        renderFindCount();
+        select(state.byIndex.get(f.matches[f.current]), true);
+    }
+
+    function renderFindCount() {
+        const f = state.find;
+        const el = $('findCount');
+        el.textContent = !f.query ? '' : f.matches.length ? `${f.current >= 0 ? f.current + 1 : '–'} of ${f.matches.length}` : 'No match';
+        el.classList.toggle('none', !!f.query && !f.matches.length);
+        el.title = f.kinds.length ? 'Matched as ' + f.kinds.join(', ') : '';
+        $('findPrev').disabled = $('findNext').disabled = f.matches.length < 2;
+    }
 
     $('tree').addEventListener('keydown', e => {
         const rows = [...$('tree').querySelectorAll('.row')];
@@ -540,6 +586,7 @@
     $('forward').addEventListener('click', () => { send({ type: 'forward' }); setStatus('loading', 'Going forward…'); });
     $('reload').addEventListener('click', () => { send({ type: 'reload' }); setStatus('loading', 'Reloading…'); });
     $('refresh').addEventListener('click', refresh);
+    $('closeBrowser').addEventListener('click', () => { send({ type: 'close' }); setStatus('loading', 'Closing the browser…'); });
     $('viewport').addEventListener('change', e => {
         const [width, height] = e.target.value.split('x').map(Number);
         send({ type: 'viewport', width, height });
@@ -548,6 +595,8 @@
     document.querySelectorAll('#mode button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
 
     function refresh() {
+        $('page').classList.remove('closed');
+        $('closeBrowser').disabled = false;
         send({ type: 'refresh' });
         setStatus('loading', 'Reading the page…');
     }

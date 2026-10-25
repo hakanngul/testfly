@@ -21,9 +21,9 @@ Etkinlik çubuğundaki **TestFly** simgesi, **Mobile / Browser** geçişi olan b
 
 ## Browser Inspector
 
-- **Başlatma**: TestFly görünümü → **Browser**: sayfa URL'si, bulunan bir tarayıcı (Chrome, Edge, Chromium), viewport, **Headless** ve **Keep session** (çerez ve oturumlar bir TestFly profilinde korunur), sonra **Launch and inspect**. Son sayfalar tek tıkla açılır. Komut paleti → **TestFly: Open Browser Inspector** bir URL sorar.
+- **Başlatma**: TestFly görünümü → **Browser**: sayfa URL'si, bulunan bir tarayıcı (Chrome, Edge, Chromium), viewport, **Show browser window** (varsayılan kapalı: sayfa yalnızca inspector'da görünür) ve **Keep session** (çerez ve oturumlar bir TestFly profilinde korunur; **Clear saved session** siler), sonra **Launch and inspect**. Son sayfalar tek tıkla açılır. Komut paleti → **TestFly: Open Browser Inspector** bir URL sorar. Araç çubuğundaki **Close browser** ya da sekmeyi kapatmak tarayıcıyı kapatır.
 - **Sayfa** (üstte): sayfanın tamamı, üzerine gelince çerçevelenen tek bir ekran görüntüsü olarak; tıklayınca imlecin altındaki en küçük öğe seçilir. **Click** modunda tıklama tarayıcıda o noktaya tıklar ve sayfa yeniden okunur. Geri, ileri, yenile ve adres çubuğu.
-- **DOM ağacı** (sol alt): etiketler, metinler, test id'ler, id'ler ve sınıflar; `/` ile filtre, ok tuşlarıyla gezinme.
+- **DOM ağacı** (sol alt): etiketler, metinler, test id'ler, id'ler ve sınıflar. Arama kutusu Chrome DevTools'taki *Find by string, selector, or XPath* gibi çalışır (`#homepage-layout`, `.widget`, `//div[@id='x']` veya metin): eşleşmeler vurgulanır, *1 of N*, `Enter` / `Shift+Enter` aralarında gezinir.
 - **Locators** (sağ alt): `getByTestId`, `getByRole(Role.…, "ad")`, `getByLabel`, `getByPlaceholder`, `findById`, `getByText` ve tekil bir `find("css")`; önce tekiller, her biri sayfadaki eşleşme sayısıyla. Sayılar sayfanın içinde TestFly'ın kendi kurallarıyla hesaplanır (`Role` seçicileri, erişilebilir ad, büyük-küçük harf duyarsız "içerir", en içteki metin). Tek tek ya da alan olarak kopyalanır: `private final Locator signIn = getByTestId("sign-in");`. Click ve Type seçilen öğe üzerinde çalışır. **Attributes** tüm özellikleri, rolü, erişilebilir adı ve durumu listeler.
 - WebDriver veya ek paket gerekmez: tarayıcı bir pipe üzerinden DevTools protokolüyle yönetilir (`--remote-debugging-pipe`). iframe ve shadow root içi listelenmez.
 
@@ -36,10 +36,10 @@ Etkinlik çubuğundaki **TestFly** simgesi, **Mobile / Browser** geçişi olan b
 ## Kurulum ve kullanım
 
 ```bash
-code --install-extension testfly-mobile-inspector-0.3.0.vsix
+code --install-extension testfly-mobile-inspector-0.3.1.vsix
 ```
 
-Etkinlik çubuğu → **TestFly**, veya komut paleti → **TestFly: Open Mobile Inspector** / **TestFly: Open Browser Inspector**. Mobil tuşlar: `R` yenile, `I` inceleme, `T` dokunma, `E` kayıt, `/` filtre, `Esc` seçimi kaldır. Tarayıcı tuşları: `R` yenile, `I` inceleme, `C` tıklama, `/` filtre, `Esc` seçimi kaldır.
+Etkinlik çubuğu → **TestFly**, veya komut paleti → **TestFly: Open Mobile Inspector** / **TestFly: Open Browser Inspector**. Mobil tuşlar: `R` yenile, `I` inceleme, `T` dokunma, `E` kayıt, `/` filtre, `Esc` seçimi kaldır. Tarayıcı tuşları: `R` yenile, `I` inceleme, `C` tıklama, `/` arama, `Esc` seçimi kaldır.
 
 | Ayar | Varsayılan | |
 |---|---|---|

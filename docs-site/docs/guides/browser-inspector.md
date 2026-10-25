@@ -20,7 +20,7 @@ The Browser Inspector is part of the TestFly VS Code extension, next to the [Mob
 The Browser Inspector ships in the same package as the Mobile Inspector:
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.0.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.1.vsix
 ```
 
 It needs VS Code 1.85 or newer and Chrome, Edge or Chromium. The browser is found in its usual install location; set `testflyInspector.browserPath` for any other location. No WebDriver, Node package or browser extension is needed: the inspector drives the browser over the DevTools protocol through a pipe.
@@ -34,22 +34,34 @@ Click the **TestFly** icon in the activity bar and switch to **Browser**:
 | Page URL | the page to open; `example.com` becomes `https://example.com`, `localhost:3000` becomes `http://localhost:3000` |
 | Browser | the browsers found on this machine; **Rescan** looks again |
 | Viewport | Desktop 1440 × 900, Laptop 1280 × 800, Tablet 768 × 1024 or Mobile 390 × 844 |
-| Headless | no browser window; the page shows only in the inspector |
-| Keep session | cookies and logins stay between runs in a TestFly profile (never your own browser profile); off uses a throw-away profile |
+| Show browser window | off (default): the browser runs without a window and the page shows only in the inspector; on: a browser window opens too, to log in or use the page by hand |
+| Keep session | cookies and logins stay between runs in a TestFly profile (never your own browser profile); off uses a throw-away profile. **Clear saved session** deletes the kept profile (close the browser first) |
 
-**Launch and inspect** opens the panel. The last pages are listed under **Recent**. From the command palette, **TestFly: Open Browser Inspector** asks for a URL and opens it with a browser window and a kept session.
+**Launch and inspect** opens the panel. The last pages are listed under **Recent**. From the command palette, **TestFly: Open Browser Inspector** asks for a URL and opens it without a window and with a kept session.
+
+The inspector always needs a running browser to render the page; with **Show browser window** off you never see it.
 
 ## The panel
 
 | Area | What it shows |
 |---|---|
-| Toolbar | browser and version, back / forward / reload, the address bar (type a URL and press Enter), the viewport, **Refresh**, the click mode (Inspect / Click) and the status |
+| Toolbar | browser and version, back / forward / reload, the address bar (type a URL and press Enter), the viewport, **Refresh**, the click mode (Inspect / Click), **Close browser** and the status |
 | Page (top) | the whole page as one screenshot; hover outlines an element, a click selects it (Inspect) or clicks it in the browser (Click) |
-| **DOM Tree** (bottom left) | the element tree with tag, text, test id, id and classes; filter by text, tag, test id or role; arrow keys move and expand |
+| **DOM Tree** (bottom left) | the element tree with tag, text, test id, id and classes, and a find box (see below); arrow keys move and expand |
 | **Locators** (bottom right) | the TestFly locators for the selected element, the page object field, and Click / Type on that element |
 | **Attributes** | every attribute, the role, accessible name, text, bounds and state |
 
-Drag the border between the page and the drawer, or between the tree and the details, to resize them; the sizes are remembered. With **Headless** off you can also use the browser window itself and press **Refresh** to read the page again.
+Drag the border between the page and the drawer, or between the tree and the details, to resize them; the sizes are remembered. With **Show browser window** on you can also use the browser window itself and press **Refresh** to read the page again.
+
+## Finding an element
+
+The box above the tree works like **Find by string, selector, or XPath** in Chrome DevTools. What you type is evaluated in the page as
+
+- a CSS selector: `#homepage-layout`, `.widget`, `div.homeWidget > .widget__live`, `[data-testid="email"]`;
+- an XPath when it starts with `/`, `(` or `./`: `//div[@id='homepage-middle']`;
+- a string, matched case-insensitively against each element's markup and own text: `homepage`, `widget__footer`, `id="content"`, `Popular`.
+
+Matches are highlighted in the tree (it is not filtered) and the box shows *1 of N*; the first match is selected. **Enter** and the ↓ button move to the next match, **Shift+Enter** and ↑ to the previous one; each match is revealed in the tree, outlined on the page and its locators are shown. Hover the count to see whether the query matched as a selector, an XPath or text. The query runs again after every refresh or action.
 
 ## Finding a locator
 
@@ -89,7 +101,7 @@ If your project reads a different test id attribute (`locators.testIdAttribute`,
 |---|---|
 | `R` | Refresh |
 | `I` / `C` | Inspect / Click mode |
-| `/` | focus the tree filter |
+| `/` | focus the find box; `Enter` / `Shift+Enter` next / previous match |
 | `↑` `↓` | move in the tree |
 | `←` `→` | collapse / expand |
 | `Esc` | clear the selection |
@@ -107,6 +119,10 @@ If your project reads a different test id attribute (`locators.testIdAttribute`,
 - Elements inside iframes and shadow roots are not listed.
 - The tree holds the first 5,000 elements and the screenshot the first 12,000 CSS pixels of a long page.
 - The page is a snapshot taken on refresh and after each action, not a live stream.
+
+## Closing
+
+**Close browser** in the toolbar closes the browser and keeps the panel; **Refresh** starts the browser again on the page you were on. Closing the panel tab closes the browser too. With **Keep session** on, cookies and logins are saved when the browser closes; **Clear saved session** in the TestFly view removes them.
 
 ## Troubleshooting
 

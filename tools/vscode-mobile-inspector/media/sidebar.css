@@ -44,3 +44,4 @@ button.link { height: auto; padding: 0; background: none; border: 0; }
 .recent button:hover { background: var(--hover); }
 .recent button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recent svg { width: 14px; height: 14px; color: var(--muted); }
+.clear-row { margin: 6px 0 0; font-size: 11.5px; }
