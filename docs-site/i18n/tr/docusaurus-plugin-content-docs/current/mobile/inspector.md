@@ -25,7 +25,7 @@ Mobile Inspector, TestFly ve mobilecli için yapılmış, Appium Inspector benze
 **VS Code** (1.85 veya üstü):
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.2.4.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.0.vsix
 ```
 
 veya Extensions görünümü → `…` → **Install from VSIX…**.
@@ -36,7 +36,7 @@ veya Extensions görünümü → `…` → **Install from VSIX…**.
 
 ## Açmak
 
-- **VS Code:** soldaki etkinlik çubuğunda **TestFly Mobile** simgesi → **Open Mobile Inspector**, veya komut paleti → **TestFly: Open Mobile Inspector**.
+- **VS Code:** soldaki etkinlik çubuğunda **TestFly** simgesi → **Mobile** → **Open Mobile Inspector**, veya komut paleti → **TestFly: Open Mobile Inspector**. Aynı görünümün **Browser** tarafı web sayfaları için [Browser Inspector](../guides/browser-inspector.md)'ı açar.
 - **IntelliJ:** soldaki **TestFly Mobile** araç penceresi → **Open Mobile Inspector**, veya **Tools → TestFly: Open Mobile Inspector**. Inspector bir editör sekmesi olarak açılır.
 
 Tek bir çevrimiçi cihaz varsa hemen seçilip okunur; yoksa cihaz seçiciden seçin.

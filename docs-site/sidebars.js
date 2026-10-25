@@ -49,6 +49,7 @@ const sidebars = {
         'guides/parallel',
         'guides/smart-locator',
         'guides/semantic-locators',
+        'guides/browser-inspector',
         'guides/self-healing',
         'guides/download-manager',
         'guides/console-errors',

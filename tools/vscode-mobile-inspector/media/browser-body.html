@@ -1,0 +1,97 @@
+<div class="app" id="app">
+  <header class="toolbar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" class="logo" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>
+      <span>Browser Inspector</span>
+    </div>
+    <span class="platform-badge" data-platform="browser" id="product" hidden></span>
+
+    <div class="group" role="group" aria-label="Navigation">
+      <button class="icon" id="back" title="Back"><svg viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></svg></button>
+      <button class="icon" id="forward" title="Forward"><svg viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></svg></button>
+      <button class="icon" id="reload" title="Reload the page"><svg viewBox="0 0 16 16"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg></button>
+    </div>
+
+    <form class="url-bar" id="urlForm" autocomplete="off">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2.2 2 9.8 0 12M8 2c-2 2.2-2 9.8 0 12"/></svg>
+      <input id="url" type="text" spellcheck="false" placeholder="Enter a URL and press Enter" aria-label="Page URL">
+    </form>
+
+    <select id="viewport" aria-label="Viewport" title="Viewport">
+      <option value="1440x900">Desktop · 1440 × 900</option>
+      <option value="1280x800">Laptop · 1280 × 800</option>
+      <option value="768x1024">Tablet · 768 × 1024</option>
+      <option value="390x844">Mobile · 390 × 844</option>
+    </select>
+
+    <button class="primary" id="refresh" title="Read the page again (R)">
+      <svg viewBox="0 0 16 16"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>
+      <span>Refresh</span>
+    </button>
+
+    <div class="segmented" id="mode" role="radiogroup" aria-label="Click mode">
+      <button data-mode="inspect" class="active" title="Click selects an element (I)">
+        <svg viewBox="0 0 16 16"><path d="M3 2l9 4.5-4 1.5-1.5 4z"/></svg><span>Inspect</span>
+      </button>
+      <button data-mode="click" title="Click clicks in the browser (C)">
+        <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><circle cx="8" cy="8" r="5.5"/></svg><span>Click</span>
+      </button>
+    </div>
+
+    <div class="spacer"></div>
+    <div class="status" id="status" data-state="connecting">
+      <span class="dot"></span><span id="statusText">Starting…</span>
+    </div>
+  </header>
+
+  <main class="browser-panes" id="panes">
+    <section class="pane page-pane">
+      <div class="stage page-stage" id="stage">
+        <div class="page" id="page" hidden>
+          <img id="shot" alt="Page screenshot" draggable="false">
+          <div class="overlay" id="overlay"></div>
+          <div class="hover-box" id="hoverBox" hidden></div>
+          <div class="select-box" id="selectBox" hidden></div>
+          <div class="tap-ripple" id="ripple" hidden></div>
+        </div>
+        <div class="empty-state" id="emptyScreen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>
+          <p class="title">No page yet</p>
+          <p id="emptyHint">Starting the browser…</p>
+        </div>
+      </div>
+      <div class="loading-bar" id="loadingBar" hidden></div>
+    </section>
+
+    <div class="resizer horizontal" id="drawerResizer" title="Drag to resize"></div>
+
+    <section class="drawer" id="drawer">
+      <section class="pane tree-pane">
+        <div class="pane-header tabs" role="tablist">
+          <button class="tab active" role="tab">DOM Tree</button>
+          <span class="spacer"></span>
+          <div class="search inline" id="searchBox">
+            <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+            <input id="search" type="search" placeholder="Filter by text, tag, test id or role  ( / )" spellcheck="false">
+          </div>
+          <span class="muted" id="treeCount"></span>
+        </div>
+        <div class="tree" id="tree" role="tree" tabindex="0"></div>
+      </section>
+
+      <div class="resizer" id="colResizer" title="Drag to resize"></div>
+
+      <section class="pane details-pane">
+        <div class="pane-header tabs" role="tablist">
+          <button class="tab active" data-tab="locators" role="tab">Locators</button>
+          <button class="tab" data-tab="attributes" role="tab">Attributes</button>
+          <span class="spacer"></span>
+          <span class="ref-chip" id="selRef" hidden></span>
+        </div>
+        <div class="details" id="details"></div>
+      </section>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>

@@ -1,7 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { BrowserPanel } from './browserPanel';
+import { findBrowsers } from './browsers';
 import { DeviceInfo, MobileCli, RpcError, ScreenSize } from './mobilecli';
+import { recentUrls, rememberUrl, SidebarProvider } from './sidebar';
+import { webviewHtml } from './webview';
 
 let panel: InspectorPanel | undefined;
 
@@ -13,10 +17,28 @@ export function activate(context: vscode.ExtensionContext) {
             panel = new InspectorPanel(context, () => (panel = undefined));
         }
     }));
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider(SidebarProvider.viewId, new SidebarProvider(context)));
+    context.subscriptions.push(vscode.commands.registerCommand('testflyInspector.openBrowser', () => openBrowser(context)));
+}
+
+/** Command palette entry: asks for a URL and opens it in the first browser found, with a window and a kept session. */
+async function openBrowser(context: vscode.ExtensionContext) {
+    const browser = findBrowsers(vscode.workspace.getConfiguration('testflyInspector').get('browserPath', ''))[0];
+    if (!browser) {
+        void vscode.window.showErrorMessage('No Chrome, Edge or Chromium found. Install one or set testflyInspector.browserPath.');
+        return;
+    }
+    const url = await vscode.window.showInputBox({ title: 'Browser Inspector', prompt: `Page to open in ${browser.name}`, value: recentUrls(context)[0] ?? 'https://' });
+    if (!url) {
+        return;
+    }
+    await rememberUrl(context, url);
+    BrowserPanel.show(context, { browser, url, width: 1440, height: 900, headless: false, keepSession: true });
 }
 
 export function deactivate() {
     panel?.dispose();
+    BrowserPanel.disposeCurrent();
 }
 
 /** Messages the webview sends; see media/inspector.js. */
@@ -219,24 +241,9 @@ class InspectorPanel {
     }
 
     private html(): string {
-        const webview = this.webview.webview;
-        const media = (file: string) => webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', file));
-        const nonce = Array.from({ length: 32 }, () => Math.floor(Math.random() * 36).toString(36)).join('');
-        return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link href="${media('inspector.css')}" rel="stylesheet">
-<title>Mobile Inspector</title>
-</head>
-<body>
-${INSPECTOR_BODY}
-<script nonce="${nonce}" src="${media('selectors.js')}"></script>
-<script nonce="${nonce}" src="${media('inspector.js')}"></script>
-</body>
-</html>`;
+        return webviewHtml(this.webview.webview, this.context.extensionUri, {
+            title: 'Mobile Inspector', styles: ['inspector.css'], scripts: ['selectors.js', 'inspector.js'], body: INSPECTOR_BODY,
+        });
     }
 }
 

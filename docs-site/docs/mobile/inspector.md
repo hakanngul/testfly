@@ -25,7 +25,7 @@ Both packages are in the repository, so no marketplace access is needed.
 **VS Code** (1.85 or newer):
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.2.4.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.0.vsix
 ```
 
 or Extensions view → `…` → **Install from VSIX…**.
@@ -36,7 +36,7 @@ or Extensions view → `…` → **Install from VSIX…**.
 
 ## Open
 
-- **VS Code:** the **TestFly Mobile** icon in the activity bar (left) → **Open Mobile Inspector**, or the command palette → **TestFly: Open Mobile Inspector**.
+- **VS Code:** the **TestFly** icon in the activity bar (left) → **Mobile** → **Open Mobile Inspector**, or the command palette → **TestFly: Open Mobile Inspector**. The **Browser** side of the same view opens the [Browser Inspector](../guides/browser-inspector.md) for web pages.
 - **IntelliJ:** the **TestFly Mobile** tool window (left) → **Open Mobile Inspector**, or **Tools → TestFly: Open Mobile Inspector**. The inspector opens as an editor tab.
 
 With one online device it is selected and read at once; otherwise choose it in the device picker.

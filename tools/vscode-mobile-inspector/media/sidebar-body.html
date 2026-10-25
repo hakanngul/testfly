@@ -1,0 +1,51 @@
+<div class="side">
+  <div class="seg" role="tablist" aria-label="Inspector">
+    <button role="tab" data-side="mobile">
+      <svg viewBox="0 0 16 16"><rect x="4.5" y="1.5" width="7" height="13" rx="1.8"/><path d="M7 12h2"/></svg>Mobile
+    </button>
+    <button role="tab" data-side="browser">
+      <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2.2 2 9.8 0 12M8 2c-2 2.2-2 9.8 0 12"/></svg>Browser
+    </button>
+  </div>
+
+  <section id="sideMobile" class="side-pane" hidden>
+    <p>Inspect an iOS or Android screen through mobilecli: screenshot, UI tree with @eN refs and ready-to-paste TestFly selectors.</p>
+    <button class="primary wide" id="openMobile">
+      <svg viewBox="0 0 16 16"><rect x="4.5" y="1.5" width="7" height="13" rx="1.8"/><path d="M7 12h2"/></svg>Open Mobile Inspector
+    </button>
+    <p class="muted small">Needs mobilecli and a booted simulator, emulator or device. <button class="link" data-settings>Settings</button></p>
+  </section>
+
+  <section id="sideBrowser" class="side-pane" hidden>
+    <form id="launchForm" autocomplete="off">
+      <label class="lbl" for="pageUrl">Page URL</label>
+      <div class="field">
+        <svg viewBox="0 0 16 16"><path d="M6.5 9.5l3-3"/><path d="M7 4.5l1-1a2.8 2.8 0 0 1 4 4l-1 1M9 11.5l-1 1a2.8 2.8 0 0 1-4-4l1-1"/></svg>
+        <input id="pageUrl" type="text" spellcheck="false" placeholder="https://example.com or localhost:3000">
+      </div>
+
+      <label class="lbl">Browser <button type="button" class="link rescan" id="rescan" title="Look for installed browsers again">Rescan</button></label>
+      <div class="picks" id="browsers"></div>
+
+      <label class="lbl" for="viewportSel">Viewport</label>
+      <select id="viewportSel">
+        <option value="1440x900">Desktop · 1440 × 900</option>
+        <option value="1280x800">Laptop · 1280 × 800</option>
+        <option value="768x1024">Tablet · 768 × 1024</option>
+        <option value="390x844">Mobile · 390 × 844</option>
+      </select>
+
+      <label class="switch-row"><span>Headless<small>No browser window; the page shows only in the inspector</small></span><input type="checkbox" id="headless"><i></i></label>
+      <label class="switch-row"><span>Keep session<small>Cookies and logins stay between runs</small></span><input type="checkbox" id="keepSession"><i></i></label>
+
+      <button class="primary wide launch" id="launch" type="submit">
+        <svg viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg>Launch and inspect
+      </button>
+    </form>
+
+    <div id="recentBox" hidden>
+      <label class="lbl">Recent</label>
+      <div class="recent" id="recent"></div>
+    </div>
+  </section>
+</div>
