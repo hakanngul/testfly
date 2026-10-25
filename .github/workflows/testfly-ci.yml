@@ -1,17 +1,30 @@
 name: TestFly CI
 
 on:
+  # Branch pushes are covered by the pull_request run, so only main runs on push.
   push:
     branches:
       - main
-      - master
-      - development
+    paths-ignore:
+      - 'docs-site/**'
+      - 'docs/**'
+      - '**/*.md'
   pull_request:
     branches:
       - main
       - master
       - development
+    paths-ignore:
+      - 'docs-site/**'
+      - 'docs/**'
+      - '**/*.md'
   workflow_dispatch:
+
+# A newer push to the same pull request makes the older run obsolete.
+# Runs on main are never cancelled, so every merge keeps its own result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
