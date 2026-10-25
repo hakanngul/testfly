@@ -23,7 +23,7 @@ Browser Inspector, TestFly VS Code eklentisinin bir parçasıdır ve [Mobile Ins
 Browser Inspector, Mobile Inspector ile aynı paketle gelir:
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.4.0.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.5.0.vsix
 ```
 
 VS Code 1.85 veya üstü ile Chrome, Edge ya da Chromium gerekir. Tarayıcı olağan kurulum yerinde bulunur; başka bir yer için `testflyInspector.browserPath` ayarını girin. WebDriver, Node paketi veya tarayıcı eklentisi gerekmez: inspector tarayıcıyı bir pipe üzerinden DevTools protokolüyle yönetir.

@@ -32,11 +32,17 @@ public final class InspectorController implements AutoCloseable {
     private boolean busy;
     private boolean warm; // mobilecli's agent is up for this device: tree and screenshot can run together
     private boolean serverStopped; // stopped from the panel: no auto-start until it is started from the panel again
+    private volatile String wanted; // a device chosen in the tool window's device list, selected on the next listing
 
     public InspectorController(MobileCliClient cli, Consumer<JsonObject> post, Ide ide) {
         this.cli = cli;
         this.post = post;
         this.ide = ide;
+    }
+
+    /** Selects this device the next time the devices are listed (the tool window's Inspect button). */
+    public void want(String deviceId) {
+        wanted = deviceId;
     }
 
     /** One message from the webview, as JSON text. */
@@ -94,9 +100,11 @@ public final class InspectorController implements AutoCloseable {
         JsonObject list = msg("devices").withText("version", version).json;
         list.add("devices", devices);
         post.accept(list);
+        String want = wanted != null ? wanted : device != null ? MobileCliClient.str(device, "id") : null;
+        wanted = null;
         JsonObject keep = null;
         for (JsonElement d : devices) {
-            if (device != null && MobileCliClient.str(d.getAsJsonObject(), "id").equals(MobileCliClient.str(device, "id"))) {
+            if (want != null && MobileCliClient.str(d.getAsJsonObject(), "id").equals(want)) {
                 keep = d.getAsJsonObject();
             }
         }

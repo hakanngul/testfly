@@ -20,6 +20,10 @@ Etkinlik çubuğundaki **TestFly** simgesi, **Mobile / Browser** geçişi olan b
 - **Eylemler**: dokunma, uzun basma, dokunup yazma, Back, Home, kaydırma; karşılık gelen `mobilecli io tap --device … @eN` komutunu kopyalama.
 - **Sunucu**: cihaz listesinin yanındaki düğme mobilecli sunucusunun cevap verip vermediğini gösterir (yeşil açık, kırmızı kapalı) ve sunucuyu başlatır ya da durdurur. VS Code dışında başlatılmış bir sunucu da durdurulabilir (JSON-RPC `server.shutdown`); durdurduktan sonra eklenti, siz düğmeye basana kadar sunucuyu yeniden başlatmaz.
 
+## Cihaz listesi
+
+TestFly görünümünün **Mobile** tarafı mobilecli'nin bildiği tüm cihazları açık ya da kapalı, Android, iOS simulators ve iOS devices olarak gruplar: **READY** cihazlarda **Inspect** (emülatör ve simülatörlerde **Shut down** da), kapalı emülatör ve simülatörlerde **Boot** vardır. *USB hata ayıklamaya izin ver* onayını bekleyen Android telefonlar **UNAUTHORIZED** görünür (mobilecli onları listelemediği için `adb devices`'tan okunur). **Connect Android over Wi‑Fi** kablosuz hata ayıklamalı bir telefonu eşler ve bağlar (`adb pair` / `adb connect`). Liste görünürken 10 saniyede bir yenilenir; *A device is missing?* gerçek iPhone ve Android telefonların neye ihtiyaç duyduğunu anlatır.
+
 ## Editörde eşleşme sayıları
 
 Bir inspector açıkken Java dosyalarında her TestFly locator'ının üstünde, incelenen ekranda veya sayfada kaç öğeyle eşleştiğini gösteren bir satır çıkar: `✓ 1 match on Pixel 8`, `⚠ 3 matches on shop.example.com`, `✗ no match`; cihazın platformu için seçicisi olmayan bir `@MobileFind` için `no iOS selector`. Kapsadıkları: `@MobileFind` alanları (platformun seçicisi `MobilePages`'ın seçtiği gibi), `screen().getByTestId/getByText/getByLabel/getByPlaceholder/getByRole(MobileRole…)` çağrıları ve web'de `getByTestId`, `getByRole(Role…)`, `getByLabel`, `getByPlaceholder`, `getByText`, `getByAltText`, `getByTitle`, `findById`, `findByName`, `findByClassName`, `findByXpath` ve `find("css")`. Yalnızca sabit metin argümanlar okunur; bir sabitten kurulan locator atlanır. Sayılar her yenilemeyle (ve Live ile) güncellenir. Satıra tıklamak eşleşmeleri inspector'ın arama kutusunda gösterir. `testflyInspector.codeLens` ile kapatılır.
@@ -45,7 +49,7 @@ Bir inspector açıkken Java dosyalarında her TestFly locator'ının üstünde,
 ## Kurulum ve kullanım
 
 ```bash
-code --install-extension testfly-mobile-inspector-0.4.0.vsix
+code --install-extension testfly-mobile-inspector-0.5.0.vsix
 ```
 
 Etkinlik çubuğu → **TestFly**, veya komut paleti → **TestFly: Open Mobile Inspector** / **TestFly: Open Browser Inspector**. Mobil tuşlar: `R` yenile, `I` inceleme, `T` dokunma, `E` kayıt, `L` live, `/` arama, `Esc` seçimi kaldır. Tarayıcı tuşları: `R` yenile, `I` inceleme, `C` tıklama, `E` kayıt, `/` arama, `Esc` seçimi kaldır.

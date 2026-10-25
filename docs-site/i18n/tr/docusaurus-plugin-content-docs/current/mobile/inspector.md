@@ -27,12 +27,12 @@ Mobile Inspector, TestFly ve mobilecli için yapılmış, Appium Inspector benze
 **VS Code** (1.85 veya üstü):
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.4.0.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.5.0.vsix
 ```
 
 veya Extensions görünümü → `…` → **Install from VSIX…**.
 
-**IntelliJ IDEA** (2024.1 veya üstü, Community veya Ultimate ve diğer IntelliJ tabanlı IDE'ler): Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/intellij-mobile-inspector/dist/testfly-mobile-inspector-0.3.0.zip`, sonra IDE'yi yeniden başlatın. Önce eski sürümü kaldırın.
+**IntelliJ IDEA** (2024.1 veya üstü, Community veya Ultimate ve diğer IntelliJ tabanlı IDE'ler): Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/intellij-mobile-inspector/dist/testfly-mobile-inspector-0.4.0.zip`, sonra IDE'yi yeniden başlatın. Önce eski sürümü kaldırın.
 
 **İkisi de** mobilecli 1.0.20 veya üstü ile açık bir simülatör, emülatör ya da bağlı bir cihaz ister. iOS'ta mobilecli agent'ını cihaz başına bir kez kurun (`mobilecli agent install --device <udid>`). `http://localhost:12000` cevap vermezse inspector `mobilecli server start`'ı kendisi çalıştırır. Cihaz listesinin yanındaki **Server** düğmesi sunucunun cevap verip vermediğini gösterir ve sunucuyu başlatır ya da durdurur; bunu kendi başlattığınız bir sunucu için de yapar. Durdurduktan sonra siz düğmeye basana kadar sunucu yeniden başlatılmaz.
 
@@ -41,7 +41,32 @@ veya Extensions görünümü → `…` → **Install from VSIX…**.
 - **VS Code:** soldaki etkinlik çubuğunda **TestFly** simgesi → **Mobile** → **Open Mobile Inspector**, veya komut paleti → **TestFly: Open Mobile Inspector**. Aynı görünümün **Browser** tarafı web sayfaları için [Browser Inspector](../guides/browser-inspector.md)'ı açar.
 - **IntelliJ:** soldaki **TestFly Mobile** araç penceresi → **Open Mobile Inspector**, veya **Tools → TestFly: Open Mobile Inspector**. Inspector bir editör sekmesi olarak açılır.
 
-Tek bir çevrimiçi cihaz varsa hemen seçilip okunur; yoksa cihaz seçiciden seçin.
+Tek bir çevrimiçi cihaz varsa hemen seçilip okunur; yoksa cihaz seçiciden seçin ya da cihaz listesinde **Inspect**'e basın.
+
+## Cihaz listesi {#devices}
+
+TestFly görünümünün **Mobile** tarafı (VS Code) ve **TestFly Mobile** araç penceresi (IntelliJ), mobilecli'nin bildiği tüm cihazları açık ya da kapalı, üç grupta listeler: **Android** (emülatörler ve telefonlar), **iOS simulators** ve **iOS devices**.
+
+| Satır | Düğmeler |
+|---|---|
+| **READY**: çevrimiçi | **Inspect** inspector'ı o cihazda açar; emülatör ve simülatörlerde ayrıca **Shut down** (⏻) vardır |
+| kapalı emülatör veya simülatör | **Boot** başlatır ve hazır olana kadar bekler (soğuk bir Android açılışı bir iki dakika sürebilir) |
+| **UNAUTHORIZED** (Android) | telefon *USB hata ayıklamaya izin ver* onayını bekliyor; telefonda onaylayın |
+| **Wi‑Fi** (Android) | ağ üzerinden bağlı; ✕ düğmesi bağlantıyı keser (`adb disconnect`) |
+
+Liste görünürken 10 saniyede bir yeniden okunur; taktığınız, başka yerden başlattığınız veya kapattığınız cihazlar kendiliğinden görünür; **Reload** hemen okur. Simülatörler ilk açılışlarından sonra, emülatörler Android SDK'nın AVD'lerinden listelenir. *Devices* yanındaki yeşil veya kırmızı nokta mobilecli sunucusunun cevap verip vermediğini gösterir.
+
+### Gerçek cihazlar
+
+Bir telefon, mobilecli ona ulaşabildiğinde listelenir:
+
+- **Android**: Geliştirici seçenekleri → **USB hata ayıklama** açık ve telefonda *USB hata ayıklamaya izin ver* onaylanmış olmalı. O zamana kadar mobilecli telefonu listelemez; liste onu yine de `adb devices`'tan **UNAUTHORIZED** olarak gösterir (adb `ANDROID_HOME`, `ANDROID_SDK_ROOT`, SDK'nın varsayılan klasörü veya `PATH`'te aranır).
+- **iPhone**: kilidi açık, *Bu Bilgisayara Güven* onaylanmış ve **Geliştirici Modu** açık olmalı (Ayarlar → Gizlilik ve Güvenlik). mobilecli kilitli veya güvenilmeyen bir telefonu atlar. Ekranı okumak için ayrıca telefona bir kez mobilecli agent'ı kurulur: `mobilecli agent install --device <udid> --provisioning-profile <dosya>` (agent'ı cihazınız için imzalayabilen bir provisioning profile).
+
+### Wi‑Fi üzerinden
+
+- **Android 11+**: telefonda Geliştirici seçenekleri → **Kablosuz hata ayıklama**, bilgisayarla aynı ağda. Cihaz listesinde **Connect Android over Wi‑Fi**'ı açın: eşleştirmek için (bir kez) *Eşleme koduyla cihaz eşle* altındaki adresi ve 6 haneli kodu, bağlanmak için Kablosuz hata ayıklama ekranındaki adresi kodsuz girin. Bu `adb pair` ve `adb connect` çalıştırır; telefon sonra **Wi‑Fi** rozetiyle görünür ve kablolu gibi incelenir. Eski telefonlar: USB üzerinden `adb tcpip 5555`, sonra `<ip>:5555`'e bağlanın.
+- **iPhone**: bir kez kabloyla bağlayıp Xcode → Devices and Simulators'da *Connect via network*'ü açın. Aynı ağda kablosuz da listelenir (mobilecli ağdaki cihazları da bulur). Ekranın Wi‑Fi üzerinden okunup okunamayacağı mobilecli'nin agent'a bağlantısına bağlıdır; okuma başarısız olursa kabloyu kullanın.
 
 ## Pencere
 
@@ -140,9 +165,9 @@ public class RecordedPage extends MobilePage {
 
 **Copy** panoya kopyalar, **Clear** baştan başlatır. İlk taslak olarak görün: sınıfı ve alanları yeniden adlandırın, `recordedFlow()`'u sonraki sayfayı döndüren niyet metotlarına bölün, ekranı belirleyen alana `@WaitFor` ekleyin, doğrulamalar ve diğer platformun seçicilerini ekleyin. Yazılan metin yazdığınız gibi kaydedilir; kimlik bilgilerini ortam değişkenleriyle değiştirin.
 
-## Editörde eşleşme sayıları (VS Code) {#code-lens}
+## Editörde eşleşme sayıları {#code-lens}
 
-Mobile Inspector bir ekran gösterirken Java dosyalarında her `@MobileFind` alanının ve her `screen().getByTestId(…)`, `getByText`, `getByLabel`, `getByPlaceholder`, `getByType` ve `getByRole(MobileRole.…, "ad")` çağrısının üstünde bir satır çıkar:
+Mobile Inspector bir ekran gösterirken Java dosyalarında (IntelliJ'de Kotlin dosyalarında da) her `@MobileFind` alanının ve her `screen().getByTestId(…)`, `getByText`, `getByLabel`, `getByPlaceholder`, `getByType` ve `getByRole(MobileRole.…, "ad")` çağrısının üstünde bir satır çıkar:
 
 ```java
 ✓ 1 match on Pixel 8
@@ -154,7 +179,7 @@ private MobileLocator login;
 private MobileLocator cancel;
 ```
 
-Seçici, TestFly'ın cihazın platformunda kullandığıdır: türlü bir öznitelik (`androidId`, `iosXpath`, …), yoksa `android` / `ios`, yoksa `value`; platform için seçicisi olmayan bir alan *no iOS selector* gösterir. Yalnızca sabit metinler okunur; bir sabitten kurulan seçici atlanır. Sayılar her yenilemeyi ve Live'ı izler. Bir satıra tıklayınca eşleşmeleri arama aracında görürsünüz. [Browser Inspector](../guides/browser-inspector.md#code-lens) aynısını web locator'ları için yapar. `testflyInspector.codeLens` ile kapatılır.
+Seçici, TestFly'ın cihazın platformunda kullandığıdır: türlü bir öznitelik (`androidId`, `iosXpath`, …), yoksa `android` / `ios`, yoksa `value`; platform için seçicisi olmayan bir alan *no iOS selector* gösterir. Yalnızca sabit metinler okunur; bir sabitten kurulan seçici atlanır. Sayılar her yenilemeyi ve Live'ı izler. Bir satıra tıklayınca eşleşmeleri arama aracında görürsünüz. [Browser Inspector](../guides/browser-inspector.md#code-lens) aynısını web locator'ları için yapar. VS Code'da `testflyInspector.codeLens` ile kapatılır; IntelliJ'de bunlar code vision ipuçlarıdır ve Settings → Editor → Inlay Hints → Code vision'dan diğer code vision ipuçlarıyla birlikte gizlenir.
 
 ## Tuşlar
 

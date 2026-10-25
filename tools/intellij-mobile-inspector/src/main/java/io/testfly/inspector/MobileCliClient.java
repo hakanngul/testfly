@@ -183,6 +183,25 @@ public final class MobileCliClient implements AutoCloseable {
         return online;
     }
 
+    /** Every device mobilecli knows, offline emulators and simulators too (they can be booted). */
+    public JsonArray allDevices() {
+        JsonObject p = new JsonObject();
+        p.addProperty("includeOffline", true);
+        JsonElement result = call("devices.list", p);
+        return result.isJsonArray() ? result.getAsJsonArray()
+                : result.isJsonObject() && result.getAsJsonObject().has("devices") ? result.getAsJsonObject().getAsJsonArray("devices") : new JsonArray();
+    }
+
+    /** Starts an offline emulator or simulator and waits until it is ready. */
+    public void boot(String deviceId) {
+        call("device.boot", device(deviceId), Duration.ofMinutes(4));
+    }
+
+    /** Shuts an emulator or simulator down. */
+    public void shutdown(String deviceId) {
+        call("device.shutdown", device(deviceId), Duration.ofMinutes(1));
+    }
+
     public JsonObject screenSize(String deviceId) {
         JsonElement info = call("device.info", device(deviceId));
         JsonObject size = info.isJsonObject() && info.getAsJsonObject().has("device")

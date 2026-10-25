@@ -9,11 +9,42 @@
   </div>
 
   <section id="sideMobile" class="side-pane" hidden>
-    <p>Inspect an iOS or Android screen through mobilecli: screenshot, UI tree with @eN refs and ready-to-paste TestFly selectors.</p>
+    <div class="dev-head">
+      <span>Devices</span>
+      <span class="srv" id="srv" title="mobilecli server"></span>
+      <span class="spacer"></span>
+      <button type="button" class="link" id="reloadDevices" title="List the devices again">Reload</button>
+    </div>
+    <div class="dev-list" id="deviceList"><p class="muted small dev-empty">Looking for devices…</p></div>
+
     <button class="primary wide" id="openMobile">
       <svg viewBox="0 0 16 16"><rect x="4.5" y="1.5" width="7" height="13" rx="1.8"/><path d="M7 12h2"/></svg>Open Mobile Inspector
     </button>
-    <p class="muted small">Needs mobilecli and a booted simulator, emulator or device. <button class="link" data-settings>Settings</button></p>
+
+    <details class="fold" id="wifiBox">
+      <summary>Connect Android over Wi‑Fi</summary>
+      <form id="wifiForm" autocomplete="off">
+        <p class="muted small">On the phone: Developer options → <b>Wireless debugging</b> (Android 11+), same network as this computer. Pair once with the code, then connect with the address on the Wireless debugging screen.</p>
+        <label class="lbl" for="wifiAddr">Address</label>
+        <div class="field"><input id="wifiAddr" type="text" spellcheck="false" placeholder="192.168.1.20:37099"></div>
+        <label class="lbl" for="wifiCode">Pairing code <span class="muted">only to pair</span></label>
+        <div class="field"><input id="wifiCode" type="text" inputmode="numeric" maxlength="6" spellcheck="false" placeholder="6 digits"></div>
+        <button class="wide" id="wifiGo" type="submit">Connect</button>
+        <p class="small wifi-out" id="wifiOut" hidden></p>
+      </form>
+    </details>
+
+    <details class="fold">
+      <summary>A device is missing?</summary>
+      <ul class="help small">
+        <li><b>Android phone</b>: Developer options → USB debugging on, then accept <i>Allow USB debugging</i> on the phone. A phone waiting for that shows as <i>unauthorized</i>.</li>
+        <li><b>iPhone</b>: unlock it, tap <i>Trust This Computer</i> and turn on Settings → Privacy &amp; Security → <b>Developer Mode</b>. Inspecting needs mobilecli's agent once: <code>mobilecli agent install --device &lt;udid&gt; --provisioning-profile &lt;file&gt;</code>.</li>
+        <li><b>iPhone over Wi‑Fi</b>: connect it by cable once, enable <i>Connect via network</i> in Xcode → Devices and Simulators; then it is listed on the same network.</li>
+        <li><b>Simulators</b> are listed after their first boot; <b>emulators</b> from the Android SDK's AVDs.</li>
+      </ul>
+    </details>
+
+    <p class="muted small">Needs mobilecli. <button class="link" data-settings>Settings</button></p>
   </section>
 
   <section id="sideBrowser" class="side-pane" hidden>

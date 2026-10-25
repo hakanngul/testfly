@@ -9,7 +9,10 @@
     <code>@MobileFind</code> fields. An Appium-style finder (TestFly selector, id, accessibility id, XPath,
     class name, text) with match navigation. Tap, long press, type, Back, Home and swipe from the IDE, or hold and
     drag on the screenshot; Live re-reads the screen every few seconds while you use the app; Record turns your
-    steps into a MobilePage. The same UI as the TestFly Inspector VS Code extension.
+    steps into a MobilePage. The TestFly Mobile tool window lists every emulator, simulator and device, online or not,
+    with Inspect, Boot and Shut down, and connects Android phones over Wi-Fi. While the inspector shows a screen, Java
+    and Kotlin files show above each @MobileFind field how many elements it matches there.
+    The same UI as the TestFly Inspector VS Code extension.
     ]]></description>
     <depends>com.intellij.modules.platform</depends>
     <!-- 2026.2+ ships JCEF as its own bundled plugin; before that it is part of the platform and this id does not exist. -->
@@ -20,6 +23,7 @@
         <applicationConfigurable parentId="tools" instance="io.testfly.inspector.InspectorConfigurable"
                                  id="io.testfly.inspector.settings" displayName="TestFly Mobile Inspector"/>
         <fileEditorProvider implementation="io.testfly.inspector.InspectorEditorProvider"/>
+        <codeInsight.daemonBoundCodeVisionProvider implementation="io.testfly.inspector.MobileFindCodeVision"/>
         <toolWindow id="TestFly Mobile" anchor="left" secondary="false" icon="/icons/toolwindow.svg"
                     factoryClass="io.testfly.inspector.InspectorToolWindowFactory"/>
     </extensions>

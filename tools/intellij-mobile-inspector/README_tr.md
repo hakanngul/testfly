@@ -8,11 +8,12 @@ IDE temasına uyar. [English](README.md)
 
 ## Kurulum
 
-Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/intellij-mobile-inspector/dist/testfly-mobile-inspector-0.3.0.zip`, ardından IDE'yi yeniden başlatın.
+Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/intellij-mobile-inspector/dist/testfly-mobile-inspector-0.4.0.zip`, ardından IDE'yi yeniden başlatın.
 
 ## Kullanım
 
-- Soldaki **TestFly Mobile** penceresi → **Open Mobile Inspector**, ya da **Tools → TestFly: Open Mobile Inspector**. Inspector bir editör sekmesinde açılır.
+- Soldaki **TestFly Mobile** penceresi: açık ya da kapalı tüm emülatör, simülatör ve cihazlar; **Inspect**, **Boot** ve **Shut down** ile, yetkisiz Android telefonlar ve *Connect Android over Wi‑Fi…*; **Open Mobile Inspector** ya da **Tools → TestFly: Open Mobile Inspector** inspector'ı bir editör sekmesinde açar.
+- Inspector bir ekran gösterirken Java ve Kotlin dosyalarında her `@MobileFind` alanının ve `screen().getBy…` çağrısının üstünde kaç öğeyle eşleştiği görünür (code vision; tıklayınca eşleşmeler gösterilir).
 - Ekran, `@eN` ref'li UI ağacı ve Appium tarzı arama aracı (TestFly selector, id, accessibility id, XPath, class name, text), Snapshot sekmesi, öğe özellikleri, eşleşme sayılı TestFly seçicileri ve `@MobileFind` alanları, dokunma / uzun basma / yazma / Back / Home / kaydırma, ekran görüntüsünde basılı tutma ve sürükleme, **Live** (ekran birkaç saniyede bir yeniden okunur), mobilecli'yi başlatan veya durduran **Server** düğmesi ve **Record** modu (dokunma, uzun basma, sürükleme, yazma, kaydırma ve butonlar `@MobileFind` alanlı bir `MobilePage` olur): VS Code eklentisindeki gibi. Tuşlar: `R`, `I`, `T`, `E`, `L`, `/`, `Esc`.
 - Settings → Tools → **TestFly Mobile Inspector**: mobilecli sunucu adresi (`http://localhost:12000`), mobilecli yolu, otomatik başlatma, eylemden sonra yenileme.
 

@@ -1,6 +1,13 @@
 package io.testfly.inspector;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
 import com.intellij.openapi.editor.colors.EditorColorsScheme;
 import com.intellij.openapi.fileEditor.FileEditor;
@@ -30,6 +37,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -47,6 +56,19 @@ public final class InspectorEditor extends UserDataHolderBase implements FileEdi
     private InspectorController controller;
     // One message at a time, in order, like the VS Code extension host.
     private final ExecutorService worker = Executors.newSingleThreadExecutor(r -> new Thread(r, "TestFly Mobile Inspector"));
+    private LocatorCounts.Target lensTarget;
+    private String lastScreen = ""; // device id + tree of the screen the counts were made for
+
+    static {
+        // new counts: let the editors ask the code vision provider again
+        LocatorCounts.onChange(() -> ApplicationManager.getApplication().invokeLater(() -> {
+            for (Project p : ProjectManager.getInstance().getOpenProjects()) {
+                if (!p.isDisposed()) {
+                    DaemonCodeAnalyzer.getInstance(p).restart();
+                }
+            }
+        }));
+    }
 
     InspectorEditor(Project project, VirtualFile file) {
         this.project = project;
@@ -73,6 +95,9 @@ public final class InspectorEditor extends UserDataHolderBase implements FileEdi
                     }
                 });
         query.addHandler(json -> {
+            if (json.contains("\"resolved\"") && onResolved(json)) {
+                return null; // the page's answer to a count request from the code vision provider
+            }
             worker.execute(() -> controller.handle(json));
             return null;
         });
@@ -143,7 +168,81 @@ public final class InspectorEditor extends UserDataHolderBase implements FileEdi
         }
     }
 
+    /** Shows this device (from the tool window's device list). */
+    void inspect(String deviceId) {
+        if (controller != null) {
+            controller.want(deviceId);
+            worker.execute(() -> controller.handle("{\"type\":\"devices\"}"));
+        }
+    }
+
+    private boolean onResolved(String json) {
+        JsonObject m = JsonParser.parseString(json).getAsJsonObject();
+        if (!"resolved".equals(MobileCliClient.str(m, "type"))) {
+            return false;
+        }
+        List<LocatorCounts.Count> counts = new ArrayList<>();
+        JsonArray results = m.has("results") && m.get("results").isJsonArray() ? m.getAsJsonArray("results") : new JsonArray();
+        for (JsonElement r : results) {
+            JsonObject o = r.getAsJsonObject();
+            counts.add(new LocatorCounts.Count(o.has("count") ? o.get("count").getAsInt() : -1, MobileCliClient.str(o, "error")));
+        }
+        LocatorCounts.resolved(m.get("id").getAsLong(), counts);
+        return true;
+    }
+
+    /** Tells the code vision provider about each new screen, so the counts in the editors follow it. */
+    private void watchScreens(JsonObject message) {
+        String type = MobileCliClient.str(message, "type");
+        if ("screen".equals(type) && message.has("device")) {
+            JsonObject device = message.getAsJsonObject("device");
+            String key = MobileCliClient.str(device, "id") + "\n" + message.get("elements");
+            if (key.equals(lastScreen)) {
+                return; // a Live refresh of an unchanged screen
+            }
+            lastScreen = key;
+            String name = MobileCliClient.str(device, "name");
+            String platform = MobileCliClient.str(device, "platform");
+            lensTarget = new LocatorCounts.Target() {
+                @Override
+                public String label() {
+                    return name;
+                }
+
+                @Override
+                public String platform() {
+                    return platform;
+                }
+
+                @Override
+                public void resolve(long requestId, List<String> selectors) {
+                    JsonObject m = new JsonObject();
+                    m.addProperty("type", "resolve");
+                    m.addProperty("id", requestId);
+                    JsonArray list = new JsonArray();
+                    selectors.forEach(list::add);
+                    m.add("selectors", list);
+                    post(m);
+                }
+
+                @Override
+                public void reveal(String selector) {
+                    ApplicationManager.getApplication().invokeLater(() -> FileEditorManager.getInstance(project).openFile(file, true));
+                    JsonObject m = new JsonObject();
+                    m.addProperty("type", "reveal");
+                    m.addProperty("selector", selector);
+                    post(m);
+                }
+            };
+            LocatorCounts.screenRead(lensTarget);
+        } else if ("server".equals(type) && message.has("running") && !message.get("running").getAsBoolean()) {
+            lastScreen = "";
+            LocatorCounts.closed(lensTarget);
+        }
+    }
+
     private void post(JsonObject message) {
+        watchScreens(message);
         if (browser != null && !browser.isDisposed()) {
             browser.getCefBrowser().executeJavaScript("window.postMessage(" + message + ", '*');", browser.getCefBrowser().getURL(), 0);
         }
@@ -193,6 +292,7 @@ public final class InspectorEditor extends UserDataHolderBase implements FileEdi
 
     @Override
     public void dispose() {
+        LocatorCounts.closed(lensTarget);
         worker.shutdownNow();
         if (controller != null) {
             controller.close();

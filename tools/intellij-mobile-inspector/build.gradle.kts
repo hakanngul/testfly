@@ -1,11 +1,13 @@
 
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+
 plugins {
     java
     id("org.jetbrains.intellij.platform") version "2.2.1"
 }
 
 group = "io.testfly"
-version = "0.3.0"
+version = "0.4.0"
 
 repositories {
     mavenCentral()
@@ -17,6 +19,7 @@ repositories {
 dependencies {
     intellijPlatform {
         intellijIdeaCommunity("2024.1.7")
+        testFramework(TestFrameworkType.Platform)
     }
     testImplementation("junit:junit:4.13.2")
 }

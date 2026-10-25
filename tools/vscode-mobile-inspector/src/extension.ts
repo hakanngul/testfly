@@ -12,14 +12,20 @@ import { webviewHtml } from './webview';
 let panel: InspectorPanel | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.commands.registerCommand('testflyInspector.open', () => {
+    // an optional device id (from the sidebar's device list) selects that device
+    context.subscriptions.push(vscode.commands.registerCommand('testflyInspector.open', (deviceId?: unknown) => {
+        const id = typeof deviceId === 'string' ? deviceId : undefined;
         if (panel) {
             panel.reveal();
+            if (id) {
+                void panel.inspect(id);
+            }
         } else {
-            panel = new InspectorPanel(context, () => (panel = undefined));
+            panel = new InspectorPanel(context, () => (panel = undefined), id);
         }
     }));
-    context.subscriptions.push(vscode.window.registerWebviewViewProvider(SidebarProvider.viewId, new SidebarProvider(context)));
+    const sidebar = new SidebarProvider(context);
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider(SidebarProvider.viewId, sidebar), sidebar);
     context.subscriptions.push(vscode.commands.registerCommand('testflyInspector.openBrowser', () => openBrowser(context)));
     LocatorLensProvider.register(context);
 }
@@ -71,7 +77,7 @@ class InspectorPanel {
     private nextResolve = 1;
     private readonly resolving = new Map<number, (results: LensCount[]) => void>();
 
-    constructor(private readonly context: vscode.ExtensionContext, private readonly onDispose: () => void) {
+    constructor(private readonly context: vscode.ExtensionContext, private readonly onDispose: () => void, private wanted?: string) {
         const cfg = vscode.workspace.getConfiguration('testflyInspector');
         this.cli = new MobileCli(cfg.get('serverUrl', 'http://localhost:12000'), cfg.get('mobilecliPath', 'mobilecli'),
             cfg.get('autoStartServer', true));
@@ -88,6 +94,12 @@ class InspectorPanel {
 
     reveal() {
         this.webview.reveal();
+    }
+
+    /** Selects a device chosen in the sidebar, reading the device list again so a just-booted one is found. */
+    async inspect(id: string) {
+        this.wanted = id;
+        await this.handle({ type: 'devices' });
     }
 
     dispose() {
@@ -175,7 +187,9 @@ class InspectorPanel {
         this.post({ type: 'server', running: true, version });
         const devices = (await this.cli.devices()).filter(d => d.state === 'online');
         this.post({ type: 'devices', devices, version });
-        const keep = devices.find(d => d.id === this.device?.id) ?? (devices.length === 1 ? devices[0] : undefined);
+        const wanted = this.wanted;
+        this.wanted = undefined;
+        const keep = devices.find(d => d.id === (wanted ?? this.device?.id)) ?? (devices.length === 1 ? devices[0] : undefined);
         if (keep) {
             await this.selectDevice(keep.id, devices);
         } else if (!devices.length) {

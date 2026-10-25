@@ -2,7 +2,7 @@
   "name": "testfly-mobile-inspector",
   "displayName": "TestFly Inspector",
   "description": "Inspect iOS and Android screens through mobilecli and web pages in Chrome or Edge: screenshot, UI or DOM tree, element details and ready-to-paste TestFly @MobileFind fields and Locator declarations.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "hakanngul",
   "license": "Apache-2.0",
   "repository": {

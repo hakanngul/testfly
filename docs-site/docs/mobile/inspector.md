@@ -27,12 +27,12 @@ Both packages are in the repository, so no marketplace access is needed.
 **VS Code** (1.85 or newer):
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.4.0.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.5.0.vsix
 ```
 
 or Extensions view → `…` → **Install from VSIX…**.
 
-**IntelliJ IDEA** (2024.1 or newer, Community or Ultimate, and other IntelliJ-based IDEs): Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/intellij-mobile-inspector/dist/testfly-mobile-inspector-0.3.0.zip`, then restart the IDE. Uninstall an older version first.
+**IntelliJ IDEA** (2024.1 or newer, Community or Ultimate, and other IntelliJ-based IDEs): Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/intellij-mobile-inspector/dist/testfly-mobile-inspector-0.4.0.zip`, then restart the IDE. Uninstall an older version first.
 
 **Both need** mobilecli 1.0.20 or newer and a booted simulator, emulator or connected device. On iOS install mobilecli's agent once per device (`mobilecli agent install --device <udid>`). The inspector starts `mobilecli server start` itself when no server answers on `http://localhost:12000`. The **Server** button next to the device list shows whether the server answers and starts or stops it, also a server you started yourself; after a stop it is not started again until you press the button.
 
@@ -41,7 +41,32 @@ or Extensions view → `…` → **Install from VSIX…**.
 - **VS Code:** the **TestFly** icon in the activity bar (left) → **Mobile** → **Open Mobile Inspector**, or the command palette → **TestFly: Open Mobile Inspector**. The **Browser** side of the same view opens the [Browser Inspector](../guides/browser-inspector.md) for web pages.
 - **IntelliJ:** the **TestFly Mobile** tool window (left) → **Open Mobile Inspector**, or **Tools → TestFly: Open Mobile Inspector**. The inspector opens as an editor tab.
 
-With one online device it is selected and read at once; otherwise choose it in the device picker.
+With one online device it is selected and read at once; otherwise choose it in the device picker, or press **Inspect** in the device list.
+
+## Device list {#devices}
+
+The **Mobile** side of the TestFly view (VS Code) and the **TestFly Mobile** tool window (IntelliJ) list every device mobilecli knows, online or not, in three groups: **Android** (emulators and phones), **iOS simulators** and **iOS devices**.
+
+| Row | Buttons |
+|---|---|
+| **READY**: online | **Inspect** opens the inspector on it; emulators and simulators also have **Shut down** (⏻) |
+| offline emulator or simulator | **Boot** starts it and waits until it is ready (a cold Android boot can take a minute or two) |
+| **UNAUTHORIZED** (Android) | the phone waits for *Allow USB debugging*; accept it on the phone |
+| **Wi‑Fi** (Android) | connected over the network; the ✕ button disconnects it (`adb disconnect`) |
+
+The list is read again every 10 seconds while it is shown, so devices you plug in, boot or shut down elsewhere appear by themselves; **Reload** reads it at once. Simulators are listed after their first boot, emulators from the Android SDK's AVDs. A green or red dot next to *Devices* shows whether the mobilecli server answers.
+
+### Real devices
+
+A phone is listed when mobilecli can reach it:
+
+- **Android**: Developer options → **USB debugging** on, and *Allow USB debugging* accepted on the phone. Until then mobilecli leaves the phone out; the list shows it anyway, as **UNAUTHORIZED**, from `adb devices` (adb is found in `ANDROID_HOME`, `ANDROID_SDK_ROOT`, the SDK's default folder or `PATH`).
+- **iPhone**: unlocked, *Trust This Computer* accepted and **Developer Mode** on (Settings → Privacy & Security). mobilecli skips a phone that is locked or not trusted. Reading the screen also needs mobilecli's agent on the phone once: `mobilecli agent install --device <udid> --provisioning-profile <file>` (a provisioning profile that can sign it for your device).
+
+### Over Wi‑Fi
+
+- **Android 11+**: on the phone, Developer options → **Wireless debugging**, on the same network as the computer. Open **Connect Android over Wi‑Fi** in the device list: enter the address under *Pair device with pairing code* and the 6-digit code to pair (once), then the address shown on the Wireless debugging screen without a code to connect. This runs `adb pair` and `adb connect`; the phone then appears with a **Wi‑Fi** badge and is inspected like a cabled one. Older phones: `adb tcpip 5555` over USB, then connect to `<ip>:5555`.
+- **iPhone**: connect it by cable once and enable *Connect via network* in Xcode → Devices and Simulators. On the same network it is then listed without the cable (mobilecli finds devices on the network too). Whether its screen can be read over Wi‑Fi depends on mobilecli's connection to the agent; if reading fails, use the cable.
 
 ## The window
 
@@ -140,9 +165,9 @@ public class RecordedPage extends MobilePage {
 
 **Copy** puts it on the clipboard, **Clear** starts over. Treat it as a first draft: rename the class and fields, split `recordedFlow()` into intent methods that return the next page, add `@WaitFor` to a field that marks the screen, add assertions, and add the other platform's selectors. Typed text is recorded as you typed it; replace credentials with environment variables.
 
-## Match counts in the editor (VS Code) {#code-lens}
+## Match counts in the editor {#code-lens}
 
-While the Mobile Inspector shows a screen, Java files get a line above each `@MobileFind` field and each `screen().getByTestId(…)`, `getByText`, `getByLabel`, `getByPlaceholder`, `getByType` and `getByRole(MobileRole.…, "name")` call:
+While the Mobile Inspector shows a screen, Java files (and Kotlin files in IntelliJ) get a line above each `@MobileFind` field and each `screen().getByTestId(…)`, `getByText`, `getByLabel`, `getByPlaceholder`, `getByType` and `getByRole(MobileRole.…, "name")` call:
 
 ```java
 ✓ 1 match on Pixel 8
@@ -154,7 +179,7 @@ private MobileLocator login;
 private MobileLocator cancel;
 ```
 
-The selector is the one TestFly uses on the device's platform: a typed attribute (`androidId`, `iosXpath`, …), else `android` / `ios`, else `value`; a field without one for the platform shows *no iOS selector*. Only literal strings are read; a selector built from a constant is skipped. The counts follow every refresh and Live. Click a line to see its matches in the finder. The [Browser Inspector](../guides/browser-inspector.md#code-lens) does the same for web locators. Turn it off with `testflyInspector.codeLens`.
+The selector is the one TestFly uses on the device's platform: a typed attribute (`androidId`, `iosXpath`, …), else `android` / `ios`, else `value`; a field without one for the platform shows *no iOS selector*. Only literal strings are read; a selector built from a constant is skipped. The counts follow every refresh and Live. Click a line to see its matches in the finder. The [Browser Inspector](../guides/browser-inspector.md#code-lens) does the same for web locators. Turn it off with `testflyInspector.codeLens` in VS Code; in IntelliJ they are code vision hints, hidden with the rest of code vision in Settings → Editor → Inlay Hints → Code vision.
 
 ## Keys
 

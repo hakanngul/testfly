@@ -23,9 +23,12 @@ export interface DeviceInfo {
     id: string;
     name: string;
     platform: string;
+    /** "emulator", "simulator" or "real" */
     type: string;
+    /** "online" or "offline"; the device list also shows adb's "unauthorized" */
     state: string;
     version?: string;
+    model?: string;
 }
 
 export interface ScreenSize {
@@ -153,10 +156,21 @@ export class MobileCli {
         return info?.version ?? '';
     }
 
-    async devices(): Promise<DeviceInfo[]> {
-        const result = await this.call<any>('devices.list', {});
+    /** includeOffline: also emulators and simulators that are not running (they can be booted). */
+    async devices(includeOffline = false): Promise<DeviceInfo[]> {
+        const result = await this.call<any>('devices.list', includeOffline ? { includeOffline: true } : {});
         const list: any[] = Array.isArray(result) ? result : result?.devices ?? [];
-        return list.map(d => ({ id: d.id, name: d.name, platform: d.platform, type: d.type, state: d.state, version: d.version }));
+        return list.map(d => ({ id: d.id, name: d.name, platform: d.platform, type: d.type, state: d.state, version: d.version, model: d.model }));
+    }
+
+    /** Starts an offline emulator or simulator and waits until it is ready (minutes for a cold Android boot). */
+    boot(deviceId: string) {
+        return this.call('device.boot', { deviceId }, 240_000);
+    }
+
+    /** Shuts an emulator or simulator down. */
+    shutdown(deviceId: string) {
+        return this.call('device.shutdown', { deviceId }, 60_000);
     }
 
     async screenSize(deviceId: string): Promise<ScreenSize> {

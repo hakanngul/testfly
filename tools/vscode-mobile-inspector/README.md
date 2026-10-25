@@ -20,6 +20,10 @@ The **TestFly** icon in the activity bar opens a view with a **Mobile / Browser*
 - **Actions**: tap, long press, tap and type, Back, Home, swipe; copy the equivalent `mobilecli io tap --device … @eN` command.
 - **Server**: the button next to the device list shows whether the mobilecli server answers (green on, red off) and starts or stops it. Stopping works for a server started outside VS Code too (JSON-RPC `server.shutdown`); after a stop the extension does not start the server again until you press the button.
 
+## Device list
+
+The **Mobile** side of the TestFly view lists every device mobilecli knows, online or not, grouped as Android, iOS simulators and iOS devices: **READY** devices have **Inspect** (and **Shut down** for emulators and simulators), offline emulators and simulators have **Boot**. Android phones that wait for *Allow USB debugging* show as **UNAUTHORIZED** (read from `adb devices`, since mobilecli leaves them out). **Connect Android over Wi‑Fi** pairs and connects a phone with wireless debugging (`adb pair` / `adb connect`). The list refreshes every 10 seconds while shown; *A device is missing?* explains what real iPhones and Android phones need.
+
 ## Match counts in the editor
 
 While an inspector is open, Java files show a line above each TestFly locator with how many elements it matches on the inspected screen or page: `✓ 1 match on Pixel 8`, `⚠ 3 matches on shop.example.com`, `✗ no match`, or `no iOS selector` for an `@MobileFind` without one for the device's platform. It covers `@MobileFind` fields (as `MobilePages` picks the platform's selector), `screen().getByTestId/getByText/getByLabel/getByPlaceholder/getByRole(MobileRole…)` calls, and web `getByTestId`, `getByRole(Role…)`, `getByLabel`, `getByPlaceholder`, `getByText`, `getByAltText`, `getByTitle`, `findById`, `findByName`, `findByClassName`, `findByXpath` and `find("css")`. Only literal arguments are read; a locator built from a constant is skipped. The counts follow each refresh (and Live). Clicking a line shows the matches in the inspector's finder. `testflyInspector.codeLens` turns it off.
@@ -45,7 +49,7 @@ While an inspector is open, Java files show a line above each TestFly locator wi
 ## Install and use
 
 ```bash
-code --install-extension testfly-mobile-inspector-0.4.0.vsix
+code --install-extension testfly-mobile-inspector-0.5.0.vsix
 ```
 
 Activity bar → **TestFly**, or the command palette → **TestFly: Open Mobile Inspector** / **TestFly: Open Browser Inspector**. Mobile keys: `R` refresh, `I` inspect, `T` tap, `E` record, `L` live, `/` find, `Esc` clear. Browser keys: `R` refresh, `I` inspect, `C` click, `E` record, `/` find, `Esc` clear.
