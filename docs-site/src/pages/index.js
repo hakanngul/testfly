@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import Link from '@docusaurus/Link';
-import useBaseUrl from '@docusaurus/useBaseUrl';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import { useColorMode } from '@docusaurus/theme-common';
 import { Highlight } from 'prism-react-renderer';
@@ -223,12 +222,6 @@ export default function Home() {
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
         <section className={styles.hero}>
           <div className={styles.heroBackground} aria-hidden />
-          <img
-            src={useBaseUrl('/img/logo2.svg')}
-            alt=""
-            className={styles.heroLogoWatermark}
-            aria-hidden
-          />
           <div className={`container ${styles.heroContainer}`}>
             <div className={styles.heroContent}>
               <div className={styles.heroHeader}>
@@ -874,12 +867,6 @@ export default function Home() {
         <section className={styles.ctaSection}>
           <div className="container">
             <div className={styles.ctaCard} data-reveal>
-              <img
-                src={useBaseUrl('/img/logo3.svg')}
-                alt=""
-                className={styles.ctaLogo}
-                aria-hidden
-              />
               <h2 className={styles.ctaTitle}>
                 {isTr
                   ? 'Kırılgan testlerinize ve altyapı yükünüze veda edin'
