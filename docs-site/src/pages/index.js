@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import Link from '@docusaurus/Link';
-import useBaseUrl from '@docusaurus/useBaseUrl';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import { useColorMode } from '@docusaurus/theme-common';
 import { Highlight } from 'prism-react-renderer';
@@ -15,6 +14,10 @@ import {
   stats,
   recorderTabs,
   mavenDependencySnippet,
+  testingDomains,
+  mobileShowcase,
+  stabilityHeaders,
+  stabilityRows,
   getQuickConfig,
   prismLightTheme,
   prismDarkTheme,
@@ -160,7 +163,7 @@ function ReportPreview() {
         <div className={styles.reportBar}>
           <span className={styles.reportBarFill} />
         </div>
-        <span className={styles.reportCaption}>AgenticSuite · 1.8s · chrome 126 · Thread-isolated</span>
+        <span className={styles.reportCaption}>Sample · AgenticSuite · 1.8s · chrome 126 · Thread-isolated</span>
       </div>
     </div>
   );
@@ -219,17 +222,13 @@ export default function Home() {
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
         <section className={styles.hero}>
           <div className={styles.heroBackground} aria-hidden />
-          <img
-            src={useBaseUrl('/img/logo2.svg')}
-            alt=""
-            className={styles.heroLogoWatermark}
-            aria-hidden
-          />
           <div className={`container ${styles.heroContainer}`}>
             <div className={styles.heroContent}>
               <div className={styles.heroHeader}>
                 <span className={styles.heroEyebrow}>
-                  Java 21 · Selenium 4 · TestNG · JUnit 5 · Cucumber · AI/MCP
+                  {isTr
+                    ? 'Java 21 · TestNG · JUnit 5 · Cucumber · Web · API · Yük · Mobil (deneysel)'
+                    : 'Java 21 · TestNG · JUnit 5 · Cucumber · Web · API · Load · Mobile (incubating)'}
                 </span>
                 <h1 className={styles.heroTitle}>
                   {isTr ? (
@@ -252,8 +251,8 @@ export default function Home() {
 
               <p className={styles.heroSubtitle}>
                 {isTr
-                  ? "Modern mühendislik ekipleri için Java test otomasyon SDK'sı. TestFly tarayıcı oturumları, API testleri, raporlama ve isteğe bağlı AI araçlarını birleştirir. Ayrı Node.js MCP köprüsü kod üretimi ve proje oluşturma araçları sunar."
-                  : 'A Java test automation SDK for modern teams. TestFly combines browser sessions, API testing, reporting, and optional AI tools. A separate Node.js MCP bridge offers code generation and project scaffolding.'}
+                  ? "Modern mühendislik ekipleri için Java test otomasyon SDK'sı. TestFly web, API, yük ve yerel mobil (deneysel) testlerini; raporlamayı ve isteğe bağlı AI araçlarını birleştirir. Ayrı Node.js MCP köprüsü kod üretimi ve proje oluşturma araçları sunar."
+                  : 'A Java test automation SDK for modern teams. TestFly covers web, API, load, and native mobile (incubating) tests, with reporting and optional AI tools. A separate Node.js MCP bridge offers code generation and project scaffolding.'}
               </p>
 
               <div className={styles.heroBottom}>
@@ -384,6 +383,106 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ── Test domains ─────────────────────────────────────────────────── */}
+        <section className={styles.featuresSection}>
+          <div className="container">
+            <div className={styles.sectionHeader} data-reveal>
+              <span className={styles.sectionEyebrow}>{isTr ? 'Test Alanları' : 'Test Domains'}</span>
+              <h2 className={styles.sectionTitle}>
+                {isTr ? 'Web, API, yük ve mobil' : 'Web, API, load and mobile'}
+              </h2>
+            </div>
+            <div className={styles.miniGrid}>
+              {testingDomains.map((d, i) => (
+                <div key={d.id} className={styles.miniCard} data-reveal style={{ '--i': i % 4 }}>
+                  <div className={styles.miniText}>
+                    <h4 className={styles.miniTitle}>{isTr ? d.titleTr : d.titleEn}</h4>
+                    <p className={styles.miniDesc}>{isTr ? d.descTr : d.descEn}</p>
+                    <span className={styles.miniRequirement}>{isTr ? d.statusTr : d.statusEn}</span>
+                    <Link className={styles.miniLink} to={d.href}>
+                      {isTr ? 'Rehbere git →' : 'Read the guide →'}
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Native mobile (incubating) ───────────────────────────────────── */}
+        <section className={styles.featuresSection}>
+          <div className="container">
+            <div className={styles.mobileShowcase} data-reveal>
+              <div className={styles.mobileText}>
+                <span className={styles.sectionEyebrow}>
+                  {isTr ? 'Native Mobil · Deneysel' : 'Native Mobile · Incubating'}
+                </span>
+                <h3 className={styles.installTitle}>{isTr ? mobileShowcase.titleTr : mobileShowcase.titleEn}</h3>
+                <p className={styles.installSubtitle}>{isTr ? mobileShowcase.subtitleTr : mobileShowcase.subtitleEn}</p>
+                <div className={styles.installBadges}>
+                  {(isTr ? mobileShowcase.badgesTr : mobileShowcase.badgesEn).map((b) => (
+                    <span key={b} className={styles.installBadge}>
+                      <span className={styles.installBadgeDot} />
+                      {b}
+                    </span>
+                  ))}
+                </div>
+                <p className={styles.installSubtitle}>{isTr ? mobileShowcase.noteTr : mobileShowcase.noteEn}</p>
+                <Link className={styles.buttonSecondary} to="/docs/mobile/getting-started">
+                  {isTr ? 'Mobil başlangıç rehberi' : 'Mobile getting started'}
+                </Link>
+              </div>
+              <div className={styles.mobileCode}>
+                <CodeWindow
+                  filename="AndroidLoginExampleTest.java"
+                  language="java"
+                  className={styles.installCode}
+                  code={mobileShowcase.code}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Stability ────────────────────────────────────────────────────── */}
+        <section className={styles.featuresSection}>
+          <div className="container">
+            <div className={styles.sectionHeader} data-reveal>
+              <span className={styles.sectionEyebrow}>{isTr ? 'Kararlılık' : 'Stability'}</span>
+              <h2 className={styles.sectionTitle}>
+                {isTr ? 'Hangi base sınıflar halka açık API?' : 'Which base classes are public API?'}
+              </h2>
+              <p className={styles.sectionSubtitle}>
+                {isTr
+                  ? 'Değerler kaynaktaki @TestFlyApi işaretlerinden alındı.'
+                  : 'Values come from the @TestFlyApi annotations in the source.'}
+              </p>
+            </div>
+            <div className={styles.stabilityWrap} data-reveal>
+              <table className={styles.stabilityTable}>
+                <thead>
+                  <tr>
+                    {(isTr ? stabilityHeaders.tr : stabilityHeaders.en).map((h) => (
+                      <th key={h}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {stabilityRows.map((r) => (
+                    <tr key={r.id}>
+                      <td>{isTr ? r.areaTr : r.areaEn}</td>
+                      <td><code>{r.testng}</code></td>
+                      <td><code>{r.junit5}</code></td>
+                      <td><code>{r.cucumber}</code></td>
+                      <td>{isTr ? r.publicTr : r.publicEn}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         {/* ── Features ─────────────────────────────────────────────────────── */}
         <section className={styles.featuresSection}>
           <div className="container">
@@ -439,15 +538,15 @@ export default function Home() {
             <div className={styles.installBanner} data-reveal>
               <div className={styles.installText}>
                 <span className={styles.sectionEyebrow}>
-                  {isTr ? 'SDK Kaynak Sürümü · 1.0.7' : 'SDK Source Version · 1.0.7'}
+                  {isTr ? 'Son sürüm · 1.0.7' : 'Latest release · 1.0.7'}
                 </span>
                 <h3 className={styles.installTitle}>
                   {isTr ? 'Tek Bir Bağımlılıkla Tüm Gücü Açın' : 'One Dependency to Power Your Entire Stack'}
                 </h3>
                 <p className={styles.installSubtitle}>
                   {isTr
-                    ? 'Bağımlılık karmaşasına ve versiyon çakışmalarına son: Selenium 4, akıllı beklemeler, native CDP video kaydı, AI analiz motoru ve test çalıştırıcı köprüleri tek bir standart JAR altında çakışmasız gelir.'
-                    : 'No dependency conflicts or classpath bloat. TestFly bundles Selenium 4, smart waits, native CDP screencast, AI engine, and test runner bridges in a single verified artifact.'}
+                    ? 'Web ve API çekirdeği tek bir bağımlılıkla gelir: Selenium 4, akıllı beklemeler, CDP video kaydı ve TestNG, JUnit 5, Cucumber desteği. Yük testi, Excel verisi ve ReportPortal ek bağımlılık ister.'
+                    : 'The web and API core comes from one dependency: Selenium 4, smart waits, CDP screencast, and TestNG, JUnit 5, and Cucumber support. Load testing, Excel data, and ReportPortal need optional extra dependencies.'}
                 </p>
                 <div className={styles.installBadges}>
                   <span className={styles.installBadge}>
@@ -456,11 +555,11 @@ export default function Home() {
                   </span>
                   <span className={styles.installBadge}>
                     <span className={styles.installBadgeDot} />
-                    {isTr ? 'Yayın doğrulaması bekleniyor' : 'Release verification pending'}
+                    {isTr ? "Maven Central'de yayında" : 'Published on Maven Central'}
                   </span>
                   <span className={styles.installBadge}>
                     <span className={styles.installBadgeDot} />
-                    {isTr ? 'Sıfır Çakışma' : 'Zero Conflicts'}
+                    {isTr ? 'Jackson BOM ile sabit' : 'Pinned Jackson BOM'}
                   </span>
                   <span className={styles.installBadge}>
                     <span className={styles.installBadgeDot} />
@@ -768,12 +867,6 @@ export default function Home() {
         <section className={styles.ctaSection}>
           <div className="container">
             <div className={styles.ctaCard} data-reveal>
-              <img
-                src={useBaseUrl('/img/logo3.svg')}
-                alt=""
-                className={styles.ctaLogo}
-                aria-hidden
-              />
               <h2 className={styles.ctaTitle}>
                 {isTr
                   ? 'Kırılgan testlerinize ve altyapı yükünüze veda edin'

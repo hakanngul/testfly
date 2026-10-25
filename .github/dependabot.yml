@@ -4,12 +4,37 @@ updates:
     directory: "/"
     target-branch: "development"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: "monthly"
+    open-pull-requests-limit: 2
+    groups:
+      maven-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      maven-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # Major bumps change public behaviour and need a deliberate migration.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/docs-site"
     target-branch: "development"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: "monthly"
+    open-pull-requests-limit: 2
+    groups:
+      docs-site-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      docs-site-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

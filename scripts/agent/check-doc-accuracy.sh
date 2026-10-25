@@ -45,6 +45,14 @@ reject '88 protocol-native MCP tools' docs-site/src/pages/index.js
 reject 'Sixteen enterprise capabilities, all built in' docs-site/src/pages/index.js
 reject '88 live tools' docs-site/src/data/homeData.js
 reject 'testfly record https://' docs-site/src/data/homeData.js docs-site/src/pages/index.js
+# Homepage claims corrected on 2026-10-24: no unverifiable "zero conflicts", "single artifact", "auto PR" or "release pending" wording.
+reject 'Release verification pending' docs-site/src/data/homeData.js docs-site/src/pages/index.js
+reject 'Yayın doğrulaması bekleniyor' docs-site/src/data/homeData.js docs-site/src/pages/index.js
+reject 'Zero Conflicts' docs-site/src/data/homeData.js docs-site/src/pages/index.js
+reject 'Sıfır Çakışma' docs-site/src/data/homeData.js docs-site/src/pages/index.js
+reject 'Sıfır Konfigürasyon' docs-site/src/data/homeData.js docs-site/src/pages/index.js
+reject 'Auto-PR' docs-site/src/data/homeData.js docs-site/src/pages/index.js
+reject 'single verified artifact' docs-site/src/data/homeData.js docs-site/src/pages/index.js
 
 reject 'K6 / Gatling Engine' docs-site/static/diagrams/testfly-k6-dataflow.json
 reject 'JDK 21, K6, Gatling' docs-site/static/diagrams/testfly-architecture.json
