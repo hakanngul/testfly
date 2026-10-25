@@ -1,6 +1,8 @@
 package io.testfly.junit5;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.InvocationInterceptor;
+import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 
 import java.lang.reflect.Method;
 
@@ -49,6 +51,29 @@ final class ReportPortalJUnit5Bridge {
 
     void beforeEach(ExtensionContext context) {
         invoke("beforeEach", context);
+    }
+
+    /**
+     * Starts the RP test item. The RP agent does this in {@code interceptTestMethod}, not in
+     * {@code beforeEach}; without it {@code afterTestExecution} has no item to finish and fails with
+     * "ItemID should not be null", so the test result never reaches ReportPortal. The agent's
+     * interceptor is called with a no-op invocation: it only starts the item and then proceeds.
+     */
+    void startTestItem(ReflectiveInvocationContext<Method> invocationContext, ExtensionContext context) {
+        if (rpExtension == null) return;
+        try {
+            Method method = rpExtension.getClass().getMethod("interceptTestMethod",
+                    InvocationInterceptor.Invocation.class, ReflectiveInvocationContext.class, ExtensionContext.class);
+            InvocationInterceptor.Invocation<Void> noop = () -> null;
+            method.invoke(rpExtension, noop, invocationContext, context);
+        } catch (NoSuchMethodException e) {
+            // Agent without interceptTestMethod — nothing to start
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            System.err.println("[TestFly] ReportPortal 'interceptTestMethod' failed: " + cause);
+        } catch (Exception e) {
+            System.err.println("[TestFly] ReportPortal 'interceptTestMethod' failed: " + e);
+        }
     }
 
     void afterTestExecution(ExtensionContext context) {
@@ -104,9 +129,12 @@ final class ReportPortalJUnit5Bridge {
             method.invoke(rpExtension, args);
         } catch (NoSuchMethodException e) {
             // Method not found in this RP agent version — skip silently
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            // The wrapper's own message is null; the RP agent's exception is the cause.
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            System.err.println("[TestFly] ReportPortal '" + methodName + "' failed: " + cause);
         } catch (Exception e) {
-            System.err.println("[TestFly] ReportPortal '" + methodName + "' failed: "
-                    + e.getMessage());
+            System.err.println("[TestFly] ReportPortal '" + methodName + "' failed: " + e);
         }
     }
 }

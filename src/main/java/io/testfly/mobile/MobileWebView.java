@@ -4,6 +4,7 @@ import io.testfly.mobile.internal.MobileSession;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * An embedded webview ({@code WKWebView}, {@code android.webkit.WebView}) of the app in front, or a
@@ -56,6 +57,61 @@ public final class MobileWebView {
      */
     public Object evaluate(String expression) {
         return call("evaluate", Map.of("expression", expression));
+    }
+
+    /**
+     * Runs {@code body} as the body of a function called with {@code args} ({@code arguments[0]}, ...),
+     * e.g. {@code evaluate("return document.querySelector(arguments[0]).value", "#email")}.
+     */
+    public Object evaluate(String body, Object... args) {
+        return call("evaluate", Map.of("expression", body, "args", java.util.Arrays.asList(args)));
+    }
+
+    // ── locators (the page DOM) ─────────────────────────────────────────
+
+    /** Elements matching a CSS selector. */
+    public MobileWebViewLocator locator(String css) {
+        return new MobileWebViewLocator(this, session, Objects.requireNonNull(css, "css"), null, "locator(\"" + css + "\")");
+    }
+
+    /** Elements whose {@code data-testid} equals {@code testId}. */
+    public MobileWebViewLocator getByTestId(String testId) {
+        return new MobileWebViewLocator(this, session, "[data-testid=\"" + cssString(testId) + "\"]", null, "getByTestId(\"" + testId + "\")");
+    }
+
+    /** The innermost elements whose text (or {@code aria-label}) equals {@code text}, whitespace normalized. */
+    public MobileWebViewLocator getByText(String text) {
+        return new MobileWebViewLocator(this, session, "body *", Objects.requireNonNull(text, "text"), "getByText(\"" + text + "\")");
+    }
+
+    /** Elements of an ARIA role ({@code button}, {@code link}, {@code textbox}, {@code checkbox}, {@code heading}, ...). */
+    public MobileWebViewLocator getByRole(String role) {
+        return new MobileWebViewLocator(this, session, roleCss(role), null, "getByRole(" + role + ")");
+    }
+
+    /** Elements of an ARIA role whose name (text, {@code aria-label} or placeholder) equals {@code name}. */
+    public MobileWebViewLocator getByRole(String role, String name) {
+        return new MobileWebViewLocator(this, session, roleCss(role), Objects.requireNonNull(name, "name"),
+                "getByRole(" + role + ", name=\"" + name + "\")");
+    }
+
+    private static String roleCss(String role) {
+        return switch (Objects.requireNonNull(role, "role")) {
+            case "button" -> "button,[role=button],input[type=button],input[type=submit],input[type=reset]";
+            case "link" -> "a[href],[role=link]";
+            case "textbox" -> "input:not([type]),input[type=text],input[type=email],input[type=password],input[type=search],"
+                    + "input[type=tel],input[type=url],input[type=number],textarea,[role=textbox],[contenteditable=true]";
+            case "checkbox" -> "input[type=checkbox],[role=checkbox]";
+            case "radio" -> "input[type=radio],[role=radio]";
+            case "heading" -> "h1,h2,h3,h4,h5,h6,[role=heading]";
+            case "img", "image" -> "img,[role=img]";
+            case "combobox" -> "select,[role=combobox]";
+            default -> "[role=\"" + cssString(role) + "\"]";
+        };
+    }
+
+    private static String cssString(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     /**

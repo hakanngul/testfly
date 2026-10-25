@@ -181,6 +181,29 @@ public interface MobileDriver extends AutoCloseable {
         throw unsupported("uninstallApp");
     }
 
+    /** PNG bytes of the {@code clip} rectangle (screen points, as view-tree bounds). */
+    default byte[] screenshot(io.testfly.mobile.MobileBounds clip, Duration timeout) {
+        throw unsupported("screenshot(clip)");
+    }
+
+    /** The view tree as mobilecli's indented text snapshot ({@code @e1 [Button] "Sign in"}). */
+    default String viewTreeText(Duration timeout) {
+        throw unsupported("viewTreeText");
+    }
+
+    /** Fold state of a foldable simulator/emulator: {@code folded}, {@code half-open} or {@code open}. */
+    default void setFoldState(String state, Duration timeout) {
+        throw unsupported("setFoldState");
+    }
+
+    /** Launches the app in {@code locales} (e.g. {@code fr-FR}); empty locales behave like {@link #launchApp(String, String, Duration)}. */
+    default void launchApp(String bundleId, String activity, List<String> locales, Duration timeout) {
+        if (locales != null && !locales.isEmpty()) {
+            throw unsupported("launchApp(locales)");
+        }
+        launchApp(bundleId, activity, timeout);
+    }
+
     private UnsupportedOperationException unsupported(String operation) {
         return new UnsupportedOperationException(getClass().getSimpleName() + " does not support " + operation);
     }

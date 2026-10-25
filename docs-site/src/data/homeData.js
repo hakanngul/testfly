@@ -419,6 +419,14 @@ export function getMoreFeatures(isTr) {
         : 'Separate IntelliJ and VS Code extensions in another repository; release not verified, setup and MCP configuration required.',
       requirement: isTr ? 'Ayrı IDE eklentileri' : 'Separate IDE extensions',
     },
+    {
+      icon: '📱',
+      title: 'Mobile Inspector (VS Code & IntelliJ)',
+      short: isTr
+        ? 'Mobil ekranı, görünüm ağacını ve TestFly locator seçicilerini inceleyen; kayıt modunda dokunmaları @MobileFind alanlarına dönüştüren eklentiler.'
+        : 'Extensions that inspect a mobile screen, its view tree and TestFly selectors, and record taps into @MobileFind fields.',
+      requirement: isTr ? 'Ayrı tools/ paketi; mobilecli gerekir' : 'Separate tools/ package; needs mobilecli',
+    },
     ],
   };
 }

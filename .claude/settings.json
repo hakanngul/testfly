@@ -1,0 +1,31 @@
+{
+  "enabledPlugins": {
+    "linkedin-agent@My Uploads": false,
+    "rankedin@anthropic-plugin-directory": false,
+    "remotion@anthropic-plugin-directory": false,
+    "design@anthropic-plugin-directory": false,
+    "cowork-plugin-management@anthropic-plugin-directory": false,
+    "resumenext-linkedin-resume@anthropic-plugin-directory": false,
+    "humanizer@anthropic-plugin-directory": false,
+    "qa-my-app@anthropic-plugin-directory": false
+  },
+  "permissions": {
+    "deny": [
+      "Skill(engineering:deploy-checklist)",
+      "Skill(engineering:incident-response)",
+      "Skill(engineering:standup)",
+      "Skill(engineering:system-design)",
+      "Skill(claude-api)",
+      "Skill(workflow-authoring)",
+      "Skill(plugin-authoring)",
+      "Skill(keybindings-help)",
+      "Skill(dataviz)",
+      "Skill(anthropic-skills:morning)",
+      "Skill(anthropic-skills:import-memory)",
+      "Skill(anthropic-skills:google-workspace)",
+      "Skill(anthropic-skills:taste)",
+      "Skill(anthropic-skills:watch)",
+      "Skill(anthropic-skills:skill-creator)"
+    ]
+  }
+}

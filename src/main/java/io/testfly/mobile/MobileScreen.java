@@ -100,7 +100,26 @@ public final class MobileScreen {
         }
     }
 
-    /** The current view tree (no waiting). */
+    /** Taps the screen at {@code (x, y)} in screen points (no element lookup). */
+    public void tap(int x, int y) {
+        session.driver().tap(x, y, session.rpcTimeout());
+    }
+
+    public void doubleTap(int x, int y) {
+        tap(x, y);
+        tap(x, y);
+    }
+
+    public void longPress(int x, int y) {
+        longPress(x, y, null);
+    }
+
+    /** Long-presses at {@code (x, y)} for {@code duration} (the server default when {@code null}). */
+    public void longPress(int x, int y, java.time.Duration duration) {
+        session.driver().longPress(x, y, duration, session.rpcTimeout());
+    }
+
+        /** The current view tree (no waiting). */
     public List<MobileNode> viewTree() {
         return session.viewTree(session.rpcTimeout());
     }

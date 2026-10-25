@@ -375,6 +375,11 @@ public class TestFlyExtension
             ReflectiveInvocationContext<Method> invocationContext,
             ExtensionContext context) throws Throwable {
 
+        // ReportPortal: the agent starts the test item here, not in beforeEach.
+        if (isRpAvailable()) {
+            rpBridge.startTestItem(invocationContext, context);
+        }
+
         int maxRetries = resolveMaxRetries(context);
 
         if (maxRetries <= 0) {

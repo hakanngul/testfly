@@ -148,7 +148,6 @@ Entry points: `apiClient()`, `apiGet/apiPost/apiPut/apiPatch/apiDelete/apiHead/a
 
 The following internal components are subject to change without notice:
 - `DriverManager` (internal ThreadLocal registry and pooling)
-- `ExecutionEngine`
 - `WaitEngine` internal implementations
 - Internal TestNG / JUnit / Cucumber listener implementations
 - Raw CDP event dispatchers

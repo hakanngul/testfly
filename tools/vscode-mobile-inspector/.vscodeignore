@@ -1,0 +1,9 @@
+src/**
+test/**
+out/**/*.map
+tsconfig.json
+node_modules/**
+**/*.vsix
+
+dist/**
+LICENSE.txt

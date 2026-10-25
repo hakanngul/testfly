@@ -1,7 +1,7 @@
 ---
 id: configuration
 title: Mobil Yapılandırma
-sidebar_position: 3
+sidebar_position: 10
 description: "testfly.yml'in mobile: bloğu: cihaz seçimi, paralel koşum için cihaz havuzu, uygulama sıfırlama, mobilecli sunucusunu otomatik başlatma, zaman aşımları, profiller ve güvenlik."
 ---
 
@@ -33,6 +33,7 @@ mobile:
   allowRemote: false
   headers: {}                  # örn. Authorization: Bearer ${MOBILECLI_TOKEN}
   screenshotOnFailure: true
+  viewTreeOnFailure: true
   recordVideo: off             # off | failures | always
   alerts: none                 # none | accept | dismiss (iOS alerts, Android permission dialogs)
   animations: ""               # on | off; empty leaves the device as it is
@@ -60,6 +61,7 @@ mobile:
 | `allowRemote` | `false` | Loopback olmayan bir `serverUrl`'e izin verir (`https://` gerekir). |
 | `headers` | `{}` | Her istekte gönderilen ek HTTP başlıkları, örneğin kimlik doğrulayan bir proxy için. |
 | `screenshotOnFailure` | `true` | Başarısız teste cihaz ekran görüntüsü ekler. |
+| `viewTreeOnFailure` | `true` | Ekranın görünüm ağacını (`mobilecli snapshot` metni) hata ekran görüntüsünün yanına `target/reports/screenshots/<test>_mobile_<zaman>.txt` olarak kaydeder. |
 | `recordVideo` | `off` | Test başına ekran kaydı: `off`, `failures` (başarısız testler için saklanır) veya `always`; bkz. [Ekran kaydı](#screen-recording). |
 | `alerts` | `none` | Uygulamanın üstüne çıkan sistem uyarıları: Appium'daki `autoAcceptAlerts` / `autoDismissAlerts` (Android'de `autoGrantPermissions`) gibi, ekranın her okunuşundan önce `accept` ile kabul edilir veya `dismiss` ile kapatılır. iOS (izleme, konum, bildirim): `accept`, `Allow`/`OK`'a; `dismiss`, `Don't Allow`/`Ask App Not to Track`/`Cancel`'a dokunur; başka etiketlerde (farklı cihaz dili) son veya ilk butona. Android izin pencereleri: buton kimliğiyle, her dilde. `none` uyarıyı teste bırakır. |
 | `animations` | (boş) | `on` veya `off`; cihaz açılırken ayarlanır. `off` testleri hızlandırır ve kararlı yapar. Boş, cihaza dokunmaz. |

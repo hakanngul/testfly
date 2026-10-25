@@ -50,8 +50,18 @@ final class FakeApp {
     final java.util.Map<String, byte[]> files = new java.util.HashMap<>();
     final java.util.List<String> crashes = new java.util.ArrayList<>();
     String webViewUrl = "https://demo.testfly.dev/terms";
+    String webViewValue = "";
+    /** Arguments of every MobileWebViewLocator script call. */
+    final java.util.List<String> webViewCalls = new java.util.concurrent.CopyOnWriteArrayList<>();
 
-    /** The home list was swiped up once, revealing its "Help" row (scrollIntoView tests). */
+    /** Shows a "Remember me" checkbox under the login button (check/uncheck tests). */
+    boolean showRemember;
+    boolean rememberMe;
+    String fold;
+    JsonNode lastScreenshot;
+    JsonNode lastLaunch;
+
+        /** The home list was swiped up once, revealing its "Help" row (scrollIntoView tests). */
     boolean scrolled;
 
     /** Polls left before the Sign in button stops moving (stability check). */
@@ -75,6 +85,9 @@ final class FakeApp {
         });
         server.on("device.dump.ui", p -> {
             requireDevice(p);
+            if ("text".equals(p.path("format").asText())) {
+                return MAPPER.createObjectNode().put("text", "@e1 [FrameLayout]\n  @e2 [TextView] \"" + (screen.equals("login") ? "Welcome back" : "Hello") + "\"");
+            }
             return tree(p.path("full").asBoolean(false));
         });
         server.on("device.io.button", p -> {
@@ -140,7 +153,22 @@ final class FakeApp {
             webViewUrl = p.path("url").asText();
             return MAPPER.createObjectNode().put("status", "ok");
         });
-        server.on("device.webview.evaluate", p -> MAPPER.getNodeFactory().numberNode(p.path("expression").asText().length()));
+        server.on("device.webview.evaluate", p -> {
+            JsonNode args = p.path("args");
+            if (!args.isArray() || args.isEmpty()) return MAPPER.getNodeFactory().numberNode(p.path("expression").asText().length());
+            // MobileWebViewLocator's script: [css, name, op, arg]; one visible element unless the css says "missing".
+            webViewCalls.add(args.toString());
+            boolean found = !args.get(0).asText().contains("missing");
+            return switch (args.get(2).asText()) {
+                case "count" -> MAPPER.getNodeFactory().numberNode(found ? 1 : 0);
+                case "state" -> MAPPER.getNodeFactory().textNode(found ? "visible" : "matches:0");
+                case "fill" -> { webViewValue = args.get(3).asText(); yield MAPPER.getNodeFactory().booleanNode(true); }
+                case "value" -> MAPPER.getNodeFactory().textNode(webViewValue);
+                case "text" -> MAPPER.getNodeFactory().textNode("Terms");
+                case "attr" -> MAPPER.getNodeFactory().textNode("#" + args.get(3).asText());
+                default -> MAPPER.getNodeFactory().booleanNode(true);
+            };
+        });
         server.on("device.webview.query", p -> {
             ArrayNode list = MAPPER.createArrayNode();
             list.addObject().put("tag", "h1").put("text", "Terms");
@@ -169,7 +197,12 @@ final class FakeApp {
             if (p.path("bundleId").asText().equals(foreground)) foreground = "com.android.launcher";
             return null;
         });
+        server.on("device.fold.set", p -> {
+            fold = p.path("state").asText();
+            return null;
+        });
         server.on("device.apps.launch", p -> {
+            lastLaunch = p;
             foreground = p.path("bundleId").asText();
             screen = "login";
             return null;
@@ -202,6 +235,7 @@ final class FakeApp {
             return MAPPER.createObjectNode().put("status", "ok");
         });
         server.on("device.screenshot", p -> {
+            lastScreenshot = p;
             ObjectNode r = MAPPER.createObjectNode();
             r.put("data", "data:image/png;base64," + Base64.getEncoder().encodeToString(new byte[] {(byte) 0x89, 'P', 'N', 'G'}));
             return r;
@@ -286,6 +320,9 @@ final class FakeApp {
             ObjectNode button = el(children, "android.widget.Button", 3);
             button.put("text", "Sign in").put("identifier", BUNDLE + ":id/sign_in").put("enabled", !username.isEmpty());
             rect(button, 40, 100 + 3 * 160 + shift, 1000, 120);
+            if (showRemember) {
+                el(children, "android.widget.CheckBox", 4).put("text", "Remember me").put("checked", rememberMe);
+            }
         } else {
             el(children, "android.widget.TextView", 0).put("text", "Hello, " + username).put("identifier", BUNDLE + ":id/greeting");
             ObjectNode list = el(children, "androidx.recyclerview.widget.RecyclerView", 1);
@@ -343,7 +380,8 @@ final class FakeApp {
             else if (inside(y, 3) && !username.isEmpty()) {
                 screen = "home";
                 focused = null;
-            } else focused = null;
+            } else if (showRemember && inside(y, 4)) rememberMe = !rememberMe;
+            else focused = null;
         } else if (y >= 1000 && y <= 1120) {
             screen = "login";
             username = "";

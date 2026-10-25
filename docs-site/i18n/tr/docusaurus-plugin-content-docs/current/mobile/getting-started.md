@@ -16,7 +16,14 @@ TestFly, native Android ve iOS uygulamalarını Appium olmadan sürebilir. **Siz
 | Sayfa | Kapsadığı |
 |---|---|
 | Bu sayfa | kurulum, TestNG, JUnit 5 ve Cucumber'da ilk test, hazır örnekler |
-| [Locator'lar ve page object'ler](locators-and-page-objects) | `getBy…` locator'ları, seçici dizeleri, `MobilePage`/`@MobileFind`/`@WaitFor`, YAML locator dosyaları, ön koşullar (`MobileConditions` ile `@PreCondition`), eylemler ve doğrulamalar |
+| [Locator'lar](locators) | `getBy…` sorguları, roller, daraltmalar, strict mode, seçici dizeleri, XPath, iOS class chain ve predicate |
+| [Page object'ler](page-objects) | `@MobileFind` ve `@WaitFor` ile `MobilePage`, YAML locator dosyaları, ön koşullar (`MobileConditions` ile `@PreCondition`) |
+| [Eylemler ve okumalar](actions) | otomatik bekleme, tap / fill / check / swipe / pinch / drag / scroll, koordinatla hareketler, okumalar, açık beklemeler |
+| [Doğrulamalar](assertions) | `expect(locator)` eşleyicileri, `not()`, süreler, `expectPoll`, soft doğrulamalar |
+| [Cihaz ve uygulamalar](device) | uygulama yaşam döngüsü ve diller, deep link'ler, butonlar, ekran yönü, konum, katlanabilirler, pano, dosyalar, klavye, kayıt, crash raporları |
+| [WebView'ler](webviews) | hibrit uygulamalarda DOM locator'ları, gezinti ve JavaScript |
+| [Hata raporları](reports) | başarısız bir testin adımları, ekran görüntüsü, görünüm ağacı, videosu ve crash raporları |
+| [Mobile Inspector](inspector) | VS Code / IntelliJ inspector'ı: ekran, UI ağacı, seçiciler, Record modu |
 | [Yapılandırma](configuration) | `mobile:` bloğu, cihaz seçimi, cihaz havuzu, uygulama sıfırlama, sunucuyu otomatik başlatma, profiller, güvenlik |
 | [CI](ci) | Android emülatörü veya iOS simülatörüyle GitHub Actions'ta çalıştırma |
 | [Sorun giderme](troubleshooting) | istisnalar, sık sorunlar, sınırlar |
@@ -66,7 +73,7 @@ Diğer tüm anahtarların varsayılanı vardır; bkz. [Yapılandırma](configura
 
 Mobil bir testte TestFly tarayıcıyı atlar, testten önce cihazı açar ve sonra kapatır. Cihaz testin thread'ine aittir.
 
-[Page object'lerle](locators-and-page-objects#page-objects) bir test tek bir zincir olarak okunur:
+[Page object'lerle](page-objects) bir test tek bir zincir olarak okunur:
 
 ```java
 public class LoginTest extends BaseMobileTest {
@@ -124,5 +131,7 @@ try (MobileDevice device = Mobile.connect()) {   // testfly.yml'i okur
 | `examples/mobile/IosLoginExampleTest`, `AndroidLoginExampleTest` | TestNG, `HomePage`/`LoginPage` page object'leri, `@MobileTest(platform = …)` | `MOBILE_LOGIN_USER=… MOBILE_LOGIN_PASSWORD=… mvn test -Dtest='IosLoginExampleTest,AndroidLoginExampleTest'` (`ios:` ve `android:` bloklu tek profil `testfly-mobile-login.yml`'i kendileri seçer) |
 | `examples/mobile/IosLoginJUnit5ExampleTest`, `AndroidLoginJUnit5ExampleTest` | JUnit 5, aynı sayfalar ve profil | `MOBILE_LOGIN_USER=… MOBILE_LOGIN_PASSWORD=… mvn test -Dtest='*LoginJUnit5ExampleTest'` |
 | `examples/cucumber/mobile/IosLoginCucumberRunner` | Cucumber, `features-mobile/ios_login.feature` | `mvn test -Dtest=IosLoginCucumberRunner` |
+
+Page object yazarken ekranı incelemek için VS Code veya IntelliJ IDEA'ya [Mobile Inspector](inspector)'ı kurun: ekran görüntüsünü, UI ağacını ve yapıştırmaya hazır `@MobileFind` seçicilerini gösterir; Record modu sizin için ilk page object'i yazar.
 
 Tüm yollar `src/test/java/io/testfly/` altındadır. Ayarlar örnekleri uygulama dosyası gerektirmez; metinler İngilizce cihaz varsayar. Kimlik bilgileri yalnızca ortam değişkenlerinden gelir.

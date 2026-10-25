@@ -1,0 +1,109 @@
+{
+  "name": "testfly-mobile-inspector",
+  "displayName": "TestFly Mobile Inspector",
+  "description": "Inspect iOS and Android screens through mobilecli: live screenshot, UI tree with @eN refs, element details and ready-to-paste TestFly @MobileFind selectors.",
+  "version": "0.2.0",
+  "publisher": "hakanngul",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hakanngul/testfly.git",
+    "directory": "tools/vscode-mobile-inspector"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Testing",
+    "Other"
+  ],
+  "keywords": [
+    "mobilecli",
+    "testfly",
+    "appium",
+    "inspector",
+    "ios",
+    "android"
+  ],
+  "icon": "media/icon.png",
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "testflyInspector.open",
+        "title": "Open Mobile Inspector",
+        "category": "TestFly",
+        "icon": "$(device-mobile)"
+      }
+    ],
+    "configuration": {
+      "title": "TestFly Mobile Inspector",
+      "properties": {
+        "testflyInspector.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:12000",
+          "description": "URL of the mobilecli server (JSON-RPC at /rpc)."
+        },
+        "testflyInspector.mobilecliPath": {
+          "type": "string",
+          "default": "mobilecli",
+          "description": "mobilecli executable used to start the server when it is not running."
+        },
+        "testflyInspector.autoStartServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run 'mobilecli server start' when a local server does not answer."
+        },
+        "testflyInspector.autoRefreshAfterAction": {
+          "type": "boolean",
+          "default": true,
+          "description": "Read the screen again after a tap, swipe, text or button action."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "testflyInspector",
+          "title": "TestFly Mobile",
+          "icon": "media/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "testflyInspector": [
+        {
+          "id": "testflyInspector.home",
+          "name": "Mobile Inspector"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "testflyInspector.home",
+        "contents": "Inspect an iOS or Android screen through mobilecli: screenshot, UI tree with @eN refs and ready-to-paste TestFly selectors.\n[$(device-mobile) Open Mobile Inspector](command:testflyInspector.open)\nNeeds mobilecli and a booted simulator, emulator or device. [Settings](command:workbench.action.openSettings?%5B%22testflyInspector%22%5D)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "testflyInspector.open",
+          "when": "view == testflyInspector.home",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "npm run build && node --test test/*.test.js",
+    "package": "npm run build && vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "~1.85.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "^5.4.0"
+  }
+}

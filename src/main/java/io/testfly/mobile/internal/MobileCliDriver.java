@@ -94,8 +94,20 @@ public final class MobileCliDriver implements MobileDriver {
 
     @Override
     public byte[] screenshot(Duration timeout) {
+        return screenshot(null, timeout);
+    }
+
+    @Override
+    public byte[] screenshot(MobileBounds clip, Duration timeout) {
         ObjectNode p = JsonRpcClient.params();
         p.put("format", "png");
+        if (clip != null) {
+            ObjectNode c = p.putObject("clip");
+            c.put("x", (int) Math.round(clip.x()));
+            c.put("y", (int) Math.round(clip.y()));
+            c.put("width", (int) Math.round(clip.width()));
+            c.put("height", (int) Math.round(clip.height()));
+        }
         String data = deviceCall("device.screenshot", p, timeout, true).path("data").asText("");
         int comma = data.indexOf(',');
         if (comma >= 0) {
@@ -169,6 +181,11 @@ public final class MobileCliDriver implements MobileDriver {
 
     @Override
     public void launchApp(String bundleId, String activity, Duration timeout) {
+        launchApp(bundleId, activity, null, timeout);
+    }
+
+    @Override
+    public void launchApp(String bundleId, String activity, List<String> locales, Duration timeout) {
         if (MobilePlatform.fromWire(requireDevice().platform()) == MobilePlatform.IOS) {
             // iOS: start DeviceKit before the launch; its startup otherwise minimizes the new app (as Mobilewright does).
             try {
@@ -182,6 +199,9 @@ public final class MobileCliDriver implements MobileDriver {
                 && MobilePlatform.fromWire(requireDevice().platform()) == MobilePlatform.ANDROID) {
             // Several LAUNCHER activities (e.g. LeakCanary in a debug build) make Android show a chooser instead.
             p.put("activity", activity);
+        }
+        if (locales != null && !locales.isEmpty()) {
+            locales.forEach(p.putArray("locales")::add);
         }
         deviceCall("device.apps.launch", p, timeout, false);
     }
@@ -261,6 +281,13 @@ public final class MobileCliDriver implements MobileDriver {
             out.add(toNode(el));
         }
         return out;
+    }
+
+    @Override
+    public String viewTreeText(Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        p.put("format", "text");
+        return deviceCall("device.dump.ui", p, timeout, true).path("text").asText("");
     }
 
     @Override
@@ -372,6 +399,13 @@ public final class MobileCliDriver implements MobileDriver {
         JsonNode app = deviceCall("device.apps.foreground", null, timeout, true);
         String id = text(app, "packageName");
         return id != null ? id : text(app, "bundleId");
+    }
+
+    @Override
+    public void setFoldState(String state, Duration timeout) {
+        ObjectNode p = JsonRpcClient.params();
+        p.put("state", state);
+        deviceCall("device.fold.set", p, timeout, false);
     }
 
     @Override

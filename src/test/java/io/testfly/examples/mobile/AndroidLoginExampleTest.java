@@ -4,6 +4,8 @@ import io.testfly.mobile.BaseMobileTest;
 import io.testfly.mobile.MobilePlatform;
 import io.testfly.mobile.MobileTest;
 
+import java.util.stream.Stream;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -28,6 +30,8 @@ public class AndroidLoginExampleTest extends BaseMobileTest {
     private static final String HOME_LOGIN_BUTTON = "btnLogin";
     private static final String USERNAME_FIELD = "etUserName";
     private static final String PASSWORD_FIELD = "etPassword";
+    private static final String DAY_30_ACCOUNT_SUMMARY= "tvTitle";
+    private static final String POP_UP_CONFIRM_BTN = "btnConfirm";
 
     @Test
     @MobileTest (platform = MobilePlatform.ANDROID)
@@ -52,5 +56,12 @@ public class AndroidLoginExampleTest extends BaseMobileTest {
 
         // The login form is gone once the session is open.
         expect(screen().getByTestId(USERNAME_FIELD)).toBeHidden();
+
+        expect(screen().getByTestId(DAY_30_ACCOUNT_SUMMARY)).toBeVisible();
+
+        screen().getByTestId(POP_UP_CONFIRM_BTN).tap();
+
+        expect(screen().getByTestId(DAY_30_ACCOUNT_SUMMARY)).toBeHidden();
+
     }
 }

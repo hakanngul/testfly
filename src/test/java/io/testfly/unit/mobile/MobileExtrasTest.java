@@ -6,6 +6,13 @@ import io.testfly.mobile.Mobile;
 import io.testfly.mobile.MobileCrashReport;
 import io.testfly.mobile.MobileDevice;
 import io.testfly.mobile.MobileException;
+import io.testfly.mobile.MobileAssertionError;
+import io.testfly.mobile.MobileAssertions;
+import io.testfly.mobile.MobileSoftAssertions;
+import io.testfly.mobile.MobileBounds;
+import io.testfly.mobile.MobileLocator;
+import io.testfly.mobile.MobileOrientation;
+import io.testfly.mobile.MobileTimeoutException;
 import io.testfly.mobile.MobileWebView;
 import io.testfly.mobile.internal.MobileSessions;
 import org.testng.annotations.Test;
@@ -16,6 +23,7 @@ import java.time.Duration;
 import java.util.List;
 
 import static io.testfly.mobile.MobileAssertions.expect;
+import static io.testfly.mobile.MobileAssertions.expectPoll;
 import static org.testng.Assert.*;
 
 /** Appium-parity extras on the fake app: gestures, clipboard, files, crash reports, webviews, settings, apps, keyboard, permission dialogs. */
@@ -85,6 +93,62 @@ public class MobileExtrasTest {
     }
 
     @Test
+    public void mobilewrightParity() {
+        String id = uniqueId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            FakeApp app = new FakeApp(id);
+            app.showRemember = true;
+            try (MobileDevice device = Mobile.connect(config(server, app, id))) {
+                MobileLocator remember = device.screen().getByText("Remember me");
+                remember.check();
+                assertTrue(app.rememberMe);
+                remember.check();
+                assertTrue(app.rememberMe, "check() leaves a checked box alone");
+                expect(remember).toBeChecked();
+                remember.setChecked(false);
+                assertFalse(app.rememberMe);
+                remember.uncheck();
+                assertFalse(app.rememberMe, "uncheck() leaves an unchecked box alone");
+
+                MobileLocator welcome = device.screen().getByText("Welcome back");
+                assertEquals(welcome.bounds(), new MobileBounds(40, 100, 1000, 120));
+                assertEquals(welcome.screenshot().length, 4);
+                assertEquals(app.lastScreenshot.path("clip").toString(), "{\"x\":40,\"y\":100,\"width\":1000,\"height\":120}");
+
+                List<MobileLocator> fields = device.screen().getByType("android.widget.EditText").all();
+                assertEquals(fields.size(), 2);
+                assertEquals(fields.get(1).getAttribute("label"), "Password");
+
+                MobileLocator signIn = device.screen().getByText("Sign in");
+                signIn.waitForDisabled();
+                expectThrows(MobileTimeoutException.class, () -> signIn.withTimeout(Duration.ofMillis(200)).waitForEnabled());
+                expect(device.screen().getByPlaceholder("Username")).toBeEmpty();
+                device.screen().getByPlaceholder("Username").fill("ada");
+                signIn.waitForEnabled();
+                expect(device.screen().getByPlaceholder("Username")).not().toBeEmpty();
+                expect(welcome).toHaveText("  WELCOME   back ", true);
+                expectThrows(MobileAssertionError.class,
+                        () -> expect(welcome).withTimeout(Duration.ofMillis(100)).toHaveText("welcome", true));
+
+                device.screen().tap(500, 640);
+                assertEquals(app.screen, "home", "a raw tap on the Sign in button");
+
+                device.setFoldState("half-open");
+                assertEquals(app.fold, "half-open");
+                expectThrows(IllegalArgumentException.class, () -> device.setFoldState("bent"));
+                assertEquals(device.installedApps(), List.of(FakeApp.BUNDLE));
+                device.launchApp(FakeApp.BUNDLE, List.of("fr-FR", "en-US"));
+                assertEquals(app.lastLaunch.path("locales").toString(), "[\"fr-FR\",\"en-US\"]");
+
+                expectPoll(device::orientation).toBe(MobileOrientation.PORTRAIT);
+                MobileAssertionError e = expectThrows(MobileAssertionError.class,
+                        () -> expectPoll(device::foregroundApp).withTimeout(Duration.ofMillis(300)).toBe("com.other"));
+                assertTrue(e.getMessage().contains("last value: " + FakeApp.BUNDLE), e.getMessage());
+            }
+        }
+    }
+
+        @Test
     public void settingsFromConfigAreAppliedWhenTheDeviceOpens() {
         String id = uniqueId();
         try (FakeMobilecliServer server = new FakeMobilecliServer()) {
@@ -116,6 +180,18 @@ public class MobileExtrasTest {
                 terms.navigate("https://demo.testfly.dev/privacy");
                 terms.waitForLoad();
                 assertEquals(terms.url(), "https://demo.testfly.dev/privacy");
+
+                terms.getByRole("textbox", "Email").fill("ada@x.dev");
+                assertEquals(terms.getByRole("textbox", "Email").getValue(), "ada@x.dev");
+                terms.getByTestId("sign-in").click();
+                assertEquals(terms.getByText("Terms").getText(), "Terms");
+                assertEquals(terms.locator("a.help").getAttribute("href"), "#href");
+                assertTrue(terms.locator("h1").isVisible());
+                assertEquals(terms.locator("#missing").count(), 0);
+                MobileTimeoutException e = expectThrows(MobileTimeoutException.class, () -> terms.locator("#missing").click());
+                assertTrue(e.getMessage().contains("0 element(s) match"), e.getMessage());
+                assertTrue(app.webViewCalls.contains("[\"[data-testid=\\\"sign-in\\\"]\",null,\"click\",null]"), app.webViewCalls.toString());
+                assertTrue(app.webViewCalls.stream().anyMatch(c -> c.contains("textarea") && c.contains("\"Email\",\"fill\",\"ada@x.dev\"")));
             }
         }
     }
@@ -169,6 +245,10 @@ public class MobileExtrasTest {
                 assertEquals(device.crashReports(), List.of(new MobileCrashReport("old-crash", "Demo", "2026-10-24-120000")));
                 app.crashes.add("new-crash");
                 MobileSessions.captureFailure("extras.crashTest");
+                try (var files = Files.list(Path.of("target/reports/screenshots"))) {
+                    assertTrue(files.anyMatch(f -> f.getFileName().toString().startsWith("extras.crashTest_mobile_")
+                            && f.toString().endsWith(".txt") && readQuietly(f).contains("@e2 [TextView] \"Welcome back\"")), "view tree saved");
+                }
                 Path saved = Path.of("target/reports/crashes/extras.crashTest_new-crash.txt");
                 assertTrue(Files.readString(saved).contains("EXC_CRASH (new-crash)"));
                 assertFalse(Files.exists(Path.of("target/reports/crashes/extras.crashTest_old-crash.txt")), "only crashes of this test");
@@ -176,6 +256,34 @@ public class MobileExtrasTest {
                 MobileSessions.close();
                 MobileSessions.setOpener(null);
             }
+        }
+    }
+
+    @Test
+    public void softAssertionsCollectFailures() {
+        String id = uniqueId();
+        try (FakeMobilecliServer server = new FakeMobilecliServer()) {
+            FakeApp app = new FakeApp(id);
+            try (MobileDevice device = Mobile.connect(config(server, app, id))) {
+                MobileSoftAssertions soft = MobileAssertions.softly();
+                soft.expect(device.screen().getByText("Welcome back")).toBeVisible();
+                soft.expect(device.screen().getByText("Nope").withTimeout(Duration.ofMillis(100)), "banner").toBeVisible();
+                soft.expect(device.screen().getByText("Sign in")).withTimeout(Duration.ofMillis(100)).not().toBeDisabled();
+                assertEquals(soft.failures().size(), 2);
+                MobileAssertionError all = expectThrows(MobileAssertionError.class, soft::assertAll);
+                assertTrue(all.getMessage().startsWith("2 mobile assertion(s) failed:"), all.getMessage());
+                assertTrue(all.getMessage().contains("banner"), all.getMessage());
+                assertEquals(all.getSuppressed().length, 2);
+                soft.assertAll(); // cleared after throwing
+            }
+        }
+    }
+
+    private static String readQuietly(Path file) {
+        try {
+            return Files.readString(file);
+        } catch (java.io.IOException e) {
+            return "";
         }
     }
 

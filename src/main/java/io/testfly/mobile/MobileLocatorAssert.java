@@ -22,26 +22,34 @@ public final class MobileLocatorAssert {
     private final boolean negated;
     private final String message;
     private final Duration timeout;
+    /** Soft assertions: receives the failure instead of it being thrown; {@code null} throws. */
+    private final java.util.function.Consumer<MobileAssertionError> sink;
 
     MobileLocatorAssert(MobileLocator locator, boolean negated, String message) {
-        this(locator, negated, message, locator.timeout());
+        this(locator, negated, message, locator.timeout(), null);
     }
 
-    private MobileLocatorAssert(MobileLocator locator, boolean negated, String message, Duration timeout) {
+    MobileLocatorAssert(MobileLocator locator, String message, java.util.function.Consumer<MobileAssertionError> sink) {
+        this(locator, false, message, locator.timeout(), sink);
+    }
+
+    private MobileLocatorAssert(MobileLocator locator, boolean negated, String message, Duration timeout,
+            java.util.function.Consumer<MobileAssertionError> sink) {
         this.locator = locator;
         this.negated = negated;
         this.message = message;
         this.timeout = timeout;
+        this.sink = sink;
     }
 
     /** The negated assertion: {@code expect(x).not().toBeVisible()}. */
     public MobileLocatorAssert not() {
-        return new MobileLocatorAssert(locator, !negated, message, timeout);
+        return new MobileLocatorAssert(locator, !negated, message, timeout, sink);
     }
 
     /** Another retry budget for this assertion. */
     public MobileLocatorAssert withTimeout(Duration timeout) {
-        return new MobileLocatorAssert(locator, negated, message, Objects.requireNonNull(timeout, "timeout"));
+        return new MobileLocatorAssert(locator, negated, message, Objects.requireNonNull(timeout, "timeout"), sink);
     }
 
     // ── state ───────────────────────────────────────────────────────────
@@ -91,6 +99,28 @@ public final class MobileLocatorAssert {
         text("toHaveText(/" + expected.pattern() + "/)", TextMatch.regex(expected));
     }
 
+    /**
+     * Displayed text equals {@code expected}; {@code ignoreCase} also ignores case, and whitespace
+     * runs and leading/trailing blanks are normalized (as Playwright's {@code ignoreCase}).
+     */
+    public void toHaveText(String expected, boolean ignoreCase) {
+        if (!ignoreCase) {
+            toHaveText(expected);
+            return;
+        }
+        String words = String.join("\\s+", java.util.Arrays.stream(expected.strip().split("\\s+")).map(Pattern::quote).toList());
+        text("toHaveText(\"" + expected + "\", ignoreCase)",
+                TextMatch.regex(Pattern.compile("^\\s*" + words + "\\s*$", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)));
+    }
+
+    /**
+     * No text and no value (an empty text field; an iOS field showing only its placeholder counts
+     * as empty).
+     */
+    public void toBeEmpty() {
+        single("toBeEmpty", MobileLocatorAssert::empty, negated ? "the element is empty" : "the element has content");
+    }
+
     /** Displayed text contains {@code expected} (case-insensitive). */
     public void toContainText(String expected) {
         text("toContainText(\"" + expected + "\")", TextMatch.contains(expected));
@@ -108,6 +138,12 @@ public final class MobileLocatorAssert {
     }
 
     // ── engine ──────────────────────────────────────────────────────────
+
+    private static boolean empty(MobileNode n) {
+        boolean noText = n.text() == null || n.text().isBlank();
+        boolean noValue = n.value() == null || n.value().isBlank() || n.value().equals(n.placeholder());
+        return noText && noValue;
+    }
 
     private void text(String name, TextMatch match) {
         single(name, n -> match.test(n.displayText()), "text differs");
@@ -142,7 +178,11 @@ public final class MobileLocatorAssert {
             return;
         }
         String prefix = message != null && !message.isBlank() ? message + "\n" : "";
-        throw new MobileAssertionError(prefix + "expect(" + locator.describe() + ")" + (negated ? ".not()" : "") + "." + name
+        MobileAssertionError error = new MobileAssertionError(prefix + "expect(" + locator.describe() + ")" + (negated ? ".not()" : "") + "." + name
                 + " failed after " + timeout.toMillis() + " ms: " + outcome.lastFailure() + Poller.describe(outcome.lastEvidence()));
+        if (sink == null) {
+            throw error;
+        }
+        sink.accept(error);
     }
 }
