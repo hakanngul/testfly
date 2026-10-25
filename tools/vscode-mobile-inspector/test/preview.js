@@ -49,23 +49,32 @@ const light = `:root{--vscode-editor-background:#ffffff;--vscode-sideBar-backgro
 
 const sha = text => `'sha256-${require('crypto').createHash('sha256').update(text).digest('base64')}'`;
 
+// VS Code runs the webview in an iframe and delivers host messages from the parent frame, so the
+// preview does the same: the inspector loads in a frame and this outer page plays the extension host.
 function page(theme) {
     const css = media('inspector.css') + (theme === 'light' ? light : '');
     const scripts = [`
-  window.acquireVsCodeApi = () => ({ getState: () => null, setState() {}, postMessage(m) {
-    if (m.type === 'ready') setTimeout(() => {
-      const device = { id: 'Pixel_8_API_34', name: 'Pixel 8', platform: 'android', type: 'emulator', state: 'online', version: '14' };
-      window.postMessage({ type: 'devices', devices: [device] });
-      window.postMessage({ type: 'device', device });
-      window.postMessage({ type: 'screen', device, screen: { width: ${W}, height: ${H}, scale: 1 }, elements: ${JSON.stringify(tree)}, screenshot: '${screenshot}', ms: 412 });
-    });
-  }});
+  window.acquireVsCodeApi = () => ({ getState: () => null, setState() {}, postMessage(m) { parent.postMessage(m, '*'); } });
 `, media('selectors.js'), media('inspector.js')];
     // same rules as the extension's webview CSP: no inline style="" attributes, no unlisted scripts
     const csp = `default-src 'none'; img-src data:; style-src ${sha(css)}; script-src ${scripts.map(sha).join(' ')};`;
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><style>${css}</style></head>
+    const webview = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><style>${css}</style></head>
 <body>${media('body.html')}
 ${scripts.map(s => `<script>${s}</script>`).join('')}</body></html>`;
+    const attr = webview.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:100%;display:block}</style></head>
+<body><iframe id="webview" srcdoc="${attr}"></iframe>
+<script>
+  const frame = document.getElementById('webview');
+  const host = m => frame.contentWindow.postMessage(m, '*');
+  window.addEventListener('message', e => {
+    if (e.source !== frame.contentWindow || e.data.type !== 'ready') return;
+    const device = { id: 'Pixel_8_API_34', name: 'Pixel 8', platform: 'android', type: 'emulator', state: 'online', version: '14' };
+    host({ type: 'devices', devices: [device] });
+    host({ type: 'device', device });
+    host({ type: 'screen', device, screen: { width: ${W}, height: ${H}, scale: 1 }, elements: ${JSON.stringify(tree)}, screenshot: '${screenshot}', ms: 412 });
+  });
+</script></body></html>`;
 }
 
 (async () => {
@@ -76,7 +85,7 @@ ${scripts.map(s => `<script>${s}</script>`).join('')}</body></html>`;
         await p.setContent(page(theme));
         await p.waitForTimeout(400);
         // hover one element and select another, like a user would
-        const shot = await p.locator('#shot').boundingBox();
+        const shot = await p.frameLocator('#webview').locator('#shot').boundingBox();
         await p.mouse.click(shot.x + shot.width * 0.5, shot.y + shot.height * 0.29); // username field
         await p.mouse.move(shot.x + shot.width * 0.84, shot.y + shot.height * 0.066); // header login button
         await p.waitForTimeout(250);

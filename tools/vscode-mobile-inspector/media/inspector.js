@@ -26,7 +26,8 @@
 
     // ── host messages ───────────────────────────────────────────────────
     window.addEventListener('message', e => {
-        if (e.source !== window || !e.data || typeof e.data !== 'object') return;
+        // VS Code delivers extension messages from the frame that hosts the webview, never from this window
+        if (e.source !== window.parent || !e.data || typeof e.data !== 'object') return;
         const m = e.data;
         switch (m.type) {
             case 'devices': return onDevices(m.devices);
