@@ -103,7 +103,7 @@ public final class JdkLoadEngine implements LoadTestEngine {
                             "or @LoadTest(baseUrl = \"...\") or .baseUrl(\"...\") on the scenario.");
         }
 
-        LoadScenarioValidator.validate(scenario, name());
+        LoadScenarioValidator.validate(scenario, name(), config.getMaxUsers());
         List<LoadStep> steps = scenario.steps();
 
         LoadTestFeeder feeder = scenario.feeder();

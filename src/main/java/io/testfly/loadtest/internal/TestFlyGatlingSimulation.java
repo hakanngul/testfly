@@ -3,17 +3,27 @@ package io.testfly.loadtest.internal;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.gatling.javaapi.core.ChainBuilder;
 import io.gatling.javaapi.core.CheckBuilder;
+import io.gatling.javaapi.core.ClosedInjectionStep;
+import io.gatling.javaapi.core.OpenInjectionStep;
+import io.gatling.javaapi.core.PopulationBuilder;
 import io.gatling.javaapi.core.ScenarioBuilder;
 import io.gatling.javaapi.core.Simulation;
 import io.gatling.javaapi.http.HttpProtocolBuilder;
 import io.gatling.javaapi.http.HttpRequestActionBuilder;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -31,14 +41,35 @@ import static io.gatling.javaapi.http.HttpDsl.*;
  */
 public class TestFlyGatlingSimulation extends Simulation {
 
+    /** Schema version of the metrics sidecar written in {@link #after()}. */
+    static final int METRICS_SCHEMA_VERSION = 2;
+
+    /** Step attempts per request name: incremented by the marker before each step's request. */
+    static final ConcurrentHashMap<String, LongAdder> ATTEMPTS = new ConcurrentHashMap<>();
+    /** Step outcomes per request name: incremented by the marker after each step's request. */
+    static final ConcurrentHashMap<String, LongAdder> OK = new ConcurrentHashMap<>();
+    static final ConcurrentHashMap<String, LongAdder> KO = new ConcurrentHashMap<>();
+
     /**
      * Real HTTP status codes per request name, counted for every received response
-     * (including responses whose checks fail). Requests without a response are not counted here.
+     * (including responses whose checks fail and redirect hops, named {@code "<step> Redirect N"}).
+     * Requests without a response are not counted here.
      */
     static final ConcurrentHashMap<String, ConcurrentHashMap<Integer, LongAdder>> STATUS_COUNTS =
             new ConcurrentHashMap<>();
 
-    private final String statusSidecarPath;
+    /** Response time histogram per request name: milliseconds → count. */
+    static final ConcurrentHashMap<String, ConcurrentHashMap<Long, LongAdder>> LATENCY =
+            new ConcurrentHashMap<>();
+
+    private final String metricsSidecarPath;
+    /**
+     * Each scenario's step request names in declaration order (scenarios in order): the sidecar lists steps in
+     * this order, then redirect hops, and maps each scenario to its request names.
+     */
+    private final Map<String, List<String>> scenarioRequests;
+    private final long maxDurationMs;
+    private volatile long startMs;
 
     {
         GatlingRunConfig cfg = GatlingRunConfig.get();
@@ -58,74 +89,241 @@ public class TestFlyGatlingSimulation extends Simulation {
                             "launched via GatlingEngine, not directly.");
         }
 
-        statusSidecarPath = cfg.statusSidecarPath;
+        metricsSidecarPath = cfg.metricsSidecarPath;
+        maxDurationMs = cfg.maxDurationSeconds() * 1000L;
 
-        // ── HTTP Protocol ──
+        Map<String, List<String>> requests = new LinkedHashMap<>();
+        List<PopulationBuilder> populations = new ArrayList<>();
+        for (GatlingRunConfig.ScenarioConfig sc : cfg.scenarios) {
+            List<String> names = new ArrayList<>();
+            for (GatlingRunConfig.GatlingStep step : sc.steps) {
+                names.add(sc.requestName(step.name));
+            }
+            requests.put(sc.scenarioName, names.isEmpty()
+                    ? List.of(sc.requestName("empty"))
+                    : List.copyOf(new LinkedHashSet<>(names)));
+            populations.add(population(sc));
+        }
+        scenarioRequests = requests;
+
+        // ── maxDuration: graceful stop (reports are still written) if the run hangs ──
+        setUp(populations)
+                .maxDuration(Duration.ofSeconds(cfg.maxDurationSeconds()));
+    }
+
+    /**
+     * One population per scenario, with its own HTTP protocol: the scenario's base URL applies only to it.
+     */
+    private static PopulationBuilder population(GatlingRunConfig.ScenarioConfig sc) {
         HttpProtocolBuilder httpProtocol = http
-                .baseUrl(cfg.baseUrl)
+                .baseUrl(sc.baseUrl)
                 .acceptHeader("application/json")
                 .userAgentHeader("TestFly-LoadTest/1.0")
                 // Gatling's default warm-up sends a request to https://gatling.io; a warm-up against the
                 // target would send an extra, uncounted request to the system under test. Disable both.
                 .disableWarmUp()
                 .transformResponse((response, session) -> {
-                    countStatus(response);
+                    recordResponse(response);
                     return response;
                 });
 
-        // ── Build step chain ──
-        ChainBuilder stepsChain = buildStepsChain(cfg);
+        ChainBuilder stepsChain = buildStepsChain(sc);
 
-        // ── Scenario with hold-duration loop ──
-        ScenarioBuilder scn = scenario(cfg.scenarioName)
-                .during(Duration.ofSeconds(cfg.holdSeconds))
-                .on(stepsChain);
+        PopulationBuilder population;
+        if (sc.workload != null) {
+            // ── Workload model: each user runs the steps once; the injection steps shape the load ──
+            ScenarioBuilder scn = scenario(sc.scenarioName).exec(stepsChain);
+            population = sc.workload.closed()
+                    ? scn.injectClosed(closedInjection(sc.workload))
+                    : scn.injectOpen(openInjection(sc.workload));
+        } else {
+            // ── Legacy: hold-duration loop, users ramped over rampUp ──
+            // exitASAP = false: an iteration in progress always completes, so every step attempt gets its
+            // outcome marker (the JDK engine also finishes the iteration in progress).
+            ScenarioBuilder scn = scenario(sc.scenarioName)
+                    .during(Duration.ofSeconds(sc.holdSeconds), false)
+                    .on(stepsChain);
+            population = scn.injectOpen(rampUsers(sc.users).during(Duration.ofSeconds(sc.rampUpSeconds)));
+        }
+        return population.protocols(httpProtocol);
+    }
 
-        // ── Injection: ramp users over rampUp duration ──
-        // ── maxDuration: graceful stop (reports are still written) if the run hangs ──
-        setUp(
-                scn.injectOpen(
-                        rampUsers(cfg.users).during(Duration.ofSeconds(cfg.rampUpSeconds))))
-                .protocols(httpProtocol)
-                .maxDuration(Duration.ofSeconds(cfg.maxDurationSeconds()));
+    /** Step duration with millisecond precision (at least 1 ms). */
+    private static Duration millis(GatlingRunConfig.GatlingWorkloadStep step) {
+        return Duration.ofMillis(Math.max(1L, Math.round(step.seconds * 1000.0)));
+    }
+
+    static List<OpenInjectionStep> openInjection(GatlingRunConfig.GatlingWorkload workload) {
+        List<OpenInjectionStep> steps = new ArrayList<>();
+        for (GatlingRunConfig.GatlingWorkloadStep step : workload.steps) {
+            Duration d = millis(step);
+            steps.add(switch (step.type) {
+                case "atOnce" -> atOnceUsers(step.users);
+                case "ramp" -> rampUsers(step.users).during(d);
+                // a rate of 0 starts nobody: the same as a pause of that length
+                case "constantRate" -> step.rate > 0 ? constantUsersPerSec(step.rate).during(d) : nothingFor(d);
+                case "rampRate" -> step.fromRate > 0 || step.toRate > 0
+                        ? rampUsersPerSec(step.fromRate).to(step.toRate).during(d)
+                        : nothingFor(d);
+                case "stressPeak" -> stressPeakUsers(step.users).during(d);
+                case "nothingFor" -> nothingFor(d);
+                default -> throw new IllegalArgumentException("[LoadTest] Unknown open workload step: " + step.type);
+            });
+        }
+        return steps;
+    }
+
+    static List<ClosedInjectionStep> closedInjection(GatlingRunConfig.GatlingWorkload workload) {
+        List<ClosedInjectionStep> steps = new ArrayList<>();
+        for (GatlingRunConfig.GatlingWorkloadStep step : workload.steps) {
+            Duration d = millis(step);
+            steps.add(switch (step.type) {
+                case "constantConcurrent" -> constantConcurrentUsers(step.users).during(d);
+                case "rampConcurrent" -> rampConcurrentUsers(step.fromUsers).to(step.toUsers).during(d);
+                default -> throw new IllegalArgumentException("[LoadTest] Unknown closed workload step: " + step.type);
+            });
+        }
+        return steps;
     }
 
     /**
-     * Counts the real status of a received response. Must never throw: a throwing
-     * transformer turns the request KO.
+     * Counts the real status and the response time of a received response. Must never throw: a
+     * throwing transformer turns the request KO.
      */
-    private static void countStatus(io.gatling.http.response.Response response) {
+    private static void recordResponse(io.gatling.http.response.Response response) {
         try {
             String name = response.request().getName();
-            STATUS_COUNTS.computeIfAbsent(name != null ? name : "", k -> new ConcurrentHashMap<>())
+            String key = name != null ? name : "";
+            STATUS_COUNTS.computeIfAbsent(key, k -> new ConcurrentHashMap<>())
                     .computeIfAbsent(response.status().code(), k -> new LongAdder())
+                    .increment();
+            long ms = Math.max(0L, response.endTimestamp() - response.startTimestamp());
+            LATENCY.computeIfAbsent(key, k -> new ConcurrentHashMap<>())
+                    .computeIfAbsent(ms, k -> new LongAdder())
                     .increment();
         } catch (Throwable ignored) {
             // never fail the request because of bookkeeping
         }
     }
 
-    /** Writes the status counts as JSON ({@code {"request": {"201": n}}}) to the sidecar path. */
+    /**
+     * Wraps a step's request in an attempt marker and an outcome marker. Both markers reset the
+     * session's failed flag, so the outcome marker sees exactly this request's result (failed check,
+     * no response, or a request that could not be built). Markers never throw.
+     */
+    static ChainBuilder tracked(String stepName, HttpRequestActionBuilder request) {
+        final String key = stepName != null ? stepName : "";
+        return exec(session -> {
+            try {
+                ATTEMPTS.computeIfAbsent(key, k -> new LongAdder()).increment();
+            } catch (Throwable ignored) {
+                // bookkeeping must never fail the virtual user
+            }
+            return session.markAsSucceeded();
+        })
+                .exec(request)
+                .exec(session -> {
+                    try {
+                        (session.isFailed() ? KO : OK).computeIfAbsent(key, k -> new LongAdder()).increment();
+                    } catch (Throwable ignored) {
+                        // bookkeeping must never fail the virtual user
+                    }
+                    return session.markAsSucceeded();
+                });
+    }
+
+    /** Records the run start (epoch ms). */
+    @Override
+    public void before() {
+        startMs = System.currentTimeMillis();
+    }
+
+    /**
+     * Writes {@value GatlingResultsParser#METRICS_SIDECAR_FILE} to {@link GatlingRunConfig#metricsSidecarPath}:
+     * <pre>
+     * {"schemaVersion":2,"startMs":..,"endMs":..,"maxDurationMs":..,
+     *  "scenarios":{"scenario":["request name", ...]},
+     *  "requests":{"name":{"attempts":n,"ok":n,"ko":n,"status":{"201":n},"latencyMs":{"12":n}}}}
+     * </pre>
+     * {@code scenarios} maps each scenario to its step request names ({@code "<scenario> :: <step>"} with more
+     * than one scenario). Steps come first in declaration order, then names that only received responses
+     * (redirect hops), which have no attempts/ok/ko. {@code startMs} is omitted if {@link #before()} never ran.
+     */
     @Override
     public void after() {
-        if (statusSidecarPath == null || statusSidecarPath.isBlank()) {
+        long endMs = System.currentTimeMillis();
+        if (metricsSidecarPath == null || metricsSidecarPath.isBlank()) {
             return;
         }
-        Map<String, Map<Integer, Long>> snapshot = new TreeMap<>();
-        STATUS_COUNTS.forEach((name, codes) -> {
-            Map<Integer, Long> c = new TreeMap<>();
-            codes.forEach((code, n) -> c.put(code, n.sum()));
-            snapshot.put(name, c);
-        });
+        Map<String, Object> root = new LinkedHashMap<>();
+        root.put("schemaVersion", METRICS_SCHEMA_VERSION);
+        if (startMs > 0) {
+            root.put("startMs", startMs);
+        } else {
+            System.err.println("[LoadTest] WARN: simulation before() hook did not run; run duration not measured");
+        }
+        root.put("endMs", endMs);
+        root.put("maxDurationMs", maxDurationMs);
+        root.put("scenarios", scenarioRequests);
+        List<String> stepNames = new ArrayList<>();
+        scenarioRequests.values().forEach(stepNames::addAll);
+        root.put("requests", snapshot(stepNames));
         try {
-            new ObjectMapper().writeValue(new File(statusSidecarPath), snapshot);
+            Path target = Path.of(metricsSidecarPath);
+            Path tmp = target.resolveSibling(target.getFileName() + ".tmp");
+            new ObjectMapper().writeValue(tmp.toFile(), root);
+            try {
+                Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (Exception e) {
-            // Parser treats a missing sidecar as "status codes not measured"
-            System.err.println("[LoadTest] Could not write status sidecar " + statusSidecarPath + ": " + e);
+            // GatlingEngine fails the run when the sidecar is missing
+            System.err.println("[LoadTest] Could not write metrics sidecar " + metricsSidecarPath + ": " + e);
         }
     }
 
-    private static ChainBuilder buildStepsChain(GatlingRunConfig cfg) {
+    private static Map<String, Map<String, Object>> snapshot(List<String> stepNames) {
+        Set<String> others = new TreeSet<>();
+        others.addAll(ATTEMPTS.keySet());
+        others.addAll(OK.keySet());
+        others.addAll(KO.keySet());
+        others.addAll(STATUS_COUNTS.keySet());
+        others.addAll(LATENCY.keySet());
+        others.removeAll(stepNames);
+        Set<String> names = new LinkedHashSet<>();
+        for (String step : stepNames) {
+            if (ATTEMPTS.containsKey(step) || STATUS_COUNTS.containsKey(step) || LATENCY.containsKey(step)) {
+                names.add(step);
+            }
+        }
+        names.addAll(others);
+
+        Map<String, Map<String, Object>> requests = new LinkedHashMap<>();
+        for (String name : names) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            boolean step = ATTEMPTS.containsKey(name) || OK.containsKey(name) || KO.containsKey(name);
+            if (step) {
+                entry.put("attempts", sum(ATTEMPTS.get(name)));
+                entry.put("ok", sum(OK.get(name)));
+                entry.put("ko", sum(KO.get(name)));
+            }
+            Map<Integer, Long> status = new TreeMap<>();
+            STATUS_COUNTS.getOrDefault(name, new ConcurrentHashMap<>()).forEach((c, n) -> status.put(c, n.sum()));
+            entry.put("status", status);
+            Map<Long, Long> latency = new TreeMap<>();
+            LATENCY.getOrDefault(name, new ConcurrentHashMap<>()).forEach((ms, n) -> latency.put(ms, n.sum()));
+            entry.put("latencyMs", latency);
+            requests.put(name, entry);
+        }
+        return requests;
+    }
+
+    private static long sum(LongAdder adder) {
+        return adder != null ? adder.sum() : 0L;
+    }
+
+    private static ChainBuilder buildStepsChain(GatlingRunConfig.ScenarioConfig cfg) {
         ChainBuilder chain = null;
 
         if (cfg.feeder != null) {
@@ -137,13 +335,11 @@ public class TestFlyGatlingSimulation extends Simulation {
 
         Duration requestTimeout = Duration.ofSeconds(cfg.effectiveRequestTimeoutSeconds());
         for (GatlingRunConfig.GatlingStep step : cfg.steps) {
-            HttpRequestActionBuilder req = buildRequest(step).requestTimeout(requestTimeout);
+            String requestName = cfg.requestName(step.name);
+            HttpRequestActionBuilder req = buildRequest(step, requestName).requestTimeout(requestTimeout);
+            ChainBuilder trackedStep = tracked(requestName, req);
 
-            if (chain == null) {
-                chain = exec(req);
-            } else {
-                chain = chain.exec(req);
-            }
+            chain = chain == null ? trackedStep : chain.exec(trackedStep);
 
             // Think time between steps
             if (cfg.thinkTimeFixedMs > 0) {
@@ -156,7 +352,7 @@ public class TestFlyGatlingSimulation extends Simulation {
         }
 
         if (chain == null) {
-            chain = exec(http("empty").get("/"));
+            chain = tracked(cfg.requestName("empty"), http(cfg.requestName("empty")).get("/"));
         }
 
         return chain;
@@ -205,16 +401,16 @@ public class TestFlyGatlingSimulation extends Simulation {
      * Converts a {@link GatlingRunConfig.GatlingStep} into a Gatling
      * {@link HttpRequestActionBuilder}.
      */
-    private static HttpRequestActionBuilder buildRequest(GatlingRunConfig.GatlingStep step) {
+    private static HttpRequestActionBuilder buildRequest(GatlingRunConfig.GatlingStep step, String requestName) {
         String path = toGatlingEl(step.path);
 
         // Build base request with method + path
         HttpRequestActionBuilder req = switch (step.method != null ? step.method.toUpperCase() : "GET") {
-            case "POST" -> http(step.name).post(path);
-            case "PUT" -> http(step.name).put(path);
-            case "DELETE" -> http(step.name).delete(path);
-            case "PATCH" -> http(step.name).patch(path);
-            default -> http(step.name).get(path);
+            case "POST" -> http(requestName).post(path);
+            case "PUT" -> http(requestName).put(path);
+            case "DELETE" -> http(requestName).delete(path);
+            case "PATCH" -> http(requestName).patch(path);
+            default -> http(requestName).get(path);
         };
 
         // Headers

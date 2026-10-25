@@ -9,6 +9,9 @@ import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder;
 import org.junit.platform.launcher.core.LauncherFactory;
 import org.junit.platform.launcher.listeners.SummaryGeneratingListener;
 import org.junit.platform.launcher.listeners.TestExecutionSummary;
+import io.testfly.reporting.ReportPaths;
+import org.testng.IHookCallBack;
+import org.testng.IHookable;
 import org.testng.ITestResult;
 import org.testng.TestListenerAdapter;
 import org.testng.TestNG;
@@ -30,7 +33,32 @@ import static org.testng.Assert.*;
  * started, and a failing test gets a device screenshot.
  */
 @Test(singleThreaded = true)
-public class MobileEngineBridgeTest {
+public class MobileEngineBridgeTest implements IHookable {
+
+    /**
+     * The in-process TestNG/JUnit/Cucumber runs export reports; keep them out of the shared
+     * {@code target/reports} that other test classes read in parallel forks. {@code testfly.reports.dir}
+     * is a JVM-wide property, so it is switched under the {@link ReportPaths} monitor that the report
+     * tests in this fork hold while they write and read {@link ReportPaths#metricsJson()}. Only that
+     * monitor: production code synchronizes on {@code TestFlyContext}, which the in-process runs need.
+     */
+    @Override
+    @Test(enabled = false) // the class-level @Test would otherwise make this public hook a test
+    public void run(IHookCallBack callBack, ITestResult testResult) {
+        synchronized (ReportPaths.class) {
+            try {
+                System.setProperty("testfly.reports.dir",
+                        Files.createTempDirectory("tf-mobile-bridge-reports").toString());
+            } catch (java.io.IOException e) {
+                throw new java.io.UncheckedIOException(e);
+            }
+            try {
+                callBack.runTestMethod(testResult);
+            } finally {
+                System.clearProperty("testfly.reports.dir");
+            }
+        }
+    }
 
     static final AtomicReference<FakeApp> APP = new AtomicReference<>();
     static final List<String> SEEN = new ArrayList<>();
@@ -73,18 +101,8 @@ public class MobileEngineBridgeTest {
         MobileSessions.setOpener(p -> Mobile.connect(m));
     }
 
-    /**
-     * The in-process TestNG/JUnit/Cucumber runs export reports; keep them out of the shared
-     * {@code target/reports} that other test classes read in parallel forks.
-     */
-    @org.testng.annotations.BeforeMethod(alwaysRun = true)
-    public void isolateReports() throws Exception {
-        System.setProperty("testfly.reports.dir", Files.createTempDirectory("tf-mobile-bridge-reports").toString());
-    }
-
     @AfterMethod(alwaysRun = true)
     public void restore() {
-        System.clearProperty("testfly.reports.dir");
         MobileSessions.setOpener(null);
         synchronized (SEEN) {
             SEEN.clear();

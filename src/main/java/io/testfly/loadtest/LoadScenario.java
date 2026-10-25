@@ -56,6 +56,7 @@ public final class LoadScenario {
     private long thinkTimeMinMs = -1;
     private long thinkTimeMaxMs = -1;
     private Duration thinkTimeFixed;
+    private Workload workload;
 
     LoadScenario(String name) {
         this.name = name;
@@ -99,6 +100,23 @@ public final class LoadScenario {
      */
     public LoadScenario cooldown(Duration duration) {
         this.cooldown = duration;
+        return this;
+    }
+
+    /**
+     * Sets the workload model (open or closed injection steps). With a workload, each virtual user runs
+     * the steps once, there is no hold loop, and the scenario needs the Gatling engine. It cannot be
+     * combined with {@link #users(int)}, {@link #rampUp(Duration)}, {@link #hold(Duration)} or
+     * {@link #cooldown(Duration)}; {@code @LoadTest} and {@code testfly.yml} values for those are ignored.
+     *
+     * @throws IllegalArgumentException if {@code workload} is {@code null}
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LoadScenario workload(Workload workload) {
+        if (workload == null) {
+            throw new IllegalArgumentException("[LoadTest] workload cannot be null");
+        }
+        this.workload = workload;
         return this;
     }
 
@@ -303,5 +321,11 @@ public final class LoadScenario {
 
     public Duration thinkTimeFixed() {
         return thinkTimeFixed;
+    }
+
+    /** The workload model, or {@code null} for the legacy {@code users/rampUp/hold} shape. */
+    @TestFlyApi(since = "1.1.0")
+    public Workload workload() {
+        return workload;
     }
 }

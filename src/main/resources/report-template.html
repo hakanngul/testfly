@@ -4027,23 +4027,29 @@
                 return;
             }
 
+            // A simulation adds an aggregate entry ("<simulation> (global)") next to its scenarios: it is shown as
+            // its own card, but the summary KPIs and the scenario count use only the non-aggregate entries.
+            const scenarioTests = loadTests.filter(lt => !lt.aggregate);
+
             // Show sidebar tab
             if (navLoadTest) navLoadTest.style.display = 'flex';
-            if (navCount) navCount.innerText = loadTests.length;
+            if (navCount) navCount.innerText = scenarioTests.length;
 
             // Compute summary KPIs
             let totalRequests = 0;
             let totalSuccessful = 0;
             let totalFailed = 0;
             let totalThroughput = 0;
+            let throughputMeasured = false;
             let maxP95 = null;
             let maxP99 = null;
 
-            loadTests.forEach(lt => {
+            scenarioTests.forEach(lt => {
                 totalRequests += (lt.totalRequests || 0);
                 totalSuccessful += (lt.successfulRequests || 0);
                 totalFailed += (lt.failedRequests || 0);
-                totalThroughput += (lt.throughputRps || 0);
+                // throughput may be null (run duration not measured): never coerce it to 0
+                if (ltMeasured(lt.throughputRps)) { totalThroughput += Number(lt.throughputRps); throughputMeasured = true; }
                 if (ltMeasured(lt.p95LatencyMs) && (maxP95 == null || lt.p95LatencyMs > maxP95)) maxP95 = lt.p95LatencyMs;
                 if (ltMeasured(lt.p99LatencyMs) && (maxP99 == null || lt.p99LatencyMs > maxP99)) maxP99 = lt.p99LatencyMs;
             });
@@ -4061,10 +4067,10 @@
             const elErrBadge = document.getElementById('lt-error-badge');
             const elFailMeta = document.getElementById('lt-failed-meta');
 
-            if (elScenarios) elScenarios.innerText = loadTests.length;
+            if (elScenarios) elScenarios.innerText = scenarioTests.length;
             if (elReq) elReq.innerText = totalRequests.toLocaleString();
             if (elSuccMeta) elSuccMeta.innerText = totalSuccessful.toLocaleString() + ' successful';
-            if (elThp) elThp.innerText = Math.round(totalThroughput).toLocaleString() + ' rps';
+            if (elThp) elThp.innerText = throughputMeasured ? Math.round(totalThroughput).toLocaleString() + ' rps' : 'n/a';
             if (elP95) elP95.innerText = ltMs(maxP95);
             if (elP99Meta) elP99Meta.innerText = 'Max P99: ' + ltMs(maxP99);
             if (elErr) elErr.innerText = errorRatePercent;
@@ -4159,7 +4165,7 @@
                         { label: 'P95', value: ltMeasured(lt.p95LatencyMs) ? Math.round(lt.p95LatencyMs) : 'n/a', unit: ltMeasured(lt.p95LatencyMs) ? 'ms' : '', color: 'var(--flaky)' },
                         { label: 'P99', value: ltMeasured(lt.p99LatencyMs) ? Math.round(lt.p99LatencyMs) : 'n/a', unit: ltMeasured(lt.p99LatencyMs) ? 'ms' : '', color: 'var(--bad)' },
                         { label: 'Mean', value: ltMeasured(lt.meanLatencyMs) ? Math.round(lt.meanLatencyMs) : 'n/a', unit: ltMeasured(lt.meanLatencyMs) ? 'ms' : '' },
-                        { label: 'Throughput', value: (lt.throughputRps || 0).toFixed(1), unit: 'rps', color: 'var(--good)' }
+                        { label: 'Throughput', value: ltMeasured(lt.throughputRps) ? Number(lt.throughputRps).toFixed(1) : 'n/a', unit: ltMeasured(lt.throughputRps) ? 'rps' : '', color: 'var(--good)' }
                     ];
 
                     tiles.forEach(t => {

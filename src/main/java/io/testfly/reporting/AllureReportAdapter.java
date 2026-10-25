@@ -198,7 +198,7 @@ public class AllureReportAdapter implements ReportAdapter {
                 addParameter(parameters, "Total Requests", lt.path("totalRequests").asText());
             }
             if (lt.has("throughputRps")) {
-                addParameter(parameters, "Throughput", String.format(Locale.ROOT, "%.1f req/s", lt.path("throughputRps").asDouble()));
+                addParameter(parameters, "Throughput", throughputOrNa(lt.path("throughputRps")));
             }
             if (lt.has("p95LatencyMs")) {
                 addParameter(parameters, "P95 Latency", latencyOrNa(lt.path("p95LatencyMs")));
@@ -329,6 +329,15 @@ public class AllureReportAdapter implements ReportAdapter {
         return Double.isNaN(v) ? "n/a" : Math.round(v) + " ms";
     }
 
+    /** "n req/s", or "n/a" when the engine did not measure throughput (missing, null or non-numeric). */
+    private static String throughputOrNa(JsonNode node) {
+        if (node == null || !(node.isNumber() || node.isTextual())) {
+            return "n/a";
+        }
+        double v = node.asDouble(Double.NaN);
+        return Double.isNaN(v) ? "n/a" : String.format(Locale.ROOT, "%.1f req/s", v);
+    }
+
     private String buildLoadTestSummaryMarkdown(JsonNode lt) {
         StringBuilder sb = new StringBuilder();
         String scenario = lt.path("scenarioName").asText("Load Scenario");
@@ -339,7 +348,7 @@ public class AllureReportAdapter implements ReportAdapter {
         sb.append("- **Total Requests:** ").append(lt.path("totalRequests").asLong(0))
           .append(" (OK: ").append(lt.path("successfulRequests").asLong(0))
           .append(", KO: ").append(lt.path("failedRequests").asLong(0)).append(")\n");
-        sb.append("- **Throughput:** ").append(String.format(Locale.ROOT, "%.1f req/s", lt.path("throughputRps").asDouble(0))).append("\n");
+        sb.append("- **Throughput:** ").append(throughputOrNa(lt.path("throughputRps"))).append("\n");
         sb.append("- **Error Rate:** ").append(String.format(Locale.ROOT, "%.2f%%", lt.path("errorRate").asDouble(0) * 100)).append("\n\n");
 
         sb.append("## Latency Percentiles\n\n");

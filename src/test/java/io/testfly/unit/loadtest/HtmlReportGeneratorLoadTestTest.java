@@ -32,12 +32,14 @@ public class HtmlReportGeneratorLoadTestTest {
 
     private static final Object GLOBAL_REPORT_LOCK = ReportPaths.class;
     private static final Object CONTEXT_LOCK = TestFlyContext.class;
+    private static final String REPORTS_DIR = "target/reports-isolated/HtmlReportGeneratorLoadTestTest";
 
     @BeforeMethod
     public void setup() throws Exception {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
+                // Own directory: surefire forks run other classes that delete target/testfly-metrics.json.
+                System.setProperty("testfly.reports.dir", REPORTS_DIR);
                 cleanFiles();
                 resetTestFlyContext();
                 ExecutionMetrics.reset();
@@ -50,8 +52,8 @@ public class HtmlReportGeneratorLoadTestTest {
     public void cleanup() throws Exception {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 cleanFiles();
+                System.clearProperty("testfly.reports.dir");
                 resetTestFlyContext();
                 ExecutionMetrics.reset();
             }
@@ -189,6 +191,111 @@ public class HtmlReportGeneratorLoadTestTest {
                 }
             }
         }
+    }
+
+    @Test
+    public void generate_withUnmeasuredThroughput_rendersNaNotZero() throws Exception {
+        synchronized (GLOBAL_REPORT_LOCK) {
+            synchronized (CONTEXT_LOCK) {
+                Path testDir = Files.createTempDirectory("html-loadtest-throughput-");
+                try {
+                    File jsonFile = new File(testDir.toFile(), "testfly-metrics.json");
+                    Map<String, Object> lt = new LinkedHashMap<>(io.testfly.metrics.ExecutionMetrics.loadTestMetricsToMap(
+                            new io.testfly.loadtest.LoadTestMetrics("NoDuration", 3, 3, 0, Double.NaN, 4, 4, 4, 4, 4,
+                                    4, 4, 0, Map.of(200, 3L), 0, 1, "gatling", Map.of(), 4)));
+                    assertTrue(lt.containsKey("throughputRps") && lt.get("throughputRps") == null,
+                            "unmeasured throughput must be null in the metrics map, was " + lt.get("throughputRps"));
+
+                    Map<String, Object> metrics = new LinkedHashMap<>();
+                    metrics.put("totalTests", 1);
+                    metrics.put("passedTests", 1);
+                    metrics.put("failedTests", 0);
+                    metrics.put("skippedTests", 0);
+                    metrics.put("totalTimeMs", 1000L);
+                    metrics.put("loadTests", List.of(lt));
+                    new ObjectMapper().writeValue(jsonFile, metrics);
+
+                    HtmlReportGenerator.generate(jsonFile);
+
+                    String html = Files.readString(new File(testDir.toFile(), "testfly-report.html").toPath(),
+                            StandardCharsets.UTF_8);
+                    String data = Files.readString(new File(testDir.toFile(), "testfly-report-data.json").toPath(),
+                            StandardCharsets.UTF_8);
+                    assertTrue(data.matches("(?s).*\"throughputRps\"\\s*:\\s*null.*"),
+                            "unmeasured throughput must stay null in report data");
+                    assertFalse(html.contains("throughputRps || 0"), "throughput may not be coerced to 0");
+                    assertTrue(html.contains("value: ltMeasured(lt.throughputRps) ? Number(lt.throughputRps).toFixed(1) : 'n/a'"),
+                            "throughput tile must render null as n/a");
+                    assertTrue(html.contains("throughputMeasured ? Math.round(totalThroughput).toLocaleString() + ' rps' : 'n/a'"),
+                            "summary throughput must render n/a when no scenario measured it");
+                } finally {
+                    deleteRecursively(testDir);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void generate_withSimulationAggregate_summaryCountsScenariosOnce() throws Exception {
+        synchronized (GLOBAL_REPORT_LOCK) {
+            synchronized (CONTEXT_LOCK) {
+                Path testDir = Files.createTempDirectory("html-loadtest-aggregate-");
+                try {
+                    io.testfly.loadtest.LoadTestMetrics browse = simMetrics("Browse", 30, 10.0);
+                    io.testfly.loadtest.LoadTestMetrics buy = simMetrics("Buy", 12, 4.0);
+                    io.testfly.loadtest.LoadTestMetrics global = simMetrics("Shop (global)", 42, 14.0);
+                    ExecutionMetrics.reset();
+                    ExecutionMetrics.recordLoadTest(browse);
+                    ExecutionMetrics.recordLoadTest(buy);
+                    ExecutionMetrics.recordLoadTestAggregate(global);
+                    // a listener re-recording lastMetrics() (the global) must not add a second entry
+                    ExecutionMetrics.recordLoadTest(global);
+
+                    assertEquals(ExecutionMetrics.getLoadTests().size(), 3);
+                    List<Map<String, Object>> maps = ExecutionMetrics.getLoadTests().stream()
+                            .map(ExecutionMetrics::loadTestMetricsToMap).toList();
+                    assertEquals(maps.get(0).get("aggregate"), false, "a scenario entry is not an aggregate");
+                    assertEquals(maps.get(1).get("aggregate"), false);
+                    assertEquals(maps.get(2).get("aggregate"), true, "the simulation's global entry is an aggregate");
+
+                    Map<String, Object> metrics = new LinkedHashMap<>();
+                    metrics.put("totalTests", 1);
+                    metrics.put("passedTests", 1);
+                    metrics.put("failedTests", 0);
+                    metrics.put("skippedTests", 0);
+                    metrics.put("totalTimeMs", 1000L);
+                    metrics.put("loadTests", maps);
+                    File jsonFile = new File(testDir.toFile(), "testfly-metrics.json");
+                    new ObjectMapper().writeValue(jsonFile, metrics);
+
+                    HtmlReportGenerator.generate(jsonFile);
+
+                    String html = Files.readString(new File(testDir.toFile(), "testfly-report.html").toPath(),
+                            StandardCharsets.UTF_8);
+                    String data = Files.readString(new File(testDir.toFile(), "testfly-report-data.json").toPath(),
+                            StandardCharsets.UTF_8);
+                    assertTrue(data.matches("(?s).*\"aggregate\"\\s*:\\s*true.*"), "aggregate flag in report data");
+                    assertTrue(html.contains("const scenarioTests = loadTests.filter(lt => !lt.aggregate);"),
+                            "summary must skip aggregate entries");
+                    assertTrue(html.contains("scenarioTests.forEach(lt => {\n                totalRequests +="),
+                            "KPI sums must run over scenario entries only");
+                    assertTrue(html.contains("elScenarios.innerText = scenarioTests.length;"),
+                            "scenario count must exclude aggregates");
+                    assertTrue(html.contains("navCount.innerText = scenarioTests.length;"),
+                            "sidebar count must exclude aggregates");
+                    assertFalse(html.contains("loadTests.forEach(lt => {\n                totalRequests +="),
+                            "no KPI sum over all entries (it would count the aggregate twice)");
+                } finally {
+                    ExecutionMetrics.reset();
+                    deleteRecursively(testDir);
+                }
+            }
+        }
+    }
+
+    private static io.testfly.loadtest.LoadTestMetrics simMetrics(String name, int total, double rps) {
+        return new io.testfly.loadtest.LoadTestMetrics(name, total, total, 0, rps, 5, 5, 5, 5, 5, 5, 5, 0,
+                Map.of(200, (long) total), 3000, 1, "gatling", Map.of(), 5);
     }
 
     @Test

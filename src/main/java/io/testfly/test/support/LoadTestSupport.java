@@ -3,6 +3,7 @@ package io.testfly.test.support;
 import io.testfly.api.TestFlyApi;
 import io.testfly.loadtest.CheckCondition;
 import io.testfly.loadtest.LoadScenario;
+import io.testfly.loadtest.LoadSimulation;
 import io.testfly.loadtest.LoadStep;
 import io.testfly.loadtest.LoadTestMetrics;
 import io.testfly.loadtest.LoadTestRunner;
@@ -48,6 +49,15 @@ public interface LoadTestSupport {
      */
     default LoadScenario loadScenario(String name) {
         return LoadScenario.named(name);
+    }
+
+    /**
+     * Creates a multi-scenario simulation; add scenarios with {@link LoadSimulation#scenario(LoadScenario)}
+     * and run it with {@link LoadSimulation#run()} (Gatling only).
+     */
+    @TestFlyApi(since = "1.1.0")
+    default LoadSimulation loadSimulation(String name) {
+        return LoadSimulation.named(name);
     }
 
     /**

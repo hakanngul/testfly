@@ -12,7 +12,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -45,53 +47,86 @@ public final class GatlingEngine implements LoadTestEngine {
         return GatlingBridge.isAvailable();
     }
 
+    /**
+     * One scenario of a run: the scenario, its resolved configuration and its base URL ({@code null} for the
+     * configured one).
+     */
+    public record ScenarioRun(LoadScenario scenario, LoadTestConfig config, String baseUrl) {
+    }
+
     @Override
     public LoadTestMetrics execute(LoadScenario scenario, LoadTestConfig config) {
         if (!GatlingBridge.isAvailable()) {
             throw new IllegalStateException(GatlingBridge.missingDependencyMessage());
         }
 
-        LoadScenarioValidator.validate(scenario, name());
+        LoadScenarioValidator.validate(scenario, name(), config.getMaxUsers());
 
-        String baseUrl = config.getBaseUrl();
-        if (baseUrl == null || baseUrl.isBlank()) {
-            try {
-                baseUrl = io.testfly.internal.TestFlyContext.getConfig().getExecution().getBaseUrl();
-            } catch (Exception e) {
-                throw new IllegalStateException(
-                        "[LoadTest] No baseUrl configured for Gatling engine.");
-            }
+        // a single scenario keeps unprefixed request names, so its metrics equal the global ones
+        return executeSimulation(scenario.name(), List.of(new ScenarioRun(scenario, config, null)))
+                .scenario(scenario.name());
+    }
+
+    /**
+     * Runs the scenarios as one Gatling simulation in a forked JVM and returns global and per-scenario metrics.
+     * The caller validates first ({@link LoadScenarioValidator#validateSimulation}). Results go to
+     * {@code <resultsDir of the first scenario>/<simulation-slug>-<millis>/}.
+     *
+     * @throws IllegalStateException if the run fails, its metrics sidecar is missing, or no request was recorded
+     */
+    public GatlingResultsParser.SimulationMetrics executeSimulation(String simulationName, List<ScenarioRun> runs) {
+        if (!GatlingBridge.isAvailable()) {
+            throw new IllegalStateException(GatlingBridge.missingDependencyMessage());
         }
+        if (runs.isEmpty()) {
+            throw new IllegalArgumentException("[LoadTest] Simulation '" + simulationName + "' has no scenario");
+        }
+
+        List<GatlingRunConfig.ScenarioConfig> scenarios = new ArrayList<>();
+        Map<String, Integer> users = new LinkedHashMap<>();
+        for (ScenarioRun run : runs) {
+            GatlingRunConfig.ScenarioConfig sc =
+                    new GatlingRunConfig.ScenarioConfig(run.scenario(), run.config(), resolveBaseUrl(run));
+            scenarios.add(sc);
+            users.put(sc.scenarioName, sc.reportedUsers());
+        }
+        String resultsDir = runs.get(0).config().getResultsDir();
 
         GATLING_LOCK.lock();
         try {
             // Dedicated subfolder for this specific run to prevent collisions
-            String runId = scenario.name().replaceAll("[^a-zA-Z0-9_-]", "_") + "-" + System.currentTimeMillis();
-            File specificResultsDir = new File(config.getResultsDir(), runId);
+            String runId = simulationName.replaceAll("[^a-zA-Z0-9_-]", "_") + "-" + System.currentTimeMillis();
+            File specificResultsDir = new File(resultsDir, runId);
             specificResultsDir.mkdirs();
 
-            System.out.println("[LoadTest] Starting Gatling engine: " + scenario.name()
-                    + " (" + config.getUsers() + " users, rampUp=" + config.getRampUp()
-                    + ", hold=" + config.getHold() + ")");
+            for (ScenarioRun run : runs) {
+                LoadScenario scenario = run.scenario();
+                LoadTestConfig config = run.config();
+                System.out.println("[LoadTest] Starting Gatling engine: " + scenario.name()
+                        + (scenario.workload() != null
+                                ? " (workload " + scenario.workload() + ")"
+                                : " (" + config.getUsers() + " users, rampUp=" + config.getRampUp()
+                                        + ", hold=" + config.getHold() + ")"));
+            }
 
-            GatlingRunConfig runConfig = new GatlingRunConfig(scenario, config, baseUrl);
-            Path sidecar = new File(specificResultsDir, GatlingResultsParser.STATUS_SIDECAR_FILE)
+            GatlingRunConfig runConfig = GatlingRunConfig.forSimulation(simulationName, resultsDir, scenarios);
+            Path sidecar = new File(specificResultsDir, GatlingResultsParser.METRICS_SIDECAR_FILE)
                     .getAbsoluteFile().toPath();
-            runConfig.statusSidecarPath = sidecar.toString();
+            runConfig.metricsSidecarPath = sidecar.toString();
             GatlingRunConfig.set(runConfig);
 
             // Always run in an isolated JVM subprocess to ensure 100% clean state between
             // consecutive simulations and prevent Gatling Scala singleton state caching.
-            runGatlingForked(specificResultsDir.getAbsolutePath(), runConfig, scenario.name());
+            runGatlingForked(specificResultsDir.getAbsolutePath(), runConfig, simulationName);
 
             System.out.println("[LoadTest] Gatling execution complete. Parsing results...");
 
-            LoadTestMetrics metrics = GatlingResultsParser.parse(specificResultsDir.getAbsolutePath(),
-                    scenario.name(), config.getUsers(), sidecar);
-            if (metrics.totalRequests() == 0) {
+            GatlingResultsParser.SimulationMetrics metrics =
+                    GatlingResultsParser.parseSimulation(sidecar, simulationName, users);
+            if (metrics.global().totalRequests() == 0) {
                 throw new IllegalStateException(
-                        "[LoadTest] Gatling simulation finished but 0 requests were recorded for scenario '" +
-                                scenario.name() + "'. Check console logs for errors.");
+                        "[LoadTest] Gatling simulation finished but 0 requests were recorded for '" +
+                                simulationName + "'. Check console logs for errors.");
             }
             return metrics;
 
@@ -103,6 +138,44 @@ public final class GatlingEngine implements LoadTestEngine {
         } finally {
             GatlingRunConfig.clear();
             GATLING_LOCK.unlock();
+        }
+    }
+
+    /** The scenario's own base URL, else the run's, else the resolved config's, else {@code execution.baseUrl}. */
+    private static String resolveBaseUrl(ScenarioRun run) {
+        String baseUrl = run.scenario().baseUrl();
+        if (baseUrl == null || baseUrl.isBlank()) {
+            baseUrl = run.baseUrl();
+        }
+        if (baseUrl == null || baseUrl.isBlank()) {
+            baseUrl = run.config().getBaseUrl();
+        }
+        if (baseUrl == null || baseUrl.isBlank()) {
+            try {
+                baseUrl = io.testfly.internal.TestFlyContext.getConfig().getExecution().getBaseUrl();
+            } catch (Exception e) {
+                baseUrl = null;
+            }
+        }
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalStateException("[LoadTest] No baseUrl configured for Gatling engine (scenario '"
+                    + run.scenario().name() + "').");
+        }
+        return baseUrl;
+    }
+
+    /**
+     * Reads the run's metrics sidecar. A missing or unreadable sidecar is a failed run, not empty metrics.
+     */
+    static LoadTestMetrics readMetrics(Path sidecar, String scenarioName, int users) {
+        if (!Files.isReadable(sidecar)) {
+            throw new IllegalStateException("[LoadTest] Gatling metrics sidecar missing: " + sidecar);
+        }
+        try {
+            return GatlingResultsParser.parseSidecar(sidecar, scenarioName, users);
+        } catch (IOException | RuntimeException e) {
+            throw new IllegalStateException("[LoadTest] Gatling metrics sidecar missing: " + sidecar
+                    + " (unreadable: " + e.getMessage() + ")", e);
         }
     }
 
@@ -126,8 +199,10 @@ public final class GatlingEngine implements LoadTestEngine {
             cmd.add("--add-opens");
             cmd.add("java.base/java.lang=ALL-UNNAMED");
             cmd.add("-Dtestfly.gatling.config=" + tempConfig.toAbsolutePath());
-            // Pin the percentile slots: percentiles1..4 in stats.js are p50/p75/p95/p99
-            // regardless of any gatling.conf on the classpath (system properties win).
+            // Pin the percentile slots of Gatling's own report: percentiles1..4 are p50/p75/p95/p99
+            // regardless of any gatling.conf on the classpath (system properties win). TestFly's metrics
+            // come from its sidecar; the pinned slots keep the HTML report and the test-only stats.js
+            // cross-check aligned with them.
             cmd.add("-Dgatling.charting.indicators.percentile1=50");
             cmd.add("-Dgatling.charting.indicators.percentile2=75");
             cmd.add("-Dgatling.charting.indicators.percentile3=95");

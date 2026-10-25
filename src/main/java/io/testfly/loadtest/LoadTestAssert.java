@@ -21,6 +21,19 @@ import io.testfly.api.TestFlyApi;
  *
  * <p>
  * Access raw metrics via {@link #metrics()} for custom assertions.
+ *
+ * <p>
+ * Latency, status-code and error assertions, and {@link #assertThroughputBelow(double)}, fail with
+ * "metrics are partial" when {@link LoadTestMetrics#partial()} is {@code true}: some requests were started
+ * but have no recorded outcome (or the run was stopped early), so the figures are incomplete. A metric that
+ * the engine did not measure ({@link Double#NaN}) fails its assertion as "not measured".
+ *
+ * <p>
+ * Latency assertions use the engine's latency population, which differs for requests that received no
+ * HTTP response (connection refused, timeout, a request that could not be built): on Gatling, latency
+ * percentiles, min, max and mean cover only requests that received a response, and no-response requests
+ * count in the error rate and under status {@code -1}; the JDK engine also includes the elapsed time of
+ * connection failures and timeouts in the latency figures. See {@link LoadTestMetrics}.
  */
 @TestFlyApi(since = "1.1.0")
 public final class LoadTestAssert {
@@ -35,6 +48,7 @@ public final class LoadTestAssert {
 
     /** Asserts throughput (requests/sec) is strictly above the given value. */
     public LoadTestAssert assertThroughputAbove(double rps) {
+        requireThroughputMeasured();
         if (metrics.throughputRps() <= rps) {
             throw new AssertionError(String.format(
                     "[LoadTest] %s: throughput %.1f req/s is not above %.1f req/s",
@@ -43,8 +57,13 @@ public final class LoadTestAssert {
         return this;
     }
 
-    /** Asserts throughput (requests/sec) is strictly below the given value. */
+    /**
+     * Asserts throughput (requests/sec) is strictly below the given value. Fails on partial metrics: an
+     * upper bound checked against undercounted requests would pass wrongly.
+     */
     public LoadTestAssert assertThroughputBelow(double rps) {
+        requireComplete("throughput");
+        requireThroughputMeasured();
         if (metrics.throughputRps() >= rps) {
             throw new AssertionError(String.format(
                     "[LoadTest] %s: throughput %.1f req/s is not below %.1f req/s",
@@ -71,8 +90,8 @@ public final class LoadTestAssert {
     }
 
     /**
-     * Asserts p90 latency is below the given threshold (ms). The Gatling engine does not
-     * measure p90; on such a run this assertion fails with a "not measured" error.
+     * Asserts p90 latency is below the given threshold (ms). Fails with a "not measured" error
+     * when the engine did not measure p90.
      */
     public LoadTestAssert assertP90Below(double ms) {
         return assertPercentileBelow("p90", metrics.p90LatencyMs(), ms);
@@ -125,6 +144,7 @@ public final class LoadTestAssert {
 
     /** Asserts failed request count is strictly below the given threshold. */
     public LoadTestAssert assertFailedRequestsBelow(int count) {
+        requireComplete("failed requests");
         if (metrics.failedRequests() >= count) {
             throw new AssertionError(String.format(
                     "[LoadTest] %s: failed requests %d is not below %d",
@@ -137,6 +157,7 @@ public final class LoadTestAssert {
 
     /** Asserts error rate (0.0–1.0) is below the given threshold. */
     public LoadTestAssert assertErrorRateBelow(double rate) {
+        requireComplete("error rate");
         if (metrics.errorRate() >= rate) {
             throw new AssertionError(String.format(
                     "[LoadTest] %s: error rate %.4f is not below %.4f (%d/%d failed)",
@@ -148,6 +169,7 @@ public final class LoadTestAssert {
 
     /** Asserts success rate (0.0–1.0) is above the given threshold. */
     public LoadTestAssert assertSuccessRateAbove(double rate) {
+        requireComplete("success rate");
         double successRate = 1.0 - metrics.errorRate();
         if (successRate <= rate) {
             throw new AssertionError(String.format(
@@ -199,6 +221,7 @@ public final class LoadTestAssert {
      * Asserts p95 latency for a specific step is below the given threshold (ms).
      */
     public LoadTestAssert assertStepP95Below(String stepName, double ms) {
+        requireComplete("step '" + stepName + "' p95");
         LoadTestMetrics.StepMetrics step = metrics.steps().get(stepName);
         if (step == null) {
             throw new AssertionError(String.format(
@@ -217,6 +240,7 @@ public final class LoadTestAssert {
 
     /** Asserts error rate for a specific step is below the given threshold. */
     public LoadTestAssert assertStepErrorRateBelow(String stepName, double rate) {
+        requireComplete("step '" + stepName + "' error rate");
         LoadTestMetrics.StepMetrics step = metrics.steps().get(stepName);
         if (step == null) {
             throw new AssertionError(String.format(
@@ -240,6 +264,7 @@ public final class LoadTestAssert {
     // ── Internal ─────────────────────────────────────────────────────────
 
     private LoadTestAssert assertPercentileBelow(String label, double actual, double threshold) {
+        requireComplete(label + " latency");
         if (!LoadTestMetrics.isMeasured(actual)) {
             throw notMeasured(label);
         }
@@ -249,6 +274,27 @@ public final class LoadTestAssert {
                     metrics.scenarioName(), label, actual, threshold));
         }
         return this;
+    }
+
+    /**
+     * Throws if the metrics are partial: requests were started without a recorded outcome, so
+     * latency, status and error figures are incomplete.
+     */
+    private void requireComplete(String what) {
+        if (metrics.partial()) {
+            throw new AssertionError(String.format(
+                    "[LoadTest] %s: cannot assert %s, metrics are partial (some requests have no recorded "
+                            + "outcome; engine '%s')",
+                    metrics.scenarioName(), what, metrics.engine()));
+        }
+    }
+
+    private void requireThroughputMeasured() {
+        if (!LoadTestMetrics.isMeasured(metrics.throughputRps())) {
+            throw new AssertionError(String.format(
+                    "[LoadTest] %s: throughput was not measured by engine '%s' (run duration unknown)",
+                    metrics.scenarioName(), metrics.engine()));
+        }
     }
 
     private AssertionError notMeasured(String label) {
@@ -261,6 +307,7 @@ public final class LoadTestAssert {
      * Throws if the engine did not record real HTTP status codes for this run.
      */
     private void requireStatusCodesMeasured() {
+        requireComplete("status codes");
         if (!metrics.statusCodesMeasured()) {
             throw new AssertionError(String.format(
                     "[LoadTest] %s: HTTP status codes were not measured by engine '%s'",

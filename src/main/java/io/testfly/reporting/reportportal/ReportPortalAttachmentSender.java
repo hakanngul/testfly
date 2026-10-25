@@ -193,7 +193,8 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
         sb.append("• **Total Requests:** ").append(metrics.totalRequests())
           .append(" (OK: ").append(metrics.successfulRequests())
           .append(", KO: ").append(metrics.failedRequests()).append(")\n");
-        sb.append("• **Throughput:** ").append(String.format(Locale.ROOT, "%.1f req/s", metrics.throughputRps())).append("\n");
+        sb.append("• **Throughput:** ").append(Double.isNaN(metrics.throughputRps()) ? "n/a"
+                : String.format(Locale.ROOT, "%.1f req/s", metrics.throughputRps())).append("\n");
         sb.append("• **Error Rate:** ").append(String.format(Locale.ROOT, "%.2f%%", metrics.errorRate() * 100)).append("\n\n");
 
         sb.append("**Latency Breakdown:**\n");

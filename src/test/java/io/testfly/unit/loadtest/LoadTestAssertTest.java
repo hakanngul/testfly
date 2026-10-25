@@ -316,6 +316,46 @@ public class LoadTestAssertTest {
         assertTrue(empty.statusCodesMeasured(), "no request sent: nothing to measure");
     }
 
+    // ── LoadTestMetrics.partial (ADR 0004) ────────────────────────────────
+
+    private static LoadTestMetrics partialMetrics() {
+        return new LoadTestMetrics("Cut", 4, 3, 1, 2, 12, 12, 12, 12, 12, 12, 12, 0.25, Map.of(200, 4L),
+                2000, 1, "gatling", Map.of("cut", new LoadTestMetrics.StepMetrics("cut", 4, 3, 1, 12, 0.25)),
+                12, true);
+    }
+
+    @Test
+    public void testPreviousConstructorsAndEmptyAreNotPartial() {
+        assertFalse(goodMetrics().partial(), "18-arg constructor");
+        assertFalse(gatlingLike(Map.of(200, 3L), 3).partial(), "19-arg constructor");
+        assertFalse(LoadTestMetrics.empty("x").partial());
+        new LoadTestAssert(goodMetrics()).assertP95Below(1e9).assertErrorRateBelow(1.0).assertStatus(200);
+    }
+
+    @Test
+    public void testPartialFailsLatencyStatusAndErrorAssertions() {
+        LoadTestAssert a = new LoadTestAssert(partialMetrics());
+        java.util.List<Runnable> guarded = java.util.List.of(
+                () -> a.assertP50Below(1e9), () -> a.assertP75Below(1e9), () -> a.assertP90Below(1e9),
+                () -> a.assertP99Below(1e9), () -> a.assertMeanLatencyBelow(1e9), () -> a.assertMaxLatencyBelow(1e9),
+                () -> a.assertMinLatencyBelow(1e9), () -> a.assertStatusCodeCount(200, 1), () -> a.assertNoStatus(500),
+                () -> a.assertSuccessRateAbove(0), () -> a.assertFailedRequestsBelow(100),
+                () -> a.assertStepP95Below("cut", 1e9), () -> a.assertStepErrorRateBelow("cut", 1.0),
+                () -> a.assertThroughputBelow(1e9));
+        for (int i = 0; i < guarded.size(); i++) {
+            AssertionError e = expectThrows(AssertionError.class, guarded.get(i)::run);
+            assertTrue(e.getMessage().contains("metrics are partial"), "assertion #" + i + ": " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testPartialKeepsThroughputAndCountAssertions() {
+        new LoadTestAssert(partialMetrics())
+                .assertThroughputAbove(1)
+                .assertTotalRequestsAbove(3)
+                .assertSuccessfulRequestsAbove(2);
+    }
+
     @Test
     public void testIsMeasured() {
         assertTrue(LoadTestMetrics.isMeasured(0.0));

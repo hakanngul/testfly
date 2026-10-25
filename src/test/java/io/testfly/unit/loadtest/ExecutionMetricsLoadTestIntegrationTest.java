@@ -6,8 +6,9 @@ import io.testfly.loadtest.LoadTestMetrics;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.metrics.TestTiming;
 import io.testfly.reporting.ReportPaths;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
+import org.testng.IHookCallBack;
+import org.testng.IHookable;
+import org.testng.ITestResult;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -21,12 +22,30 @@ import static org.testng.Assert.*;
  * {@link TestTiming}, and JSON export.
  */
 @Test(singleThreaded = true)
-public class ExecutionMetricsLoadTestIntegrationTest {
+public class ExecutionMetricsLoadTestIntegrationTest implements IHookable {
 
-    @BeforeMethod
-    @AfterMethod
-    public void cleanup() {
-        ExecutionMetrics.reset();
+    /**
+     * Each test, with its reset before and after, holds the same monitors as {@code HtmlReportGeneratorLoadTestTest}
+     * (same order): both classes reset the static {@link ExecutionMetrics} and use the shared
+     * {@link ReportPaths#metricsJson()}, and surefire runs test classes in parallel. The reports directory is
+     * this class's own, because classes in other surefire forks delete {@code target/testfly-metrics.json}.
+     */
+    @Override
+    @Test(enabled = false) // the class-level @Test would otherwise make this public hook a test
+    public void run(IHookCallBack callBack, ITestResult testResult) {
+        synchronized (ReportPaths.class) {
+            synchronized (io.testfly.internal.TestFlyContext.class) {
+                // Own directory: surefire forks run other classes that delete target/testfly-metrics.json.
+                System.setProperty("testfly.reports.dir", "target/reports-isolated/ExecutionMetricsLoadTestIntegrationTest");
+                ExecutionMetrics.reset();
+                try {
+                    callBack.runTestMethod(testResult);
+                } finally {
+                    ExecutionMetrics.reset();
+                    System.clearProperty("testfly.reports.dir");
+                }
+            }
+        }
     }
 
     private LoadTestMetrics sampleMetrics(String scenarioName) {

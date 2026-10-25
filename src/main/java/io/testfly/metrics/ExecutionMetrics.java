@@ -20,6 +20,9 @@ public final class ExecutionMetrics {
     private static final ConcurrentHashMap<String, TestTiming> TIMINGS = new ConcurrentHashMap<>();
 
     private static final java.util.List<io.testfly.loadtest.LoadTestMetrics> LOAD_TESTS = new java.util.concurrent.CopyOnWriteArrayList<>();
+    /** Recorded load tests that aggregate other recorded entries (a simulation's global metrics). */
+    private static final java.util.Set<io.testfly.loadtest.LoadTestMetrics> AGGREGATE_LOAD_TESTS =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     private static final AtomicLong TOTAL_DURATION = new AtomicLong(0);
 
@@ -155,6 +158,24 @@ public final class ExecutionMetrics {
     }
 
     /**
+     * Records load-test metrics that aggregate other recorded entries, such as the global metrics of a
+     * multi-scenario simulation. They are exported with {@code "aggregate": true}, so report summaries do not
+     * count their requests twice.
+     */
+    public static void recordLoadTestAggregate(io.testfly.loadtest.LoadTestMetrics metrics) {
+        if (metrics == null) {
+            return;
+        }
+        AGGREGATE_LOAD_TESTS.add(metrics);
+        recordLoadTest(metrics);
+    }
+
+    /** {@code true} if the metrics were recorded with {@link #recordLoadTestAggregate}. */
+    public static boolean isAggregateLoadTest(io.testfly.loadtest.LoadTestMetrics metrics) {
+        return metrics != null && AGGREGATE_LOAD_TESTS.contains(metrics);
+    }
+
+    /**
      * Records load-test metrics and associates them with the given test ID.
      */
     public static void recordLoadTest(String testId, io.testfly.loadtest.LoadTestMetrics metrics) {
@@ -178,6 +199,7 @@ public final class ExecutionMetrics {
     /** Clears all recorded load test metrics. */
     public static void clearLoadTests() {
         LOAD_TESTS.clear();
+        AGGREGATE_LOAD_TESTS.clear();
     }
 
     public static TestTiming getTiming(String testId) {
@@ -636,6 +658,7 @@ public final class ExecutionMetrics {
         START_TIMES.clear();
         TIMINGS.clear();
         LOAD_TESTS.clear();
+        AGGREGATE_LOAD_TESTS.clear();
         TOTAL_DURATION.set(0);
         CI_METADATA = null;
     }
@@ -655,7 +678,7 @@ public final class ExecutionMetrics {
         map.put("totalRequests", m.totalRequests());
         map.put("successfulRequests", m.successfulRequests());
         map.put("failedRequests", m.failedRequests());
-        map.put("throughputRps", m.throughputRps());
+        map.put("throughputRps", measuredOrNull(m.throughputRps()));
         // NaN = not measured by the engine → JSON null (never coerced to 0)
         map.put("meanLatencyMs", measuredOrNull(m.meanLatencyMs()));
         map.put("p50LatencyMs", measuredOrNull(m.p50LatencyMs()));
@@ -667,6 +690,10 @@ public final class ExecutionMetrics {
         map.put("maxLatencyMs", measuredOrNull(m.maxLatencyMs()));
         map.put("errorRate", m.errorRate());
         map.put("statusCodes", m.statusCodes());
+        // true: some requests have no recorded outcome; latency/status/error figures are incomplete
+        map.put("partial", m.partial());
+        // true: a simulation's global entry, which sums the scenario entries next to it
+        map.put("aggregate", isAggregateLoadTest(m));
 
         Map<String, Object> stepsMap = new LinkedHashMap<>();
         if (m.steps() != null) {
