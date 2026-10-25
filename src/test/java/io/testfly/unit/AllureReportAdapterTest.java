@@ -395,6 +395,60 @@ public class AllureReportAdapterTest {
         }
     }
 
+    @Test
+    public void generate_loadTestSummary_showsNaForUnmeasuredPercentiles() throws IOException {
+        // Gatling run: p90 not measured (null), p75 missing (pre-1.1.0 metrics file)
+        String json = "{"
+                + "\"totalTests\": 1, \"passedTests\": 1, \"failedTests\": 0,"
+                + "\"skippedTests\": 0, \"passRate\": 100.0,"
+                + "\"flakyTests\": 0, \"recoveredTests\": 0,"
+                + "\"totalTimeMs\": 1000,"
+                + "\"tests\": [{"
+                + "  \"testId\": \"myLoginTest\","
+                + "  \"testClassName\": \"LoginTest\","
+                + "  \"thread\": \"main\","
+                + "  \"status\": \"PASSED\","
+                + "  \"loadTestMetrics\": {"
+                + "    \"engine\": \"gatling\", \"scenarioName\": \"NaScenario\", \"users\": 2,"
+                + "    \"totalRequests\": 10, \"successfulRequests\": 10, \"failedRequests\": 0,"
+                + "    \"p50LatencyMs\": 4.0, \"p90LatencyMs\": null, \"p95LatencyMs\": null,"
+                + "    \"p99LatencyMs\": null, \"meanLatencyMs\": null, \"minLatencyMs\": null, \"maxLatencyMs\": 40.0,"
+                + "    \"steps\": {\"s1\": {\"name\": \"s1\", \"totalRequests\": 10, \"successfulRequests\": 10,"
+                + "      \"failedRequests\": 0, \"p95LatencyMs\": null, \"errorRate\": 0.0}}"
+                + "  },"
+                + "  \"totalMs\": 1000"
+                + "}]}";
+        Files.writeString(metricsFile.toPath(), json);
+
+        generateSync();
+        JsonNode result = firstResult();
+
+        String summary = null;
+        for (JsonNode att : result.path("attachments")) {
+            if ("⚡ Load Test Summary".equals(att.path("name").asText())) {
+                summary = Files.readString(new File(ALLURE_RESULTS, att.path("source").asText()).toPath());
+            }
+        }
+        assertNotNull(summary, "Load Test Summary attachment missing");
+        assertTrue(summary.contains("| **P75** | n/a |"), summary);
+        assertTrue(summary.contains("| **P90** | n/a |"), summary);
+        assertTrue(summary.contains("| **P50** | 4 ms |"), summary);
+        for (String row : new String[] {"Min", "P95", "P99", "Mean"}) {
+            assertTrue(summary.contains("| **" + row + "** | n/a |"), row + " must be n/a: " + summary);
+        }
+        assertTrue(summary.contains("| **Max** | 40 ms |"), summary);
+        assertTrue(summary.contains("| `s1` | 10 | 10 | 0 | n/a | 0.0% |"), "step p95 must be n/a: " + summary);
+        assertFalse(summary.contains("| 0 ms"), summary);
+
+        boolean p95ParamNa = false;
+        for (JsonNode param : result.path("parameters")) {
+            if ("P95 Latency".equals(param.path("name").asText())) {
+                p95ParamNa = "n/a".equals(param.path("value").asText());
+            }
+        }
+        assertTrue(p95ParamNa, "P95 Latency parameter must be n/a: " + result.path("parameters"));
+    }
+
     // ----------------------------------------------------------
     // Cleanup helper
     // ----------------------------------------------------------

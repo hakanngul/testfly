@@ -62,3 +62,23 @@ public class CheckoutLoadTest extends BaseLoadTest {
 | `LoadStep` | `get(path)`, `post(path)`, `put(path)`, `patch(path)`, `delete(path)`, `header`, `queryParam`, `formParam`, `body`, `check`, `extract`, `and`, `run` |
 
 `thinkTime(Duration)` sabit, `thinkTime(minMs, maxMs)` rastgele istekler arası bekleme belirler. `extract`, yanıt değerini aynı sanal kullanıcının sonraki adımlarına aktarır. `load(LoadScenario)` overload’u veya `targetRps()` throttling API’si yoktur. Yük ayarlarını senaryoya, istek ayarlarını adımlarına uygulayın.
+
+## Kontroller ve istek seçenekleri
+
+Kontroller JDK ve Gatling motorlarında aynı şekilde çalışır:
+
+| Kontrol | Anlamı |
+| --- | --- |
+| `status().is(code)`, `status().in(codes...)` | HTTP durum kodu `code` değerine eşittir veya `codes` içindedir. |
+| *(durum kontrolü yok)* | Varsayılan kural: durum kodu 2xx (200–299) veya 304 olmalıdır. |
+| `jsonPath(p).exists()` | `p` JSONPath'inde bir değer vardır. |
+| `jsonPath(p).is(n)`, `jsonPath(p).in(n...)` | `p` yolundaki JSON değeri `n` değerine eşittir veya değerlerden biridir (metin olarak karşılaştırılır; JSON sayısı `5`, `5` ile eşleşir). |
+| `status().matches(regex)`, `jsonPath(p).matches(regex)` | Regex **yanıt gövdesinin tamamında** herhangi bir yerde bulunur (`Matcher.find()`, örtük DOTALL yok). JSONPath kullanılmaz. |
+
+- `status().exists()` `IllegalStateException` fırlatır; `exists()` yalnızca `jsonPath(...)` üzerinde geçerlidir.
+- `extract(var, path)`, `path` bulunamazsa isteği hatalı sayar.
+- `formParam(name, value)` iki motorda da `application/x-www-form-urlencoded` gövdesi gönderir (`Content-Type` header'ı ayarlamadıysanız). Bir adım `body(...)` ile `formParam(...)` öğesini birlikte kullanamaz.
+- `queryParam` değerleri `${var}` yerleştirmesinden sonra URL-encode edilir (UTF-8, boşluk `%20`).
+- `body(...)` içeren ve `Content-Type` header'ı olmayan bir adım `application/json` olarak gönderilir.
+
+Desteklenmeyen girdi, herhangi bir istek gönderilmeden önce `IllegalArgumentException` ile başarısız olur. Örnekler: hem body hem form parametresi içeren bir adım, boş bir JSONPath veya geçersiz bir regex. Başında `$` olmayan bir yol iki motorda da `$.` ile başlıyormuş gibi okunur (`token`, `$.token` demektir). JDK motoru yalnızca `$.a.b`, `$.a[0].b` ve `$[0]` JSONPath biçimlerini destekler. İki motorda da JSON `null` değeri mevcut sayılır: `exists()` geçer ve `extract(...)` değişkene `null` yazar. Joker karakterler, derin tarama (`..`), filtreler, dilimler ve `['x']` gibi köşeli parantezli anahtarlar JDK motorunda hemen hata verir ve `engine("gatling")` gerektirir.

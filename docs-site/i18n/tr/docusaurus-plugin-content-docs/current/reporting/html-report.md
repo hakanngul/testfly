@@ -90,9 +90,9 @@ Geçmiş koşumlar arasındaki kararsızlık modellerini inceleyen stabilite mat
 
 ### 6. Load Testing & Performance (Yük Testleri)
 *(Yalnızca performans veya Gatling yük testleri çalıştırıldığında otomatik görünür)*:
-- **Gecikme Dağılım Grafiği:** Min, Mean, P50, P90, P95, P99 ve Max gecikmelerini karşılaştıran renkli çubuk grafik.
-- **HTTP Statü Kodları Donut Grafiği:** 2xx, 3xx, 4xx ve 5xx dağılımı.
-- **Senaryo Kırılımı:** Sanal kullanıcı (VU), saniye başına istek (RPS), toplam istek ve hata oranları.
+- **Gecikme Dağılım Grafiği:** Min, Mean, P50, P90, P95, P99 ve Max gecikmelerini karşılaştıran renkli çubuk grafik. Senaryo kartları ayrıca P75 ve P90 kutucuklarını gösterir. Motorun ölçmediği bir yüzdelik (Gatling motorunda P90) asla 0 olarak değil, `n/a` olarak gösterilir.
+- **HTTP Statü Kodları Donut Grafiği:** Kaydedilen her HTTP durum kodu için bir dilim, sınıfa göre renklendirilir (2xx, 3xx, 4xx, 5xx); yanıt alamayan istekler `-1` altında görünür.
+- **Senaryo Kırılımı:** Sanal kullanıcı (VU, yapılandırılan `users` değeri), saniye başına istek (RPS), toplam istek ve hata oranları.
 - **Gatling Rapor Linki:** Orijinal Gatling Highcharts raporuna doğrudan bağlantı.
 
 ---

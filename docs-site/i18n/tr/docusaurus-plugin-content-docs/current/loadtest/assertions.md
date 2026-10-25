@@ -22,7 +22,8 @@ load("/api/v1/feed")
     .run()
     .assertMeanLatencyBelow(100)  // Ortalama gecikme < 100ms
     .assertP50Below(80)           // Medyan gecikme < 80ms
-    .assertP90Below(150)          // 90. yüzdelik < 150ms
+    .assertP75Below(120)          // 75. yüzdelik < 120ms
+    .assertP90Below(150)          // 90. yüzdelik < 150ms (yalnızca JDK motoru)
     .assertP95Below(250)          // 95. yüzdelik < 250ms
     .assertP99Below(500)          // 99. yüzdelik < 500ms
     .assertMaxLatencyBelow(1200); // En yavaş tekil istek < 1.2s
@@ -33,6 +34,21 @@ Doğrulama başarısız olduğunda TestFly ayrıntılı hata mesajı üretir:
 ```
 java.lang.AssertionError: [LoadTest] /api/v1/feed: p95 latency 348ms is not below 250ms
 ```
+
+### Hangi motor hangi yüzdelikleri ölçer
+
+| Yüzdelik | JDK motoru | Gatling motoru |
+| :--- | :--- | :--- |
+| p50, p75, p95, p99 | Ölçülür | Ölçülür (Gatling istatistiklerinden okunur) |
+| p90 | Ölçülür | **Ölçülmez** |
+
+Motorun ölçmediği bir değer `LoadTestMetrics` içinde `Double.NaN` (kontrol için `LoadTestMetrics.isMeasured(value)`), JSON sonuçlarında `null`, raporlarda `n/a` olarak görünür. Asla `0` olarak raporlanmaz. Ölçülmemiş bir değer üzerindeki gecikme doğrulaması geçmek yerine başarısız olur:
+
+```
+java.lang.AssertionError: [LoadTest] /api/v1/feed: p90 latency was not measured by engine 'gatling'
+```
+
+Bir adımın p95 değeri ölçülmediğinde `assertStepP95Below(...)` da aynı şekilde davranır.
 
 ---
 
@@ -50,7 +66,7 @@ load("/api/orders")
 ```
 
 :::caution Neyin hata sayıldığı
-JDK motorunda bir istek yalnızca exception fırlattığında (bağlantı reddi, zaman aşımı, I/O hatası) veya `check(...)` koşullarından biri başarısız olduğunda hatalı sayılır. `check(status().is(...))` olmayan bir adımda HTTP 4xx veya 5xx yanıtı şu anda **başarılı** istek olarak sayılır ve hata oranını yükseltmez. Hata yanıtlarını yakalamak için adıma `check(status().is(200))` ekleyin veya `assertNoStatus(...)` kullanın (bölüm 3). Hiç yanıt alamayan istekler `-1` durum koduyla kaydedilir.
+İki motor da istekleri aynı şekilde sınıflandırır. Bir istek HTTP yanıtı alamadığında (bağlantı reddi, zaman aşımı, I/O hatası), `check(...)` koşullarından biri başarısız olduğunda veya bir `extract(...)` yolu yanıtta bulunamadığında hatalı sayılır. Adımda `status().is(...)` veya `status().in(...)` kontrolü yoksa varsayılan durum kontrolü uygulanır: yanıt 2xx (200–299) veya 304 olmalıdır, dolayısıyla 4xx veya 5xx yanıtı hata oranını yükseltir. Başka kodları kabul etmek için açık bir durum kontrolü ekleyin, örneğin `check(status().in(200, 404))`.
 :::
 
 ---
@@ -70,6 +86,10 @@ load("/api/payments")
     .assertNoStatus(429)                 // Too Many Requests olmamalı
     .assertStatusCodeCount(200, 1000);   // En az 1.000 adet 200 OK yanıtı
 ```
+
+İki motor da her yanıtın gerçek HTTP durum kodunu kaydeder; kontrolü başarısız olan yanıtlar da buna dahildir. Hiç yanıt alamayan istekler `-1` anahtarı altında sayılır. `LoadScenario.assertStatus(n)` yalnızca tüm istekler `n` döndürdüğünde geçer; bu yüzden `-1` kaydı onu başarısız kılar.
+
+Motor bir koşuda durum kodlarını kaydedemediyse (örneğin Gatling durum dosyası `testfly-status.json` yoksa) `statusCodes()` boştur ve `LoadTestMetrics.statusCodesMeasured()` `false` döner. Bu durumda `assertStatus`, `assertStatusCodeCount` ve `assertNoStatus` eksik veriyle geçmek yerine `HTTP status codes were not measured by engine '<engine>'` mesajıyla başarısız olur.
 
 ---
 
@@ -115,4 +135,8 @@ LoadTestMetrics metrics = load("/api/summary").run().metrics();
 System.out.println("Toplam istek: " + metrics.totalRequests());
 System.out.println("P95 Gecikme: " + metrics.p95LatencyMs() + " ms");
 System.out.println("HTTP 200 adedi: " + metrics.statusCodeCount(200));
+System.out.println("Yanıtsız: " + metrics.statusCodeCount(-1));
+if (LoadTestMetrics.isMeasured(metrics.p90LatencyMs())) {
+    System.out.println("P90 Gecikme: " + metrics.p90LatencyMs() + " ms");
+}
 ```

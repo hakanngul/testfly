@@ -178,6 +178,11 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
         }
     }
 
+    /** "n ms", or "n/a" when the engine did not measure the value (NaN). */
+    private static String latency(double value) {
+        return io.testfly.loadtest.LoadTestMetrics.isMeasured(value) ? Math.round(value) + " ms" : "n/a";
+    }
+
     private static String buildLoadTestMarkdown(io.testfly.loadtest.LoadTestMetrics metrics) {
         StringBuilder sb = new StringBuilder();
         sb.append("⚡ **Gatling Load Test Metrics Summary**\n\n");
@@ -192,13 +197,14 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
         sb.append("• **Error Rate:** ").append(String.format(Locale.ROOT, "%.2f%%", metrics.errorRate() * 100)).append("\n\n");
 
         sb.append("**Latency Breakdown:**\n");
-        sb.append("• P50: ").append(Math.round(metrics.p50LatencyMs())).append(" ms | ")
-          .append("P90: ").append(Math.round(metrics.p90LatencyMs())).append(" ms | ")
-          .append("P95: ").append(Math.round(metrics.p95LatencyMs())).append(" ms | ")
-          .append("P99: ").append(Math.round(metrics.p99LatencyMs())).append(" ms\n");
-        sb.append("• Min: ").append(Math.round(metrics.minLatencyMs())).append(" ms | ")
-          .append("Mean: ").append(Math.round(metrics.meanLatencyMs())).append(" ms | ")
-          .append("Max: ").append(Math.round(metrics.maxLatencyMs())).append(" ms\n\n");
+        sb.append("• P50: ").append(latency(metrics.p50LatencyMs())).append(" | ")
+          .append("P75: ").append(latency(metrics.p75LatencyMs())).append(" | ")
+          .append("P90: ").append(latency(metrics.p90LatencyMs())).append(" | ")
+          .append("P95: ").append(latency(metrics.p95LatencyMs())).append(" | ")
+          .append("P99: ").append(latency(metrics.p99LatencyMs())).append("\n");
+        sb.append("• Min: ").append(latency(metrics.minLatencyMs())).append(" | ")
+          .append("Mean: ").append(latency(metrics.meanLatencyMs())).append(" | ")
+          .append("Max: ").append(latency(metrics.maxLatencyMs())).append("\n\n");
 
         if (metrics.steps() != null && !metrics.steps().isEmpty()) {
             sb.append("**Scenario Steps:**\n\n");
@@ -209,7 +215,7 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
                   .append(st.totalRequests()).append(" | ")
                   .append(st.successfulRequests()).append(" | ")
                   .append(st.failedRequests()).append(" | ")
-                  .append(Math.round(st.p95LatencyMs())).append(" ms | ")
+                  .append(latency(st.p95LatencyMs())).append(" | ")
                   .append(String.format(Locale.ROOT, "%.1f%%", st.errorRate() * 100)).append(" |\n");
             }
             sb.append("\n");

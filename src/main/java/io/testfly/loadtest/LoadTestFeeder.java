@@ -134,7 +134,6 @@ public abstract class LoadTestFeeder {
         private final String variable;
         private final int min;
         private final int max;
-        private final java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
 
         RandomFeeder(String variable, int min, int max) {
             this.variable = variable;

@@ -93,7 +93,10 @@ public final class LoadScenario {
         return this;
     }
 
-    /** Sets the cooldown duration — gradual user removal after hold. */
+    /**
+     * Sets the cooldown duration. Currently accepted but not applied by any engine
+     * (see ADR-0003); a warning is logged once per JVM when it is greater than zero.
+     */
     public LoadScenario cooldown(Duration duration) {
         this.cooldown = duration;
         return this;
@@ -217,8 +220,10 @@ public final class LoadScenario {
 
     /**
      * Runs the scenario and asserts all responses returned the given status code.
+     * Fails with "HTTP status codes were not measured" if the engine could not record them.
      */
     public LoadTestAssert assertStatus(int expected) {
+        // assertStatus(int) fails first when status codes were not measured
         LoadTestAssert result = run().assertStatus(expected);
         // "All responses": no other status code (including -1 for transport failures) may occur.
         for (Integer code : result.metrics().statusCodes().keySet()) {

@@ -39,6 +39,8 @@ final class GatlingRunConfig {
     public long thinkTimeFixedMs = -1;
     public long thinkTimeMinMs = -1;
     public long thinkTimeMaxMs = -1;
+    /** Absolute path of the status-code sidecar written by the simulation's {@code after()} hook. */
+    public String statusSidecarPath;
     public GatlingFeederConfig feeder;
     public List<GatlingStep> steps = new ArrayList<>();
 
@@ -96,17 +98,33 @@ final class GatlingRunConfig {
                     }
                 }
             }
-            gs.extractions.putAll(step.extractions());
+            // same normalised JSONPaths as the JDK engine (bare "token" → "$.token")
+            step.extractions().forEach((var, path) ->
+                    gs.extractions.put(var, LoadScenarioValidator.normalizeJsonPath(path)));
 
+            gs.formParams.putAll(step.formParams());
             for (CheckCondition check : step.checks()) {
-                if (check.type() == CheckCondition.Type.STATUS_IS && check.expected() instanceof Integer code) {
-                    gs.statusChecks.add(code);
-                } else if (check.type() == CheckCondition.Type.JSON_EXISTS && check.target() != null) {
-                    gs.jsonPathChecks.add(check.target());
-                }
+                gs.checks.add(GatlingCheck.of(check));
             }
             this.steps.add(gs);
         }
+    }
+
+    /** Extra time Gatling may run past rampUp + hold before {@code maxDuration} stops it. */
+    static final long MAX_DURATION_GRACE_SECONDS = 30;
+
+    /**
+     * Gatling {@code maxDuration} in seconds: {@code rampUp + hold + requestTimeout + 30s}.
+     * Also the base of {@link GatlingEngine}'s wait budget for the child JVM.
+     */
+    long maxDurationSeconds() {
+        return Math.max(0, rampUpSeconds) + Math.max(0, holdSeconds)
+                + effectiveRequestTimeoutSeconds() + MAX_DURATION_GRACE_SECONDS;
+    }
+
+    /** Per-request timeout in seconds (at least 1). */
+    int effectiveRequestTimeoutSeconds() {
+        return Math.max(1, requestTimeoutSeconds);
     }
 
     static void set(GatlingRunConfig config) {
@@ -150,8 +168,51 @@ final class GatlingRunConfig {
         public Map<String, String> headers = new LinkedHashMap<>();
         public Map<String, Object> queryParams = new LinkedHashMap<>();
         public String body;
-        public List<Integer> statusChecks = new ArrayList<>();
-        public List<String> jsonPathChecks = new ArrayList<>();
+        public Map<String, String> formParams = new LinkedHashMap<>();
+        public List<GatlingCheck> checks = new ArrayList<>();
         public Map<String, String> extractions = new LinkedHashMap<>();
+    }
+
+    /**
+     * Engine-neutral, serializable form of a {@link CheckCondition}: the type name, the target
+     * (JSONPath or header name) and the expected values as strings.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class GatlingCheck {
+        public String type;
+        public String target;
+        public List<String> expected = new ArrayList<>();
+
+        public GatlingCheck() {
+        }
+
+        /** @throws IllegalArgumentException if the check type is unknown or unsupported */
+        static GatlingCheck of(CheckCondition check) {
+            if (check == null || check.type() == null) {
+                throw new IllegalArgumentException("[LoadTest] Unsupported check: " + check);
+            }
+            GatlingCheck gc = new GatlingCheck();
+            gc.type = check.type().name();
+            gc.target = switch (check.type()) {
+                case JSON_EXISTS, JSON_EQUALS, JSON_IN -> LoadScenarioValidator.normalizeJsonPath(check.target());
+                default -> check.target();
+            };
+            Object exp = check.expected();
+            switch (check.type()) {
+                case STATUS_IS, JSON_EQUALS -> gc.expected.add(String.valueOf(exp));
+                case STATUS_IN, JSON_IN -> {
+                    for (int v : (int[]) exp) {
+                        gc.expected.add(String.valueOf(v));
+                    }
+                }
+                case BODY_MATCHES -> gc.expected.add((String) exp);
+                case JSON_EXISTS, HEADER_PRESENT -> {
+                    // no expected value
+                }
+                default -> throw new IllegalArgumentException(
+                        "[LoadTest] Unsupported check type for Gatling: " + check.type());
+            }
+            return gc;
+        }
     }
 }

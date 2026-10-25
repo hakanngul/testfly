@@ -18,9 +18,9 @@ Bir yük testi çalıştırıldığında HTML raporunda (`target/testfly-report.
 ### Görsel Bileşenler:
 - **KPI Özet Kartları:** Toplam istekler, genel Throughput (istek/sn), genel P95 gecikmesi ve sistem hata oranı.
 - **İnteraktif Grafikler (Chart.js):**
-  - **Gecikme Dağılımı Çubuk Grafiği:** Min, P50, P75, P90, P95, P99 ve Max süreleri.
-  - **Durum Kodları Halka Grafiği:** 2xx, 4xx ve 5xx yanıtlarının dağılımı.
-- **Senaryo Kartları:** Eşzamanlı kullanıcı (VUs), test süresi, toplam istek sayısı, throughput ve hata yüzdesi.
+  - **Gecikme Dağılımı Çubuk Grafiği:** Min, Mean, P50, P90, P95, P99 ve Max süreleri. P75 ve P90 ayrıca her senaryo kartında kutucuk olarak görünür. Motorun ölçmediği bir yüzdelik (Gatling'de P90) asla 0 olarak değil, `n/a` olarak gösterilir.
+  - **Durum Kodları Halka Grafiği:** Kaydedilen her HTTP durum kodu için bir dilim. Yanıt alamayan istekler `-1` anahtarı altında, "No response" etiketiyle görünür. Durum kodları ölçülemediyse grafik dilim çizmez, "Status codes not measured" yazar.
+- **Senaryo Kartları:** Sanal kullanıcı (ölçülen zirve eşzamanlılık değil, yapılandırılan `users` değeri), test süresi, toplam istek sayısı, throughput ve hata yüzdesi.
 - **Senaryo Adım Tablosu:** Her bir senaryo adımı için istek sayısı, başarılı/hatalı adetleri, P95 gecikmesi ve hata oranı.
 - **Doğrudan Gatling Raporu Bağlantısı:** Gatling'in interaktif Highcharts raporunu yeni sekmede açan `📊 Open Gatling Report →` butonu.
 
@@ -36,7 +36,7 @@ TestFly, `target/allure-results/` dizinine yazılan Allure 2 JSON dosyalarını 
 - **Parametreler:** `Load Engine`, `Concurrent Users`, `Total Requests`, `Throughput`, `P95 Latency` ve `Error Rate` parametreleri Allure testine basılır.
 - **Rapor Linki:** Gatling HTML raporuna doğrudan giden `📊 Gatling Interactive Report` bağlantısı eklenir.
 - **Ekler (Attachments):**
-  - `⚡ Load Test Summary` (`text/markdown`): Yüzdelik tablosu ve adım kırılımları.
+  - `⚡ Load Test Summary` (`text/markdown`): Yüzdelik tablosu ve adım kırılımları. Ölçülmemiş P75/P90 değerleri `n/a` olarak gösterilir.
   - `📋 Gatling Subprocess Log` (`text/plain`): Gatling sürecinin tüm konsol çıktıları.
 
 Allure raporunu görüntülemek için:
@@ -50,7 +50,7 @@ allure serve target/allure-results
 
 ReportPortal kullanıldığında test öğesi açıkken yük testi verileri anında iletilir:
 
-- **Markdown Özeti:** Kullanıcı sayısı, Throughput, gecikme yüzdelikleri ve hata oranı `INFO` seviyesinde bir tablo olarak log akışına düşer.
+- **Markdown Özeti:** Sanal kullanıcı sayısı, Throughput, gecikme yüzdelikleri ve hata oranı `INFO` seviyesinde bir tablo olarak log akışına düşer.
 - **Alt Süreç Log Eki:** `gatling-subprocess.log` dosyası ReportPortal testine ikili dosya eki (binary attachment) olarak yüklenir.
 - **Hatalar:** Eğer test bir performans kriteri nedeniyle fail olursa, hata mesajı ve tüm metrikler otomatik olarak eklenir.
 
@@ -62,7 +62,9 @@ CI ortamlarında terminal çıktılarının bozulmaması için:
 - Gatling'in sürekli ekranı yeniden çizen terminal çıktıları varsayılan olarak `target/loadtest/<run-id>/gatling-subprocess.log` dosyasına yönlendirilir (`loadtest.resultsDir` üst dizini belirler).
 - TestNG/Surefire konsoluna yalnızca temiz durum mesajları yazdırılır:
   ```
-  [LoadTest] Starting Gatling engine (simulation: ..., results: ...)
-  [LoadTest] Gatling results parsed from target/loadtest/...
+  [LoadTest] Starting Gatling engine: <scenario> (<users> users, rampUp=..., hold=...)
+  [LoadTest] Gatling execution complete. Parsing results...
+  [LoadTest] Gatling results parsed from: target/loadtest/...
   ```
-- Eğer Gatling süreci hata ile sonlanırsa, log dosyasının son 25 satırı doğrudan `System.err` ile ekrana dökülür.
+- Durum kodu dosyası `testfly-status.json` aynı koşu dizinine yazılır.
+- Gatling süreci sıfırdan farklı bir kodla çıkarsa koşu, alt süreç logunun son 20 satırını kimlik bilgileri `***` ile maskelenmiş olarak içeren bir exception ile başarısız olur. Ham log satırları artık `System.err` akışına yazdırılmaz. Bkz. [Gatling Koşu Yaşam Döngüsü](./engines.md#4-gatling-koşu-yaşam-döngüsü).

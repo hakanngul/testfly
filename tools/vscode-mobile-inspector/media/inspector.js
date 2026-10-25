@@ -15,6 +15,7 @@
         type: '<svg viewBox="0 0 16 16"><path d="M3 4h10M8 4v9"/></svg>',
     };
     const KIND_LABEL = { button: 'B', textfield: 'T', text: 'A', image: 'I', switch: 'S', checkbox: 'C', link: 'L', cell: 'R', tab: 'Tb' };
+    const INDENT = 16; // px per tree level; .row .indent guide lines in inspector.css use the same step
 
     const saved = vscode.getState() || {};
     const state = {
@@ -25,9 +26,11 @@
 
     // ── host messages ───────────────────────────────────────────────────
     window.addEventListener('message', e => {
-        if (e.source !== window || !e.data || typeof e.data !== 'object') return;
+        // VS Code relays extension messages from its own webview origin; e.source matches no window here
+        if (e.origin !== window.location.origin || !e.data || typeof e.data !== 'object') return;
         const m = e.data;
         switch (m.type) {
+            case 'server': return onServer(m.running, m.version);
             case 'devices': return onDevices(m.devices);
             case 'device': return onDevice(m.device);
             case 'screen': return onScreen(m);
@@ -68,6 +71,7 @@
     }
 
     function onError(message, unreachable) {
+        $('server').classList.remove('busy');
         setStatus('error', unreachable ? 'mobilecli not reachable' : 'Error');
         toast(message, true);
         if (!state.elements.length) {
@@ -79,6 +83,27 @@
         send({ type: 'copy', text, label });
         toast('Copied ' + label);
     }
+
+    // ── server ──────────────────────────────────────────────────────────
+    function onServer(running, version) {
+        const b = $('server');
+        b.classList.remove('busy');
+        b.dataset.running = String(running);
+        $('serverText').textContent = running ? 'Server on' : 'Server off';
+        b.title = running ? `mobilecli server${version ? ' ' + version : ''} is running. Click to stop it.`
+            : 'mobilecli server is not running. Click to start it.';
+        if (!running) {
+            state.device = null;
+            $('platform').hidden = true;
+        }
+    }
+
+    $('server').addEventListener('click', () => {
+        const b = $('server');
+        if (b.classList.contains('busy')) return;
+        b.classList.add('busy');
+        send({ type: 'server', action: b.dataset.running === 'true' ? 'stop' : 'start' });
+    });
 
     // ── devices ─────────────────────────────────────────────────────────
     function onDevices(devices) {
@@ -312,9 +337,21 @@
     }
 
     // ── tree ────────────────────────────────────────────────────────────
+    // Containers have no selector role; they get a colour of their own so the tree's structure stands out.
+    const LIST_TYPES = ['recyclerview', 'listview', 'gridview', 'scrollview', 'horizontalscrollview', 'nestedscrollview',
+        'viewpager', 'viewpager2', 'table', 'collectionview'];
+    const LAYOUT_TYPES = ['viewgroup', 'group', 'window', 'toolbar', 'navigationbar', 'tabbar', 'cardview'];
+
+    function containerOf(el) {
+        const bare = S.bareType(el.type);
+        if (LIST_TYPES.includes(bare)) return 'list';
+        if (bare.endsWith('layout') || LAYOUT_TYPES.includes(bare)) return 'layout';
+        return 'other';
+    }
+
     function kindOf(el) {
         const role = S.roleOf(el);
-        return { role: role || 'other', label: role ? KIND_LABEL[role] : (S.bareType(el.type).charAt(0) || '?').toUpperCase() };
+        return { role: role || containerOf(el), label: role ? KIND_LABEL[role] : (S.bareType(el.type).charAt(0) || '?').toUpperCase() };
     }
 
     function matches(el, q) {
@@ -376,13 +413,15 @@
         const text = S.displayText(el);
         const id = el.identifier ? el.identifier.replace(/^.*:id\//, '') : '';
         r.innerHTML =
-            `<span class="indent" style="width:${depth * 14 + 4}px"></span>` +
+            '<span class="indent"></span>' +
             ICON.chev.replace('class="chev"', `class="chev${hasKids ? (open ? ' open' : '') : ' none'}"`) +
             `<span class="kind ${k.role}">${k.label}</span>` +
             `<span class="type">${hl(shortType(el.type), q)}</span>` +
             (text ? `<span class="txt">“<b>${hl(text, q)}</b>”</span>` : '') +
             (id ? `<span class="id">#${hl(id, q)}</span>` : '') +
             `<span class="ref">${hl(el.ref || '', q)}</span>`;
+        // set through the CSSOM: the webview CSP drops inline style="" attributes
+        r.querySelector('.indent').style.width = `${depth * INDENT + 4}px`;
         r.addEventListener('click', ev => {
             if (hasKids && ev.target.closest('.chev')) {
                 toggle(key, !open);

@@ -1,15 +1,21 @@
 package io.testfly.loadtest.internal;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.gatling.javaapi.core.ChainBuilder;
+import io.gatling.javaapi.core.CheckBuilder;
 import io.gatling.javaapi.core.ScenarioBuilder;
 import io.gatling.javaapi.core.Simulation;
 import io.gatling.javaapi.http.HttpProtocolBuilder;
 import io.gatling.javaapi.http.HttpRequestActionBuilder;
 
+import java.io.File;
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
 
 import static io.gatling.javaapi.core.CoreDsl.*;
 import static io.gatling.javaapi.http.HttpDsl.*;
@@ -24,6 +30,15 @@ import static io.gatling.javaapi.http.HttpDsl.*;
  * (guarded by {@link GatlingBridge#isAvailable()}).
  */
 public class TestFlyGatlingSimulation extends Simulation {
+
+    /**
+     * Real HTTP status codes per request name, counted for every received response
+     * (including responses whose checks fail). Requests without a response are not counted here.
+     */
+    static final ConcurrentHashMap<String, ConcurrentHashMap<Integer, LongAdder>> STATUS_COUNTS =
+            new ConcurrentHashMap<>();
+
+    private final String statusSidecarPath;
 
     {
         GatlingRunConfig cfg = GatlingRunConfig.get();
@@ -43,11 +58,20 @@ public class TestFlyGatlingSimulation extends Simulation {
                             "launched via GatlingEngine, not directly.");
         }
 
+        statusSidecarPath = cfg.statusSidecarPath;
+
         // ── HTTP Protocol ──
         HttpProtocolBuilder httpProtocol = http
                 .baseUrl(cfg.baseUrl)
                 .acceptHeader("application/json")
-                .userAgentHeader("TestFly-LoadTest/1.0");
+                .userAgentHeader("TestFly-LoadTest/1.0")
+                // Gatling's default warm-up sends a request to https://gatling.io; a warm-up against the
+                // target would send an extra, uncounted request to the system under test. Disable both.
+                .disableWarmUp()
+                .transformResponse((response, session) -> {
+                    countStatus(response);
+                    return response;
+                });
 
         // ── Build step chain ──
         ChainBuilder stepsChain = buildStepsChain(cfg);
@@ -58,10 +82,47 @@ public class TestFlyGatlingSimulation extends Simulation {
                 .on(stepsChain);
 
         // ── Injection: ramp users over rampUp duration ──
+        // ── maxDuration: graceful stop (reports are still written) if the run hangs ──
         setUp(
                 scn.injectOpen(
                         rampUsers(cfg.users).during(Duration.ofSeconds(cfg.rampUpSeconds))))
-                .protocols(httpProtocol);
+                .protocols(httpProtocol)
+                .maxDuration(Duration.ofSeconds(cfg.maxDurationSeconds()));
+    }
+
+    /**
+     * Counts the real status of a received response. Must never throw: a throwing
+     * transformer turns the request KO.
+     */
+    private static void countStatus(io.gatling.http.response.Response response) {
+        try {
+            String name = response.request().getName();
+            STATUS_COUNTS.computeIfAbsent(name != null ? name : "", k -> new ConcurrentHashMap<>())
+                    .computeIfAbsent(response.status().code(), k -> new LongAdder())
+                    .increment();
+        } catch (Throwable ignored) {
+            // never fail the request because of bookkeeping
+        }
+    }
+
+    /** Writes the status counts as JSON ({@code {"request": {"201": n}}}) to the sidecar path. */
+    @Override
+    public void after() {
+        if (statusSidecarPath == null || statusSidecarPath.isBlank()) {
+            return;
+        }
+        Map<String, Map<Integer, Long>> snapshot = new TreeMap<>();
+        STATUS_COUNTS.forEach((name, codes) -> {
+            Map<Integer, Long> c = new TreeMap<>();
+            codes.forEach((code, n) -> c.put(code, n.sum()));
+            snapshot.put(name, c);
+        });
+        try {
+            new ObjectMapper().writeValue(new File(statusSidecarPath), snapshot);
+        } catch (Exception e) {
+            // Parser treats a missing sidecar as "status codes not measured"
+            System.err.println("[LoadTest] Could not write status sidecar " + statusSidecarPath + ": " + e);
+        }
     }
 
     private static ChainBuilder buildStepsChain(GatlingRunConfig cfg) {
@@ -74,8 +135,9 @@ public class TestFlyGatlingSimulation extends Simulation {
             }
         }
 
+        Duration requestTimeout = Duration.ofSeconds(cfg.effectiveRequestTimeoutSeconds());
         for (GatlingRunConfig.GatlingStep step : cfg.steps) {
-            HttpRequestActionBuilder req = buildRequest(step);
+            HttpRequestActionBuilder req = buildRequest(step).requestTimeout(requestTimeout);
 
             if (chain == null) {
                 chain = exec(req);
@@ -165,20 +227,29 @@ public class TestFlyGatlingSimulation extends Simulation {
             req = req.queryParam(qp.getKey(), toGatlingEl(String.valueOf(qp.getValue())));
         }
 
-        // Body
+        // Body: JSON content type only when the user did not set one (same rule as the JDK engine)
         if (step.body != null) {
-            req = req.body(StringBody(toGatlingEl(step.body))).asJson();
+            if (!step.formParams.isEmpty()) {
+                throw new IllegalArgumentException("[LoadTest] Step '" + step.name
+                        + "': a step cannot have both a body and form parameters");
+            }
+            req = req.body(StringBody(toGatlingEl(step.body)));
+            if (!hasHeader(step, "Content-Type")) {
+                req = req.header("Content-Type", "application/json");
+            }
         }
 
-        // Checks (explicit or Gatling default)
-        for (Integer expectedCode : step.statusChecks) {
-            req = req.check(status().is(expectedCode));
-        }
-        for (String jsonPathExpr : step.jsonPathChecks) {
-            req = req.check(jsonPath(toGatlingEl(jsonPathExpr)).exists());
+        // Form params (Gatling sends them as application/x-www-form-urlencoded)
+        for (Map.Entry<String, String> fp : step.formParams.entrySet()) {
+            req = req.formParam(fp.getKey(), toGatlingEl(fp.getValue()));
         }
 
-        // Extractions via jsonPath().saveAs()
+        // Checks: without an explicit status check Gatling applies its default (2xx or 304)
+        for (GatlingRunConfig.GatlingCheck check : step.checks) {
+            req = req.check(toGatlingCheck(check));
+        }
+
+        // Extractions via jsonPath().saveAs() — a missing path makes the request KO
         for (Map.Entry<String, String> ext : step.extractions.entrySet()) {
             req = req.check(jsonPath(toGatlingEl(ext.getValue())).saveAs(ext.getKey()));
         }
@@ -196,30 +267,34 @@ public class TestFlyGatlingSimulation extends Simulation {
         return value.replace("${", "#{");
     }
 
-    /**
-     * Converts a Map body to a JSON string with Gatling EL expressions.
-     */
-    private static String mapToJson(Object body) {
-        if (!(body instanceof Map<?, ?> map)) {
-            return body.toString();
-        }
-        StringBuilder sb = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<?, ?> e : map.entrySet()) {
-            if (!first)
-                sb.append(",");
-            sb.append("\"").append(e.getKey()).append("\":");
-            Object v = e.getValue();
-            if (v instanceof String sv) {
-                sb.append("\"").append(toGatlingEl(sv)).append("\"");
-            } else if (v instanceof Map) {
-                sb.append(mapToJson(v));
-            } else {
-                sb.append(v);
+    private static boolean hasHeader(GatlingRunConfig.GatlingStep step, String name) {
+        return step.headers.keySet().stream().anyMatch(name::equalsIgnoreCase);
+    }
+
+    /** Maps a serialized check to the Gatling check with the same semantics as the JDK engine. */
+    static CheckBuilder toGatlingCheck(GatlingRunConfig.GatlingCheck check) {
+        String type = check.type != null ? check.type : "";
+        List<String> expected = check.expected != null ? check.expected : List.of();
+        return switch (type) {
+            case "STATUS_IS" -> status().is(Integer.parseInt(expected.get(0)));
+            case "STATUS_IN" -> status().in(expected.stream().map(Integer::valueOf).toArray(Integer[]::new));
+            case "JSON_EXISTS" -> jsonPath(requireTarget(check)).exists();
+            case "JSON_EQUALS" -> jsonPath(requireTarget(check)).is(expected.get(0));
+            case "JSON_IN" -> jsonPath(requireTarget(check)).in(expected.toArray(String[]::new));
+            case "HEADER_PRESENT" -> header(requireTarget(check)).exists();
+            case "BODY_MATCHES" -> {
+                // function form: a '#{' in the regex is never parsed as Gatling EL
+                final String regex = expected.get(0);
+                yield regex(session -> regex).exists();
             }
-            first = false;
+            default -> throw new IllegalArgumentException("[LoadTest] Unsupported check type: " + check.type);
+        };
+    }
+
+    private static String requireTarget(GatlingRunConfig.GatlingCheck check) {
+        if (check.target == null || check.target.isBlank()) {
+            throw new IllegalArgumentException("[LoadTest] Check " + check.type + " needs a non-blank target");
         }
-        sb.append("}");
-        return sb.toString();
+        return toGatlingEl(check.target);
     }
 }

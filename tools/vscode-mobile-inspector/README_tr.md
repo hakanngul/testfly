@@ -14,6 +14,7 @@ gösterir. [English](README.md)
 - **UI ağacı**: tipler, metinler, id'ler ve `@eN` ref'leriyle `mobilecli dump ui` ağacı; `/` ile filtre, ok tuşlarıyla gezinme. **Snapshot** sekmesi `mobilecli snapshot` ile aynı metni gösterir.
 - **Öğe**: özellikler, durum bayrakları ve sınırlar; sıralı TestFly seçicileri (id, `role=…;name=…`, `label=`, `placeholder=`, `text=`, `xpath=`) ve her birinin bu ekranda kaç öğeyle eşleştiği (✓ tekil veya *N eşleşme*); tek tek ya da `@MobileFind` alanı olarak kopyalanır.
 - **Eylemler**: dokunma, uzun basma, dokunup yazma, Back, Home, kaydırma; karşılık gelen `mobilecli io tap --device … @eN` komutunu kopyalama.
+- **Sunucu**: cihaz listesinin yanındaki düğme mobilecli sunucusunun cevap verip vermediğini gösterir (yeşil açık, kırmızı kapalı) ve sunucuyu başlatır ya da durdurur. VS Code dışında başlatılmış bir sunucu da durdurulabilir (JSON-RPC `server.shutdown`); durdurduktan sonra eklenti, siz düğmeye basana kadar sunucuyu yeniden başlatmaz.
 
 ## Gereksinimler
 
@@ -23,7 +24,7 @@ gösterir. [English](README.md)
 ## Kurulum ve kullanım
 
 ```bash
-code --install-extension testfly-mobile-inspector-0.2.0.vsix
+code --install-extension testfly-mobile-inspector-0.2.4.vsix
 ```
 
 Komut paleti → **TestFly: Open Mobile Inspector**. Tuşlar: `R` yenile, `I` inceleme, `T` dokunma, `E` kayıt, `/` filtre, `Esc` seçimi kaldır.

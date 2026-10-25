@@ -1,7 +1,7 @@
 ---
 id: configuration
 title: Yük Testi Konfigürasyonu
-description: "testfly.yml dosyasında yük testi varsayılanlarını yapılandırın: motor seçimi, eşzamanlı kullanıcılar, kademeli artış ve raporlama ayarları."
+description: "testfly.yml dosyasında yük testi varsayılanlarını yapılandırın: motor seçimi, sanal kullanıcılar, kademeli artış ve raporlama ayarları."
 sidebar_position: 2
 ---
 
@@ -20,14 +20,14 @@ loadtest:
   enabled: false          # ayrılmış bayrak; açık runner çağrıları henüz bu değerle engellenmez
   baseUrl: https://api.example.com
   engine: auto            # auto (varsa Gatling, yoksa JDK) | gatling | jdk
-  users: 10               # varsayılan eşzamanlı sanal kullanıcı sayısı
-  rampUp: 10s             # kademeli kullanıcı artış süresi (örn: 10s, 1m)
-  hold: 30s               # zirve yükün korunacağı süre (örn: 30s, 5m)
-  cooldown: 5s            # kademeli soğuma süresi (örn: 5s)
-  maxUsers: 1000          # izin verilen maksimum kullanıcı sayısı
+  users: 10               # rampUp boyunca başlatılan sanal kullanıcı sayısı (eşzamanlılık hedefi değildir)
+  rampUp: 10s             # kullanıcıların eşit aralıklarla başlatıldığı süre (örn: 10s, 1m)
+  hold: 30s               # her kullanıcının kendi başlangıcından itibaren döngüde kaldığı süre (örn: 30s, 5m)
+  cooldown: 5s            # kabul edilir ama hiçbir motor uygulamaz (WARN loglanır)
+  maxUsers: 1000          # güvenlik sınırı: users bu değere kırpılır
   resultsDir: target/loadtest # çıktıların ve raporların kaydedileceği dizin
   reportEnabled: true     # HTML yük testi raporu oluştur
-  requestTimeoutSeconds: 30 # HTTP istek zaman aşımı (saniye)
+  requestTimeoutSeconds: 30 # istek başına zaman aşımı, saniye (iki motorda da)
 ```
 
 ---
@@ -39,14 +39,18 @@ loadtest:
 | `enabled` | `boolean` | `false` | Ayrılmış etkin bayrak (`features.loadtest` ile geçersiz kılınabilir); mevcut `LoadTestRunner.run()` yolu bu değeri uygulamaz. |
 | `baseUrl` | `string` | `null` | Senaryo/annotation önceliğinden sonraki hedef adres. Gatling `execution.baseUrl` değerine düşer; JDK motoru bu değeri veya senaryo/annotation adresini zorunlu tutar. |
 | `engine` | `string` | `auto` | Çalıştırma motoru: `auto` (varsa Gatling, yoksa JDK), `gatling` (kesinlikle Gatling gerektirir), `jdk` (yerel sanal iş parçacıkları / virtual threads). |
-| `users` | `int` | `10` | Kodda belirtilmediğinde kullanılacak varsayılan eşzamanlı kullanıcı sayısı. |
-| `rampUp` | `string` | `10s` | Zirve kullanıcı sayısına ulaşırken geçecek kademeli artış süresi (örn: `10s`, `1m`). |
-| `hold` | `string` | `30s` | Zirve kullanıcı yükünün korunacağı süre (örn: `30s`, `5m`). |
-| `cooldown` | `string` | `5s` | Test bitimindeki kademeli soğuma süresi (örn: `5s`). |
-| `maxUsers` | `int` | `1000` | İzin verilen tavan kullanıcı sayısı (güvenlik sınırı). |
+| `users` | `int` | `10` | Kodda belirtilmediğinde `rampUp` boyunca eşit aralıklarla başlatılan sanal kullanıcı sayısı. Her kullanıcı senaryoyu `hold` süresince döngüde çalıştırır. Bu bir eşzamanlılık hedefi değildir: zirve eşzamanlılık yalnızca `rampUp <= hold` olduğunda `users` değerine eşittir. |
+| `rampUp` | `string` | `10s` | Sanal kullanıcıların eşit aralıklarla başlatıldığı süre (örn: `10s`, `1m`). |
+| `hold` | `string` | `30s` | Her sanal kullanıcının kendi başlangıcından itibaren senaryoyu döngüde çalıştırdığı süre (örn: `30s`, `5m`). Bir koşu yaklaşık `rampUp + hold` sürer. |
+| `cooldown` | `string` | `5s` | Uyumluluk için kabul edilir ama iki motor da **uygulamaz**. Sıfırdan büyükse JVM başına bir kez WARN loglanır. |
+| `maxUsers` | `int` | `1000` | Güvenlik sınırı: çözümlenen `users` değeri bu değere kırpılır. |
 | `resultsDir` | `string` | `target/loadtest` | Yük testi metrik ve rapor dosyalarının yazılacağı dizin. |
 | `reportEnabled` | `boolean` | `true` | Müstakil HTML yük testi raporunun ve Gatling bağlantılarının üretilmesini sağlar. |
-| `requestTimeoutSeconds` | `int` | `30` | HTTP bağlantı ve istek zaman aşımı süresi (saniye). |
+| `requestTimeoutSeconds` | `int` | `30` | İstek başına zaman aşımı (saniye); iki motor da uygular (JDK: bağlantı ve istek zaman aşımı; Gatling: `requestTimeout`). Zaman aşımına uğrayan istek `-1` durum koduyla hatalı sayılır. |
+
+:::note İş yükü modeli
+`users`, `rampUp` ve `hold` açık (open) bir iş yükünü tanımlar: kullanıcılar `rampUp` boyunca eşit aralıklarla gelir ve her biri kendi başlangıcından itibaren `hold` süresince döngüde kalır. `users: 10`, `rampUp: 6s` ve `hold: 2s` ile ilk kullanıcılar son kullanıcılar başlamadan biter, yani aynı anda 10'dan az kullanıcı çalışır. `cooldown` şu an etkisizdir. Karar ve planlanan açık iş yükü API'si depodaki `docs/adr/0003-load-test-workload-model.md` (ADR 0003) dosyasında kayıtlıdır.
+:::
 
 ---
 

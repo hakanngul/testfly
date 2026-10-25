@@ -25,14 +25,14 @@ Both packages are in the repository, so no marketplace access is needed.
 **VS Code** (1.85 or newer):
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.2.0.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.2.4.vsix
 ```
 
 or Extensions view → `…` → **Install from VSIX…**.
 
 **IntelliJ IDEA** (2024.1 or newer, Community or Ultimate, and other IntelliJ-based IDEs): Settings → Plugins → ⚙ → **Install Plugin from Disk…** → `tools/intellij-mobile-inspector/dist/testfly-mobile-inspector-0.2.0.zip`, then restart the IDE. Uninstall an older version first.
 
-**Both need** mobilecli 1.0.20 or newer and a booted simulator, emulator or connected device. On iOS install mobilecli's agent once per device (`mobilecli agent install --device <udid>`). The inspector starts `mobilecli server start` itself when no server answers on `http://localhost:12000`.
+**Both need** mobilecli 1.0.20 or newer and a booted simulator, emulator or connected device. On iOS install mobilecli's agent once per device (`mobilecli agent install --device <udid>`). The inspector starts `mobilecli server start` itself when no server answers on `http://localhost:12000`. In VS Code the **Server** button next to the device list shows whether the server answers and starts or stops it, also a server you started yourself; after a stop it is not started again until you press the button.
 
 ## Open
 
