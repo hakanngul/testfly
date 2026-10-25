@@ -14,14 +14,26 @@
         term: '<svg viewBox="0 0 16 16"><path d="M3 4.5l3.5 3.5L3 11.5"/><path d="M8.5 12h4.5"/></svg>',
         type: '<svg viewBox="0 0 16 16"><path d="M3 4h10M8 4v9"/></svg>',
     };
-    const KIND_LABEL = { button: 'B', textfield: 'T', text: 'A', image: 'I', switch: 'S', checkbox: 'C', link: 'L', cell: 'R', tab: 'Tb' };
+    // Badges for interactive roles; other roles (list, listitem, header, …) show as containers.
+    const KIND_LABEL = { button: 'B', textfield: 'T', text: 'A', image: 'I', switch: 'S', checkbox: 'C', radio: 'R', slider: 'Sl', combobox: 'Cb', link: 'L', tab: 'Tb' };
+    // Appium Inspector's strategies as TestFly selectors (MobileScreen.locate / @MobileFind syntax).
+    const STRATEGY = {
+        testfly: { placeholder: 'loginButton, text=Sign in, role=button;name=Go, //…', selector: q => (/^[/(]/.test(q) ? 'xpath=' + q : q) },
+        id: { placeholder: 'com.app:id/login or login', selector: q => 'id=' + q },
+        accessibility: { placeholder: 'accessibility id, e.g. Login', selector: q => 'accessibility=' + q },
+        xpath: { placeholder: "//android.widget.Button[@text='Go']", selector: q => 'xpath=' + q },
+        type: { placeholder: 'android.widget.EditText or XCUIElementTypeButton', selector: q => 'type=' + q },
+        text: { placeholder: 'exact text, e.g. Sign in', selector: q => 'text=' + q },
+        contains: { placeholder: 'any part of a text, id, type or @ref', selector: null },
+    };
     const INDENT = 16; // px per tree level; .row .indent guide lines in inspector.css use the same step
 
     const saved = vscode.getState() || {};
     const state = {
         devices: [], device: null, screen: null, elements: [], flat: [], paths: new Map(),
         selected: null, hovered: null, expanded: new Set(saved.expanded || []), collapsedAll: false,
-        mode: saved.mode || 'inspect', tab: 'tree', filter: '', xml: null, snapshot: null, ms: 0, steps: [],
+        mode: saved.mode || 'inspect', tab: 'tree', xml: null, xmlNodes: new Map(), snapshot: null, ms: 0, steps: [],
+        find: { strategy: STRATEGY[saved.strategy] ? saved.strategy : 'testfly', query: '', selector: '', matches: [], set: new Set(), current: -1, error: '' },
     };
 
     // ── host messages ───────────────────────────────────────────────────
@@ -46,7 +58,7 @@
     }
 
     function persist() {
-        vscode.setState({ mode: state.mode, expanded: [...state.expanded], cols: saved.cols });
+        vscode.setState({ mode: state.mode, expanded: [...state.expanded], cols: saved.cols, strategy: state.find.strategy });
     }
 
     // ── status & toasts ─────────────────────────────────────────────────
@@ -160,6 +172,7 @@
         $('screenMeta').textContent = m.screen && m.screen.width ? `${m.screen.width}×${m.screen.height}` : '';
         $('treeCount').textContent = `${state.flat.length} elements`;
         setStatus('ok', `${m.device.name} · ${state.flat.length} elements · ${m.ms} ms`);
+        if (state.find.query) runFind(true);
         renderTree();
         renderDetails();
         if (state.tab === 'snapshot') send({ type: 'snapshotText' });
@@ -188,7 +201,8 @@
 
     function buildXml(elements) {
         try {
-            return S.toXml(elements, document.implementation.createDocument(null, null, null));
+            state.xmlNodes = new Map();
+            return S.toXml(elements, document.implementation.createDocument(null, null, null), state.xmlNodes);
         } catch (e) {
             return null;
         }
@@ -351,11 +365,11 @@
 
     function kindOf(el) {
         const role = S.roleOf(el);
-        return { role: role || containerOf(el), label: role ? KIND_LABEL[role] : (S.bareType(el.type).charAt(0) || '?').toUpperCase() };
+        if (role && KIND_LABEL[role]) return { role, label: KIND_LABEL[role] };
+        return { role: containerOf(el), label: (S.bareType(el.type).charAt(0) || '?').toUpperCase() };
     }
 
-    function matches(el, q) {
-        if (!q) return true;
+    function containsText(el, q) {
         const hay = [el.ref, el.type, el.identifier, el.text, el.label, el.name, el.value, el.placeholder].filter(Boolean).join(' ').toLowerCase();
         return hay.includes(q);
     }
@@ -367,45 +381,30 @@
 
     function renderTree() {
         const tree = $('tree');
-        const q = state.filter.trim().toLowerCase();
-        const visible = new Set();
-        if (q) {
-            for (const el of state.flat) {
-                if (!matches(el, q)) continue;
-                const parts = state.paths.get(el).split('/');
-                for (let i = 1; i <= parts.length; i++) visible.add(parts.slice(0, i).join('/'));
-            }
-        }
         const frag = document.createDocumentFragment();
         const walk = (list, depth) => {
             for (const el of list) {
                 const key = state.paths.get(el);
-                if (q && !visible.has(key)) continue;
                 const kids = el.children || [];
-                const open = q ? true : state.expanded.has(key) || depth < 2;
-                frag.append(row(el, key, depth, kids.length > 0, open, q));
+                const open = state.expanded.has(key) || depth < 2;
+                frag.append(row(el, key, depth, kids.length > 0, open));
                 if (kids.length && open) walk(kids, depth + 1);
             }
         };
         walk(state.elements, 0);
         tree.innerHTML = '';
         if (!frag.childNodes.length) {
-            tree.innerHTML = `<div class="empty-state small"><p>${state.elements.length ? 'No element matches the filter.' : 'The tree appears after the first refresh.'}</p></div>`;
+            tree.innerHTML = '<div class="empty-state small"><p>The tree appears after the first refresh.</p></div>';
             return;
         }
         tree.append(frag);
     }
 
-    function hl(text, q) {
-        const t = esc(text);
-        if (!q) return t;
-        const i = text.toLowerCase().indexOf(q);
-        return i < 0 ? t : esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
-    }
-
-    function row(el, key, depth, hasKids, open, q) {
+    function row(el, key, depth, hasKids, open) {
         const r = document.createElement('div');
-        r.className = 'row' + (el === state.selected ? ' selected' : '') + (q && !matches(el, q) ? ' dim' : '');
+        const f = state.find;
+        r.className = 'row' + (el === state.selected ? ' selected' : '')
+            + (f.set.has(el) ? ' match' + (f.matches[f.current] === el ? ' current' : '') : '');
         r.dataset.key = key;
         r.setAttribute('role', 'treeitem');
         if (hasKids) r.setAttribute('aria-expanded', String(open));
@@ -416,10 +415,10 @@
             '<span class="indent"></span>' +
             ICON.chev.replace('class="chev"', `class="chev${hasKids ? (open ? ' open' : '') : ' none'}"`) +
             `<span class="kind ${k.role}">${k.label}</span>` +
-            `<span class="type">${hl(shortType(el.type), q)}</span>` +
-            (text ? `<span class="txt">“<b>${hl(text, q)}</b>”</span>` : '') +
-            (id ? `<span class="id">#${hl(id, q)}</span>` : '') +
-            `<span class="ref">${hl(el.ref || '', q)}</span>`;
+            `<span class="type">${esc(shortType(el.type))}</span>` +
+            (text ? `<span class="txt">“<b>${esc(text)}</b>”</span>` : '') +
+            (id ? `<span class="id">#${esc(id)}</span>` : '') +
+            `<span class="ref">${esc(el.ref || '')}</span>`;
         // set through the CSSOM: the webview CSP drops inline style="" attributes
         r.querySelector('.indent').style.width = `${depth * INDENT + 4}px`;
         r.addEventListener('click', ev => {
@@ -452,10 +451,91 @@
         renderTree();
     }
 
-    $('search').addEventListener('input', e => {
-        state.filter = e.target.value;
+    // ── finder (Appium Inspector's "Search for element", TestFly's matching rules) ──
+    function evalXpath(expr) {
+        if (!state.xml) return [];
+        const res = state.xml.evaluate(expr, state.xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        const out = [];
+        for (let i = 0; i < res.snapshotLength; i++) {
+            let n = res.snapshotItem(i);
+            if (n.nodeType === 2) n = n.ownerElement; // @attribute
+            else if (n.nodeType !== 1) n = n.parentNode;
+            const el = state.xmlNodes.get(n);
+            if (el && !out.includes(el)) out.push(el);
+        }
+        return out;
+    }
+
+    /** Runs the query; keep=true (after a refresh) keeps the selection instead of jumping to the first match. */
+    function runFind(keep) {
+        const f = state.find;
+        const s = STRATEGY[f.strategy];
+        f.selector = f.query && s.selector ? s.selector(f.query) : '';
+        let res = { matches: [] };
+        if (f.query) {
+            res = s.selector ? S.resolve(f.selector, state.elements, evalXpath) : { matches: state.flat.filter(el => containsText(el, f.query.toLowerCase())) };
+        }
+        f.error = res.error || '';
+        f.matches = res.matches || [];
+        f.set = new Set(f.matches);
+        f.current = keep && state.selected ? f.matches.indexOf(state.selected) : -1;
+        if (!keep && f.matches.length) return step(1);
         renderTree();
+        renderFindCount();
+    }
+
+    function step(dir) {
+        const f = state.find;
+        if (!f.matches.length) return renderFindCount();
+        f.current = (f.current + dir + f.matches.length) % f.matches.length;
+        renderFindCount();
+        select(f.matches[f.current], true);
+    }
+
+    function renderFindCount() {
+        const f = state.find;
+        const el = $('findCount');
+        el.textContent = !f.query ? '' : f.error ? 'Invalid' : f.matches.length ? `${f.current >= 0 ? f.current + 1 : '–'} of ${f.matches.length}` : 'No match';
+        el.classList.toggle('none', !!f.query && (!!f.error || !f.matches.length));
+        el.title = f.error || (f.selector ? 'TestFly selector: ' + f.selector : '');
+        $('findPrev').disabled = $('findNext').disabled = f.matches.length < 2;
+        $('findCopy').disabled = !f.selector || !!f.error;
+    }
+
+    let findTimer;
+    $('search').addEventListener('input', e => {
+        clearTimeout(findTimer);
+        state.find.query = e.target.value.trim();
+        findTimer = setTimeout(() => runFind(false), 150);
     });
+    $('search').addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(findTimer);
+            if (state.find.query !== e.target.value.trim()) {
+                state.find.query = e.target.value.trim();
+                return runFind(false);
+            }
+            step(e.shiftKey ? -1 : 1);
+        } else if (e.key === 'Escape' && e.target.value) {
+            e.stopPropagation();
+            e.target.value = '';
+            state.find.query = '';
+            runFind(false);
+        }
+    });
+    $('strategy').addEventListener('change', e => {
+        state.find.strategy = e.target.value;
+        $('search').placeholder = STRATEGY[state.find.strategy].placeholder + '  ( / )';
+        persist();
+        runFind(false);
+    });
+    $('findNext').addEventListener('click', () => step(1));
+    $('findPrev').addEventListener('click', () => step(-1));
+    $('findCopy').addEventListener('click', () => state.find.selector && copy(state.find.selector, 'TestFly selector'));
+    $('strategy').value = state.find.strategy;
+    $('search').placeholder = STRATEGY[state.find.strategy].placeholder + '  ( / )';
+    renderFindCount();
 
     // keyboard navigation in the tree
     $('tree').addEventListener('keydown', e => {

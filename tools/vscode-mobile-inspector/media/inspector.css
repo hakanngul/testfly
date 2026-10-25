@@ -280,3 +280,16 @@ body.recording .screen { box-shadow: 0 0 0 2px var(--vscode-errorForeground, #f1
 .snapshot .ann { color: var(--warn); }
 .snapshot .str { color: var(--ok); }
 .snapshot .kw { color: var(--info); }
+
+/* finder: matches are highlighted, not filtered (shared with the Browser Inspector) */
+.search .find-count { font-size: 11px; color: var(--muted); white-space: nowrap; max-width: 45%; overflow: hidden; text-overflow: ellipsis; text-transform: none; letter-spacing: 0; }
+.search .find-count.none { color: var(--err); }
+.search button.mini { width: 20px; height: 20px; padding: 0; justify-content: center; background: transparent; flex: none; }
+.search button.mini svg { width: 14px; height: 14px; }
+.search button.mini:disabled { opacity: 0.35; }
+.search select.strategy { min-width: 0; max-width: 130px; width: auto; height: 22px; padding: 0 2px; border: 0; background: transparent; color: var(--fg); font-size: 12px; flex: none; }
+.search select.strategy:focus { outline: none; }
+.search.finder { padding-right: 2px; }
+.row.match { background: color-mix(in srgb, var(--warn) 13%, transparent); }
+.row.match.current { box-shadow: inset 2px 0 0 var(--warn); background: color-mix(in srgb, var(--warn) 24%, transparent); }
+.row.match.selected { background: var(--selected); }

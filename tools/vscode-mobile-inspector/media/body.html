@@ -99,9 +99,22 @@
         <span class="spacer"></span>
         <span class="muted" id="treeCount"></span>
       </div>
-      <div class="search" id="searchBox">
+      <div class="search finder" id="searchBox">
         <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
-        <input id="search" type="search" placeholder="Filter by text, id, type or @ref  ( / )" spellcheck="false">
+        <select id="strategy" class="strategy" aria-label="Locator strategy" title="Locator strategy, as in Appium Inspector">
+          <option value="testfly">TestFly selector</option>
+          <option value="id">id</option>
+          <option value="accessibility">accessibility id</option>
+          <option value="xpath">XPath</option>
+          <option value="type">class name</option>
+          <option value="text">text</option>
+          <option value="contains">contains text</option>
+        </select>
+        <input id="search" type="search" placeholder="Selector  ( / )" spellcheck="false">
+        <span class="find-count" id="findCount"></span>
+        <button class="icon mini" id="findPrev" title="Previous match (Shift+Enter)"><svg viewBox="0 0 16 16"><path d="M4 10l4-4 4 4"/></svg></button>
+        <button class="icon mini" id="findNext" title="Next match (Enter)"><svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg></button>
+        <button class="icon mini" id="findCopy" title="Copy as TestFly selector for @MobileFind"><svg viewBox="0 0 16 16"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5"/><path d="M10.5 5V3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9A1.5 1.5 0 0 0 3.5 10.5H5"/></svg></button>
       </div>
       <div class="tree" id="tree" role="tree" tabindex="0"></div>
       <div class="snapshot-wrap" id="snapshotWrap" hidden>

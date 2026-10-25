@@ -25,7 +25,7 @@ Mobile Inspector, TestFly ve mobilecli için yapılmış, Appium Inspector benze
 **VS Code** (1.85 veya üstü):
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.1.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.2.vsix
 ```
 
 veya Extensions görünümü → `…` → **Install from VSIX…**.
@@ -47,7 +47,7 @@ Tek bir çevrimiçi cihaz varsa hemen seçilip okunur; yoksa cihaz seçiciden se
 |---|---|
 | Araç çubuğu | platform rozetiyle cihaz seçici, **Refresh**, tıklama modu (Inspect / Tap / Record), cihaz kontrolleri, durum ve son okuma süresi |
 | **Screen** | ekran görüntüsü; üzerine gelmek bir öğeyi çerçeveler, tıklamak seçer (Inspect) veya dokunur (Tap, Record). **Bounds** tüm öğeleri çerçeveler |
-| **UI Tree** | türler, metinler ve `@eN` ref'leriyle öğe ağacı; metin, id, tür veya ref ile filtreleme; ok tuşlarıyla gezinme ve açma |
+| **UI Tree** | türler, metinler ve `@eN` ref'leriyle öğe ağacı ve bir arama aracı (VS Code; IntelliJ metin, id, tür veya ref ile filtreler); ok tuşlarıyla gezinme ve açma |
 | **Snapshot** | mobilecli'nin ekran metin anlık görüntüsü (`mobilecli snapshot`), **Copy** ile |
 | **Recorded** | Record modunun kodu (aşağıda) |
 | **Element** | seçili öğe: eylemler, TestFly seçicileri, page object alanı, öznitelikler ve durum |
@@ -71,6 +71,22 @@ private MobileLocator btnLogin;
 ```
 
 Bir seçiciyi, alanı veya herhangi bir öznitelik değerini (üzerine tıklayarak) kopyalayın. Alan adları id'den veya label'dan gelir (`Giriş Yap` → `girisYap`). Inspector'ı her platform için bir kez çalıştırıp `ios` ve `android` seçicilerini tek bir `@MobileFind`'da birleştirin.
+
+## Öğe aramak (VS Code)
+
+Ağacın üstündeki kutu, Appium Inspector'daki **Search for element** gibi çalışır: bir strateji seçin, seçiciyi yazın ve Enter'a basın.
+
+| Strateji | Örnek | Karşılığı |
+|---|---|---|
+| TestFly selector | `btnLogin`, `text=Giriş`, `role=button;name=Go`, `//android.widget.Button` | `MobileScreen.locate(…)` ve `@MobileFind`; `/` veya `(` ile başlayan değer XPath olarak okunur |
+| id | `com.app:id/login` veya `login` | `id=…` (resource-id veya accessibility identifier, kısa hali de) |
+| accessibility id | `Login` | `accessibility=…` (iOS identifier veya name, Android content-desc) |
+| XPath | `//android.widget.EditText[@text='Email']` | `xpath=…`, TestFly'ın XPath'inin kullandığı ağaç belgesinde |
+| class name | `android.widget.CheckBox`, `XCUIElementTypeButton` | `type=…` (büyük-küçük harf duyarsız) |
+| text | `Giriş` | `text=…` (birebir) |
+| contains text | `bol` | bir metnin, label'ın, id'nin, türün veya `@eN` ref'inin herhangi bir parçası; yalnızca inspector'da |
+
+Ağaç filtrelenmez: eşleşmeler vurgulanır, kutuda *1 of N* görünür ve ilk eşleşme seçilir. **Enter** / **Shift+Enter** (veya oklar) eşleşmeler arasında gezinir. Eşleşme TestFly'ın kendi kurallarıyla yapılır; burada bir öğeyi bulan seçici testte de bulur: `text=`, `label=` ve `placeholder=` birebirdir, `role=` `MobileRole`'ün native türlerini kullanır. Geçersiz bir seçici **Invalid** gösterir, sebebi ipucundadır. Kopyalama düğmesi sorguyu `@MobileFind` için TestFly seçicisi olarak panoya koyar. iOS `chain=` ve `predicate=` seçicileri inspector'da değerlendirilmez. Strateji hatırlanır ve sorgu her yenilemeden sonra yeniden çalışır.
 
 ## Cihazda işlem yapmak
 
@@ -122,7 +138,7 @@ public class RecordedPage extends MobilePage {
 |---|---|
 | `R` | ekranı yenile |
 | `I`, `T`, `E` | Inspect, Tap, Record modu |
-| `/` | ağacı filtrele |
+| `/` | ağaç filtresine odaklan (VS Code: arama aracı; `Enter` / `Shift+Enter` sonraki / önceki eşleşme) |
 | `↑` `↓` `←` `→` | ağaçta gezin, kapat / aç |
 | `Esc` | seçimi kaldır |
 

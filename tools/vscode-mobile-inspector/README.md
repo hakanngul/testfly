@@ -14,7 +14,7 @@ The **TestFly** icon in the activity bar opens a view with a **Mobile / Browser*
 
 - **Screen**: the device screenshot with hover outlines; click to select the smallest element under the cursor. In **Tap** mode a click taps the device and the screen is read again.
 - **Record** (codegen): in **Record** mode every tap, typed text (element panel), swipe and device button runs on the device and becomes a step. The **Recorded** tab shows a `MobilePage` with one `@MobileFind` field per element (best unique selector) and a `recordedFlow()` method; **Copy** puts it on the clipboard.
-- **UI tree**: the `mobilecli dump ui` tree with types, texts, ids and `@eN` refs; filter with `/`, arrow keys to move. The **Snapshot** tab shows the same text as `mobilecli snapshot`.
+- **UI tree**: the `mobilecli dump ui` tree with types, texts, ids and `@eN` refs; arrow keys to move. The finder works like Appium Inspector's *Search for element*: a strategy (TestFly selector, id, accessibility id, XPath, class name, text, contains text) and a selector, matched with TestFly's own rules; matches are highlighted, *1 of N*, `Enter` / `Shift+Enter` move, and the copy button gives the TestFly selector for `@MobileFind`. The **Snapshot** tab shows the same text as `mobilecli snapshot`.
 - **Element**: attributes, state flags and bounds; ranked TestFly selectors (id, `role=…;name=…`, `label=`, `placeholder=`, `text=`, `xpath=`) with how many elements each one matches on this screen (✓ unique or *N matches*), copyable one by one or as an `@MobileFind` field.
 - **Actions**: tap, long press, tap and type, Back, Home, swipe; copy the equivalent `mobilecli io tap --device … @eN` command.
 - **Server**: the button next to the device list shows whether the mobilecli server answers (green on, red off) and starts or stops it. Stopping works for a server started outside VS Code too (JSON-RPC `server.shutdown`); after a stop the extension does not start the server again until you press the button.
@@ -36,7 +36,7 @@ The **TestFly** icon in the activity bar opens a view with a **Mobile / Browser*
 ## Install and use
 
 ```bash
-code --install-extension testfly-mobile-inspector-0.3.1.vsix
+code --install-extension testfly-mobile-inspector-0.3.2.vsix
 ```
 
 Activity bar → **TestFly**, or the command palette → **TestFly: Open Mobile Inspector** / **TestFly: Open Browser Inspector**. Mobile keys: `R` refresh, `I` inspect, `T` tap, `E` record, `/` filter, `Esc` clear. Browser keys: `R` refresh, `I` inspect, `C` click, `/` find, `Esc` clear.

@@ -20,7 +20,7 @@ The Browser Inspector is part of the TestFly VS Code extension, next to the [Mob
 The Browser Inspector ships in the same package as the Mobile Inspector:
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.1.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.2.vsix
 ```
 
 It needs VS Code 1.85 or newer and Chrome, Edge or Chromium. The browser is found in its usual install location; set `testflyInspector.browserPath` for any other location. No WebDriver, Node package or browser extension is needed: the inspector drives the browser over the DevTools protocol through a pipe.

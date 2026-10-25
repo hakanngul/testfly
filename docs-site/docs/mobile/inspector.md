@@ -25,7 +25,7 @@ Both packages are in the repository, so no marketplace access is needed.
 **VS Code** (1.85 or newer):
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.1.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.2.vsix
 ```
 
 or Extensions view → `…` → **Install from VSIX…**.
@@ -47,7 +47,7 @@ With one online device it is selected and read at once; otherwise choose it in t
 |---|---|
 | Toolbar | device picker with platform badge, **Refresh**, the click mode (Inspect / Tap / Record), device controls, status and the last read time |
 | **Screen** | the screenshot; hover outlines an element, a click selects (Inspect) or taps (Tap, Record). **Bounds** outlines every element |
-| **UI Tree** | the element tree with types, texts and `@eN` refs; filter by text, id, type or ref; arrow keys move and expand |
+| **UI Tree** | the element tree with types, texts and `@eN` refs, and a finder (VS Code; IntelliJ filters by text, id, type or ref); arrow keys move and expand |
 | **Snapshot** | mobilecli's text snapshot of the screen (`mobilecli snapshot`), with **Copy** |
 | **Recorded** | the code of Record mode (see below) |
 | **Element** | the selected element: actions, TestFly selectors, page object field, attributes and state |
@@ -71,6 +71,22 @@ private MobileLocator btnLogin;
 ```
 
 Copy a selector, the field, or any attribute value (click it). Field names come from the id or the label (`Giriş Yap` → `girisYap`). Run the inspector once per platform and merge the `ios` and `android` selectors into one `@MobileFind`.
+
+## Finding elements (VS Code)
+
+The box above the tree works like **Search for element** in Appium Inspector: pick a strategy, type a selector and press Enter.
+
+| Strategy | Example | Same as |
+|---|---|---|
+| TestFly selector | `btnLogin`, `text=Sign in`, `role=button;name=Go`, `//android.widget.Button` | `MobileScreen.locate(…)` and `@MobileFind`; a value starting with `/` or `(` is read as XPath |
+| id | `com.app:id/login` or `login` | `id=…` (resource-id or accessibility identifier, short form too) |
+| accessibility id | `Login` | `accessibility=…` (iOS identifier or name, Android content-desc) |
+| XPath | `//android.widget.EditText[@text='Email']` | `xpath=…`, on the same tree document TestFly's XPath uses |
+| class name | `android.widget.CheckBox`, `XCUIElementTypeButton` | `type=…` (case-insensitive) |
+| text | `Sign in` | `text=…` (exact) |
+| contains text | `bol` | any part of a text, label, id, type or `@eN` ref; inspector only |
+
+The tree is not filtered: matches are highlighted, the box shows *1 of N* and the first match is selected. **Enter** / **Shift+Enter** (or the arrows) move between matches. The matching follows TestFly's own rules, so a selector that finds an element here finds it in a test: `text=`, `label=` and `placeholder=` are exact, and `role=` uses the native types of `MobileRole`. An invalid selector shows **Invalid** with the reason in its tooltip. The copy button puts the query on the clipboard as a TestFly selector for `@MobileFind`. iOS `chain=` and `predicate=` selectors are not evaluated in the inspector. The strategy is remembered and the query runs again after every refresh.
 
 ## Acting on the device
 
@@ -122,7 +138,7 @@ public class RecordedPage extends MobilePage {
 |---|---|
 | `R` | refresh the screen |
 | `I`, `T`, `E` | Inspect, Tap, Record mode |
-| `/` | filter the tree |
+| `/` | focus the tree filter (VS Code: the finder; `Enter` / `Shift+Enter` next / previous match) |
 | `↑` `↓` `←` `→` | move in the tree, collapse / expand |
 | `Esc` | clear the selection |
 

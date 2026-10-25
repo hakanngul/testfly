@@ -14,7 +14,7 @@ Etkinlik çubuğundaki **TestFly** simgesi, **Mobile / Browser** geçişi olan b
 
 - **Ekran**: üzerine gelince çerçevelenen cihaz ekran görüntüsü; tıklayınca imlecin altındaki en küçük öğe seçilir. **Tap** modunda tıklama cihaza dokunur ve ekran yeniden okunur.
 - **Record** (codegen): **Record** modunda her dokunma, yazılan metin (öğe paneli), kaydırma ve cihaz butonu cihazda çalışır ve bir adım olur. **Recorded** sekmesi, her öğe için bir `@MobileFind` alanı (en iyi tekil seçici) ve `recordedFlow()` metodu olan bir `MobilePage` gösterir; **Copy** panoya kopyalar.
-- **UI ağacı**: tipler, metinler, id'ler ve `@eN` ref'leriyle `mobilecli dump ui` ağacı; `/` ile filtre, ok tuşlarıyla gezinme. **Snapshot** sekmesi `mobilecli snapshot` ile aynı metni gösterir.
+- **UI ağacı**: tipler, metinler, id'ler ve `@eN` ref'leriyle `mobilecli dump ui` ağacı; ok tuşlarıyla gezinme. Arama aracı Appium Inspector'daki *Search for element* gibi çalışır: bir strateji (TestFly selector, id, accessibility id, XPath, class name, text, contains text) ve bir seçici, TestFly'ın kendi kurallarıyla eşleştirilir; eşleşmeler vurgulanır, *1 of N*, `Enter` / `Shift+Enter` gezinir, kopyalama düğmesi `@MobileFind` için TestFly seçicisini verir. **Snapshot** sekmesi `mobilecli snapshot` ile aynı metni gösterir.
 - **Öğe**: özellikler, durum bayrakları ve sınırlar; sıralı TestFly seçicileri (id, `role=…;name=…`, `label=`, `placeholder=`, `text=`, `xpath=`) ve her birinin bu ekranda kaç öğeyle eşleştiği (✓ tekil veya *N eşleşme*); tek tek ya da `@MobileFind` alanı olarak kopyalanır.
 - **Eylemler**: dokunma, uzun basma, dokunup yazma, Back, Home, kaydırma; karşılık gelen `mobilecli io tap --device … @eN` komutunu kopyalama.
 - **Sunucu**: cihaz listesinin yanındaki düğme mobilecli sunucusunun cevap verip vermediğini gösterir (yeşil açık, kırmızı kapalı) ve sunucuyu başlatır ya da durdurur. VS Code dışında başlatılmış bir sunucu da durdurulabilir (JSON-RPC `server.shutdown`); durdurduktan sonra eklenti, siz düğmeye basana kadar sunucuyu yeniden başlatmaz.
@@ -36,7 +36,7 @@ Etkinlik çubuğundaki **TestFly** simgesi, **Mobile / Browser** geçişi olan b
 ## Kurulum ve kullanım
 
 ```bash
-code --install-extension testfly-mobile-inspector-0.3.1.vsix
+code --install-extension testfly-mobile-inspector-0.3.2.vsix
 ```
 
 Etkinlik çubuğu → **TestFly**, veya komut paleti → **TestFly: Open Mobile Inspector** / **TestFly: Open Browser Inspector**. Mobil tuşlar: `R` yenile, `I` inceleme, `T` dokunma, `E` kayıt, `/` filtre, `Esc` seçimi kaldır. Tarayıcı tuşları: `R` yenile, `I` inceleme, `C` tıklama, `/` arama, `Esc` seçimi kaldır.
