@@ -15,6 +15,7 @@
         type: '<svg viewBox="0 0 16 16"><path d="M3 4h10M8 4v9"/></svg>',
     };
     const KIND_LABEL = { button: 'B', textfield: 'T', text: 'A', image: 'I', switch: 'S', checkbox: 'C', link: 'L', cell: 'R', tab: 'Tb' };
+    const INDENT = 16; // px per tree level; .row .indent guide lines in inspector.css use the same step
 
     const saved = vscode.getState() || {};
     const state = {
@@ -375,13 +376,15 @@
         const text = S.displayText(el);
         const id = el.identifier ? el.identifier.replace(/^.*:id\//, '') : '';
         r.innerHTML =
-            `<span class="indent" style="width:${depth * 14 + 4}px"></span>` +
+            '<span class="indent"></span>' +
             ICON.chev.replace('class="chev"', `class="chev${hasKids ? (open ? ' open' : '') : ' none'}"`) +
             `<span class="kind ${k.role}">${k.label}</span>` +
             `<span class="type">${hl(shortType(el.type), q)}</span>` +
             (text ? `<span class="txt">“<b>${hl(text, q)}</b>”</span>` : '') +
             (id ? `<span class="id">#${hl(id, q)}</span>` : '') +
             `<span class="ref">${hl(el.ref || '', q)}</span>`;
+        // set through the CSSOM: the webview CSP drops inline style="" attributes
+        r.querySelector('.indent').style.width = `${depth * INDENT + 4}px`;
         r.addEventListener('click', ev => {
             if (hasKids && ev.target.closest('.chev')) {
                 toggle(key, !open);

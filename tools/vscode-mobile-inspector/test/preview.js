@@ -47,10 +47,11 @@ const light = `:root{--vscode-editor-background:#ffffff;--vscode-sideBar-backgro
 --vscode-list-activeSelectionBackground:#dbe9fb;--vscode-badge-background:#e6e8eb;--vscode-badge-foreground:#30363d;--vscode-button-secondaryBackground:rgba(0,0,0,.06);
 --vscode-notifications-background:#fff;}`;
 
+const sha = text => `'sha256-${require('crypto').createHash('sha256').update(text).digest('base64')}'`;
+
 function page(theme) {
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${media('inspector.css')}${theme === 'light' ? light : ''}</style></head>
-<body>${media('body.html')}
-<script>
+    const css = media('inspector.css') + (theme === 'light' ? light : '');
+    const scripts = [`
   window.acquireVsCodeApi = () => ({ getState: () => null, setState() {}, postMessage(m) {
     if (m.type === 'ready') setTimeout(() => {
       const device = { id: 'Pixel_8_API_34', name: 'Pixel 8', platform: 'android', type: 'emulator', state: 'online', version: '14' };
@@ -59,8 +60,12 @@ function page(theme) {
       window.postMessage({ type: 'screen', device, screen: { width: ${W}, height: ${H}, scale: 1 }, elements: ${JSON.stringify(tree)}, screenshot: '${screenshot}', ms: 412 });
     });
   }});
-</script>
-<script>${media('selectors.js')}</script><script>${media('inspector.js')}</script></body></html>`;
+`, media('selectors.js'), media('inspector.js')];
+    // same rules as the extension's webview CSP: no inline style="" attributes, no unlisted scripts
+    const csp = `default-src 'none'; img-src data:; style-src ${sha(css)}; script-src ${scripts.map(sha).join(' ')};`;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><style>${css}</style></head>
+<body>${media('body.html')}
+${scripts.map(s => `<script>${s}</script>`).join('')}</body></html>`;
 }
 
 (async () => {
