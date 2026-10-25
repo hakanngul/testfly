@@ -106,3 +106,58 @@ test('drives a real browser over the pipe and ranks TestFly locators', { skip: !
         fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
     }
 });
+
+test('reaches into shadow roots and same-origin frames, and counts editor locators', { skip: !browser && 'no Chrome, Edge or Chromium here' }, async () => {
+    const pages = {
+        '/': `<h1>Shop</h1><button data-testid="buy">Buy</button><button>Buy later</button>
+            <pay-widget id="pw"></pay-widget>
+            <iframe id="card" src="/frame" width="400" height="200"></iframe>
+            <script>customElements.define('pay-widget', class extends HTMLElement { constructor() { super();
+                this.attachShadow({ mode: 'open' }).innerHTML = '<div class="box"><button id="pay">Pay now</button></div>'; } });</script>`,
+        '/frame': `<label for="num">Card number</label><input id="num" data-testid="card-number">`,
+    };
+    const server = require('http').createServer((req, res) => res.writeHead(200, { 'Content-Type': 'text/html' }).end(pages[req.url] || '')).listen(0, '127.0.0.1');
+    await new Promise(r => server.once('listening', r));
+    const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-profile-'));
+    const b = await launchBrowser({ executable: browser, userDataDir: profile, headless: true, width: 1000, height: 700 });
+    try {
+        const sessionId = await attachFirstPage(b.cdp);
+        const loaded = b.cdp.waitFor('Page.loadEventFired', 10_000, sessionId);
+        await b.cdp.send('Page.navigate', { url: `http://127.0.0.1:${server.address().port}/` }, sessionId);
+        await loaded;
+        const world = await createIsolatedWorld(b.cdp, sessionId);
+        const evaluate = async call => (await b.cdp.send('Runtime.evaluate', { expression: `(${AGENT}).${call}`, returnByValue: true, contextId: world }, sessionId)).result.value;
+        const snap = await evaluate('snapshot({})');
+        const flat = [];
+        (function walk(list) { for (const n of list) { flat.push(n); walk(n.children || []); } })(snap.tree);
+
+        assert.deepStrictEqual(flat.filter(n => n.pseudo).map(n => n.tag), ['#shadow-root', '#document']);
+        const pay = flat.find(n => n.id === 'pay');
+        assert.ok(pay && pay.rect.width > 0, 'the shadow button is in the tree with a box');
+        const payDetails = await evaluate(`details(${pay.i}, {})`);
+        assert.deepStrictEqual(payDetails.locators.map(l => [l.code, l.count, l.self]), [['ShadowDom.pierce("#pw", "#pay")', 1, true]]);
+        assert.strictEqual(payDetails.shadow, true);
+
+        const card = flat.find(n => n.testId === 'card-number');
+        const frameBox = flat.find(n => n.id === 'card').rect;
+        assert.ok(card.rect.y >= frameBox.y && card.rect.x >= frameBox.x, 'frame content is placed inside the frame');
+        const cardDetails = await evaluate(`details(${card.i}, {})`);
+        assert.deepStrictEqual(cardDetails.frames, ['#card']);
+        assert.strictEqual(cardDetails.locators.find(l => l.kind === 'TEST ID').count, 1, 'counted in the frame document');
+        assert.strictEqual(cardDetails.locators.find(l => l.kind === 'LABEL').code, 'getByLabel("Card number")');
+        const center = await evaluate(`center(${card.i})`);
+        assert.ok(center.y > frameBox.y - 1, 'clicks land inside the frame');
+        assert.deepStrictEqual((await evaluate("find('#pay')")).kinds, ['selector'], 'find runs selectors inside shadow roots');
+
+        // the editor's code lenses: TestFly factories in the top document
+        const counts = await evaluate(`locateMany(${JSON.stringify([
+            { kind: 'testId', args: ['buy'] }, { kind: 'role', args: ['BUTTON', 'buy'] }, { kind: 'role', args: ['BUTTON'] },
+            { kind: 'text', args: ['Shop'] }, { kind: 'css', args: ['a]]'] }, { kind: 'role', args: ['KNOB'] }, { kind: 'testId', args: ['card-number'] },
+        ])}, {})`);
+        assert.deepStrictEqual(counts.map(c => c.error ? 'error' : c.count), [1, 2, 2, 1, 'error', 'error', 0]);
+    } finally {
+        await closeBrowser(b);
+        server.close();
+        fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    }
+});

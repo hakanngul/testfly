@@ -38,9 +38,14 @@ public class InspectorControllerTest {
                 calls.add(method + " " + msg.get("params"));
             }
             Function<JsonObject, String> h = handlers.get(method);
+            String result = h == null ? null : h.apply(msg.getAsJsonObject("params"));
+            if (h != null && result == null) {
+                ex.close(); // a handler that answers null plays a server that is gone
+                return;
+            }
             String reply = h == null
                     ? "{\"jsonrpc\":\"2.0\",\"id\":" + msg.get("id") + ",\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}"
-                    : "{\"jsonrpc\":\"2.0\",\"id\":" + msg.get("id") + "," + h.apply(msg.getAsJsonObject("params")) + "}";
+                    : "{\"jsonrpc\":\"2.0\",\"id\":" + msg.get("id") + "," + result + "}";
             byte[] body = reply.getBytes(StandardCharsets.UTF_8);
             ex.getResponseHeaders().add("Content-Type", "application/json");
             ex.sendResponseHeaders(200, body.length);
@@ -92,9 +97,11 @@ public class InspectorControllerTest {
     @Test
     public void readyListsOnlineDevicesAndReadsTheOnlyOne() {
         controller(false).handle("{\"type\":\"ready\"}");
-        assertEquals(List.of("status", "devices", "device", "status", "screen"), types());
-        assertEquals(1, posted.get(1).getAsJsonArray("devices").size());
-        JsonObject screen = posted.get(4);
+        assertEquals(List.of("status", "server", "devices", "device", "status", "screen"), types());
+        assertTrue(posted.get(1).get("running").getAsBoolean());
+        assertEquals("1.0.20", posted.get(1).get("version").getAsString());
+        assertEquals(1, posted.get(2).getAsJsonArray("devices").size());
+        JsonObject screen = posted.get(5);
         assertEquals("@e2", screen.getAsJsonArray("elements").get(0).getAsJsonObject().getAsJsonArray("children").get(0).getAsJsonObject().get("ref").getAsString());
         assertEquals(390, screen.getAsJsonObject("screen").get("width").getAsInt());
         assertEquals("data:image/png;base64,AAAA", screen.get("screenshot").getAsString());
@@ -117,6 +124,40 @@ public class InspectorControllerTest {
         assertTrue(calls.contains("device.screenshot {\"deviceId\":\"sim-1\",\"format\":\"jpeg\",\"quality\":80,\"maxSize\":1400}"));
         assertTrue(posted.get(posted.size() - 1).get("text").getAsString().contains("@e2 [Button]"));
         assertEquals(List.of("selector:btnLogin"), copied);
+    }
+
+    @Test
+    public void liveRefreshIsQuietAndDragsSwipeBetweenPoints() {
+        InspectorController c = controller(false);
+        c.handle("{\"type\":\"ready\"}");
+        posted.clear();
+        c.handle("{\"type\":\"refresh\",\"quiet\":true}");
+        assertEquals("a live refresh reports no progress and no early picture", List.of("screen"), types());
+        assertTrue(posted.get(0).get("quiet").getAsBoolean());
+        posted.clear();
+        c.handle("{\"type\":\"swipe\",\"direction\":\"up\",\"x1\":100.2,\"y1\":700,\"x2\":110,\"y2\":200.6}");
+        assertTrue(calls.contains("device.io.swipe {\"deviceId\":\"sim-1\",\"x1\":100,\"y1\":700,\"x2\":110,\"y2\":201}"));
+        assertEquals("without auto refresh the status says the action is done", "ok", posted.get(posted.size() - 1).get("state").getAsString());
+    }
+
+    @Test
+    public void serverButtonStopsAndStartsTheServer() {
+        boolean[] up = {true};
+        handlers.put("server.info", p -> up[0] ? "\"result\":{\"version\":\"1.0.21\"}" : null);
+        handlers.put("server.shutdown", p -> {
+            up[0] = false;
+            return "\"result\":{\"status\":\"shutting down\"}";
+        });
+        InspectorController c = controller(false);
+        c.handle("{\"type\":\"ready\"}");
+        posted.clear();
+        c.handle("{\"type\":\"server\",\"action\":\"stop\"}");
+        assertTrue(calls.contains("server.shutdown {}"));
+        assertEquals(List.of("status", "server", "devices", "status"), types());
+        assertFalse(posted.get(1).get("running").getAsBoolean());
+        posted.clear();
+        c.handle("{\"type\":\"devices\"}");
+        assertTrue("no auto-start after a stop from the panel", posted.get(posted.size() - 1).get("unreachable").getAsBoolean());
     }
 
     @Test

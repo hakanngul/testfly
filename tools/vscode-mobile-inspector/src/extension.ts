@@ -3,6 +3,8 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { BrowserPanel } from './browserPanel';
 import { findBrowsers } from './browsers';
+import { LensCount, LocatorLensProvider, LocatorTarget, selectorFor } from './codeLens';
+import { JavaLocator } from './javaLocators';
 import { DeviceInfo, MobileCli, RpcError, ScreenSize } from './mobilecli';
 import { recentUrls, rememberUrl, SidebarProvider } from './sidebar';
 import { webviewHtml } from './webview';
@@ -19,6 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
     }));
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(SidebarProvider.viewId, new SidebarProvider(context)));
     context.subscriptions.push(vscode.commands.registerCommand('testflyInspector.openBrowser', () => openBrowser(context)));
+    LocatorLensProvider.register(context);
 }
 
 /** Command palette entry: asks for a URL and opens it in the first browser found, without a window and with a kept session. */
@@ -47,14 +50,15 @@ type Inbound =
     | { type: 'devices' }
     | { type: 'selectDevice'; id: string }
     | { type: 'server'; action: 'start' | 'stop' }
-    | { type: 'refresh' }
+    | { type: 'refresh'; quiet?: boolean }
     | { type: 'snapshotText' }
     | { type: 'tap' | 'longPress'; x: number; y: number }
     | { type: 'text'; text: string }
     | { type: 'tapType'; x: number; y: number; text: string }
-    | { type: 'swipe'; direction: 'up' | 'down' | 'left' | 'right' }
+    | { type: 'swipe'; direction: 'up' | 'down' | 'left' | 'right'; x1?: number; y1?: number; x2?: number; y2?: number }
     | { type: 'button'; button: string }
-    | { type: 'copy'; text: string; label: string };
+    | { type: 'copy'; text: string; label: string }
+    | { type: 'resolved'; id: number; results: LensCount[] };
 
 class InspectorPanel {
     private readonly webview: vscode.WebviewPanel;
@@ -64,6 +68,8 @@ class InspectorPanel {
     private busy = false;
     private warm = false; // mobilecli's agent is up for this device: tree and screenshot can run together
     private serverStopped = false; // stopped from the panel: no auto-start until it is started from the panel again
+    private nextResolve = 1;
+    private readonly resolving = new Map<number, (results: LensCount[]) => void>();
 
     constructor(private readonly context: vscode.ExtensionContext, private readonly onDispose: () => void) {
         const cfg = vscode.workspace.getConfiguration('testflyInspector');
@@ -85,8 +91,28 @@ class InspectorPanel {
     }
 
     dispose() {
+        LocatorLensProvider.update('mobile', undefined);
         this.cli.dispose();
         this.onDispose();
+    }
+
+    /** The current screen, for the code lenses over @MobileFind fields and screen().getBy… calls. */
+    private lensTarget(device: DeviceInfo): LocatorTarget {
+        return {
+            domain: 'mobile',
+            label: device.name,
+            platform: device.platform,
+            count: (locators: JavaLocator[]) => new Promise<LensCount[] | undefined>(resolve => {
+                const id = this.nextResolve++;
+                const timer = setTimeout(() => (this.resolving.delete(id), resolve(undefined)), 5_000);
+                this.resolving.set(id, results => (clearTimeout(timer), resolve(results)));
+                this.post({ type: 'resolve', id, selectors: locators.map(l => selectorFor(l, device.platform) ?? '') });
+            }),
+            reveal: (locator: JavaLocator) => {
+                this.webview.reveal();
+                this.post({ type: 'reveal', selector: selectorFor(locator, device.platform) ?? '' });
+            },
+        };
     }
 
     private post(message: unknown) {
@@ -104,7 +130,7 @@ class InspectorPanel {
                 case 'server':
                     return m.action === 'start' ? await this.startServer() : await this.stopServer();
                 case 'refresh':
-                    return await this.refresh();
+                    return await this.refresh(m.quiet);
                 case 'snapshotText':
                     return this.post({ type: 'snapshotText', text: await this.cli.snapshotText(this.requireDevice().id) });
                 case 'tap':
@@ -122,10 +148,16 @@ class InspectorPanel {
                 case 'button':
                     return await this.act(id => this.cli.pressButton(id, m.button));
                 case 'swipe':
-                    return await this.act(id => this.swipe(id, m.direction));
+                    return await this.act(id => m.x1 != null && m.y1 != null && m.x2 != null && m.y2 != null
+                        ? this.cli.swipe(id, m.x1, m.y1, m.x2, m.y2) // dragged on the screenshot
+                        : this.swipe(id, m.direction));
                 case 'copy':
                     await vscode.env.clipboard.writeText(m.text);
                     vscode.window.setStatusBarMessage(`$(check) Copied ${m.label}`, 2500);
+                    return;
+                case 'resolved':
+                    this.resolving.get(m.id)?.(m.results);
+                    this.resolving.delete(m.id);
                     return;
             }
         } catch (e) {
@@ -167,6 +199,7 @@ class InspectorPanel {
         this.device = undefined;
         this.screen = undefined;
         this.warm = false;
+        LocatorLensProvider.update('mobile', undefined);
         this.post({ type: 'server', running: false });
         this.post({ type: 'devices', devices: [] });
         this.post({ type: 'status', state: 'idle', message: 'mobilecli server stopped. Start it from the Server button.' });
@@ -184,20 +217,23 @@ class InspectorPanel {
         await this.refresh();
     }
 
-    private async refresh() {
+    /** quiet: a Live refresh, which neither dims the screen nor reports progress. */
+    private async refresh(quiet = false) {
         const device = this.requireDevice();
         if (this.busy) {
             return;
         }
         this.busy = true;
-        this.post({ type: 'status', state: 'loading', message: `Reading ${device.name}…` });
+        if (!quiet) {
+            this.post({ type: 'status', state: 'loading', message: `Reading ${device.name}…` });
+        }
         try {
             const started = Date.now();
             this.screen ??= await this.cli.screenSize(device.id);
             let elements, screenshot;
             if (this.warm) {
                 // Both at once; the picture is shown as soon as it arrives, the tree follows.
-                const shot = this.cli.screenshot(device.id).then(s => (this.post({ type: 'shot', screenshot: s }), s));
+                const shot = this.cli.screenshot(device.id).then(s => (quiet || this.post({ type: 'shot', screenshot: s }), s));
                 [elements, screenshot] = await Promise.all([this.cli.dump(device.id), shot]);
             } else {
                 // The tree first: on iOS it also starts mobilecli's agent, which the screenshot then reuses.
@@ -205,7 +241,8 @@ class InspectorPanel {
                 screenshot = await this.cli.screenshot(device.id);
                 this.warm = true;
             }
-            this.post({ type: 'screen', device, screen: this.screen, elements, screenshot, ms: Date.now() - started });
+            this.post({ type: 'screen', device, screen: this.screen, elements, screenshot, ms: Date.now() - started, quiet });
+            LocatorLensProvider.update('mobile', this.lensTarget(device));
         } finally {
             this.busy = false;
         }
@@ -217,6 +254,8 @@ class InspectorPanel {
         if (vscode.workspace.getConfiguration('testflyInspector').get('autoRefreshAfterAction', true)) {
             await new Promise(r => setTimeout(r, 300)); // let the UI settle (animations, navigation)
             await this.refresh();
+        } else {
+            this.post({ type: 'status', state: 'ok', message: `${device.name} · done; press Refresh to read the screen` });
         }
     }
 

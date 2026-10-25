@@ -221,7 +221,7 @@
     /**
      * Java for recorded steps: a MobilePage with one @MobileFind field per distinct selector and a
      * recordedFlow() method. Steps: {action: tap|longPress|fill, el, selector, text?},
-     * {action: tapAt, x, y}, {action: swipe, direction}, {action: button, button}.
+     * {action: tapAt|longPressAt, x, y}, {action: swipe, direction, el?, selector?}, {action: button, button}.
      */
     function codegen(steps, platform) {
         const names = new Map();
@@ -244,7 +244,8 @@
                 case 'longPress': lines.push(field(st) + '.longPress();'); break;
                 case 'fill': lines.push(field(st) + '.fill(' + str(st.text) + ');'); break;
                 case 'tapAt': lines.push('screen().tap(' + Math.round(st.x) + ', ' + Math.round(st.y) + ');'); break;
-                case 'swipe': lines.push('screen().swipe(SwipeDirection.' + String(st.direction).toUpperCase() + ');'); break;
+                case 'longPressAt': lines.push('screen().longPress(' + Math.round(st.x) + ', ' + Math.round(st.y) + ');'); break;
+                case 'swipe': lines.push((st.selector ? field(st) : 'screen()') + '.swipe(SwipeDirection.' + String(st.direction).toUpperCase() + ');'); break;
                 case 'button': lines.push('device().pressButton(' + str(st.button) + ');'); break;
             }
         }
@@ -254,7 +255,7 @@
             + '    public void recordedFlow() {\n' + lines.map(l => '        ' + l + '\n').join('') + '    }\n}\n';
     }
 
-        /** Smallest element whose rect contains (x, y), in device coordinates. */
+    /** Smallest element whose rect contains (x, y), in device coordinates. */
     function hitTest(elements, x, y) {
         let best = null;
         let bestArea = Infinity;

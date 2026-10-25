@@ -36,6 +36,9 @@
       <button data-mode="click" title="Click clicks in the browser (C)">
         <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><circle cx="8" cy="8" r="5.5"/></svg><span>Click</span>
       </button>
+      <button data-mode="record" title="Click clicks in the browser and records a page-object step (E)">
+        <svg viewBox="0 0 16 16"><circle class="rec-dot" cx="8" cy="8" r="4"/></svg><span>Record</span>
+      </button>
     </div>
 
     <div class="spacer"></div>
@@ -70,8 +73,11 @@
 
     <section class="drawer" id="drawer">
       <section class="pane tree-pane">
-        <div class="pane-header tabs" role="tablist">
-          <button class="tab active" role="tab">DOM Tree</button>
+        <div class="pane-header tabs" role="tablist" id="leftTabs">
+          <button class="tab active" data-ltab="tree" role="tab">DOM Tree</button>
+          <button class="tab" data-ltab="recorded" role="tab">Recorded <span class="tab-count" id="recordedCount" hidden></span></button>
+          <button class="tab" data-ltab="console" role="tab">Console <span class="tab-count error" id="consoleCount" hidden></span></button>
+          <button class="tab" data-ltab="network" role="tab">Network <span class="tab-count" id="networkCount" hidden></span></button>
           <span class="spacer"></span>
           <span class="muted" id="treeCount"></span>
         </div>
@@ -83,6 +89,50 @@
           <button class="icon mini" id="findNext" title="Next match (Enter)"><svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg></button>
         </div>
         <div class="tree" id="tree" role="tree" tabindex="0"></div>
+
+        <div class="snapshot-wrap" id="recordedWrap" hidden>
+          <div class="snapshot-bar">
+            <span>Steps recorded in Record mode</span>
+            <span><button class="link" id="copyRecorded">Copy</button> · <button class="link" id="clearRecorded">Clear</button></span>
+          </div>
+          <pre class="snapshot" id="recorded"></pre>
+        </div>
+
+        <div class="log-wrap" id="consoleWrap" hidden>
+          <div class="log-bar">
+            <select id="consoleLevel" class="mini-select" aria-label="Console level">
+              <option value="all">All levels</option>
+              <option value="error">Errors</option>
+              <option value="warning">Warnings and errors</option>
+            </select>
+            <input id="consoleFilter" type="search" placeholder="Filter" spellcheck="false">
+            <label class="toggle" title="Keep messages when the page navigates"><input type="checkbox" id="preserveLog"><span>Preserve log</span></label>
+            <span class="spacer"></span>
+            <button class="link" id="clearConsole">Clear</button>
+          </div>
+          <div class="log" id="console"></div>
+        </div>
+
+        <div class="log-wrap" id="networkWrap" hidden>
+          <div class="log-bar">
+            <select id="netType" class="mini-select" aria-label="Request type">
+              <option value="all">All</option>
+              <option value="xhr">Fetch/XHR</option>
+              <option value="document">Doc</option>
+              <option value="script">JS</option>
+              <option value="stylesheet">CSS</option>
+              <option value="image">Img</option>
+              <option value="font">Font</option>
+              <option value="other">Other</option>
+            </select>
+            <input id="netFilter" type="search" placeholder="Filter URL" spellcheck="false">
+            <span class="spacer"></span>
+            <span class="muted" id="netSummary"></span>
+            <button class="link" id="clearNetwork">Clear</button>
+          </div>
+          <div class="net-row net-head"><span>Status</span><span>Method</span><span>Name</span><span>Type</span><span>Size</span><span>Time</span></div>
+          <div class="log" id="network"></div>
+        </div>
       </section>
 
       <div class="resizer" id="colResizer" title="Drag to resize"></div>

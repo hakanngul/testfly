@@ -54,3 +54,38 @@
 }
 .page.closed { opacity: 0.45; filter: grayscale(0.6); }
 .details-pane .snippet { padding-right: 78px; }
+
+/* recorded steps, console and network share the drawer's left pane with the DOM tree */
+.tree-pane { display: flex; flex-direction: column; }
+.tab-count.error { background: var(--err); color: #fff; }
+.log-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.log-bar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.log-bar input[type="search"] { flex: 0 1 200px; min-width: 80px; height: 22px; padding: 0 7px; font: 12px var(--font); color: var(--fg);
+  background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 4px; }
+.log { flex: 1; overflow: auto; min-height: 0; font: 12px/1.5 var(--mono); }
+.log .empty { padding: 14px 12px; color: var(--muted); font-family: var(--font); }
+.log-line { display: flex; gap: 8px; padding: 3px 10px; border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); cursor: pointer; }
+.log-line:hover { background: var(--hover); }
+.log-line .lvl { flex: none; width: 14px; text-align: center; }
+.log-line .msg { flex: 1; min-width: 0; white-space: pre-wrap; word-break: break-word; }
+.log-line .src { flex: none; max-width: 40%; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
+.log-line.error { color: var(--err); background: color-mix(in srgb, var(--err) 8%, transparent); }
+.log-line.warning { color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, transparent); }
+.log-line.debug { color: var(--muted); }
+.net-row { display: grid; grid-template-columns: 52px 58px minmax(0, 1fr) 76px 64px 60px; gap: 8px; padding: 3px 10px; align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); cursor: pointer; }
+.net-row > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.net-row:hover { background: var(--hover); }
+.net-head { font: 11px var(--font); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; cursor: default; }
+.net-head:hover { background: none; }
+.net-row.failed, .net-row.bad { color: var(--err); }
+.net-row.pending { color: var(--muted); }
+.net-row .num { text-align: right; }
+.row .pseudo { font: italic 12px var(--mono); color: var(--muted); }
+.ctx-note { margin: 8px 0 0; }
+body.recording .page { box-shadow: 0 0 0 2px var(--err), 0 14px 34px rgba(0, 0, 0, 0.4); }
+#leftTabs { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; white-space: nowrap; }
+#leftTabs .tab { flex: none; }
+.log-bar { flex-wrap: wrap; row-gap: 4px; }
+.log-wrap .net-row { min-width: 420px; }
+.log-wrap { overflow-x: auto; }

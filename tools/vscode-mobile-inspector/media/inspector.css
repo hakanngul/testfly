@@ -120,6 +120,11 @@ button.server.busy .dot { background: var(--info); animation: pulse 1s infinite;
 
 .toggle { display: inline-flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; font-size: 12px; cursor: pointer; }
 .toggle input { accent-color: var(--accent); margin: 0; }
+.toggle.live .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); opacity: 0.5; }
+.toggle.live.on .live-dot { background: var(--err); opacity: 1; animation: pulse 1.4s infinite; }
+.toggle.live.on { color: var(--fg); font-weight: 600; }
+select.mini-select { min-width: 0; width: auto; height: 22px; padding: 0 2px; font-size: 12px; }
+select.mini-select:disabled { opacity: 0.45; }
 
 /* ── screen ───────────────────────────────────────────────────────────── */
 .stage {
@@ -140,6 +145,8 @@ button.server.busy .dot { background: var(--info); animation: pulse 1s infinite;
 .screen img { width: 100%; height: 100%; display: block; object-fit: fill; user-select: none; }
 .screen.tap-mode { cursor: crosshair; }
 .screen.inspect-mode { cursor: default; }
+.screen.tap-mode { touch-action: none; }
+.screen.holding { cursor: progress; }
 .overlay { position: absolute; inset: 0; pointer-events: none; }
 .overlay .b { position: absolute; border: 1px solid color-mix(in srgb, var(--info) 55%, transparent); border-radius: 2px; }
 .hover-box, .select-box { position: absolute; pointer-events: none; border-radius: 3px; transition: all 0.08s ease-out; }
@@ -154,6 +161,9 @@ button.server.busy .dot { background: var(--info); animation: pulse 1s infinite;
 .hover-box.right .tag { left: auto; right: -1.5px; }
 .tap-ripple { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%;
   border: 2px solid var(--warn); animation: ripple 0.5s ease-out forwards; pointer-events: none; }
+.drag-line { position: absolute; inset: 0; pointer-events: none; }
+.drag-line svg { width: 100%; height: 100%; overflow: visible; }
+.drag-line line { stroke: var(--warn); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 6 5; }
 @keyframes ripple { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
 .loading-bar { position: absolute; left: 0; right: 0; top: 0; height: 2px; overflow: hidden; }
 .loading-bar::after { content: ""; position: absolute; width: 35%; height: 100%; background: var(--accent); animation: slide 1s infinite ease-in-out; }

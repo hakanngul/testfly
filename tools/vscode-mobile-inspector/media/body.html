@@ -25,10 +25,10 @@
       <button data-mode="inspect" class="active" title="Click selects an element (I)">
         <svg viewBox="0 0 16 16"><path d="M3 2l9 4.5-4 1.5-1.5 4z"/></svg><span>Inspect</span>
       </button>
-      <button data-mode="tap" title="Click taps the device (T)">
+      <button data-mode="tap" title="Click taps, hold long-presses, drag swipes on the device (T)">
         <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><circle cx="8" cy="8" r="5.5"/></svg><span>Tap</span>
       </button>
-      <button data-mode="record" title="Click taps the device and records a page-object step (E)">
+      <button data-mode="record" title="Tap, hold or drag on the device and record a page-object step (E)">
         <svg viewBox="0 0 16 16"><circle class="rec-dot" cx="8" cy="8" r="4"/></svg><span>Record</span>
       </button>
     </div>
@@ -66,6 +66,15 @@
         <span class="pane-title">Screen</span>
         <span class="muted" id="screenMeta"></span>
         <span class="spacer"></span>
+        <label class="toggle live" title="Read the screen again every few seconds while you use the app (L)">
+          <input type="checkbox" id="live"><span class="live-dot"></span><span>Live</span>
+        </label>
+        <select id="liveEvery" class="mini-select" aria-label="Live refresh interval" title="Live refresh interval">
+          <option value="2">2 s</option>
+          <option value="3">3 s</option>
+          <option value="5">5 s</option>
+          <option value="10">10 s</option>
+        </select>
         <label class="toggle" title="Outline every element">
           <input type="checkbox" id="showBounds"><span>Bounds</span>
         </label>
@@ -78,6 +87,7 @@
             <div class="hover-box" id="hoverBox" hidden></div>
             <div class="select-box" id="selectBox" hidden></div>
             <div class="tap-ripple" id="ripple" hidden></div>
+            <div class="drag-line" id="dragLine" hidden><svg><line id="dragPath"/></svg></div>
           </div>
         </div>
         <div class="empty-state" id="emptyScreen">

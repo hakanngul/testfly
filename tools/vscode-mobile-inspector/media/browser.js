@@ -2,6 +2,7 @@
 (function () {
     'use strict';
     const vscode = acquireVsCodeApi();
+    const R = window.TestFlyRecorder;
     const $ = id => document.getElementById(id);
 
     const ICON = {
@@ -27,9 +28,11 @@
     const state = {
         page: null, tree: [], flat: [], byIndex: new Map(), paths: new Map(), parents: new Map(),
         selected: null, hovered: null, details: null, expanded: new Set(saved.expanded || []),
-        mode: saved.mode || 'inspect', tab: 'locators',
+        mode: saved.mode || 'inspect', tab: 'locators', ltab: 'tree', steps: [],
         find: { query: '', matches: [], set: new Set(), current: -1, kinds: [] },
+        console: [], network: new Map(), // the page's console messages and requests, newest last
     };
+    const MAX_LOG = 1000;
 
     // ── host messages ───────────────────────────────────────────────────
     window.addEventListener('message', e => {
@@ -41,6 +44,11 @@
             case 'page': return onPage(m);
             case 'details': return onDetails(m);
             case 'found': return onFound(m);
+            case 'reveal': return revealLocator(m);
+            case 'recordStep': return onRecordStep(m);
+            case 'console': return onConsole(m.entries);
+            case 'network': return onNetwork(m.entries);
+            case 'navigated': return onNavigated();
             case 'closed': return onClosed();
             case 'history': $('back').disabled = !m.canBack; $('forward').disabled = !m.canForward; return;
             case 'status': return setStatus(m.state, m.message);
@@ -133,8 +141,9 @@
         state.find.set = new Set();
         renderTree();
         renderDetails();
-        if (state.selected) send({ type: 'details', index: state.selected.i });
-        if (state.find.query) send({ type: 'find', query: state.find.query, keep: true });
+        if (state.selected && !state.selected.pseudo) send({ type: 'details', index: state.selected.i });
+        if (state.find.locator) send({ type: 'locate', query: state.find.query, ...state.find.locator, keep: true });
+        else if (state.find.query) send({ type: 'find', query: state.find.query, keep: true });
         renderFindCount();
     }
 
@@ -229,7 +238,7 @@
     const pageEl = $('page');
     pageEl.addEventListener('mousemove', e => {
         if (!state.page) return;
-        const hit = state.mode === 'inspect' ? hitTest(toPage(e).x, toPage(e).y) : null;
+        const hit = state.mode !== 'click' ? hitTest(toPage(e).x, toPage(e).y) : null;
         if (hit !== state.hovered) {
             state.hovered = hit;
             renderHover();
@@ -242,7 +251,14 @@
     pageEl.addEventListener('click', e => {
         if (!state.page) return;
         const p = toPage(e);
-        if (state.mode === 'click') {
+        if (state.mode === 'record') {
+            ripple(e);
+            const hit = hitTest(p.x, p.y);
+            // the host reads the element's locators first, then clicks; the step arrives as 'recordStep'
+            send(hit ? { type: 'recordClick', index: hit.i, x: p.x, y: p.y } : { type: 'clickAt', x: p.x, y: p.y });
+            if (!hit) toast('No element there; the click was not recorded', true);
+            setStatus('loading', 'Clicking…');
+        } else if (state.mode === 'click') {
             ripple(e);
             send({ type: 'clickAt', x: p.x, y: p.y });
             setStatus('loading', 'Clicking…');
@@ -274,7 +290,7 @@
         renderHover();
         renderSelection();
         renderDetails();
-        if (n) send({ type: 'details', index: n.i });
+        if (n && !n.pseudo) send({ type: 'details', index: n.i });
         if (n && reveal) {
             const row = rowFor(n);
             if (row) row.scrollIntoView({ block: 'nearest' });
@@ -334,6 +350,14 @@
         const k = kindOf(n);
         const text = n.text || (n.role && n.name && !n.children ? n.name : '');
         const attrs = (n.id ? '#' + n.id : '') + (n.cls ? '.' + n.cls.join('.') : '') + (n.type ? ` type=${n.type}` : '');
+        if (n.pseudo) {
+            r.innerHTML = '<span class="indent"></span>' +
+                ICON.chev.replace('class="chev"', `class="chev${hasKids ? (open ? ' open' : '') : ' none'}"`) +
+                `<span class="pseudo">${esc(n.tag)}${n.text ? ' (' + esc(n.text) + ')' : ''}</span>`;
+            r.querySelector('.indent').style.width = `${depth * INDENT + 4}px`;
+            r.addEventListener('click', () => hasKids && toggle(key, !open));
+            return r;
+        }
         r.innerHTML =
             '<span class="indent"></span>' +
             ICON.chev.replace('class="chev"', `class="chev${hasKids ? (open ? ' open' : '') : ' none'}"`) +
@@ -366,6 +390,8 @@
         clearTimeout(findTimer);
         const query = e.target.value.trim();
         state.find.query = query;
+        state.find.locator = null; // typed text is a search string again
+        state.find.error = '';
         if (!query) {
             state.find = { query: '', matches: [], set: new Set(), current: -1, kinds: [] };
             renderTree();
@@ -387,12 +413,21 @@
     $('findNext').addEventListener('click', () => step(1));
     $('findPrev').addEventListener('click', () => step(-1));
 
+    /** A locator from a code lens in the editor: its matches are found with TestFly's rules, not as a search string. */
+    function revealLocator(m) {
+        state.find = { query: m.source, locator: { kind: m.kind, args: m.args }, matches: [], set: new Set(), current: -1, kinds: [] };
+        $('search').value = m.source;
+        send({ type: 'locate', query: m.source, kind: m.kind, args: m.args });
+    }
+
     function onFound(m) {
         if (m.query !== state.find.query) return; // an older answer
         const keep = m.keep && state.selected ? m.indices.indexOf(state.selected.i) : -1;
         state.find.matches = m.indices;
         state.find.set = new Set(m.indices);
         state.find.kinds = m.kinds || [];
+        state.find.error = m.error || '';
+        state.find.total = m.count;
         state.find.current = keep;
         if (!m.keep && m.indices.length) return step(1);
         renderTree();
@@ -411,9 +446,9 @@
     function renderFindCount() {
         const f = state.find;
         const el = $('findCount');
-        el.textContent = !f.query ? '' : f.matches.length ? `${f.current >= 0 ? f.current + 1 : '–'} of ${f.matches.length}` : 'No match';
-        el.classList.toggle('none', !!f.query && !f.matches.length);
-        el.title = f.kinds.length ? 'Matched as ' + f.kinds.join(', ') : '';
+        el.textContent = !f.query ? '' : f.error ? 'Invalid' : f.matches.length ? `${f.current >= 0 ? f.current + 1 : '–'} of ${f.matches.length}` : f.total ? `${f.total} outside the tree` : 'No match';
+        el.classList.toggle('none', !!f.query && (!!f.error || !f.matches.length));
+        el.title = f.error || (f.kinds.length ? 'Matched as ' + f.kinds.join(', ') : '');
         $('findPrev').disabled = $('findNext').disabled = f.matches.length < 2;
     }
 
@@ -450,15 +485,6 @@
     function ranked(list) {
         return list.filter(l => l.self).sort((a, b) =>
             (a.count === 1 ? 0 : 1) - (b.count === 1 ? 0 : 1) || KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
-    }
-
-    function fieldName(n, best) {
-        const arg = best ? (best.code.match(/"((?:[^"\\]|\\.)*)"\)$/) || [])[1] : '';
-        const base = n.testId || (best && best.kind !== 'CSS' ? arg : '') || n.name || n.id || n.placeholder || n.text || n.tag;
-        const words = String(base).replace(/\\./g, '').normalize('NFKD').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).slice(0, 4);
-        let name = words.map((w, i) => i ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase()).join('') || n.tag;
-        if (/^\d/.test(name)) name = n.tag + name;
-        return name;
     }
 
     function renderDetails() {
@@ -519,6 +545,14 @@
         if (best && best.count !== 1) {
             html += `<p class="note">No locator is unique on this page. Narrow it in code: <code>.within(...)</code>, <code>.withText(...)</code> or <code>.nth(i)</code>.</p>`;
         }
+        if (d.shadow) {
+            html += `<p class="note ctx-note">Inside a shadow root: TestFly locators do not reach it. <code>ShadowDom.pierce(host, …, target)</code> does, with CSS only; counts are within each shadow root.</p>`;
+        }
+        if (d.frames && d.frames.length) {
+            const wrap = d.frames.reduceRight((inner, css) => `withinFrame(By.cssSelector(${JSON.stringify(css)}), () -> ${inner})`, best ? R.fieldName(n, best) + '.click()' : '…') + ';';
+            html += `<p class="note ctx-note">Inside a frame: counts are within the frame's document. Use the locator inside <code>withinFrame</code>:</p>
+                <pre class="snippet">${javaHl(wrap)}<button data-copy="${esc(wrap)}" data-label="withinFrame call">${ICON.copy}Copy</button></pre>`;
+        }
         html += `</div><div>`;
         if (best) {
             const field = fieldCode(n, best);
@@ -537,7 +571,7 @@
     }
 
     function fieldCode(n, l) {
-        return `private final Locator ${fieldName(n, l)} = ${l.code};`;
+        return R.member(R.fieldName(n, l), l);
     }
 
     function javaHl(code) {
@@ -557,6 +591,7 @@
             return copy(fieldCode(n, l), 'page object field');
         }
         if (t.dataset.act === 'click') {
+            recordFromDetails(n, 'click');
             send({ type: 'click', index: n.i });
             return setStatus('loading', 'Clicking…');
         }
@@ -569,22 +604,165 @@
     function typeInto(n) {
         const text = $('typeText').value;
         if (!text) return toast('Enter the text to type first');
+        recordFromDetails(n, 'fill', text);
         send({ type: 'type', index: n.i, text });
         setStatus('loading', 'Typing…');
     }
+
+    // ── recording ───────────────────────────────────────────────────────
+    function recordStep(step) {
+        if (state.mode !== 'record') return;
+        state.steps.push(step);
+        renderRecorded();
+    }
+
+    /** A click or fill on an element, with its best locator (unique first, then TestFly's preference). */
+    function recordElement(n, d, action, text) {
+        const best = d && ranked(d.locators)[0];
+        if (!best) return toast('This element has no locator; the step was not recorded', true);
+        recordStep({ action, loc: { kind: best.kind, code: best.code }, name: R.fieldName(n, best), text, frames: d.frames || [] });
+    }
+
+    function recordFromDetails(n, action, text) {
+        if (state.mode === 'record') recordElement(n, state.details, action, text);
+    }
+
+    function onRecordStep(m) {
+        const n = state.byIndex.get(m.index);
+        if (n && m.details) recordElement(n, m.details, 'click');
+    }
+
+    function renderRecorded() {
+        const n = state.steps.length;
+        $('recordedCount').hidden = !n;
+        $('recordedCount').textContent = n;
+        $('recorded').innerHTML = n ? esc(R.codegen(state.steps)).replace(
+            /(&quot;(?:\\&quot;|(?!&quot;).)*?&quot;)|\b(public|private|final|class|extends|void|return)\b|\b(getBy\w+|find\w*|withinFrame|open|pierce)\(/g,
+            (m, str, kw, call) => str ? `<span class="str">${m}</span>` : kw ? `<span class="kw">${m}</span>` : `<span class="ann">${call}</span>(`)
+            : '<span class="r">Switch to Record and use the page: clicks, typing and navigation appear here as a TestFly page object.</span>';
+    }
+    $('copyRecorded').addEventListener('click', () => state.steps.length && copy(R.codegen(state.steps), 'recorded page object'));
+    $('clearRecorded').addEventListener('click', () => { state.steps = []; renderRecorded(); });
+
+    // ── drawer tabs: DOM tree, recorded steps, console, network ─────────
+    document.querySelectorAll('#leftTabs .tab').forEach(tab => tab.addEventListener('click', () => showLeft(tab.dataset.ltab)));
+
+    function showLeft(name) {
+        state.ltab = name;
+        document.querySelectorAll('#leftTabs .tab').forEach(t => t.classList.toggle('active', t.dataset.ltab === name));
+        $('tree').hidden = $('searchBox').hidden = name !== 'tree';
+        $('treeCount').hidden = name !== 'tree';
+        $('recordedWrap').hidden = name !== 'recorded';
+        $('consoleWrap').hidden = name !== 'console';
+        $('networkWrap').hidden = name !== 'network';
+        if (name === 'recorded') renderRecorded();
+        if (name === 'console') { state.consoleSeen = state.console.length; renderConsole(); }
+        if (name === 'network') renderNetwork();
+        renderCounts();
+    }
+
+    function onNavigated() {
+        if ($('preserveLog').checked) return;
+        state.console = [];
+        state.network = new Map();
+        state.consoleSeen = 0;
+        renderConsole();
+        renderNetwork();
+        renderCounts();
+    }
+
+    function onConsole(entries) {
+        state.console.push(...entries);
+        if (state.console.length > MAX_LOG) state.console.splice(0, state.console.length - MAX_LOG);
+        if (state.ltab === 'console') { state.consoleSeen = state.console.length; renderConsole(); }
+        renderCounts();
+    }
+
+    function onNetwork(entries) {
+        for (const e of entries) state.network.set(e.id, Object.assign(state.network.get(e.id) || {}, e));
+        if (state.network.size > MAX_LOG) [...state.network.keys()].slice(0, state.network.size - MAX_LOG).forEach(k => state.network.delete(k));
+        if (state.ltab === 'network') renderNetwork();
+        renderCounts();
+    }
+
+    function renderCounts() {
+        const errors = state.console.filter(e => e.level === 'error').length;
+        $('consoleCount').hidden = !errors;
+        $('consoleCount').textContent = errors;
+        const failed = [...state.network.values()].filter(r => r.failed || r.status >= 400).length;
+        $('networkCount').hidden = !state.network.size;
+        $('networkCount').textContent = failed ? `${failed} ✕` : state.network.size;
+        $('networkCount').classList.toggle('error', failed > 0);
+    }
+
+    const LEVEL_ICON = { error: '✕', warning: '⚠', info: 'ℹ', log: '', debug: '·' };
+    function renderConsole() {
+        const level = $('consoleLevel').value;
+        const q = $('consoleFilter').value.trim().toLowerCase();
+        const rows = state.console.filter(e => (level === 'all' || e.level === 'error' || (level === 'warning' && e.level === 'warning'))
+            && (!q || e.text.toLowerCase().includes(q) || (e.source || '').toLowerCase().includes(q)));
+        $('console').innerHTML = rows.length ? rows.map(e => `<div class="log-line ${esc(e.level)}" data-copy="${esc(e.text)}" title="Click to copy">
+            <span class="lvl">${LEVEL_ICON[e.level] || ''}</span><span class="msg">${esc(e.text)}</span><span class="src">${esc(e.source || '')}</span></div>`).join('')
+            : `<div class="empty">${state.console.length ? 'No message matches the filter.' : 'Console messages and uncaught errors of the page appear here.'}</div>`;
+        $('console').scrollTop = $('console').scrollHeight;
+    }
+
+    const NET_TYPES = { xhr: ['XHR', 'Fetch'], document: ['Document'], script: ['Script'], stylesheet: ['Stylesheet'], image: ['Image'], font: ['Font'] };
+    function renderNetwork() {
+        const type = $('netType').value;
+        const q = $('netFilter').value.trim().toLowerCase();
+        const known = Object.values(NET_TYPES).flat();
+        const rows = [...state.network.values()].filter(r => (type === 'all' || (type === 'other' ? !known.includes(r.type) : NET_TYPES[type].includes(r.type)))
+            && (!q || (r.url || '').toLowerCase().includes(q)));
+        $('network').innerHTML = rows.length ? rows.map(r => {
+            const name = shortUrl(r.url);
+            const status = r.failed ? (r.canceled ? '(canceled)' : '(failed)') : r.status || '…';
+            const cls = r.failed ? 'failed' : r.status >= 400 ? 'bad' : !r.status ? 'pending' : '';
+            return `<div class="net-row ${cls}" data-copy="${esc(r.url)}" title="${esc((r.failed ? r.failed + '\n' : '') + r.url)}\nClick to copy the URL">
+                <span>${esc(status)}</span><span>${esc(r.method || '')}</span><span>${esc(name)}</span><span>${esc(r.type || '')}</span>
+                <span class="num">${r.size != null ? esc(size(r.size)) : ''}</span><span class="num">${r.ms != null ? esc(r.ms + ' ms') : ''}</span></div>`;
+        }).join('') : `<div class="empty">${state.network.size ? 'No request matches the filter.' : 'Requests the page makes appear here.'}</div>`;
+        const total = [...state.network.values()].reduce((a, r) => a + (r.size || 0), 0);
+        $('netSummary').textContent = state.network.size ? `${state.network.size} requests · ${size(total)}` : '';
+    }
+
+    function shortUrl(url) {
+        try {
+            const u = new URL(url);
+            return (u.pathname.split('/').filter(Boolean).pop() || u.host) + u.search;
+        } catch (e) {
+            return url || '';
+        }
+    }
+
+    function size(bytes) {
+        return bytes < 1024 ? bytes + ' B' : bytes < 1048576 ? (bytes / 1024).toFixed(1) + ' kB' : (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    $('consoleLevel').addEventListener('change', renderConsole);
+    $('consoleFilter').addEventListener('input', renderConsole);
+    $('netType').addEventListener('change', renderNetwork);
+    $('netFilter').addEventListener('input', renderNetwork);
+    $('clearConsole').addEventListener('click', () => { state.console = []; renderConsole(); renderCounts(); });
+    $('clearNetwork').addEventListener('click', () => { state.network = new Map(); renderNetwork(); renderCounts(); });
+    ['console', 'network'].forEach(id => $(id).addEventListener('click', e => {
+        const line = e.target.closest('[data-copy]');
+        if (line) copy(line.dataset.copy, id === 'console' ? 'message' : 'URL');
+    }));
 
     // ── toolbar ─────────────────────────────────────────────────────────
     $('urlForm').addEventListener('submit', e => {
         e.preventDefault();
         const url = $('url').value.trim();
         if (!url) return;
+        recordStep({ action: 'open', url });
         send({ type: 'navigate', url });
         setStatus('loading', 'Opening ' + url + '…');
         $('url').blur();
     });
-    $('back').addEventListener('click', () => { send({ type: 'back' }); setStatus('loading', 'Going back…'); });
-    $('forward').addEventListener('click', () => { send({ type: 'forward' }); setStatus('loading', 'Going forward…'); });
-    $('reload').addEventListener('click', () => { send({ type: 'reload' }); setStatus('loading', 'Reloading…'); });
+    $('back').addEventListener('click', () => { recordStep({ action: 'back' }); send({ type: 'back' }); setStatus('loading', 'Going back…'); });
+    $('forward').addEventListener('click', () => { recordStep({ action: 'forward' }); send({ type: 'forward' }); setStatus('loading', 'Going forward…'); });
+    $('reload').addEventListener('click', () => { recordStep({ action: 'refresh' }); send({ type: 'reload' }); setStatus('loading', 'Reloading…'); });
     $('refresh').addEventListener('click', refresh);
     $('closeBrowser').addEventListener('click', () => { send({ type: 'close' }); setStatus('loading', 'Closing the browser…'); });
     $('viewport').addEventListener('change', e => {
@@ -604,7 +782,10 @@
     function setMode(mode) {
         state.mode = mode;
         document.querySelectorAll('#mode button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-        pageEl.classList.toggle('click-mode', mode === 'click');
+        pageEl.classList.toggle('click-mode', mode !== 'inspect');
+        document.body.classList.toggle('recording', mode === 'record');
+        // a recording starts where the page is
+        if (mode === 'record' && !state.steps.length && state.page && /^https?:/.test(state.page.url)) recordStep({ action: 'open', url: state.page.url });
         state.hovered = null;
         renderHover();
         persist();
@@ -621,6 +802,7 @@
         else if (e.key === '/') { e.preventDefault(); $('search').focus(); }
         else if (e.key === 'i') setMode('inspect');
         else if (e.key === 'c') setMode('click');
+        else if (e.key === 'e') setMode('record');
     });
 
     // ── resizable drawer ────────────────────────────────────────────────
@@ -667,6 +849,7 @@
     }
 
     setMode(state.mode);
+    showLeft('tree');
     renderTree();
     renderDetails();
     send({ type: 'ready' });

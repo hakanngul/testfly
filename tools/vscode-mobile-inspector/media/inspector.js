@@ -27,6 +27,8 @@
         contains: { placeholder: 'any part of a text, id, type or @ref', selector: null },
     };
     const INDENT = 16; // px per tree level; .row .indent guide lines in inspector.css use the same step
+    const HOLD_MS = 500; // a press held this long without moving is a long press
+    const DRAG_PX = 12; // a press that moves this far (on the picture) is a swipe
 
     const saved = vscode.getState() || {};
     const state = {
@@ -34,6 +36,7 @@
         selected: null, hovered: null, expanded: new Set(saved.expanded || []), collapsedAll: false,
         mode: saved.mode || 'inspect', tab: 'tree', xml: null, xmlNodes: new Map(), snapshot: null, ms: 0, steps: [],
         find: { strategy: STRATEGY[saved.strategy] ? saved.strategy : 'testfly', query: '', selector: '', matches: [], set: new Set(), current: -1, error: '' },
+        live: { on: !!saved.live, every: [2, 3, 5, 10].includes(saved.liveEvery) ? saved.liveEvery : 3, timer: 0, inFlight: 0, last: '' },
     };
 
     // ── host messages ───────────────────────────────────────────────────
@@ -45,11 +48,13 @@
             case 'server': return onServer(m.running, m.version);
             case 'devices': return onDevices(m.devices);
             case 'device': return onDevice(m.device);
-            case 'screen': return onScreen(m);
+            case 'screen': return onScreen(m), liveDone();
             case 'shot': $('shot').src = imageSrc(m.screenshot); return; // early picture; the tree comes with 'screen'
             case 'snapshotText': state.snapshot = m.text; return renderSnapshot();
             case 'status': return setStatus(m.state, m.message);
-            case 'error': return onError(m.message, m.unreachable);
+            case 'error': return onError(m.message, m.unreachable), liveFailed();
+            case 'resolve': return send({ type: 'resolved', id: m.id, results: (m.selectors || []).map(resolveCount) });
+            case 'reveal': return reveal(String(m.selector || ''));
         }
     });
 
@@ -58,7 +63,8 @@
     }
 
     function persist() {
-        vscode.setState({ mode: state.mode, expanded: [...state.expanded], cols: saved.cols, strategy: state.find.strategy });
+        vscode.setState({ mode: state.mode, expanded: [...state.expanded], cols: saved.cols, strategy: state.find.strategy,
+            live: state.live.on, liveEvery: state.live.every });
     }
 
     // ── status & toasts ─────────────────────────────────────────────────
@@ -146,6 +152,14 @@
 
     // ── screen ──────────────────────────────────────────────────────────
     function onScreen(m) {
+        const same = JSON.stringify(m.elements || []);
+        if (m.quiet && same === state.live.last && state.elements.length) {
+            // a live refresh that found the same tree: only the picture may have changed (a clock, a caret)
+            $('shot').src = imageSrc(m.screenshot);
+            setStatus('ok', `${m.device.name} · ${state.flat.length} elements · ${m.ms} ms · live`);
+            return;
+        }
+        state.live.last = same;
         const previous = state.selected;
         state.device = m.device;
         state.elements = m.elements || [];
@@ -171,7 +185,7 @@
         $('emptyScreen').hidden = true;
         $('screenMeta').textContent = m.screen && m.screen.width ? `${m.screen.width}×${m.screen.height}` : '';
         $('treeCount').textContent = `${state.flat.length} elements`;
-        setStatus('ok', `${m.device.name} · ${state.flat.length} elements · ${m.ms} ms`);
+        setStatus('ok', `${m.device.name} · ${state.flat.length} elements · ${m.ms} ms${state.live.on ? ' · live' : ''}`);
         if (state.find.query) runFind(true);
         renderTree();
         renderDetails();
@@ -300,24 +314,79 @@
         renderHover();
     });
     screenEl.addEventListener('click', e => {
-        if (!state.screen) return;
+        if (!state.screen || state.mode !== 'inspect') return;
         const p = toDevice(e);
+        select(S.hitTest(state.elements, p.x, p.y), true);
+    });
+
+    // Tap and Record: a click taps, a press held still long-presses, a drag swipes from where it started.
+    let press = null;
+    screenEl.addEventListener('pointerdown', e => {
+        if (!state.screen || state.mode === 'inspect' || e.button !== 0) return;
+        e.preventDefault();
+        screenEl.setPointerCapture(e.pointerId);
+        press = { x: e.clientX, y: e.clientY, at: toDevice(e), t: Date.now(), moved: false,
+            timer: setTimeout(() => press && !press.moved && screenEl.classList.add('holding'), HOLD_MS) };
+    });
+    screenEl.addEventListener('pointermove', e => {
+        if (!press) return;
+        if (Math.hypot(e.clientX - press.x, e.clientY - press.y) >= DRAG_PX) press.moved = true;
+        if (press.moved) drawDrag(press, e);
+    });
+    screenEl.addEventListener('pointercancel', () => endPress());
+    screenEl.addEventListener('pointerup', e => {
+        const p = endPress();
+        if (!p) return;
+        const to = toDevice(e);
+        if (p.moved) return swipeGesture(p.at, to);
+        ripple(e);
+        gesture(Date.now() - p.t >= HOLD_MS ? 'longPress' : 'tap', p.at);
+    });
+
+    function endPress() {
+        const p = press;
+        press = null;
+        if (p) clearTimeout(p.timer);
+        screenEl.classList.remove('holding');
+        $('dragLine').hidden = true;
+        return p;
+    }
+
+    function drawDrag(p, e) {
+        const rect = screenEl.getBoundingClientRect();
+        const line = $('dragPath');
+        line.setAttribute('x1', p.x - rect.left);
+        line.setAttribute('y1', p.y - rect.top);
+        line.setAttribute('x2', e.clientX - rect.left);
+        line.setAttribute('y2', e.clientY - rect.top);
+        $('dragLine').hidden = false;
+    }
+
+    /** A tap or long press at a point; Record taps the centre of the element under it so the step replays. */
+    function gesture(action, p) {
+        let x = p.x, y = p.y;
         if (state.mode === 'record') {
-            ripple(e);
             const hit = S.hitTest(state.elements, p.x, p.y);
             const r = hit && hit.rect;
-            const x = r ? r.x + r.width / 2 : p.x, y = r ? r.y + r.height / 2 : p.y;
-            record(hit, 'tap', { x: p.x, y: p.y });
-            send({ type: 'tap', x, y });
-            setStatus('loading', 'Tapping…');
-        } else if (state.mode === 'tap') {
-            ripple(e);
-            send({ type: 'tap', x: p.x, y: p.y });
-            setStatus('loading', `Tapping ${Math.round(p.x)}, ${Math.round(p.y)}…`);
-        } else {
-            select(S.hitTest(state.elements, p.x, p.y), true);
+            if (r) { x = r.x + r.width / 2; y = r.y + r.height / 2; }
+            record(hit, action, { x: p.x, y: p.y });
         }
-    });
+        send({ type: action, x, y });
+        setStatus('loading', `${action === 'tap' ? 'Tapping' : 'Long-pressing'} ${Math.round(x)}, ${Math.round(y)}…`);
+    }
+
+    function swipeGesture(from, to) {
+        const dx = to.x - from.x, dy = to.y - from.y;
+        const direction = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+        if (state.mode === 'record') {
+            // replays as element.swipe(...) when the drag starts on an element with a selector, else screen().swipe(...)
+            const hit = S.hitTest(state.elements, from.x, from.y);
+            const sel = hit && bestSelector(hit);
+            recordDevice(sel ? { action: 'swipe', direction, el: hit, selector: sel } : { action: 'swipe', direction });
+        }
+        send({ type: 'swipe', direction, x1: from.x, y1: from.y, x2: to.x, y2: to.y });
+        setStatus('loading', `Swiping ${direction}…`);
+    }
 
     function ripple(e) {
         const r = $('ripple');
@@ -484,6 +553,25 @@
         renderFindCount();
     }
 
+    /** Match count of a selector on the current screen, for the editor's code lenses. */
+    function resolveCount(selector) {
+        if (!state.elements.length) return { count: -1 };
+        const r = S.resolve(String(selector), state.elements, evalXpath);
+        return r.error ? { error: r.error } : { count: r.matches.length };
+    }
+
+    /** Shows a selector from the editor in the finder. */
+    function reveal(selector) {
+        state.find.strategy = 'testfly';
+        state.find.query = selector;
+        $('strategy').value = 'testfly';
+        $('search').value = selector;
+        $('search').placeholder = STRATEGY.testfly.placeholder + '  ( / )';
+        if (state.tab !== 'tree') document.querySelector('.tab[data-tab=tree]').click();
+        persist();
+        runFind(false);
+    }
+
     function step(dir) {
         const f = state.find;
         if (!f.matches.length) return renderFindCount();
@@ -558,12 +646,18 @@
     /** Adds a step in Record mode; an element without a selector falls back to a coordinate tap. */
     function record(el, action, extra) {
         if (state.mode !== 'record') return;
-        const suggestions = el ? S.suggest(el, state.elements, countXpath) : [];
-        const best = suggestions.find(x => x.count === 1) || suggestions[0];
-        if (best) state.steps.push({ action, el, selector: best.selector, ...extra });
-        else if (action === 'tap') state.steps.push({ action: 'tapAt', x: extra.x, y: extra.y });
+        const selector = el && bestSelector(el);
+        if (selector) state.steps.push({ action, el, selector, ...extra });
+        else if ((action === 'tap' || action === 'longPress') && extra.x != null) state.steps.push({ action: action + 'At', x: extra.x, y: extra.y });
         else return toast('This element has no selector; the step was not recorded', true);
         renderRecorded();
+    }
+
+    /** The unique selector, else the first one, else null. */
+    function bestSelector(el) {
+        const suggestions = S.suggest(el, state.elements, countXpath);
+        const best = suggestions.find(x => x.count === 1) || suggestions[0];
+        return best ? best.selector : null;
     }
 
     function recordDevice(step) {
@@ -733,6 +827,54 @@
         setStatus('loading', 'Typing…');
     }
 
+    // ── live refresh ────────────────────────────────────────────────────
+    // While Live is on, the screen is read again a few seconds after the previous read finished, so reads never pile up.
+    function scheduleLive() {
+        clearTimeout(state.live.timer);
+        if (state.live.on) state.live.timer = setTimeout(liveTick, state.live.every * 1000);
+    }
+
+    function liveTick() {
+        const busy = Date.now() - state.live.inFlight < 30000 || press
+            || $('status').dataset.state === 'loading' || $('status').dataset.state === 'connecting'
+            || (document.activeElement && document.activeElement.id === 'typeText'); // a refresh would wipe the text being typed
+        if (!state.live.on) return;
+        if (busy || document.hidden || !state.device) return scheduleLive();
+        state.live.inFlight = Date.now();
+        send({ type: 'refresh', quiet: true });
+    }
+
+    function liveDone() {
+        state.live.inFlight = 0;
+        scheduleLive();
+    }
+
+    function liveFailed() {
+        state.live.inFlight = 0;
+        if (state.live.on) {
+            setLive(false);
+            toast('Live refresh paused after an error; turn Live on again when the device is back', true);
+        }
+    }
+
+    function setLive(on) {
+        state.live.on = on;
+        $('live').checked = on;
+        $('live').closest('.toggle').classList.toggle('on', on);
+        $('liveEvery').disabled = !on;
+        persist();
+        if (on) liveTick(); else clearTimeout(state.live.timer);
+    }
+
+    $('live').addEventListener('change', e => setLive(e.target.checked));
+    $('liveEvery').addEventListener('change', e => {
+        state.live.every = Number(e.target.value);
+        persist();
+        scheduleLive();
+    });
+    $('liveEvery').value = String(state.live.every);
+    document.addEventListener('visibilitychange', () => !document.hidden && state.live.on && scheduleLive());
+
     // ── toolbar ─────────────────────────────────────────────────────────
     $('device').addEventListener('change', e => e.target.value && send({ type: 'selectDevice', id: e.target.value }));
     $('reloadDevices').addEventListener('click', () => send({ type: 'devices' }));
@@ -778,6 +920,7 @@
         else if (e.key === 'i') setMode('inspect');
         else if (e.key === 't') setMode('tap');
         else if (e.key === 'e') setMode('record');
+        else if (e.key === 'l') setLive(!state.live.on);
     });
 
     // ── resizable panes ─────────────────────────────────────────────────
@@ -819,6 +962,7 @@
     }
 
     setMode(state.mode);
+    setLive(state.live.on);
     renderTree();
     send({ type: 'ready' });
 })();

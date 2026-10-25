@@ -2,7 +2,7 @@
   "name": "testfly-mobile-inspector",
   "displayName": "TestFly Inspector",
   "description": "Inspect iOS and Android screens through mobilecli and web pages in Chrome or Edge: screenshot, UI or DOM tree, element details and ready-to-paste TestFly @MobileFind fields and Locator declarations.",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "publisher": "hakanngul",
   "license": "Apache-2.0",
   "repository": {
@@ -73,6 +73,11 @@
           "type": "string",
           "default": "",
           "description": "Chrome, Edge or Chromium executable for the Browser Inspector. Empty: the installed Chrome, Edge or Chromium is found automatically."
+        },
+        "testflyInspector.codeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "While an inspector is open, show above each TestFly locator in Java files how many elements it matches on the inspected screen or page."
         },
         "testflyInspector.testIdAttribute": {
           "type": "string",

@@ -6,8 +6,10 @@
     Inspect iOS and Android screens through <a href="https://github.com/mobile-next/mobilecli">mobilecli</a>,
     like Appium Inspector: device screenshot, the UI tree with mobilecli's <code>@eN</code> refs, element
     attributes, and ranked TestFly selectors with per-screen match counts, ready to paste as
-    <code>@MobileFind</code> fields. Tap, long press, type, Back, Home and swipe from the IDE.
-    The same UI as the TestFly Mobile Inspector VS Code extension.
+    <code>@MobileFind</code> fields. An Appium-style finder (TestFly selector, id, accessibility id, XPath,
+    class name, text) with match navigation. Tap, long press, type, Back, Home and swipe from the IDE, or hold and
+    drag on the screenshot; Live re-reads the screen every few seconds while you use the app; Record turns your
+    steps into a MobilePage. The same UI as the TestFly Inspector VS Code extension.
     ]]></description>
     <depends>com.intellij.modules.platform</depends>
     <!-- 2026.2+ ships JCEF as its own bundled plugin; before that it is part of the platform and this id does not exist. -->

@@ -2,7 +2,7 @@
 id: browser-inspector
 title: Browser Inspector (VS Code)
 sidebar_position: 11
-description: "The TestFly Browser Inspector for VS Code: open a page in Chrome or Edge, pick elements on the screenshot or in the DOM tree, and copy ranked TestFly locators and page object fields with their match counts."
+description: "The TestFly Browser Inspector for VS Code: open a page in Chrome or Edge, pick elements on the screenshot or in the DOM tree, and (shadow roots and iframes too), copy ranked TestFly locators with their match counts, record a page object, and read the page's console and network."
 ---
 
 # Browser Inspector
@@ -13,14 +13,17 @@ The Browser Inspector is part of the TestFly VS Code extension, next to the [Mob
 - the DOM tree, with test ids, roles and texts at a glance;
 - ranked TestFly locators for the selected element (`getByTestId`, `getByRole`, `getByLabel`, `getByPlaceholder`, `findById`, `getByText`, `find`) and how many elements each one matches on the page;
 - a ready-to-paste `Locator` field for a `BasePage` subclass;
-- clicking and typing in the browser, back, forward and reload.
+- clicking and typing in the browser, back, forward and reload;
+- **Record** mode: use the page and get a `BasePage` with the steps you took;
+- the page's console messages and network requests;
+- match counts above the locators of your page objects in the editor.
 
 ## Install
 
 The Browser Inspector ships in the same package as the Mobile Inspector:
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.3.2.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.4.0.vsix
 ```
 
 It needs VS Code 1.85 or newer and Chrome, Edge or Chromium. The browser is found in its usual install location; set `testflyInspector.browserPath` for any other location. No WebDriver, Node package or browser extension is needed: the inspector drives the browser over the DevTools protocol through a pipe.
@@ -45,9 +48,10 @@ The inspector always needs a running browser to render the page; with **Show bro
 
 | Area | What it shows |
 |---|---|
-| Toolbar | browser and version, back / forward / reload, the address bar (type a URL and press Enter), the viewport, **Refresh**, the click mode (Inspect / Click), **Close browser** and the status |
+| Toolbar | browser and version, back / forward / reload, the address bar (type a URL and press Enter), the viewport, **Refresh**, the click mode (Inspect / Click / Record), **Close browser** and the status |
 | Page (top) | the whole page as one screenshot; hover outlines an element, a click selects it (Inspect) or clicks it in the browser (Click) |
 | **DOM Tree** (bottom left) | the element tree with tag, text, test id, id and classes, and a find box (see below); arrow keys move and expand |
+| **Recorded**, **Console**, **Network** | the code of Record mode, the page's console and its requests (see below), in tabs next to the DOM Tree |
 | **Locators** (bottom right) | the TestFly locators for the selected element, the page object field, and Click / Type on that element |
 | **Attributes** | every attribute, the role, accessible name, text, bounds and state |
 
@@ -61,7 +65,7 @@ The box above the tree works like **Find by string, selector, or XPath** in Chro
 - an XPath when it starts with `/`, `(` or `./`: `//div[@id='homepage-middle']`;
 - a string, matched case-insensitively against each element's markup and own text: `homepage`, `widget__footer`, `id="content"`, `Popular`.
 
-Matches are highlighted in the tree (it is not filtered) and the box shows *1 of N*; the first match is selected. **Enter** and the ↓ button move to the next match, **Shift+Enter** and ↑ to the previous one; each match is revealed in the tree, outlined on the page and its locators are shown. Hover the count to see whether the query matched as a selector, an XPath or text. The query runs again after every refresh or action.
+Selectors also run inside shadow roots and same-origin frames. Matches are highlighted in the tree (it is not filtered) and the box shows *1 of N*; the first match is selected. **Enter** and the ↓ button move to the next match, **Shift+Enter** and ↑ to the previous one; each match is revealed in the tree, outlined on the page and its locators are shown. Hover the count to see whether the query matched as a selector, an XPath or text. The query runs again after every refresh or action.
 
 ## Finding a locator
 
@@ -89,18 +93,89 @@ It compiles in any `BasePage` subclass (`getByRole` needs `import io.testfly.loc
 
 If your project reads a different test id attribute (`locators.testIdAttribute`, for example `data-qa`), set `testflyInspector.testIdAttribute` to the same value.
 
+## Shadow roots and iframes
+
+Open shadow roots appear in the tree as `#shadow-root (open)` and same-origin iframes as `#document (url)`, as in DevTools; their elements can be picked on the page and in the tree.
+
+- **In an iframe** the locators are counted in the frame's document, where a test runs them after switching into the frame. The details show the call to wrap them in:
+
+  ```java
+  withinFrame(By.cssSelector("#card"), () -> cardNumber.fill("4111 1111 1111 1111"));
+  ```
+
+- **In a shadow root** TestFly's locators do not reach the element. The inspector gives the `ShadowDom.pierce` chain from the outermost host to the element, each step a CSS selector unique in its own shadow root, and a page object member for it:
+
+  ```java
+  private WebElement payNow() {
+      return ShadowDom.pierce("#pw", "#pay");
+  }
+  ```
+
+A cross-origin iframe shows as *cross-origin: not inspected*; open its URL in the address bar to inspect it.
+
+## Match counts in the editor {#code-lens}
+
+While the Browser Inspector shows a page, Java files get a line above each TestFly web locator with its match count on that page:
+
+```java
+✓ 1 match on shop.example.com
+private final Locator email = getByTestId("email");
+
+⚠ 3 matches on shop.example.com
+private final Locator links = find("header a");
+```
+
+It covers `getByTestId`, `getByRole(Role.…)` and `getByRole(Role.…, "name")`, `getByLabel`, `getByPlaceholder`, `getByText`, `getByAltText`, `getByTitle`, `findById`, `findByName`, `findByClassName`, `findByXpath` and `find("css")`, counted in the top document with the rules above. Only literal arguments are read; a locator built from a constant is skipped. The counts follow every refresh and navigation. Click a line to see its matches highlighted in the tree. Turn it off with `testflyInspector.codeLens`; the [Mobile Inspector](../mobile/inspector.md#code-lens) does the same for `@MobileFind`.
+
 ## Acting in the browser
 
 - **Click** mode: a click on the screenshot clicks the same point in the browser; the inspector waits for a navigation it starts and reads the page again.
 - **Click** and **Type** in the Locators tab act on the selected element: Type clicks the element and types the text.
 - Back, forward and reload use the browser history; the address bar opens any URL.
 
+## Record mode {#record}
+
+Switch to **Record** (`E`; the page gets a red frame). Everything you do runs in the browser **and** becomes a step:
+
+| You do | Recorded as |
+|---|---|
+| start recording on a page | `open("https://…");` |
+| click an element on the screenshot, or **Click** in the Locators tab | `field.click();` |
+| **Type** in the Locators tab | `field.fill("text");` |
+| type a URL in the address bar | `open("https://…");` |
+| back / forward / reload | `back();` / `forward();` / `refresh();` |
+
+The **Recorded** tab shows a `BasePage` with one `Locator` field per element, using its best locator (unique first, then TestFly's order), and the steps in order. A step in an iframe is wrapped in `withinFrame(By.cssSelector("…"), () -> …)`; an element in a shadow root becomes a `ShadowDom.pierce` method.
+
+```java
+public class RecordedPage extends BasePage {
+
+    private final Locator email = getByTestId("email");
+
+    private final Locator signIn = getByTestId("sign-in");
+
+    public void recordedFlow() {
+        open("http://localhost:8123/login");
+        email.fill("ada@example.com");
+        signIn.click();
+    }
+}
+```
+
+**Copy** puts it on the clipboard, **Clear** starts over. A click on a point without an element is performed but not recorded. Treat the code as a first draft: rename the class and fields, split the flow into intent methods, add assertions, and replace typed credentials with environment variables.
+
+## Console and network
+
+The **Console** tab lists the page's `console.log`, `info`, `warn` and `error` messages, uncaught errors and the browser's own messages (for example a failed resource), with their source file and line. Filter by level (all, warnings and errors, errors) or text; the tab counts the errors.
+
+The **Network** tab lists the page's requests with status, method, name, type, size and time. Filter by type (Fetch/XHR, Doc, JS, CSS, Img, Font, Other) or URL; failed requests and 4xx/5xx answers are red and counted on the tab. Both lists clear when the page navigates unless **Preserve log** is on, and keep the last 1,000 entries. Click a line to copy the message or the URL.
+
 ## Keys
 
 | Key | Action |
 |---|---|
 | `R` | Refresh |
-| `I` / `C` | Inspect / Click mode |
+| `I` / `C` / `E` | Inspect / Click / Record mode |
 | `/` | focus the find box; `Enter` / `Shift+Enter` next / previous match |
 | `↑` `↓` | move in the tree |
 | `←` `→` | collapse / expand |
@@ -112,11 +187,12 @@ If your project reads a different test id attribute (`locators.testIdAttribute`,
 |---|---|---|
 | `testflyInspector.browserPath` | empty | Chrome, Edge or Chromium executable; empty finds an installed one |
 | `testflyInspector.testIdAttribute` | `data-testid` | the attribute `getByTestId()` reads; keep it equal to `locators.testIdAttribute` |
+| `testflyInspector.codeLens` | `true` | match counts above TestFly locators in Java files while an inspector is open |
 
 ## Limits
 
 - Only Chromium-based browsers (Chrome, Edge, Chromium); Firefox and Safari are not supported.
-- Elements inside iframes and shadow roots are not listed.
+- Cross-origin iframes and closed shadow roots are not inspected.
 - The tree holds the first 5,000 elements and the screenshot the first 12,000 CSS pixels of a long page.
 - The page is a snapshot taken on refresh and after each action, not a live stream.
 

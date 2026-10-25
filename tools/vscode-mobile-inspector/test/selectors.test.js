@@ -72,12 +72,14 @@ test('codegen turns recorded steps into a page object with one field per selecto
         { action: 'swipe', direction: 'left' },
         { action: 'button', button: 'BACK' },
         { action: 'tapAt', x: 10.4, y: 20.6 },
+        { action: 'swipe', direction: 'up', el: user, selector: 'username' },
+        { action: 'longPressAt', x: 5, y: 6 },
     ], 'ios');
     assert.match(code, /@MobileFind\(ios = "username"\)\n {4}private MobileLocator username;/);
     assert.strictEqual(code.match(/@MobileFind/g).length, 3, 'one field per selector');
     assert.match(code, /private MobileLocator go2;/, 'clashing names get a suffix');
     assert.match(code, / {8}username\.fill\("say \\"hi\\""\);\n {8}go\.tap\(\);\n {8}go\.tap\(\);\n {8}go2\.longPress\(\);/);
-    assert.match(code, /screen\(\)\.swipe\(SwipeDirection\.LEFT\);\n {8}device\(\)\.pressButton\("BACK"\);\n {8}screen\(\)\.tap\(10, 21\);/);
+    assert.match(code, /screen\(\)\.swipe\(SwipeDirection\.LEFT\);\n {8}device\(\)\.pressButton\("BACK"\);\n {8}screen\(\)\.tap\(10, 21\);\n {8}username\.swipe\(SwipeDirection\.UP\);\n {8}screen\(\)\.longPress\(5, 6\);/);
 });
 
 test('resolve reads selectors like SelectorParser and LocatorEngine', () => {
