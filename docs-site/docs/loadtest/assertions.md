@@ -22,7 +22,8 @@ load("/api/v1/feed")
     .run()
     .assertMeanLatencyBelow(100)  // Average latency < 100ms
     .assertP50Below(80)           // Median latency < 80ms
-    .assertP90Below(150)          // 90th percentile < 150ms
+    .assertP75Below(120)          // 75th percentile < 120ms
+    .assertP90Below(150)          // 90th percentile < 150ms (JDK engine only)
     .assertP95Below(250)          // 95th percentile < 250ms
     .assertP99Below(500)          // 99th percentile < 500ms
     .assertMaxLatencyBelow(1200); // Worst single request < 1.2s
@@ -33,6 +34,21 @@ When an assertion fails, TestFly produces detailed diagnostic failure messages:
 ```
 java.lang.AssertionError: [LoadTest] /api/v1/feed: p95 latency 348ms is not below 250ms
 ```
+
+### Which percentiles each engine measures
+
+| Percentile | JDK engine | Gatling engine |
+| :--- | :--- | :--- |
+| p50, p75, p95, p99 | Measured | Measured (read from Gatling's statistics) |
+| p90 | Measured | **Not measured** |
+
+A value the engine did not measure is `Double.NaN` in `LoadTestMetrics` (check it with `LoadTestMetrics.isMeasured(value)`), `null` in the JSON results and `n/a` in the reports. It is never reported as `0`. A latency assertion on an unmeasured value fails instead of passing:
+
+```
+java.lang.AssertionError: [LoadTest] /api/v1/feed: p90 latency was not measured by engine 'gatling'
+```
+
+`assertStepP95Below(...)` behaves the same way when a step's p95 was not measured.
 
 ---
 
@@ -50,7 +66,7 @@ load("/api/orders")
 ```
 
 :::caution What counts as an error
-With the JDK engine, a request is counted as failed only when it throws (connection refused, timeout, I/O error) or when one of its `check(...)` conditions fails. An HTTP 4xx or 5xx response without a `check(status().is(...))` is currently counted as a **successful** request, so it does not raise the error rate. Add `check(status().is(200))` to a step, or use `assertNoStatus(...)` (section 3), to catch error responses. Requests that never received a response are recorded under the status code `-1`.
+Both engines classify requests the same way. A request is failed when it gets no HTTP response (connection refused, timeout, I/O error), when one of its `check(...)` conditions fails, or when an `extract(...)` path is not found in the response. If a step has no `status().is(...)` or `status().in(...)` check, a default status check applies: the response must be 2xx (200–299) or 304, so a 4xx or 5xx response raises the error rate. Add an explicit status check to accept other codes, for example `check(status().in(200, 404))`.
 :::
 
 ---
@@ -70,6 +86,10 @@ load("/api/payments")
     .assertNoStatus(429)                 // No Too Many Requests
     .assertStatusCodeCount(200, 1000);   // At least 1,000 OK responses
 ```
+
+Both engines record the real HTTP status of every response, including responses whose checks failed. Requests that got no response at all are counted under the key `-1`. `LoadScenario.assertStatus(n)` passes only when every request returned `n`, so a `-1` entry fails it.
+
+If the engine could not record status codes for a run (for example, the Gatling status file `testfly-status.json` is missing), `statusCodes()` is empty and `LoadTestMetrics.statusCodesMeasured()` returns `false`. `assertStatus`, `assertStatusCodeCount` and `assertNoStatus` then fail with `HTTP status codes were not measured by engine '<engine>'` instead of passing on missing data.
 
 ---
 
@@ -117,4 +137,8 @@ LoadTestMetrics metrics = load("/api/summary").run().metrics();
 System.out.println("Total requests: " + metrics.totalRequests());
 System.out.println("P95 Latency: " + metrics.p95LatencyMs() + " ms");
 System.out.println("HTTP 200 count: " + metrics.statusCodeCount(200));
+System.out.println("No response: " + metrics.statusCodeCount(-1));
+if (LoadTestMetrics.isMeasured(metrics.p90LatencyMs())) {
+    System.out.println("P90 Latency: " + metrics.p90LatencyMs() + " ms");
+}
 ```

@@ -180,7 +180,8 @@ public class AuditHarness {
             LoadTestMetrics m = scenario("V10").step("conc").get("/conc").and()
                     .users(3).rampUp(Duration.ofSeconds(1)).hold(Duration.ofSeconds(2)).run().metrics();
             double formula = m.p50LatencyMs() + (m.p95LatencyMs() - m.p50LatencyMs()) * 0.8;
-            report(Math.abs(formula - m.p90LatencyMs()) > 0.0001,
+            // Correct: p90 is either really measured (differs from the formula) or explicitly unmeasured (NaN).
+            report(Double.isNaN(m.p90LatencyMs()) || Math.abs(formula - m.p90LatencyMs()) > 0.0001,
                     "p50=" + m.p50LatencyMs() + " p90=" + m.p90LatencyMs() + " p95=" + m.p95LatencyMs()
                             + " p50+(p95-p50)*0.8=" + formula + " -> p90 is interpolated, not measured");
         });

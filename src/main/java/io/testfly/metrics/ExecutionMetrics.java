@@ -656,13 +656,15 @@ public final class ExecutionMetrics {
         map.put("successfulRequests", m.successfulRequests());
         map.put("failedRequests", m.failedRequests());
         map.put("throughputRps", m.throughputRps());
-        map.put("meanLatencyMs", m.meanLatencyMs());
-        map.put("p50LatencyMs", m.p50LatencyMs());
-        map.put("p90LatencyMs", m.p90LatencyMs());
-        map.put("p95LatencyMs", m.p95LatencyMs());
-        map.put("p99LatencyMs", m.p99LatencyMs());
-        map.put("minLatencyMs", m.minLatencyMs());
-        map.put("maxLatencyMs", m.maxLatencyMs());
+        // NaN = not measured by the engine → JSON null (never coerced to 0)
+        map.put("meanLatencyMs", measuredOrNull(m.meanLatencyMs()));
+        map.put("p50LatencyMs", measuredOrNull(m.p50LatencyMs()));
+        map.put("p75LatencyMs", measuredOrNull(m.p75LatencyMs()));
+        map.put("p90LatencyMs", measuredOrNull(m.p90LatencyMs()));
+        map.put("p95LatencyMs", measuredOrNull(m.p95LatencyMs()));
+        map.put("p99LatencyMs", measuredOrNull(m.p99LatencyMs()));
+        map.put("minLatencyMs", measuredOrNull(m.minLatencyMs()));
+        map.put("maxLatencyMs", measuredOrNull(m.maxLatencyMs()));
         map.put("errorRate", m.errorRate());
         map.put("statusCodes", m.statusCodes());
 
@@ -675,13 +677,17 @@ public final class ExecutionMetrics {
                 stepData.put("totalRequests", step.totalRequests());
                 stepData.put("successfulRequests", step.successfulRequests());
                 stepData.put("failedRequests", step.failedRequests());
-                stepData.put("p95LatencyMs", step.p95LatencyMs());
+                stepData.put("p95LatencyMs", measuredOrNull(step.p95LatencyMs()));
                 stepData.put("errorRate", step.errorRate());
                 stepsMap.put(entry.getKey(), stepData);
             }
         }
         map.put("steps", stepsMap);
         return map;
+    }
+
+    private static Double measuredOrNull(double value) {
+        return Double.isNaN(value) ? null : value;
     }
 
     // ==========================================================

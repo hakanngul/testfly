@@ -4,8 +4,13 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.loadtest.internal.GatlingBridge;
 import io.testfly.loadtest.internal.GatlingEngine;
 import io.testfly.loadtest.internal.JdkLoadEngine;
+import io.testfly.loadtest.internal.LoadScenarioValidator;
 import io.testfly.loadtest.internal.LoadTestEngine;
 import io.testfly.steps.StepLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Orchestrates load-test execution — selects the engine, runs the scenario,
@@ -30,6 +35,9 @@ public final class LoadTestRunner {
     private static final ThreadLocal<LoadTestMetrics> LAST_METRICS = new ThreadLocal<>();
     private static final ThreadLocal<Boolean> EXECUTING = ThreadLocal.withInitial(() -> false);
     private static final JdkLoadEngine JDK_ENGINE = new JdkLoadEngine();
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoadTestRunner.class);
+    private static final AtomicBoolean AUTO_FALLBACK_WARNED = new AtomicBoolean();
+    private static final AtomicBoolean COOLDOWN_WARNED = new AtomicBoolean();
 
     private LoadTestRunner() {
     }
@@ -55,10 +63,27 @@ public final class LoadTestRunner {
             java.lang.reflect.Method testMethod = io.testfly.internal.TestFlyContext.getCurrentTestMethod();
             LoadTestConfig config = LoadTestConfig.resolveFor(scenario, testClass, testMethod);
 
-            StepLogger.step("Load Test: " + scenario.name()
-                    + " (" + config.getUsers() + " users, engine=" + config.getEngine() + ")");
-
             LoadTestEngine engine = selectEngine(config);
+            String resolved = engine.name();
+            if ("auto".equals(config.getEngine())) {
+                resolved += "jdk".equals(engine.name())
+                        ? " (auto: Gatling not on classpath)"
+                        : " (auto: Gatling on classpath)";
+                if ("jdk".equals(engine.name()) && AUTO_FALLBACK_WARNED.compareAndSet(false, true)) {
+                    LOGGER.warn("[LoadTest] loadtest.engine=auto: Gatling is not on the classpath, "
+                            + "falling back to the JDK engine");
+                }
+            }
+            if (config.getCooldownSeconds() > 0 && COOLDOWN_WARNED.compareAndSet(false, true)) {
+                LOGGER.warn("loadtest cooldown is accepted but not applied by any engine yet (ADR-0003)");
+            }
+
+            // Fail fast before any request is sent
+            LoadScenarioValidator.validate(scenario, engine.name());
+
+            StepLogger.step("Load Test: " + scenario.name()
+                    + " (" + config.getUsers() + " users, engine=" + resolved + ")");
+
             LoadTestMetrics metrics = engine.execute(scenario, config);
 
             LAST_METRICS.set(metrics);

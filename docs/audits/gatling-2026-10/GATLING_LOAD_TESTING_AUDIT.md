@@ -6,8 +6,8 @@
 | Kapsam | `io.testfly.loadtest` (21 sınıf, 3.726 satır), ilgili config/raporlama, 22 test sınıfı |
 | Proje Gatling sürümü | **3.13.5** (`pom.xml:233-256`, 4 artefakt, `<optional>true</optional>`) |
 | Güncel Gatling | **3.16** (docs.gatling.io "What's new" listesinin en üstü) — proje 3 minor sürüm geride |
-| Çalışma ortamı | OpenJDK 21.0.12, Maven 3.9.11, Linux, yalnızca `127.0.0.1` üzerinde lokal JDK `HttpServer` |
-| Uygulama kodu değişikliği | **Yok.** Yalnızca bu rapor ve `harness/` altındaki izole doğrulama kodu eklendi |
+| Çalışma ortamı | OpenJDK 21.0.12, Maven 3.9.11, Linux. Yük yalnızca `127.0.0.1` üzerindeki lokal JDK `HttpServer`'a gönderildi. **Düzeltme:** audit koşularında Gatling'in varsayılan HTTP warm-up'ı her koşu başında `gatling.io`'ya bir bağlantı açıyordu (yük değil, tek warm-up isteği). Bu, remediation turunda tespit edilip kapatıldı (bkz. Bölüm 8, R-11). |
+| Uygulama kodu değişikliği | Audit aşamasında **yok**. P0 düzeltmeleri sonraki remediation turunda yapıldı; sonuçlar **Bölüm 8**'de. |
 
 **Kanıt sınıflandırması:** **[KOD]** kaynak koddan kesin · **[ÇALIŞTIRMA]** gerçek Gatling/JDK çalıştırmasıyla doğrulandı · **[ÇIKARIM]** kod + doküman üzerinden akıl yürütme, çalıştırılmadı · **[DOĞRULANAMADI]** bu ortamda doğrulanamadı.
 
@@ -498,6 +498,90 @@ flowchart TD
 | Production Readiness | **3/10** | CI'da kullanılabilir ama P0 bulguları yanlış PASS/yanlış metrik üretiyor |
 
 ---
+
+## 8. P0 Remediation Sonuçları (2026-10-25)
+
+Bu bölüm audit'ten sonra yapılan P0 güvenilirlik turunun sonucudur. Yöntem şöyleydi:
+1. Önce regresyon testleri yazıldı ve mevcut kodda 32 testin 26'sının başarısız olduğu kanıtlandı.
+2. Sonra düzeltmeler yapıldı.
+3. Bağımsız bir code review yapıldı ve bulguları düzeltildi.
+4. Tüm testler yeniden koşuldu.
+
+Her testte TestFly'ın raporladığı değerler, yerel sunucunun gerçekten gözlemlediği istek sayılarıyla karşılaştırıldı. Workload semantiği için karar: `docs/adr/0003-load-test-workload-model.md`.
+
+### 8.1 Bulgu durumu
+
+| Bulgu | Durum | Kök neden (kesin) | Yeni davranış | Regresyon testi |
+|---|---|---|---|---|
+| BUG-01 status code uydurma | **FIXED** | Binary `simulation.log` metin olarak okunuyordu; OK→200, KO→500 dolduruluyordu | Simülasyon `transformResponse` ile gerçek status'ları sayıp `testfly-status.json`'a yazar. Yanıtsız istekler `-1` olarak raporlanır. Sidecar yoksa harita boş kalır ve status assertion'ları "not measured" hatası verir. `simulation.log` hiç okunmaz. | `GatlingReliabilityIntegrationTest.statusCodes_*`, `GatlingResultsParserTest` |
+| BUG-02 JDK check → AssertionError | **FIXED** | `catch (Exception)` `AssertionError`'ı yakalamıyordu; sanal kullanıcı ölüyordu | Check hatası KO sayılır, programlama hatası koşuyu durdurur, interrupt ve güvenlik timeout'u exception fırlatır | `JdkLoadEngineReliabilityTest` (10), `JdkLoadEngineTest.testInterruptCancelsRunWithException` |
+| BUG-03 `status().in`/`matches` düşüyordu | **FIXED** | `GatlingRunConfig` yalnızca 2 check tipini eşliyordu | Tüm tipler iki engine'de eşlenir; eşlenemeyen check fail-fast olur | `EngineParityIntegrationTest` (19) |
+| BUG-04 `jsonPath(..).is(n)` → status check | **FIXED** | `Builder` türünü hatırlamıyordu | Yeni `JSON_EQUALS`/`JSON_IN` tipleri JSON değerini karşılaştırır; `status().exists()` exception fırlatır | `LoadScenarioBuilderTest`, parity satırları |
+| BUG-05 orphan child JVM | **FIXED** | `waitFor()` için timeout yoktu, interrupt'ta `destroy` çağrılmıyordu | `maxDuration`, `waitFor(maxDuration+120s)`; timeout, interrupt ve JVM kapanışında süreç ağacı önce `destroy`, gerekirse `destroyForcibly` ile sonlandırılır | `GatlingReliabilityIntegrationTest.interrupt_terminatesGatlingChildJvm` (ProcessHandle ile) |
+| BUG-06 p90 uydurma / P75 = 0 | **FIXED** | p90 formülle hesaplanıyordu; `p75LatencyMs` alanı modelde yoktu | Gatling'de p90 = `NaN` ("n/a"); p75 `percentiles2`'den okunur; slotlar `-D` ile 50/75/95/99'a sabitlenir; NaN üzerine yapılan assertion başarısız olur | `GatlingResultsParserTest`, `LoadTestAssertTest`, rapor testleri |
+| BUG-07 cooldown / users semantiği | **OPEN (ADR-0003)** | Tek open-model profili | Davranış bilinçli olarak değiştirilmedi; dokümante edildi; `cooldown` > 0 için JVM başına bir WARN | — (V11, V12 hâlâ FAIL) |
+| BUG-08 exit code yok sayılıyordu | **FIXED** | `exitCode != 0` yalnızca loglanıyordu | Exit code ≠ 0 → exception; mesajda exit code ve maskelenmiş son 20 log satırı | `simulationBuildFailure_reportsExitCode`, `LogRedactorTest` |
+| BUG-09 `formParam` işlevsiz | **FIXED** | Hiçbir engine okumuyordu | İki engine'de `application/x-www-form-urlencoded`; body ile birlikte kullanılırsa fail-fast | `JdkLoadEngineReliabilityTest`, `GatlingReliabilityIntegrationTest.formParam_sendsUrlEncodedBody` |
+| BUG-10 her body `asJson` | **PARTIAL** | Sabit `.asJson()` | Kullanıcı `Content-Type` verdiyse ona uyulur; vermediyse JSON varsayılır (JDK ile aynı kural). İçerik tipi tahmini yok (V18). | V19 |
+| BUG-11 Gatling'de request timeout yok | **FIXED** | Alan taşınıyordu ama kullanılmıyordu | Her istekte `requestTimeout(Duration)` uygulanır | — (kod ve review ile doğrulandı) |
+| BUG-12 `auto` sessiz engine değişimi | **FIXED** | Classpath'e bağlı sessiz fallback | Seçilen engine loglanır; JDK'ya fallback'te WARN; `LoadScenarioValidator` engine yeteneklerine göre fail-fast yapar | `LoadScenarioValidatorTest`, parity |
+| BUG-13 temp config dosyası izinleri | **FIXED** | `File.createTempFile` umask izinleri kullanıyordu | `rw-------`, `finally` içinde siliniyor | — (kod ve review) |
+| BUG-14 JDK URL-encode / JSONPath | **FIXED** | Elle yazılmış yardımcılar | Query değerleri URL-encode edilir; JSONPath Jackson ile çözülür (`$.a.b`, `$.a[0].b`, `$[0]`; `$`'sız yol `$.yol` sayılır); JSON `null` iki engine'de "mevcut" sayılır | `JdkLoadEngineTest`, parity |
+| BUG-15 ölü kod | **FIXED** | — | `runGatlingInProcess`, `mapToJson` ve `RandomFeeder.random` kaldırıldı | derleme |
+| BUG-16 sessiz `maxUsers` clamp | **OPEN** | — | Bu turda ele alınmadı | — |
+| BUG-17 test boşluğu | **FIXED** | — | 3 yeni regresyon sınıfı ve sunucu gözlemine dayalı assertion'lar | — |
+
+### 8.2 Remediation sırasında bulunan ek sorunlar
+
+| ID | Bulgu | Durum |
+|---|---|---|
+| R-11 | Gatling'in HTTP warm-up isteği her koşuda `gatling.io`'ya bağlanıyordu, analitik de açıktı | **FIXED**: `disableWarmUp()` ve `-Dgatling.data.enableAnalytics=false`. DEBUG probunda 5 koşuda 0 dış bağlantı görüldü. |
+| R-12 | ReportPortal, HTML raporu ve Allure NaN veya null değerleri "0 ms" gösteriyordu; status grafiği uydurma bir "200" dilimi çiziyordu | **FIXED**: hepsi "n/a" / "Status codes not measured" gösteriyor |
+| R-13 | JDK iptali yarım metrik döndürüyordu (`ConcurrentModificationException` riski) | **FIXED** |
+| R-14 | `LogRedactor` tırnaklı değerleri yalnızca kısmen maskeliyordu | **FIXED** |
+| R-15 | PR'daki `BlazeDemoLoadTest` sınıfına eklenen sınıf seviyesi `@Test(singleThreaded)`, miras alınan `step(..)` metotlarını test yapıyordu (5 sahte hata) | **FIXED** (geri alındı) |
+
+### 8.3 Gerçek çalıştırma sonuçları (V01–V20, `harness/harness-run.log`)
+
+Sayım senaryo bazındadır. V07, V08, V11, V12 ve V19 her engine için ayrı bir sonuç satırı yazar; bir senaryo, satırlarından biri FAIL ise FAIL sayılır.
+
+| V01–V20 senaryoları | Audit (önce, V15 düzeltilmiş) | Remediation (sonra) |
+|---|---|---|
+| PASS | 8 (V01, V03–V06, V16, V17, V20) | 17 |
+| FAIL | 12 | 3 (V11, V12, V18) |
+
+Ayrıca V-JDK (JDK'da başarısız check) önce FAIL'di, şimdi PASS (`JdkLoadEngineReliabilityTest`). V06 audit'te check sonucu açısından PASS sayılmıştı; status haritası ise yanlıştı (`{500=…}`). Remediation'da harita da doğru (`{200=…}`).
+
+Sonrasında FAIL kalanlar:
+- V11 (cooldown, iki engine) ve V12 (users = eşzamanlılık değil, iki engine): ADR-0003 gereği değiştirilmedi.
+- V18 (XML body, Content-Type verilmezse JSON olarak gidiyor): P1.
+
+V10 artık PASS çünkü p90 Gatling'de ölçülmüyor ve "n/a" olarak açıkça işaretleniyor; ölçülmüş gibi gösterilmiyor.
+
+### 8.4 Doğrulama kapıları (ana oturumda koşuldu)
+
+| Kapı | Sonuç |
+|---|---|
+| `scripts/agent/verify.sh api HEAD` (public API + tam unit suite) | API **PASS**; 2036 test, 0 hata |
+| `GatlingReliabilityIntegrationTest` / `EngineParityIntegrationTest` / `JdkLoadEngineReliabilityTest` / `GatlingEngineIntegrationTest` | 12/19/10/3, 0 hata |
+| Koşulardan sonra artık Gatling child JVM | Yok |
+| `check-doc-accuracy.sh`, `check-localization.sh` | PASS |
+
+Koşulmayanlar:
+- `verify.sh consumer` (consumer checkout yok)
+- `verify.sh release`
+- safety-timeout yolu (60 sn'den uzun sürüyor; yalnızca kodla doğrulandı)
+
+### 8.5 Kalan teknik riskler ve P1
+
+- Workload modeli (W-02/W-03/W-05/W-06): ADR-0003, karar 4.
+- Redirect sayımı engine'ler arasında farklı. Gatling her hop'u ayrı istek sayar; JDK yalnızca son yanıtı sayar.
+- Null değerli bir değişken sonraki adımda kullanılırsa davranış farklı:
+  - Gatling isteği hiç göndermez ve istatistiğe yazmaz;
+  - JDK geçersiz URI nedeniyle koşuyu durdurur.
+- `cooldown` WARN'u varsayılan 5 sn nedeniyle neredeyse her JVM'de bir kez çıkar.
+- Gatling sürüm yükseltmesi (3.16) bu turdan bilinçli olarak ayrı tutuldu.
+- Content-Type tahmini (V18) ve HEAD/OPTIONS desteği P1'de.
 
 ## Kaynaklar
 

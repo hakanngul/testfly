@@ -3,31 +3,42 @@ package io.testfly.loadtest.internal;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.testfly.loadtest.LoadTestMetrics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Parses Gatling's output files into {@link LoadTestMetrics}.
  *
  * <p>
- * Gatling writes results to {@code <resultsDir>/<simulation>-<timestamp>/}:
- * <ul>
- * <li>{@code simulation.log} — raw event log (RUN, USER, REQUEST, etc.)</li>
- * <li>{@code js/stats.json} or {@code stats.json} — aggregated statistics (with
- * Highcharts)</li>
- * <li>{@code index.html} — Gatling HTML report</li>
- * </ul>
+ * Gatling writes results to {@code <resultsDir>/<simulation>-<timestamp>/}; this parser reads the
+ * aggregated statistics from {@code js/stats.js} (or {@code stats.json}). {@code simulation.log}
+ * is a binary, internal format since Gatling 3.13 and is never parsed.
  *
- * <p>
- * This parser reads the aggregated stats JSON when available, falling back
- * to parsing {@code simulation.log} for raw request timings.
+ * <p>HTTP status codes come from the status sidecar ({@value #STATUS_SIDECAR_FILE}) written by
+ * {@link TestFlyGatlingSimulation}: real per-response status counts. Requests that got no response
+ * (connection refused, timeout) are reported under {@link JdkLoadEngine#TRANSPORT_ERROR_STATUS}.
+ * Without a readable sidecar, status codes are reported as not measured (empty map).
+ *
+ * <p>Percentile slots are pinned by {@link GatlingEngine}: percentiles1..4 = p50/p75/p95/p99.
+ * Gatling does not compute p90, so it is {@link Double#NaN}; a missing or {@code "-"} value is
+ * also {@code NaN}, never 0.
  */
 public final class GatlingResultsParser {
+
+    /** File name of the status-code sidecar inside a run's results directory. */
+    public static final String STATUS_SIDECAR_FILE = "testfly-status.json";
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GatlingResultsParser.class);
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(com.fasterxml.jackson.core.JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
@@ -37,14 +48,24 @@ public final class GatlingResultsParser {
     }
 
     /**
-     * Finds the most recent Gatling results directory and parses it.
+     * Finds the most recent Gatling results directory under {@code resultsDir} and parses it,
+     * reading status codes from {@code <resultsDir>/testfly-status.json} if present.
      *
-     * @param resultsDir   base results directory (e.g. {@code target/loadtest})
+     * @param resultsDir   base results directory (e.g. {@code target/loadtest/<run>})
      * @param scenarioName the scenario name for the metrics record
      * @param users        configured user count
      * @return parsed metrics, or empty metrics if no results found
      */
     public static LoadTestMetrics parse(String resultsDir, String scenarioName, int users) {
+        return parse(resultsDir, scenarioName, users, Path.of(resultsDir, STATUS_SIDECAR_FILE));
+    }
+
+    /**
+     * Same as {@link #parse(String, String, int)} with an explicit status sidecar path.
+     *
+     * @param statusSidecar the sidecar file; {@code null} or unreadable means "status codes not measured"
+     */
+    public static LoadTestMetrics parse(String resultsDir, String scenarioName, int users, Path statusSidecar) {
         File baseDir = new File(resultsDir);
         if (!baseDir.exists() || !baseDir.isDirectory()) {
             System.err.println("[LoadTest] Gatling results directory not found: " + resultsDir);
@@ -66,19 +87,12 @@ public final class GatlingResultsParser {
             return LoadTestMetrics.empty(scenarioName);
         }
 
-        // Try stats.json / stats.js first (Highcharts bundle)
         File statsFile = findStatsJson(latestDir);
         if (statsFile != null && statsFile.exists()) {
-            return parseStatsJson(statsFile, scenarioName, users, latestDir.getName());
+            return parseStatsJson(statsFile, scenarioName, users, latestDir.getName(), statusSidecar);
         }
 
-        // Fallback: parse simulation.log
-        File simLog = new File(latestDir, "simulation.log");
-        if (simLog.exists()) {
-            return parseSimulationLog(simLog, scenarioName, users);
-        }
-
-        System.err.println("[LoadTest] No Gatling results found in: " + latestDir);
+        System.err.println("[LoadTest] No Gatling stats (js/stats.js) found in: " + latestDir);
         return LoadTestMetrics.empty(scenarioName);
     }
 
@@ -96,7 +110,6 @@ public final class GatlingResultsParser {
         File statsJs = new File(dir, "stats.js");
         if (statsJs.exists())
             return statsJs;
-        // Search recursively
         File[] files = dir.listFiles((d, name) -> name.equals("stats.json") || name.equals("stats.js"));
         return files != null && files.length > 0 ? files[0] : null;
     }
@@ -105,17 +118,16 @@ public final class GatlingResultsParser {
      * Parses Gatling's aggregated stats.json or stats.js.
      */
     private static LoadTestMetrics parseStatsJson(File statsFile, String scenarioName,
-            int users, String runDir) {
+            int users, String runDir, Path statusSidecar) {
         try {
             JsonNode root;
             if (statsFile.getName().endsWith(".js")) {
-                String text = java.nio.file.Files.readString(statsFile.toPath(), java.nio.charset.StandardCharsets.ISO_8859_1);
+                String text = Files.readString(statsFile.toPath(), java.nio.charset.StandardCharsets.ISO_8859_1);
                 int start = text.indexOf('{');
                 int end = text.indexOf("function fillStats");
                 int lastBrace = end > 0 ? text.lastIndexOf('}', end) : text.lastIndexOf('}');
                 if (start >= 0 && lastBrace > start) {
-                    String json = text.substring(start, lastBrace + 1);
-                    root = MAPPER.readTree(json);
+                    root = MAPPER.readTree(text.substring(start, lastBrace + 1));
                 } else {
                     root = MAPPER.readTree(statsFile);
                 }
@@ -129,21 +141,19 @@ public final class GatlingResultsParser {
             int koReqs = stats.path("numberOfRequests").path("ko").asInt(0);
             int okReqs = totalReqs - koReqs;
 
-            double minLat = Math.max(0, stats.path("minResponseTime").path("total").asDouble(0));
-            double maxLat = Math.max(0, stats.path("maxResponseTime").path("total").asDouble(0));
-            double meanLat = Math.max(0, stats.path("meanResponseTime").path("total").asDouble(0));
-            double p50 = stats.path("percentiles1").path("total").asDouble(0);
-            double p95 = stats.path("percentiles3").path("total").asDouble(0);
-            double p99 = stats.path("percentiles4").path("total").asDouble(0);
+            double minLat = measured(stats.path("minResponseTime"));
+            double maxLat = measured(stats.path("maxResponseTime"));
+            double meanLat = measured(stats.path("meanResponseTime"));
+            double p50 = measured(stats.path("percentiles1"));
+            double p75 = measured(stats.path("percentiles2"));
+            double p95 = measured(stats.path("percentiles3"));
+            double p99 = measured(stats.path("percentiles4"));
+            double p90 = Double.NaN; // Gatling does not compute p90 with the pinned slots
             double rps = stats.path("meanNumberOfRequestsPerSecond").path("total").asDouble(
                     stats.path("meanRequestsPerSecond").path("total").asDouble(0));
 
-            // p90 is not directly in Gatling stats — approximate between p50 and p95
-            double p90 = p50 + (p95 - p50) * 0.8;
-
             double errorRate = totalReqs > 0 ? (double) koReqs / totalReqs : 0;
 
-            // Duration from the run directory name or stats
             long durationMs = stats.path("duration").asLong(0);
             if (durationMs == 0 && rps > 0) {
                 durationMs = (long) (totalReqs / rps * 1000);
@@ -164,7 +174,7 @@ public final class GatlingResultsParser {
 
                     int stepTotal = stepStats.path("numberOfRequests").path("total").asInt(0);
                     int stepKo = stepStats.path("numberOfRequests").path("ko").asInt(0);
-                    double stepP95 = stepStats.path("percentiles3").path("total").asDouble(0);
+                    double stepP95 = measured(stepStats.path("percentiles3"));
 
                     stepMetrics.put(stepName, new LoadTestMetrics.StepMetrics(
                             stepName, stepTotal, stepTotal - stepKo, stepKo,
@@ -172,15 +182,7 @@ public final class GatlingResultsParser {
                 }
             }
 
-            File simLog = new File(statsFile.getParentFile(), "simulation.log");
-            if (!simLog.exists() && statsFile.getParentFile() != null && statsFile.getParentFile().getParentFile() != null) {
-                simLog = new File(statsFile.getParentFile().getParentFile(), "simulation.log");
-            }
-            Map<Integer, Long> statusCodes = parseStatusCodes(simLog);
-            if (statusCodes.isEmpty()) {
-                if (okReqs > 0) statusCodes.put(200, (long) okReqs);
-                if (koReqs > 0) statusCodes.put(500, (long) koReqs);
-            }
+            Map<Integer, Long> statusCodes = statusCodes(statusSidecar, totalReqs);
 
             System.out.println("[LoadTest] Gatling results parsed from: " + runDir);
 
@@ -188,7 +190,7 @@ public final class GatlingResultsParser {
                     scenarioName, totalReqs, okReqs, koReqs, rps,
                     meanLat, p50, p90, p95, p99, minLat, maxLat,
                     errorRate, statusCodes, durationMs, users,
-                    "gatling", stepMetrics);
+                    "gatling", stepMetrics, p75);
 
         } catch (IOException e) {
             System.err.println("[LoadTest] Failed to parse Gatling stats: " + e.getMessage());
@@ -197,108 +199,69 @@ public final class GatlingResultsParser {
     }
 
     /**
-     * Fallback parser for Gatling's simulation.log when stats.json is unavailable.
-     *
-     * <p>
-     * Log format (tab-separated):
-     * 
-     * <pre>
-     * REQUEST	ScenarioName	userId	startTimestamp	endTimestamp	OK|KO	message
-     * </pre>
+     * Reads the {@code total} of a stats node; a missing, non-numeric or {@code "-"} value is
+     * {@link Double#NaN} (not measured).
      */
-    private static LoadTestMetrics parseSimulationLog(File simLog, String scenarioName, int users) {
-        try {
-            var lines = java.nio.file.Files.readAllLines(simLog.toPath(), java.nio.charset.StandardCharsets.ISO_8859_1);
-            var latencies = new java.util.ArrayList<Double>();
-            var statusCounts = new LinkedHashMap<Integer, java.util.concurrent.atomic.AtomicLong>();
-            int total = 0, failed = 0;
-            long minTime = Long.MAX_VALUE, maxTime = 0;
-
-            for (String line : lines) {
-                if (!line.startsWith("REQUEST"))
-                    continue;
-                String[] parts = line.split("\t");
-                if (parts.length < 7)
-                    continue;
-
-                total++;
-                long start = Long.parseLong(parts[3].trim());
-                long end = Long.parseLong(parts[4].trim());
-                String status = parts[5].trim();
-
-                double latency = end - start;
-                latencies.add(latency);
-
-                if ("KO".equalsIgnoreCase(status))
-                    failed++;
-
-                minTime = Math.min(minTime, start);
-                maxTime = Math.max(maxTime, end);
-
-                // Extract HTTP status code from message if present
-                String msg = parts.length > 6 ? parts[6].trim() : "";
-                if (msg.matches("\\d{3}.*")) {
-                    int code = Integer.parseInt(msg.substring(0, 3));
-                    statusCounts.computeIfAbsent(code, k -> new java.util.concurrent.atomic.AtomicLong(0))
-                            .incrementAndGet();
-                }
-            }
-
-            double[] sorted = latencies.stream().mapToDouble(Double::doubleValue).sorted().toArray();
-            long durationMs = maxTime > minTime ? maxTime - minTime : 0;
-            double throughput = durationMs > 0 ? (total * 1000.0) / durationMs : 0;
-
-            Map<Integer, Long> statusMap = new LinkedHashMap<>();
-            statusCounts.forEach((k, v) -> statusMap.put(k, v.get()));
-
-            return new LoadTestMetrics(
-                    scenarioName, total, total - failed, failed, throughput,
-                    JdkLoadEngine.mean(sorted),
-                    JdkLoadEngine.percentile(sorted, 50),
-                    JdkLoadEngine.percentile(sorted, 90),
-                    JdkLoadEngine.percentile(sorted, 95),
-                    JdkLoadEngine.percentile(sorted, 99),
-                    sorted.length > 0 ? sorted[0] : 0,
-                    sorted.length > 0 ? sorted[sorted.length - 1] : 0,
-                    total > 0 ? (double) failed / total : 0,
-                    statusMap, durationMs, users, "gatling", Map.of());
-
-        } catch (Exception e) {
-            System.err.println("[LoadTest] Failed to parse simulation.log: " + e.getMessage());
-            return LoadTestMetrics.empty(scenarioName);
+    private static double measured(JsonNode node) {
+        JsonNode total = node.path("total");
+        if (total.isNumber()) {
+            return total.asDouble();
         }
+        if (total.isTextual()) {
+            try {
+                return Double.parseDouble(total.asText().trim());
+            } catch (NumberFormatException e) {
+                return Double.NaN;
+            }
+        }
+        return Double.NaN;
     }
 
-    private static final java.util.regex.Pattern STATUS_CODE_PATTERN =
-            java.util.regex.Pattern.compile("(?:found\\s+|status\\s+)?([1-5]\\d{2})");
-
-    private static Map<Integer, Long> parseStatusCodes(File simLog) {
-        Map<Integer, Long> codes = new LinkedHashMap<>();
-        if (simLog == null || !simLog.exists())
-            return codes;
+    /**
+     * Sums the sidecar counts over all request names; the difference to Gatling's request total is
+     * the number of requests without any HTTP response, reported as status {@code -1}.
+     */
+    static Map<Integer, Long> statusCodes(Path sidecar, int statsTotal) {
+        Map<Integer, Long> codes = new TreeMap<>();
+        if (sidecar == null || !Files.isReadable(sidecar)) {
+            warnNotMeasured(sidecar, "missing");
+            return new LinkedHashMap<>();
+        }
         try {
-            for (String line : java.nio.file.Files.readAllLines(simLog.toPath(), java.nio.charset.StandardCharsets.ISO_8859_1)) {
-                if (!line.startsWith("REQUEST"))
-                    continue;
-                String[] parts = line.split("\t");
-                if (parts.length >= 6) {
-                    String status = parts[5].trim();
-                    String msg = parts.length > 6 ? parts[6].trim() : "";
-                    if ("OK".equalsIgnoreCase(status)) {
-                        codes.merge(200, 1L, Long::sum);
-                    } else {
-                        java.util.regex.Matcher m = STATUS_CODE_PATTERN.matcher(msg);
-                        if (m.find()) {
-                            int code = Integer.parseInt(m.group(1));
-                            codes.merge(code, 1L, Long::sum);
-                        } else {
-                            codes.merge(500, 1L, Long::sum);
-                        }
+            JsonNode root = MAPPER.readTree(sidecar.toFile());
+            if (root == null || !root.isObject()) {
+                warnNotMeasured(sidecar, "not a JSON object");
+                return new LinkedHashMap<>();
+            }
+            long responded = 0;
+            for (var req = root.fields(); req.hasNext();) {
+                for (var code = req.next().getValue().fields(); code.hasNext();) {
+                    var e = code.next();
+                    long n = e.getValue().asLong(0);
+                    if (n > 0) {
+                        codes.merge(Integer.parseInt(e.getKey()), n, Long::sum);
+                        responded += n;
                     }
                 }
             }
-        } catch (IOException ignored) {
+            long noResponse = statsTotal - responded;
+            if (noResponse > 0) {
+                codes.merge(JdkLoadEngine.TRANSPORT_ERROR_STATUS, noResponse, Long::sum);
+            } else if (noResponse < 0) {
+                // e.g. redirect hops or requests outside the stats; keep the real counts, but say so
+                LOGGER.warn("[LoadTest] Gatling status sidecar {} counted {} responses but stats.js reports {} "
+                        + "requests; status counts may include responses not in the request total",
+                        sidecar, responded, statsTotal);
+            }
+            return new LinkedHashMap<>(codes);
+        } catch (IOException | RuntimeException e) {
+            warnNotMeasured(sidecar, e.toString());
+            return new LinkedHashMap<>();
         }
-        return codes;
+    }
+
+    private static void warnNotMeasured(Path sidecar, String reason) {
+        LOGGER.warn("[LoadTest] Gatling HTTP status codes not measured: status sidecar {} unreadable ({})",
+                sidecar, reason);
     }
 }

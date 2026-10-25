@@ -41,7 +41,6 @@ loadtest:
   users: 10
   rampUp: 2s
   hold: 5s
-  cooldown: 1s
 ```
 
 ## First test
