@@ -25,7 +25,7 @@ Mobile Inspector, TestFly ve mobilecli için yapılmış, Appium Inspector benze
 **VS Code** (1.85 veya üstü):
 
 ```bash
-code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.2.0.vsix
+code --install-extension tools/vscode-mobile-inspector/dist/testfly-mobile-inspector-0.2.1.vsix
 ```
 
 veya Extensions görünümü → `…` → **Install from VSIX…**.
