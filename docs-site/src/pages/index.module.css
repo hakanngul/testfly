@@ -1858,10 +1858,21 @@
 }
 
 .stabilityTable {
+  /* Infima sets `table { display: block; margin-bottom }`, which shrinks the
+     table to its content and leaves a gap under it inside the wrapper. */
+  display: table;
   width: 100%;
+  margin: 0;
   border-collapse: collapse;
   font-size: 14px;
   color: var(--tf-text);
+}
+
+.stabilityTable tr,
+.stabilityTable tr:nth-child(n),
+.stabilityTable thead tr {
+  background: transparent;
+  border: 0;
 }
 
 .stabilityTable th,
