@@ -23,6 +23,8 @@
   --err: var(--vscode-errorForeground, #f0616d);
   --info: var(--vscode-charts-blue, #4c9bf0);
   --purple: var(--vscode-charts-purple, #a07ce8);
+  --orange: var(--vscode-charts-orange, #d18616);
+  --teal: #1f9e94;
   --mono: var(--vscode-editor-font-family, "SF Mono", Menlo, Consolas, monospace);
   --font: var(--vscode-font-family, -apple-system, "Segoe UI", system-ui, sans-serif);
   --radius: 6px;
@@ -190,6 +192,8 @@ button.server.busy .dot { background: var(--info); animation: pulse 1s infinite;
 .kind.text { background: color-mix(in srgb, var(--fg) 45%, transparent); }
 .kind.image { background: var(--ok); }
 .kind.switch, .kind.checkbox { background: var(--warn); }
+.kind.layout { background: var(--orange); }
+.kind.list { background: var(--teal); }
 .row .type { font-weight: 500; }
 .row .txt { color: var(--muted); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .row .txt b { color: var(--fg); font-weight: 400; }

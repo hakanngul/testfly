@@ -337,9 +337,21 @@
     }
 
     // ── tree ────────────────────────────────────────────────────────────
+    // Containers have no selector role; they get a colour of their own so the tree's structure stands out.
+    const LIST_TYPES = ['recyclerview', 'listview', 'gridview', 'scrollview', 'horizontalscrollview', 'nestedscrollview',
+        'viewpager', 'viewpager2', 'table', 'collectionview'];
+    const LAYOUT_TYPES = ['viewgroup', 'group', 'window', 'toolbar', 'navigationbar', 'tabbar', 'cardview'];
+
+    function containerOf(el) {
+        const bare = S.bareType(el.type);
+        if (LIST_TYPES.includes(bare)) return 'list';
+        if (bare.endsWith('layout') || LAYOUT_TYPES.includes(bare)) return 'layout';
+        return 'other';
+    }
+
     function kindOf(el) {
         const role = S.roleOf(el);
-        return { role: role || 'other', label: role ? KIND_LABEL[role] : (S.bareType(el.type).charAt(0) || '?').toUpperCase() };
+        return { role: role || containerOf(el), label: role ? KIND_LABEL[role] : (S.bareType(el.type).charAt(0) || '?').toUpperCase() };
     }
 
     function matches(el, q) {
