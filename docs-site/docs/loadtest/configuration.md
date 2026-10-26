@@ -24,8 +24,8 @@ loadtest:
   rampUp: 10s             # window over which the users start evenly (e.g. 10s, 1m)
   hold: 30s               # how long each user loops, counted from its own start (e.g. 30s, 5m)
   cooldown: 5s            # accepted but not applied by any engine yet (logs a WARN)
-  maxUsers: 1000          # safety ceiling: users is clamped to this value
-  resultsDir: target/loadtest # target directory for metrics and reports
+  maxUsers: 1000          # safety ceiling: users is clamped; workloads above it are rejected
+  resultsDir: target/loadtest # one run directory per run (metrics, reports, result file)
   reportEnabled: true     # generate standalone HTML load test report
   requestTimeoutSeconds: 30 # per-request timeout in seconds (both engines)
 ```
@@ -43,13 +43,15 @@ loadtest:
 | `rampUp` | `string` | `10s` | Window over which the virtual users start, evenly spaced (e.g. `10s`, `1m`). |
 | `hold` | `string` | `30s` | How long each virtual user loops over the scenario, counted from its own start (e.g. `30s`, `5m`). A run takes about `rampUp + hold`. |
 | `cooldown` | `string` | `5s` | Accepted for compatibility but **not applied** by either engine. When it is greater than zero, one WARN is logged per JVM. |
-| `maxUsers` | `int` | `1000` | Safety ceiling: the resolved `users` value is clamped to it. |
-| `resultsDir` | `string` | `target/loadtest` | Output directory where load test metrics and reports are saved. |
+| `maxUsers` | `int` | `1000` | Safety ceiling. The resolved `users` value is clamped to it. A [workload](./fluent-api.md#workload-models) whose peak exceeds it is rejected before any request: the peak concurrency of a closed workload, or the peak arrival rate and user-count steps of an open one. A [simulation](./simulations-sla.md) checks the combined peaks. |
+| `resultsDir` | `string` | `target/loadtest` | Parent directory of the run directories. Every run, on both engines, creates `<resultsDir>/<scenario-or-simulation>-<millis>/` with its result file `testfly-loadtest-result.json`; see [Reporting](./reporting.md#run-directory). TestFly does not delete old run directories. |
 | `reportEnabled` | `boolean` | `true` | Generates standalone HTML load test report and correlates native Gatling interactive reports. |
 | `requestTimeoutSeconds` | `int` | `30` | Per-request timeout in seconds, applied by both engines (JDK: connect and request timeout; Gatling: `requestTimeout`). A timed-out request is a failed request with status `-1`. |
 
 :::note Workload model
-`users`, `rampUp` and `hold` describe an open workload: users arrive evenly over `rampUp` and each one loops for `hold` from its own start. With `users: 10`, `rampUp: 6s` and `hold: 2s`, early users finish before late ones start, so fewer than 10 run at the same time. `cooldown` has no effect today. The decision and the planned explicit workload API are recorded in `docs/adr/0003-load-test-workload-model.md` (ADR 0003) in the repository.
+`users`, `rampUp` and `hold` describe an open workload: users arrive evenly over `rampUp` and each one loops for `hold` from its own start. With `users: 10`, `rampUp: 6s` and `hold: 2s`, early users finish before late ones start, so fewer than 10 run at the same time. `cooldown` has no effect. The decision is recorded in `docs/adr/0003-load-test-workload-model.md` (ADR 0003) in the repository.
+
+For constant concurrency, arrival rates, spikes or a ramp-down, set an explicit workload in code with `LoadScenario.workload(...)` (Gatling engine only). It is configured in code only: a scenario with a workload ignores `users`, `rampUp`, `hold` and `cooldown` from this block and from `@LoadTest`. See [Workload models](./fluent-api.md#workload-models).
 :::
 
 ---

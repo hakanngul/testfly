@@ -65,4 +65,4 @@ Thresholds are examples; set them from your service SLOs and measured baseline. 
 
 ## Next steps
 
-[Configuration](./configuration.md) · [Fluent API](./fluent-api.md) · [Annotations](./annotations.md) · [Feeders](./feeders.md) · [Assertions](./assertions.md)
+[Configuration](./configuration.md) · [Fluent API](./fluent-api.md) · [Annotations](./annotations.md) · [Feeders](./feeders.md) · [Assertions](./assertions.md) · [Simulations and SLAs](./simulations-sla.md) · [Baselines](./baselines.md)

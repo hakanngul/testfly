@@ -7,7 +7,7 @@ sidebar_position: 6
 
 # Fluent Performance Assertions
 
-TestFly treats performance results as first-class assertions. When `run()` finishes, it returns a `LoadTestAssert` instance, allowing you to enforce Service Level Agreements (SLAs) directly in CI pipelines.
+TestFly treats performance results as first-class assertions. When `run()` finishes, it returns a `LoadTestAssert` instance, allowing you to enforce performance thresholds directly in CI pipelines. You can also declare the thresholds before the run as an SLA; see [SLAs or assertions?](#slas-or-assertions).
 
 ---
 
@@ -23,7 +23,7 @@ load("/api/v1/feed")
     .assertMeanLatencyBelow(100)  // Average latency < 100ms
     .assertP50Below(80)           // Median latency < 80ms
     .assertP75Below(120)          // 75th percentile < 120ms
-    .assertP90Below(150)          // 90th percentile < 150ms (JDK engine only)
+    .assertP90Below(150)          // 90th percentile < 150ms
     .assertP95Below(250)          // 95th percentile < 250ms
     .assertP99Below(500)          // 99th percentile < 500ms
     .assertMaxLatencyBelow(1200); // Worst single request < 1.2s
@@ -37,15 +37,12 @@ java.lang.AssertionError: [LoadTest] /api/v1/feed: p95 latency 348ms is not belo
 
 ### Which percentiles each engine measures
 
-| Percentile | JDK engine | Gatling engine |
-| :--- | :--- | :--- |
-| p50, p75, p95, p99 | Measured | Measured (read from Gatling's statistics) |
-| p90 | Measured | **Not measured** |
+Both engines measure p50, p75, p90, p95 and p99, overall and (p95, p99) per step. TestFly computes them exactly, with linear interpolation; on Gatling it uses its own millisecond histogram, so the values can differ from Gatling's HTML report (see [Reporting](./reporting.md#percentiles)). On Gatling the latency figures cover only requests that received an HTTP response; the JDK engine also includes the elapsed time of connection failures and timeouts.
 
-A value the engine did not measure is `Double.NaN` in `LoadTestMetrics` (check it with `LoadTestMetrics.isMeasured(value)`), `null` in the JSON results and `n/a` in the reports. It is never reported as `0`. A latency assertion on an unmeasured value fails instead of passing:
+A value the engine did not measure, for example a latency in a run where no request received a response, is `Double.NaN` in `LoadTestMetrics` (check it with `LoadTestMetrics.isMeasured(value)`), `null` in the JSON results and `n/a` in the reports. It is never reported as `0`. A latency assertion on an unmeasured value fails instead of passing:
 
 ```
-java.lang.AssertionError: [LoadTest] /api/v1/feed: p90 latency was not measured by engine 'gatling'
+java.lang.AssertionError: [LoadTest] /api/v1/feed: p95 latency was not measured by engine 'gatling'
 ```
 
 `assertStepP95Below(...)` behaves the same way when a step's p95 was not measured.
@@ -89,7 +86,7 @@ load("/api/payments")
 
 Both engines record the real HTTP status of every response, including responses whose checks failed. Requests that got no response at all are counted under the key `-1`. `LoadScenario.assertStatus(n)` passes only when every request returned `n`, so a `-1` entry fails it.
 
-If the engine could not record status codes for a run (for example, the Gatling status file `testfly-status.json` is missing), `statusCodes()` is empty and `LoadTestMetrics.statusCodesMeasured()` returns `false`. `assertStatus`, `assertStatusCodeCount` and `assertNoStatus` then fail with `HTTP status codes were not measured by engine '<engine>'` instead of passing on missing data.
+If the engine could not record status codes for a run, `statusCodes()` is empty and `LoadTestMetrics.statusCodesMeasured()` returns `false`. `assertStatus`, `assertStatusCodeCount` and `assertNoStatus` then fail with `HTTP status codes were not measured by engine '<engine>'` instead of passing on missing data.
 
 ---
 
@@ -142,3 +139,33 @@ if (LoadTestMetrics.isMeasured(metrics.p90LatencyMs())) {
     System.out.println("P90 Latency: " + metrics.p90LatencyMs() + " ms");
 }
 ```
+
+`metrics.partial()` is `true` when the run is incomplete (Gatling only: some requests have no recorded outcome, or `maxDuration` stopped the run). Latency, status-code, error-rate, success-rate and failed-request assertions and `assertThroughputBelow` then fail with `metrics are partial` instead of passing on incomplete data. Lower bounds that undercounting cannot fake (`assertThroughputAbove`, `assertTotalRequestsAbove`, `assertSuccessfulRequestsAbove`) still apply.
+
+---
+
+## 6. SLAs or Assertions? {#slas-or-assertions}
+
+The `assert*` methods above run **after** `run()` returns and stop at the first failure. An SLA is declared **before** the run with `sla(...)`; TestFly evaluates every rule, records the results with the run and then fails with one `AssertionError` that lists every failed rule.
+
+```java
+loadScenario("Checkout")
+    .users(20).rampUp(Duration.ofSeconds(10)).hold(Duration.ofSeconds(30))
+    .sla(sla().p95Below(300).errorRateBelow(0.01)
+              .step("Pay").p99Below(800))
+    .step("Cart").get("/cart").and()
+    .step("Pay").post("/pay").body(Map.of("amount", 10)).check(status().is(201)).and()
+    .run();
+```
+
+| | `assertP95Below(..)` and other `assert*` methods | `sla(..)` |
+| :--- | :--- | :--- |
+| When | After `run()` returns | Declared before the run, evaluated when it ends |
+| Failure | The first failed assertion throws | Every rule is evaluated; one `AssertionError` lists all failed rules |
+| Results kept | No | `slaResults()` on `LoadTestAssert` and `LoadTestMetrics`, and the `sla` entry of the JSON results |
+| Gatling HTML report | Not shown | Also registered as native Gatling assertions |
+| Global metrics | Latency (min to max), throughput above and below, error and success rate, request counts, status codes | p50, p75, p90, p95, p99, mean, max, error rate, throughput above |
+| Per step | `assertStepP95Below`, `assertStepErrorRateBelow` | p95, p99, error rate |
+| Simulations | On `result.global()` or `result.scenario(name)` | On the simulation or on each scenario |
+
+Both are strict (`p95Below(300)` passes only when p95 is below 300), and both fail rather than pass on an unmeasured value. On partial metrics every SLA rule fails; the `assert*` methods behave as described in section 5. You can combine them: the `LoadTestAssert` returned by a run whose SLA passed still accepts `assert*` calls. See [Simulations and SLAs](./simulations-sla.md#slas) for the rules, and [Baselines](./baselines.md) for comparing a run with an earlier one.

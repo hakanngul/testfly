@@ -318,6 +318,9 @@ public class GatlingReliabilityIntegrationTest extends BaseLoadTest {
         String msg = String.valueOf(thrown.getMessage());
         assertTrue(msg.toLowerCase(Locale.ROOT).contains("exit code"),
                 "exception message must include the Gatling child exit code, was: " + msg);
+        // the root cause must survive Gatling's long stack traces (3.16 pushed it out of the 20-line tail)
+        assertTrue(msg.contains("unclosed") || msg.contains("ElParserException"),
+                "exception message must include the root cause (the EL parse error), was: " + msg);
     }
 
     // ── Concurrent runs stay isolated ────────────────────────────────────

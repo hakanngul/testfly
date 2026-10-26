@@ -24,8 +24,8 @@ loadtest:
   rampUp: 10s             # kullanıcıların eşit aralıklarla başlatıldığı süre (örn: 10s, 1m)
   hold: 30s               # her kullanıcının kendi başlangıcından itibaren döngüde kaldığı süre (örn: 30s, 5m)
   cooldown: 5s            # kabul edilir ama hiçbir motor uygulamaz (WARN loglanır)
-  maxUsers: 1000          # güvenlik sınırı: users bu değere kırpılır
-  resultsDir: target/loadtest # çıktıların ve raporların kaydedileceği dizin
+  maxUsers: 1000          # güvenlik sınırı: users kırpılır; bu değeri aşan iş yükleri reddedilir
+  resultsDir: target/loadtest # her koşu için bir koşu dizini (metrikler, raporlar, sonuç dosyası)
   reportEnabled: true     # HTML yük testi raporu oluştur
   requestTimeoutSeconds: 30 # istek başına zaman aşımı, saniye (iki motorda da)
 ```
@@ -43,13 +43,15 @@ loadtest:
 | `rampUp` | `string` | `10s` | Sanal kullanıcıların eşit aralıklarla başlatıldığı süre (örn: `10s`, `1m`). |
 | `hold` | `string` | `30s` | Her sanal kullanıcının kendi başlangıcından itibaren senaryoyu döngüde çalıştırdığı süre (örn: `30s`, `5m`). Bir koşu yaklaşık `rampUp + hold` sürer. |
 | `cooldown` | `string` | `5s` | Uyumluluk için kabul edilir ama iki motor da **uygulamaz**. Sıfırdan büyükse JVM başına bir kez WARN loglanır. |
-| `maxUsers` | `int` | `1000` | Güvenlik sınırı: çözümlenen `users` değeri bu değere kırpılır. |
-| `resultsDir` | `string` | `target/loadtest` | Yük testi metrik ve rapor dosyalarının yazılacağı dizin. |
+| `maxUsers` | `int` | `1000` | Güvenlik sınırı. Çözümlenen `users` değeri bu değere kırpılır. Zirvesi bu değeri aşan bir [iş yükü](./fluent-api.md#workload-models) herhangi bir istekten önce reddedilir: kapalı iş yükünde zirve eşzamanlılık, açık iş yükünde zirve geliş hızı ve kullanıcı sayılı adımlar. Bir [simülasyon](./simulations-sla.md) zirvelerin toplamını denetler. |
+| `resultsDir` | `string` | `target/loadtest` | Koşu dizinlerinin üst dizini. İki motorda da her koşu, `testfly-loadtest-result.json` sonuç dosyasıyla birlikte `<resultsDir>/<senaryo-veya-simülasyon>-<millis>/` dizinini oluşturur; bkz. [Raporlama](./reporting.md#run-directory). TestFly eski koşu dizinlerini silmez. |
 | `reportEnabled` | `boolean` | `true` | Müstakil HTML yük testi raporunun ve Gatling bağlantılarının üretilmesini sağlar. |
 | `requestTimeoutSeconds` | `int` | `30` | İstek başına zaman aşımı (saniye); iki motor da uygular (JDK: bağlantı ve istek zaman aşımı; Gatling: `requestTimeout`). Zaman aşımına uğrayan istek `-1` durum koduyla hatalı sayılır. |
 
 :::note İş yükü modeli
-`users`, `rampUp` ve `hold` açık (open) bir iş yükünü tanımlar: kullanıcılar `rampUp` boyunca eşit aralıklarla gelir ve her biri kendi başlangıcından itibaren `hold` süresince döngüde kalır. `users: 10`, `rampUp: 6s` ve `hold: 2s` ile ilk kullanıcılar son kullanıcılar başlamadan biter, yani aynı anda 10'dan az kullanıcı çalışır. `cooldown` şu an etkisizdir. Karar ve planlanan açık iş yükü API'si depodaki `docs/adr/0003-load-test-workload-model.md` (ADR 0003) dosyasında kayıtlıdır.
+`users`, `rampUp` ve `hold` açık (open) bir iş yükünü tanımlar: kullanıcılar `rampUp` boyunca eşit aralıklarla gelir ve her biri kendi başlangıcından itibaren `hold` süresince döngüde kalır. `users: 10`, `rampUp: 6s` ve `hold: 2s` ile ilk kullanıcılar son kullanıcılar başlamadan biter, yani aynı anda 10'dan az kullanıcı çalışır. `cooldown` etkisizdir. Karar depodaki `docs/adr/0003-load-test-workload-model.md` (ADR 0003) dosyasında kayıtlıdır.
+
+Sabit eşzamanlılık, geliş hızı, ani yük sıçraması veya kademeli azalış için kodda `LoadScenario.workload(...)` ile açık bir iş yükü tanımlayın (yalnızca Gatling motoru). İş yükü yalnızca kodda tanımlanır: iş yükü olan bir senaryo bu bloktaki ve `@LoadTest` içindeki `users`, `rampUp`, `hold` ve `cooldown` değerlerini yok sayar. Bkz. [İş yükü modelleri](./fluent-api.md#workload-models).
 :::
 
 ---

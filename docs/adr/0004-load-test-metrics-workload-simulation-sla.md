@@ -1,6 +1,6 @@
 # ADR 0004: TestFly-owned load metrics, workload models, simulations and SLAs
 
-- Status: Proposed
+- Status: Accepted (2026-10-26). Decisions 1–7 are implemented.
 - Date: 2026-10-25
 - Deciders: TestFly maintainers
 - Related: ADR 0003 (workload model semantics), `docs/audits/gatling-2026-10/`
@@ -79,7 +79,7 @@ With `during(d, false)` (no exit in mid-iteration), the counts matched `stats.js
 - **p90 becomes measured on Gatling.** It is no longer `NaN`. Percentiles are now computed exactly by TestFly from a millisecond histogram (linear interpolation, the same method as the JDK engine). Gatling's own HTML report estimates percentiles with t-digest (`AVLTreeDigest(100)` in 3.13.5), and that estimate depends on the order samples arrive. On small samples, high percentiles can differ visibly: one run's p99 was 106 ms in TestFly, while t-digest gave anywhere from 103 to 205 ms depending on insertion order.
 - **Different request totals.** TestFly counts requests that fail to build as KO; Gatling's report omits them.
 - **Larger child JVM sidecar.** Histograms are bounded by the number of distinct milliseconds per request name, not by the number of requests.
-- **New public types** (`Workload`, `OpenStep`, `ClosedStep`, `LoadSimulation`, `LoadSimulationResult`, `LoadSla`, `StepSla`, `SlaRule`, `SlaResult`, `LoadBaseline`, `Tolerance`) are additive, with `@TestFlyApi(since = "1.1.0")`. `LoadTestMetrics` (`slaResults`) and `LoadTestMetrics.StepMetrics` (`p99LatencyMs`) gain trailing components; their earlier constructors are kept.
+- **New public types** (`Workload`, `OpenStep`, `ClosedStep`, `LoadSimulation`, `LoadSimulationResult`, `LoadSla`, `StepSla`, `SlaRule`, `SlaResult`, `LoadBaseline`, `Tolerance`) are additive, with `@TestFlyApi(since = "1.1.0")`. `LoadTestMetrics` (`partial`, `slaResults`) and `LoadTestMetrics.StepMetrics` (`p99LatencyMs`) gain trailing components; their earlier constructors are kept.
 
 ## Alternatives considered
 

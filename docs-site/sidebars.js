@@ -88,6 +88,8 @@ const sidebars = {
         'loadtest/annotations',
         'loadtest/feeders',
         'loadtest/assertions',
+        'loadtest/simulations-sla',
+        'loadtest/baselines',
         'loadtest/reporting',
         'loadtest/engines',
         'loadtest/examples',

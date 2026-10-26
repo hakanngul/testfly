@@ -394,21 +394,69 @@ public final class GatlingEngine implements LoadTestEngine {
         };
     }
 
-    private static String logTail(File logFile) {
+    /**
+     * The redacted end of the child JVM's log for a crash message: first the root error lines when they fall outside
+     * the last {@value #LOG_TAIL_LINES} lines (a long stack trace can push the cause out of the tail), then the last
+     * {@value #LOG_TAIL_LINES} lines. Every line is redacted and capped by {@link LogRedactor} the same way.
+     */
+    static String logTail(File logFile) {
         if (!logFile.exists()) {
             return "\n  [gatling] <no subprocess log>";
         }
         try {
-            List<String> lines = Files.readAllLines(logFile.toPath(), StandardCharsets.UTF_8);
-            return LogRedactor.redactedTail(lines, LOG_TAIL_LINES, LOG_TAIL_MAX_CHARS);
+            return rootAndTail(Files.readAllLines(logFile.toPath(), StandardCharsets.UTF_8));
         } catch (IOException | RuntimeException e) {
             try {
-                List<String> lines = Files.readAllLines(logFile.toPath(), StandardCharsets.ISO_8859_1);
-                return LogRedactor.redactedTail(lines, LOG_TAIL_LINES, LOG_TAIL_MAX_CHARS);
+                return rootAndTail(Files.readAllLines(logFile.toPath(), StandardCharsets.ISO_8859_1));
             } catch (IOException | RuntimeException e2) {
                 return "\n  [gatling] <subprocess log unreadable: " + e2.getClass().getSimpleName() + ">";
             }
         }
+    }
+
+    private static final java.util.regex.Pattern EXCEPTION_HEADLINE =
+            java.util.regex.Pattern.compile("^(Caused by: )?[\\w.$]+(Exception|Error)(: .*)?$");
+
+    private static String rootAndTail(List<String> lines) {
+        int tailStart = Math.max(0, lines.size() - LOG_TAIL_LINES);
+        List<String> root = new ArrayList<>();
+        for (int index : rootErrorLines(lines)) {
+            if (index < tailStart) { // already shown by the tail otherwise
+                root.add(lines.get(index));
+            }
+        }
+        return LogRedactor.redactedTail(root, root.size(), LOG_TAIL_MAX_CHARS)
+                + LogRedactor.redactedTail(lines, LOG_TAIL_LINES, LOG_TAIL_MAX_CHARS);
+    }
+
+    /**
+     * Indexes of the root error lines: the last {@code Exception in thread "..."} line, else the last exception
+     * headline ({@code [Caused by: ]<class>(Exception|Error)[: message]}), plus the last {@code Caused by:} line
+     * after it, if any. Empty when the log has no such line.
+     */
+    static List<Integer> rootErrorLines(List<String> lines) {
+        int headline = -1;
+        for (int i = lines.size() - 1; i >= 0 && headline < 0; i--) {
+            if (lines.get(i).trim().startsWith("Exception in thread \"")) {
+                headline = i;
+            }
+        }
+        for (int i = lines.size() - 1; i >= 0 && headline < 0; i--) {
+            if (EXCEPTION_HEADLINE.matcher(lines.get(i).trim()).matches()) {
+                headline = i;
+            }
+        }
+        if (headline < 0) {
+            return List.of();
+        }
+        List<Integer> out = new ArrayList<>(List.of(headline));
+        for (int i = lines.size() - 1; i > headline; i--) {
+            if (lines.get(i).trim().startsWith("Caused by: ")) {
+                out.add(i);
+                break;
+            }
+        }
+        return out;
     }
 
     /**

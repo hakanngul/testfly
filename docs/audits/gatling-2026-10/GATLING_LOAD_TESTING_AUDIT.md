@@ -583,6 +583,93 @@ Koşulmayanlar:
 - Gatling sürüm yükseltmesi (3.16) bu turdan bilinçli olarak ayrı tutuldu.
 - Content-Type tahmini (V18) ve HEAD/OPTIONS desteği P1'de.
 
+## 9. P1 Çekirdek Sonuçları (2026-10-26)
+
+P1 turu ADR 0004'e göre yapıldı. Her faz aynı yöntemle ilerledi:
+1. Önce kırmızı testler yazıldı ve API eksik olduğu için başarısız oldukları gösterildi.
+2. Sonra uygulama yapıldı.
+3. Bağımsız bir code review yapıldı ve bulguları düzeltildi.
+4. Kapılar ana oturumda yeniden koşuldu.
+
+Commit'ler `development` dalında:
+- `2a69ccb`: TestFly'ın kendi Gatling metrikleri, workload modeli ve simülasyonlar.
+- `c9f250d`: SLA.
+- `4a6c0dc`: baseline.
+- `53fdf34`: Gatling 3.16.0.
+- Bu belge ve dokümantasyon.
+
+### 9.1 Kapatılan açıklar
+
+| Açık | Durum | Yeni davranış | Regresyon testi |
+|---|---|---|---|
+| `stats.js` bağımlılığı (3.14+ yazmıyor) | **FIXED** | Simülasyon kendi sidecar'ını (`testfly-metrics.json`, schemaVersion 2) yazar: istek başına deneme/OK/KO işaretleri, milisaniye histogramı, status kodları, koşu penceresi. Kurulamayan istekler KO/-1 sayılır. Kayıp sonuç veya maxDuration durumunda `partial`. | `GatlingOwnedMetrics*Test` |
+| p90 Gatling'de ölçülmüyordu (BUG-06'nın kalanı) | **FIXED** | p50/p75/p90/p95/p99 histogramdan tam olarak (lineer interpolasyon) hesaplanır. V10'da p90 = 247.0 ms, formül değeri 248.0 ms. | `GatlingOwnedMetricsIntegrationTest.p90_*`, V10 |
+| Workload modeli (W-02/W-03/W-05/W-06, BUG-07'nin niyeti) | **FIXED (yeni API, yalnızca Gatling)** | `LoadScenario.workload(Workload.open/closed(...))`: `atOnce`, `ramp`, `constantRate`, `rampRate`, `stressPeak`, `nothingFor`, `constantConcurrent`, `rampConcurrent`. Ramp-down `rampConcurrent(n, 0, d)` ile yazılır. JDK engine'i fail-fast olur. | `WorkloadModelIntegrationTest` (10; sunucu gözlemli eşzamanlılık ve varış sayıları) |
+| Tek senaryo | **FIXED (yalnızca Gatling)** | `LoadSimulation` birden çok senaryoyu tek simülasyonda koşar; senaryo başına ve global metrik üretir; `maxUsers` toplam olarak sınırlanır. HTML rapor global girdiyi iki kez saymaz. | `LoadSimulationIntegrationTest` (8), `LoadSimulationValidationTest` |
+| Native assertion / SLA yoktu | **FIXED** | `LoadSla` kurallarını TestFly iki engine'de değerlendirir: katı karşılaştırma; nedenler "metrics are partial" > "step not found" > "not measured". Gatling'de aynı kurallar native assertion olarak raporda da görünür. Exit 2 çökme sayılmaz. | `LoadSlaIntegrationTest` (8), `LoadSlaTest`, `SlaScopeResolutionTest` |
+| Baseline/karşılaştırma yoktu | **FIXED** | `LoadBaseline` (versiyonlu JSON) ve `assertNoRegression(baseline, Tolerance)`: limitler tam (BigDecimal) hesaplanır. Ölçülmeyen metrik "not compared" olur, hiçbir zaman PASS sayılmaz; hiçbir metrik karşılaştırılamazsa sonuç FAIL olur. Her tam koşu `testfly-loadtest-result.json` yazar. | `LoadBaselineIntegrationTest` (4), `LoadBaselineTest`, `LoadBaselineReviewTest` |
+| BUG-16 sessiz `maxUsers` clamp | **PARTIAL** | Simülasyonda açık `users(n) > maxUsers` reddedilir. Tek senaryo `run()` hâlâ clamp eder (uyumluluk). | `LoadSimulationValidationTest` |
+| Gatling 3.13.5 | **FIXED** | 3.16.0'a yükseltildi; bağımlılık hâlâ opsiyonel. CLI bayrakları, exit kodları, config anahtarları, rapor düzeni ve assertion metinleri değişmedi; production kodunda değişiklik gerekmedi. | Tüm load-test suite'leri |
+
+### 9.2 P1 sırasında bulunan ek sorunlar
+
+| ID | Bulgu | Durum |
+|---|---|---|
+| R-16 | 3.16'nın daha uzun stack trace'i kök hatayı (ör. `ElParserException … unclosed`) çökme mesajındaki son 20 satırın dışına itiyordu (V14) | **FIXED**: kök hata satırları maskelenmiş olarak tail'in önüne eklenir (`GatlingEngineLogTailTest`) |
+| R-17 | Paralel surefire fork'ları ortak `target/testfly-metrics.json` dosyasını birbirinin elinden siliyordu; `MobileEngineBridgeTest` JVM genelindeki `testfly.reports.dir`'i kilitsiz değiştiriyordu | **FIXED** (yalnızca testler): load-test rapor testleri kendi dizinlerini kullanır. `ExecutionMetricsTest` gibi eski sınıflar hâlâ ortak dosyayı kullanıyor (**OPEN**) |
+| R-18 | Hiç istek gönderilmeyen bir koşuda (ör. bulunamayan CSV feeder, değişkeni çözülemeyen tek adım) Gatling 3.16 rapor üretmeden exit 1 ile çıkar. Eksik CSV dosyası yalnızca `System.err`'e yazılır, fail-fast olmaz. | **OPEN**. Çökme mesajı artık nedeni gösteriyor. 3.13.5 davranışı doğrulanmadı. |
+
+### 9.3 Gerçek çalıştırma sonuçları (V01–V20, Gatling 3.16.0, `harness/harness-run-p1.log`)
+
+| V01–V20 senaryoları | Audit (önce) | P0 sonrası | P1 sonrası (3.16.0) |
+|---|---|---|---|
+| PASS | 8 | 17 | 17 |
+| FAIL | 12 | 3 (V11, V12, V18) | 3 (V11, V12, V18) |
+
+- V05 ilk koşuda harness classpath'inde CSV fixture'ı olmadığı için hata verdi. `target/test-classes` eklenerek yeniden koşuldu ve PASS oldu (aynı log dosyasında).
+- V10 artık "n/a" olduğu için değil, p90 gerçekten ölçüldüğü için PASS.
+- V11 ve V12 eski `users/rampUp/hold/cooldown` API'sini ölçer ve ADR-0003 gereği bilinçli olarak FAIL kalır. Aynı niyet yeni `workload(...)` API'siyle `WorkloadModelIntegrationTest` içinde sunucu gözlemiyle doğrulanır: `constantConcurrent` tepe eşzamanlılığı, `rampConcurrent(n, 0, d)` ramp-down'u, `constantRate` varış sayısı.
+- V18 (Content-Type tahmini) açık kalıyor.
+
+### 9.4 Doğrulama kapıları (ana oturumda koşuldu, 2026-10-26)
+
+| Kapı | Sonuç |
+|---|---|
+| `scripts/agent/verify.sh api HEAD` (public API + tam unit suite) | API **PASS**; 2229 test, 0 hata |
+| 9 load-test entegrasyon sınıfı (Baseline 4, Sla 8, Simulation 8, OwnedMetrics 6, WorkloadModel 10, GatlingReliability 12, EngineParity 19, JdkLoadEngineReliability 10, GatlingEngine 3) | 80/80, 0 hata |
+| `scripts/agent/verify.sh docs` | PASS |
+| Koşulardan sonra artık Gatling child JVM | Yok |
+
+Koşulmayanlar:
+- `verify.sh consumer` (consumer checkout yok)
+- `verify.sh release`
+
+### 9.5 Güncel olgunluk puanları (yalnızca ölçülen kanıta göre)
+
+| Kategori | Audit | Şimdi | Kanıt |
+|---|---|---|---|
+| Gatling Java DSL Compatibility | 5 | **6** | Open/closed injection, çoklu population, native assertion. Döngü, koşul ve grup hâlâ yok |
+| Execution Reliability | 3 | **7** | Timeout, iptal, exit 0/1/2, orphan yok (V15), partial tespiti, atomik koşu dizinleri, kök hata mesajı (V14) |
+| Workload Modeling Accuracy | 2 | **7** | Yeni API sunucu gözlemiyle doğrulandı. Eski API (V11/V12) ve JDK engine'i modelsiz kalıyor |
+| Scenario Management | 3 | **5** | Çok senaryolu simülasyon. Döngü ve koşul yok |
+| HTTP & API Testing | 4 | **5** | Form ve timeout düzeldi (P0). V18 açık; auth, multipart ve TLS yok |
+| Checks & Assertions | 3 | **7** | Tüm check tipleri iki engine'de (parity 19/19), SLA, native assertion |
+| Feeders & Correlation | 5 | **5** | Değişmedi. Eksik CSV fail-fast değil (R-18) |
+| Metrics Accuracy | 3 | **8** | Sayımlar sunucu sayaçlarına eşit, p90 ölçülüyor, yüzdelikler tam, partial bayrağı var |
+| Reporting & Analytics | 4 | **6** | Baseline/regresyon karşılaştırması, koşu başına sonuç dosyası, SLA JSON'da. HTML rapor SLA ve partial'ı henüz göstermiyor |
+| UI/UX | 1 | **1** | No-code UI yok. `users`/`cooldown` terminolojisi hâlâ yanıltıcı (`docs-site/docs/configuration.md`) |
+| Security | 6 | **7** | Temp config `rw-------`; log maskeleme kök hata satırlarını da kapsıyor |
+| Scalability | 3 | **3** | Tek host; Gatling koşuları serileştirilmiş (V16) |
+| Production Readiness | 3 | **6** | CI'da güvenilir PASS/FAIL ve baseline akışı var. Eksikler: V18, R-17, R-18 |
+
+Kalan P2 adayları:
+- flow control (`repeat`/`doIf`/`group`);
+- Content-Type tahmini (V18);
+- eksik feeder dosyası için fail-fast (R-18);
+- HTML raporda SLA, partial ve baseline gösterimi;
+- `docs-site/docs/configuration.md` içindeki eski `users`/`cooldown` açıklamaları;
+- dağıtık yük.
+
 ## Kaynaklar
 
 - Gatling — What's new (latest 3.16): https://docs.gatling.io/release-notes/gatling/ , https://docs.gatling.io/release-notes/gatling/whats-new/3.16/

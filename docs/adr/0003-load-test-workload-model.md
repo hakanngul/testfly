@@ -1,6 +1,6 @@
 # ADR 0003: Load-test workload model semantics
 
-- Status: Proposed
+- Status: Accepted (2026-10-26). Decision 4 is implemented by ADR 0004 (workload API).
 - Date: 2026-10-25
 - Deciders: TestFly maintainers
 
@@ -43,7 +43,7 @@ Gatling separates two models that must not be mixed in one injection profile ([I
 ## Consequences
 
 - Consumers keep identical load shapes after upgrading. The only new behaviour is the cooldown warning.
-- Users who need constant concurrency or arrival-rate control must wait for decision 4. Until then they can use a dedicated Gatling simulation.
+- Constant concurrency and arrival-rate control are available through `LoadScenario.workload(...)` (decision 4, ADR 0004; Gatling engine only).
 - The audit items W-02, W-03, W-05 and W-06 stay open and are tracked as P1 work, not as P0 reliability fixes.
 
 ## Alternatives considered
