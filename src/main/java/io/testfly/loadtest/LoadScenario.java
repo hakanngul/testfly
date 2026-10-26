@@ -57,6 +57,7 @@ public final class LoadScenario {
     private long thinkTimeMaxMs = -1;
     private Duration thinkTimeFixed;
     private Workload workload;
+    private LoadSla sla;
 
     LoadScenario(String name) {
         this.name = name;
@@ -321,6 +322,23 @@ public final class LoadScenario {
 
     public Duration thinkTimeFixed() {
         return thinkTimeFixed;
+    }
+
+    /**
+     * Attaches an SLA: after the run TestFly evaluates it from the metrics, records the run, and {@link #run()}
+     * throws {@link AssertionError} if a rule failed. In a {@link LoadSimulation} it applies to this scenario's
+     * metrics (step names unprefixed).
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LoadScenario sla(LoadSla sla) {
+        this.sla = sla;
+        return this;
+    }
+
+    /** The attached SLA, or {@code null}. */
+    @TestFlyApi(since = "1.1.0")
+    public LoadSla sla() {
+        return sla;
     }
 
     /** The workload model, or {@code null} for the legacy {@code users/rampUp/hold} shape. */

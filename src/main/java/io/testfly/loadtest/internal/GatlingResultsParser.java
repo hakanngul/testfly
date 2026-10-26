@@ -284,7 +284,8 @@ public final class GatlingResultsParser {
                 String key = !stripPrefix.isEmpty() && name.startsWith(stripPrefix)
                         ? name.substring(stripPrefix.length()) : name;
                 steps.put(key, new LoadTestMetrics.StepMetrics(key, toInt(stepTotal), toInt(stepOk), toInt(stepKo),
-                        percentile(histogram, 95), stepTotal > 0 ? (double) stepKo / stepTotal : 0));
+                        percentile(histogram, 95), stepTotal > 0 ? (double) stepKo / stepTotal : 0,
+                        percentile(histogram, 99)));
             }
 
             if (noResponse > 0) {

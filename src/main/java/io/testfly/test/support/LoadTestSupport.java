@@ -4,6 +4,7 @@ import io.testfly.api.TestFlyApi;
 import io.testfly.loadtest.CheckCondition;
 import io.testfly.loadtest.LoadScenario;
 import io.testfly.loadtest.LoadSimulation;
+import io.testfly.loadtest.LoadSla;
 import io.testfly.loadtest.LoadStep;
 import io.testfly.loadtest.LoadTestMetrics;
 import io.testfly.loadtest.LoadTestRunner;
@@ -58,6 +59,12 @@ public interface LoadTestSupport {
     @TestFlyApi(since = "1.1.0")
     default LoadSimulation loadSimulation(String name) {
         return LoadSimulation.named(name);
+    }
+
+    /** A new, empty {@link LoadSla} to attach with {@code sla(..)} on a scenario or simulation. */
+    @TestFlyApi(since = "1.1.0")
+    default LoadSla sla() {
+        return LoadSla.sla();
     }
 
     /**

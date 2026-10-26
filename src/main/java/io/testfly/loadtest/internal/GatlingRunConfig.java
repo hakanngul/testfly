@@ -8,6 +8,7 @@ import io.testfly.loadtest.LoadStep;
 import io.testfly.loadtest.LoadTestConfig;
 import io.testfly.loadtest.ClosedStep;
 import io.testfly.loadtest.OpenStep;
+import io.testfly.loadtest.SlaRule;
 import io.testfly.loadtest.Workload;
 
 import java.io.File;
@@ -42,6 +43,8 @@ final class GatlingRunConfig {
     public String metricsSidecarPath;
     /** The scenarios in order; one element for {@code LoadScenario.run()}. */
     public List<ScenarioConfig> scenarios = new ArrayList<>();
+    /** SLA rules registered as native Gatling assertions (Gatling's report only; TestFly decides). */
+    public List<GatlingAssertion> assertions = new ArrayList<>();
 
     /**
      * Extra time Gatling may run past one full iteration after the injection (rampUp + hold, or the workload's
@@ -73,6 +76,50 @@ final class GatlingRunConfig {
             sc.requestPrefix = prefixed ? sc.scenarioName + LoadScenarioValidator.REQUEST_NAME_SEPARATOR : "";
         }
         return cfg;
+    }
+
+    /**
+     * The SLA rules that have a native Gatling counterpart, in order: the simulation rules (global rules on
+     * {@code global()}, step rules resolved with {@link SlaEvaluator#simulationStepKey} on
+     * {@code details(requestName)}), then each scenario's rules (its step rules matched exactly; its global rules
+     * only when the run has a single scenario, because Gatling has no per-population global). Rules on unknown or
+     * ambiguous steps are skipped. TestFly evaluates every rule either way.
+     */
+    static List<GatlingAssertion> nativeAssertions(GatlingRunConfig cfg, List<GatlingEngine.ScenarioRun> runs,
+            List<SlaRule> simulationRules) {
+        List<GatlingAssertion> out = new ArrayList<>();
+        List<String> allRequests = new ArrayList<>();
+        List<String> scenarioNames = new ArrayList<>();
+        for (ScenarioConfig sc : cfg.scenarios) {
+            scenarioNames.add(sc.scenarioName);
+            for (GatlingStep step : sc.steps) {
+                allRequests.add(sc.requestName(step.name));
+            }
+        }
+        for (SlaRule rule : simulationRules == null ? List.<SlaRule>of() : simulationRules) {
+            if (rule.isGlobal()) {
+                out.add(GatlingAssertion.of(null, rule, null));
+            } else {
+                String request = SlaEvaluator.simulationStepKey(allRequests, rule.scope(), scenarioNames);
+                if (request != null) {
+                    out.add(GatlingAssertion.of(request, rule, null));
+                }
+            }
+        }
+        boolean single = cfg.scenarios.size() == 1;
+        for (int i = 0; i < runs.size() && i < cfg.scenarios.size(); i++) {
+            ScenarioConfig sc = cfg.scenarios.get(i);
+            for (SlaRule rule : runs.get(i).slaRules()) {
+                if (rule.isGlobal()) {
+                    if (single) {
+                        out.add(GatlingAssertion.of(null, rule, sc.scenarioName));
+                    }
+                } else if (sc.steps.stream().anyMatch(s -> rule.scope().equals(s.name))) {
+                    out.add(GatlingAssertion.of(sc.requestName(rule.scope()), rule, sc.scenarioName));
+                }
+            }
+        }
+        return out;
     }
 
     /** Gatling {@code maxDuration} in seconds: the largest {@link ScenarioConfig#maxDurationSeconds()}. */
@@ -259,6 +306,48 @@ final class GatlingRunConfig {
 
     static GatlingRunConfig load(File file) throws IOException {
         return MAPPER.readValue(file, GatlingRunConfig.class);
+    }
+
+    /**
+     * Serialisable SLA rule for a native Gatling assertion: {@code requestName == null} means {@code global()},
+     * otherwise {@code details(requestName)}.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class GatlingAssertion {
+        public String requestName;
+        /** The rule's scope as declared ({@value SlaRule#GLOBAL} or a step name). */
+        public String scope;
+        /** The scenario whose own SLA declared the rule; {@code null} for a simulation-level rule. */
+        public String source;
+        /** {@link SlaRule.Metric} name. */
+        public String metric;
+        /** {@link SlaRule.Comparison} name. */
+        public String comparison;
+        public double threshold;
+
+        public GatlingAssertion() {
+        }
+
+        static GatlingAssertion of(String requestName, SlaRule rule, String source) {
+            GatlingAssertion a = new GatlingAssertion();
+            a.requestName = requestName;
+            a.scope = rule.scope();
+            a.source = source;
+            a.metric = rule.metric().name();
+            a.comparison = rule.comparison().name();
+            a.threshold = rule.threshold();
+            return a;
+        }
+
+        boolean below() {
+            return "BELOW".equals(comparison);
+        }
+
+        /** The TestFly rule this assertion was built from. */
+        SlaRule toRule() {
+            return new SlaRule(scope, SlaRule.Metric.valueOf(metric), SlaRule.Comparison.valueOf(comparison),
+                    threshold);
+        }
     }
 
     /** Serialisable form of a {@link Workload}: {@code {model, steps:[{type, users, ..., seconds}]}}. */

@@ -694,6 +694,20 @@ public final class ExecutionMetrics {
         map.put("partial", m.partial());
         // true: a simulation's global entry, which sums the scenario entries next to it
         map.put("aggregate", isAggregateLoadTest(m));
+        // SLA results in declaration order; always present (empty without an SLA)
+        List<Map<String, Object>> sla = new ArrayList<>();
+        for (io.testfly.loadtest.SlaResult r : m.slaResults()) {
+            Map<String, Object> e = new LinkedHashMap<>();
+            e.put("scope", r.rule().scope());
+            e.put("metric", r.rule().metric().name());
+            e.put("comparison", r.rule().comparison().name());
+            e.put("threshold", r.rule().threshold());
+            e.put("actual", measuredOrNull(r.actual()));
+            e.put("passed", r.passed());
+            e.put("reason", r.reason());
+            sla.add(e);
+        }
+        map.put("sla", sla);
 
         Map<String, Object> stepsMap = new LinkedHashMap<>();
         if (m.steps() != null) {
@@ -705,6 +719,7 @@ public final class ExecutionMetrics {
                 stepData.put("successfulRequests", step.successfulRequests());
                 stepData.put("failedRequests", step.failedRequests());
                 stepData.put("p95LatencyMs", measuredOrNull(step.p95LatencyMs()));
+                stepData.put("p99LatencyMs", measuredOrNull(step.p99LatencyMs()));
                 stepData.put("errorRate", step.errorRate());
                 stepsMap.put(entry.getKey(), stepData);
             }

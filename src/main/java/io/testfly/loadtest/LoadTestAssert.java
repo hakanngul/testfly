@@ -254,6 +254,46 @@ public final class LoadTestAssert {
         return this;
     }
 
+    // ── SLA ──────────────────────────────────────────────────────────────
+
+    /** The SLA results of the run (one per rule, in declaration order); empty when no SLA was declared. */
+    @TestFlyApi(since = "1.1.0")
+    public java.util.List<SlaResult> slaResults() {
+        return metrics.slaResults();
+    }
+
+    /**
+     * Asserts that every SLA rule passed; passes when no SLA was declared.
+     *
+     * @throws AssertionError listing every failed rule with its scope, metric, threshold, actual value and reason
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LoadTestAssert assertSlaPassed() {
+        String failures = slaFailures(metrics);
+        if (failures != null) {
+            throw new AssertionError("[LoadTest] " + metrics.scenarioName() + ": SLA failed: " + failures);
+        }
+        return this;
+    }
+
+    /** The failed rules of {@code m} as one line, or {@code null} if none failed. */
+    static String slaFailures(LoadTestMetrics m) {
+        StringBuilder sb = new StringBuilder();
+        for (SlaResult r : m.slaResults()) {
+            if (r.passed()) {
+                continue;
+            }
+            SlaRule rule = r.rule();
+            if (!sb.isEmpty()) {
+                sb.append("; ");
+            }
+            sb.append(rule.scope()).append(' ').append(rule.metric()).append(' ').append(rule.comparison())
+                    .append(' ').append(rule.threshold()).append(" (actual ").append(r.actual()).append("): ")
+                    .append(r.reason());
+        }
+        return sb.isEmpty() ? null : sb.toString();
+    }
+
     // ── Raw access ───────────────────────────────────────────────────────
 
     /** Returns the underlying metrics for custom assertions or logging. */

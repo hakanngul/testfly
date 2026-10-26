@@ -6,6 +6,7 @@ import io.testfly.loadtest.internal.GatlingEngine;
 import io.testfly.loadtest.internal.GatlingResultsParser;
 import io.testfly.loadtest.internal.JdkLoadEngine;
 import io.testfly.loadtest.internal.LoadScenarioValidator;
+import io.testfly.loadtest.internal.SlaEvaluator;
 import io.testfly.loadtest.internal.LoadTestEngine;
 import io.testfly.steps.StepLogger;
 import org.slf4j.Logger;
@@ -65,6 +66,8 @@ public final class LoadTestRunner {
     public static LoadTestAssert run(LoadScenario scenario) {
         EXECUTING.set(true);
         try {
+            // snapshot the SLA once: registration, verdict and evaluation all use the same rules
+            List<SlaRule> slaRules = scenario.sla() == null ? null : scenario.sla().rules();
             Class<?> testClass = io.testfly.internal.TestFlyContext.getCurrentTestClass();
             java.lang.reflect.Method testMethod = io.testfly.internal.TestFlyContext.getCurrentTestMethod();
             LoadTestConfig config = LoadTestConfig.resolveFor(scenario, testClass, testMethod);
@@ -97,12 +100,17 @@ public final class LoadTestRunner {
                             ? " (workload " + workload + ", engine=" + resolved + ")"
                             : " (" + config.getUsers() + " users, engine=" + resolved + ")"));
 
-            LoadTestMetrics metrics = engine.execute(scenario, config);
+            LoadTestMetrics raw = engine instanceof GatlingEngine gatling
+                    ? gatling.execute(scenario, config, slaRules == null ? List.of() : slaRules)
+                    : engine.execute(scenario, config);
+            LoadTestMetrics metrics = withSla(raw, slaRules);
 
+            // record first, so the report holds the run even when its SLA fails
             LAST_METRICS.set(metrics);
             io.testfly.metrics.ExecutionMetrics.recordLoadTest(metrics);
 
-            return new LoadTestAssert(metrics);
+            LoadTestAssert result = new LoadTestAssert(metrics);
+            return slaRules != null ? result.assertSlaPassed() : result;
         } finally {
             EXECUTING.remove();
         }
@@ -120,6 +128,12 @@ public final class LoadTestRunner {
     static LoadSimulationResult runSimulation(LoadSimulation simulation) {
         EXECUTING.set(true);
         try {
+            // snapshot every SLA once: registration, verdict and evaluation all use the same rules
+            List<SlaRule> simulationRules = simulation.sla() == null ? null : simulation.sla().rules();
+            Map<LoadScenario, List<SlaRule>> scenarioRules = new IdentityHashMap<>();
+            for (LoadScenario scenario : simulation.scenarios()) {
+                scenarioRules.put(scenario, scenario.sla() == null ? null : scenario.sla().rules());
+            }
             Class<?> testClass = io.testfly.internal.TestFlyContext.getCurrentTestClass();
             java.lang.reflect.Method testMethod = io.testfly.internal.TestFlyContext.getCurrentTestMethod();
             LoadTestConfig base = LoadTestConfig.resolve(testClass, testMethod);
@@ -141,26 +155,66 @@ public final class LoadTestRunner {
 
             List<GatlingEngine.ScenarioRun> runs = new ArrayList<>();
             for (LoadScenario scenario : simulation.scenarios()) {
-                runs.add(new GatlingEngine.ScenarioRun(scenario, configs.get(scenario), simulation.baseUrl()));
+                runs.add(new GatlingEngine.ScenarioRun(scenario, configs.get(scenario), simulation.baseUrl(),
+                        scenarioRules.get(scenario)));
             }
             StepLogger.step("Load Simulation: " + simulation.name() + " (" + runs.size() + " scenarios: "
                     + simulation.scenarios().stream().map(LoadScenario::name).toList() + ", engine=gatling)");
 
             GatlingResultsParser.SimulationMetrics metrics =
-                    new GatlingEngine().executeSimulation(simulation.name(), runs);
+                    new GatlingEngine().executeSimulation(simulation.name(), runs,
+                            simulationRules == null ? List.of() : simulationRules);
 
+            // evaluate every SLA, record the scenarios and the aggregate, then give the verdict
             Map<String, LoadTestMetrics> perScenario = new LinkedHashMap<>();
             for (LoadScenario scenario : simulation.scenarios()) {
-                LoadTestMetrics m = metrics.scenario(scenario.name());
+                LoadTestMetrics m = withSla(metrics.scenario(scenario.name()), scenarioRules.get(scenario));
                 perScenario.put(scenario.name(), m);
                 io.testfly.metrics.ExecutionMetrics.recordLoadTest(m);
             }
-            io.testfly.metrics.ExecutionMetrics.recordLoadTestAggregate(metrics.global());
-            LAST_METRICS.set(metrics.global());
-            return new LoadSimulationResult(metrics.global(), perScenario);
+            LoadTestMetrics global = metrics.global();
+            if (simulationRules != null) {
+                global = withResults(global, SlaEvaluator.evaluateSimulation(simulationRules, global,
+                        simulation.scenarios().stream().map(LoadScenario::name).toList()));
+            }
+            io.testfly.metrics.ExecutionMetrics.recordLoadTestAggregate(global);
+            LAST_METRICS.set(global);
+            LoadSimulationResult result = new LoadSimulationResult(global, perScenario);
+
+            List<String> failures = new ArrayList<>();
+            String globalFailures = LoadTestAssert.slaFailures(global);
+            if (globalFailures != null) {
+                failures.add(global.scenarioName() + ": " + globalFailures);
+            }
+            for (LoadTestMetrics m : perScenario.values()) {
+                String f = LoadTestAssert.slaFailures(m);
+                if (f != null) {
+                    failures.add(m.scenarioName() + ": " + f);
+                }
+            }
+            if (!failures.isEmpty()) {
+                throw new AssertionError("[LoadTest] Simulation '" + simulation.name() + "': SLA failed: "
+                        + String.join(" | ", failures));
+            }
+            return result;
         } finally {
             EXECUTING.remove();
         }
+    }
+
+    /**
+     * The metrics with the SLA rules evaluated (step names matched exactly) and attached; unchanged when
+     * {@code rules} is {@code null}.
+     */
+    private static LoadTestMetrics withSla(LoadTestMetrics m, List<SlaRule> rules) {
+        return rules == null ? m : withResults(m, SlaEvaluator.evaluate(rules, m));
+    }
+
+    private static LoadTestMetrics withResults(LoadTestMetrics m, List<SlaResult> results) {
+        return new LoadTestMetrics(m.scenarioName(), m.totalRequests(), m.successfulRequests(), m.failedRequests(),
+                m.throughputRps(), m.meanLatencyMs(), m.p50LatencyMs(), m.p90LatencyMs(), m.p95LatencyMs(),
+                m.p99LatencyMs(), m.minLatencyMs(), m.maxLatencyMs(), m.errorRate(), m.statusCodes(), m.durationMs(),
+                m.users(), m.engine(), m.steps(), m.p75LatencyMs(), m.partial(), results);
     }
 
     /**

@@ -1,6 +1,7 @@
 package io.testfly.loadtest.internal;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.gatling.javaapi.core.Assertion;
 import io.gatling.javaapi.core.ChainBuilder;
 import io.gatling.javaapi.core.CheckBuilder;
 import io.gatling.javaapi.core.ClosedInjectionStep;
@@ -107,8 +108,56 @@ public class TestFlyGatlingSimulation extends Simulation {
         scenarioRequests = requests;
 
         // ── maxDuration: graceful stop (reports are still written) if the run hangs ──
-        setUp(populations)
-                .maxDuration(Duration.ofSeconds(cfg.maxDurationSeconds()));
+        SetUp setUp = setUp(populations);
+        if (cfg.assertions != null && !cfg.assertions.isEmpty()) {
+            // report only: Gatling shows them in index.html and exits with code 2 if one fails
+            setUp = setUp.assertions(nativeAssertions(cfg.assertions));
+        }
+        setUp.maxDuration(Duration.ofSeconds(cfg.maxDurationSeconds()));
+    }
+
+    /**
+     * Maps TestFly SLA rules to native Gatling assertions (report only; TestFly's own evaluation decides):
+     * <ul>
+     *   <li>P50..P99, MEAN, MAX → {@code responseTime().percentile(p) / mean() / max()}. Gatling takes these
+     *       thresholds as whole milliseconds and its response times are whole milliseconds, so {@code BELOW t}
+     *       becomes {@code lt(ceil(t))} and {@code ABOVE t} becomes {@code gt(floor(t))}: the same verdict for
+     *       integer values.</li>
+     *   <li>ERROR_RATE → {@code failedRequests().percent()} with {@code rate * 100} (a double).</li>
+     *   <li>THROUGHPUT → {@code requestsPerSec()} (a double).</li>
+     * </ul>
+     * Scope: {@code global()}, or {@code details(requestName)} for a step.
+     */
+    static List<Assertion> nativeAssertions(List<GatlingRunConfig.GatlingAssertion> rules) {
+        List<Assertion> out = new ArrayList<>();
+        for (GatlingRunConfig.GatlingAssertion a : rules) {
+            Assertion.WithPath path = a.requestName == null ? global() : details(a.requestName);
+            boolean below = a.below();
+            Assertion assertion = switch (a.metric) {
+                case "P50", "P75", "P90", "P95", "P99" -> millis(
+                        path.responseTime().percentile(Double.parseDouble(a.metric.substring(1))), a.threshold, below);
+                case "MEAN" -> millis(path.responseTime().mean(), a.threshold, below);
+                case "MAX" -> millis(path.responseTime().max(), a.threshold, below);
+                case "ERROR_RATE" -> below
+                        ? path.failedRequests().percent().lt(a.threshold * 100.0)
+                        : path.failedRequests().percent().gt(a.threshold * 100.0);
+                case "THROUGHPUT" -> below
+                        ? path.requestsPerSec().lt(a.threshold)
+                        : path.requestsPerSec().gt(a.threshold);
+                default -> null; // a metric without a native counterpart: TestFly still evaluates it
+            };
+            if (assertion != null) {
+                out.add(assertion);
+            }
+        }
+        return out;
+    }
+
+    private static Assertion millis(Assertion.WithPathAndTarget<Integer> target, double threshold, boolean below) {
+        if (below) {
+            return target.lt((int) Math.min(Integer.MAX_VALUE, Math.max(0, Math.ceil(threshold))));
+        }
+        return target.gt((int) Math.min(Integer.MAX_VALUE, Math.max(0, Math.floor(threshold))));
     }
 
     /**

@@ -234,6 +234,33 @@ public final class LoadScenarioValidator {
         if (openRates > maxUsers) {
             throw capExceeded(where, "sum of the open peak rates (" + fmt(openRates) + " users/s)", maxUsers);
         }
+        validateSimulationSlaSteps(simulation, where);
+    }
+
+    /**
+     * A bare step name in the simulation SLA must name a step of exactly one scenario when the simulation has more
+     * than one; otherwise it is ambiguous. Qualified names ({@code "<scenario> :: <step>"}) and unknown steps are
+     * not validation errors (an unknown step fails at evaluation with "step not found").
+     */
+    private static void validateSimulationSlaSteps(LoadSimulation simulation, String where) {
+        if (simulation.sla() == null || simulation.scenarios().size() < 2) {
+            return;
+        }
+        List<String> keys = new java.util.ArrayList<>();
+        for (LoadScenario s : simulation.scenarios()) {
+            s.steps().forEach(step -> keys.add(s.name() + REQUEST_NAME_SEPARATOR + step.name()));
+        }
+        for (io.testfly.loadtest.SlaRule rule : simulation.sla().rules()) {
+            if (rule.isGlobal() || keys.contains(rule.scope())) {
+                continue;
+            }
+            // the same rule as SlaEvaluator.simulationStepKey: the step part after the first " :: " of a key
+            List<String> candidates = SlaEvaluator.bareCandidates(keys, rule.scope());
+            if (candidates.size() > 1) {
+                throw new IllegalArgumentException(where + "SLA step '" + rule.scope() + "' is ambiguous: it exists "
+                        + "in several scenarios; name one of " + candidates);
+            }
+        }
     }
 
     /** Rejects a workload that injects nobody, and one whose peak exceeds {@code maxUsers}. */

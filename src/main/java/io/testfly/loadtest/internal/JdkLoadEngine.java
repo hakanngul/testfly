@@ -296,7 +296,8 @@ public final class JdkLoadEngine implements LoadTestEngine {
                     total - failed,
                     failed,
                     percentile(sorted, 95),
-                    total > 0 ? (double) failed / total : 0));
+                    total > 0 ? (double) failed / total : 0,
+                    percentile(sorted, 99)));
         }
 
         return new LoadTestMetrics(

@@ -66,8 +66,10 @@ With `during(d, false)` (no exit in mid-iteration), the counts matched `stats.js
 5. **SLAs.**
    - `LoadSla` is evaluated by TestFly from `LoadTestMetrics`, the same way on both engines, so the verdict never depends on parsing Gatling output.
    - On Gatling, the same SLA is also registered as native `assertions(...)`, so it appears in Gatling's HTML report.
-   - Exit code 2 is treated as an SLA failure, not a crash. If TestFly's verdict and Gatling's exit code disagree, a WARN names both.
-   - An SLA on an unmeasured or partial metric fails with the reason "not measured".
+   - When native assertions were registered, exit code 2 means "Gatling assertions failed" and is not a crash; the run is parsed as usual. TestFly's verdict is authoritative. If it disagrees with the exit code on the natively registered rules, a WARN names both estimators.
+   - Rules with no native counterpart (a scenario's global rules inside a multi-scenario simulation, unknown steps) are evaluated by TestFly only.
+   - A rule fails with reason "metrics are partial" when the run is partial, "step not found" when its step is absent, and "not measured" when the value is NaN, in that order of precedence.
+   - `run()` records the metrics, including the SLA results, before it throws the `AssertionError`, so reports always contain the run.
 6. **Baselines.** `LoadBaseline.save/load` (versioned JSON) and `LoadTestAssert.assertNoRegression(baseline, Tolerance)`. Metrics that are unmeasured on either side are reported as "not compared", never as a pass.
 7. **Gatling upgrade.** Once decision 1 is in place, upgrading to 3.16.x no longer depends on report internals. The upgrade is a separate change, verified by the same regression suites.
 
@@ -76,7 +78,7 @@ With `during(d, false)` (no exit in mid-iteration), the counts matched `stats.js
 - **p90 becomes measured on Gatling.** It is no longer `NaN`. Percentiles are now computed exactly by TestFly from a millisecond histogram (linear interpolation, the same method as the JDK engine). Gatling's own HTML report estimates percentiles with t-digest (`AVLTreeDigest(100)` in 3.13.5), and that estimate depends on the order samples arrive. On small samples, high percentiles can differ visibly: one run's p99 was 106 ms in TestFly, while t-digest gave anywhere from 103 to 205 ms depending on insertion order.
 - **Different request totals.** TestFly counts requests that fail to build as KO; Gatling's report omits them.
 - **Larger child JVM sidecar.** Histograms are bounded by the number of distinct milliseconds per request name, not by the number of requests.
-- **New public types** (`Workload`, `OpenStep`, `ClosedStep`, `LoadSimulation`, `LoadSimulationResult`, `LoadSla`, `SlaResult`, `LoadBaseline`, `Tolerance`) are additive, with `@TestFlyApi(since = "1.1.0")`.
+- **New public types** (`Workload`, `OpenStep`, `ClosedStep`, `LoadSimulation`, `LoadSimulationResult`, `LoadSla`, `StepSla`, `SlaRule`, `SlaResult`, `LoadBaseline`, `Tolerance`) are additive, with `@TestFlyApi(since = "1.1.0")`. `LoadTestMetrics` (`slaResults`) and `LoadTestMetrics.StepMetrics` (`p99LatencyMs`) gain trailing components; their earlier constructors are kept.
 
 ## Alternatives considered
 

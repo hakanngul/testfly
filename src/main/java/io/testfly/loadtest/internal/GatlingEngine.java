@@ -1,6 +1,8 @@
 package io.testfly.loadtest.internal;
 
 import io.testfly.loadtest.LoadScenario;
+import io.testfly.loadtest.SlaResult;
+import io.testfly.loadtest.SlaRule;
 import io.testfly.loadtest.LoadTestConfig;
 import io.testfly.loadtest.LoadTestMetrics;
 
@@ -29,6 +31,8 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public final class GatlingEngine implements LoadTestEngine {
 
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(GatlingEngine.class);
+
     private static final ReentrantLock GATLING_LOCK = new ReentrantLock();
 
     /** Extra wait budget for JVM start-up and report generation on top of the simulation's maxDuration. */
@@ -48,14 +52,31 @@ public final class GatlingEngine implements LoadTestEngine {
     }
 
     /**
-     * One scenario of a run: the scenario, its resolved configuration and its base URL ({@code null} for the
-     * configured one).
+     * One scenario of a run: the scenario, its resolved configuration, its base URL ({@code null} for the
+     * configured one) and a snapshot of its SLA rules (empty without an SLA).
      */
-    public record ScenarioRun(LoadScenario scenario, LoadTestConfig config, String baseUrl) {
+    public record ScenarioRun(LoadScenario scenario, LoadTestConfig config, String baseUrl, List<SlaRule> slaRules) {
+
+        public ScenarioRun {
+            slaRules = slaRules == null ? List.of() : List.copyOf(slaRules);
+        }
+
+        /** A run whose SLA rules are the scenario's current ones. */
+        public ScenarioRun(LoadScenario scenario, LoadTestConfig config, String baseUrl) {
+            this(scenario, config, baseUrl, scenario.sla() == null ? List.of() : scenario.sla().rules());
+        }
     }
 
     @Override
     public LoadTestMetrics execute(LoadScenario scenario, LoadTestConfig config) {
+        return execute(scenario, config, scenario.sla() == null ? List.of() : scenario.sla().rules());
+    }
+
+    /**
+     * Same as {@link #execute(LoadScenario, LoadTestConfig)} with the SLA rules the caller snapshotted at the start
+     * of the run; they are registered as native Gatling assertions (report only).
+     */
+    public LoadTestMetrics execute(LoadScenario scenario, LoadTestConfig config, List<SlaRule> slaRules) {
         if (!GatlingBridge.isAvailable()) {
             throw new IllegalStateException(GatlingBridge.missingDependencyMessage());
         }
@@ -63,8 +84,8 @@ public final class GatlingEngine implements LoadTestEngine {
         LoadScenarioValidator.validate(scenario, name(), config.getMaxUsers());
 
         // a single scenario keeps unprefixed request names, so its metrics equal the global ones
-        return executeSimulation(scenario.name(), List.of(new ScenarioRun(scenario, config, null)))
-                .scenario(scenario.name());
+        return executeSimulation(scenario.name(), List.of(new ScenarioRun(scenario, config, null, slaRules)),
+                List.of()).scenario(scenario.name());
     }
 
     /**
@@ -75,6 +96,18 @@ public final class GatlingEngine implements LoadTestEngine {
      * @throws IllegalStateException if the run fails, its metrics sidecar is missing, or no request was recorded
      */
     public GatlingResultsParser.SimulationMetrics executeSimulation(String simulationName, List<ScenarioRun> runs) {
+        return executeSimulation(simulationName, runs, List.of());
+    }
+
+    /**
+     * Same as {@link #executeSimulation(String, List)} with the (snapshotted) simulation-level SLA rules. These and
+     * each scenario's rules are also registered as native Gatling assertions where Gatling has a counterpart, for
+     * Gatling's own report; Gatling's exit code 2 then only means "native assertions failed" and is compared with
+     * TestFly's verdict on the same rules (a WARN if they disagree).
+     */
+    public GatlingResultsParser.SimulationMetrics executeSimulation(String simulationName, List<ScenarioRun> runs,
+            List<SlaRule> simulationRules) {
+        List<SlaRule> simRules = simulationRules == null ? List.of() : List.copyOf(simulationRules);
         if (!GatlingBridge.isAvailable()) {
             throw new IllegalStateException(GatlingBridge.missingDependencyMessage());
         }
@@ -110,6 +143,7 @@ public final class GatlingEngine implements LoadTestEngine {
             }
 
             GatlingRunConfig runConfig = GatlingRunConfig.forSimulation(simulationName, resultsDir, scenarios);
+            runConfig.assertions.addAll(GatlingRunConfig.nativeAssertions(runConfig, runs, simRules));
             Path sidecar = new File(specificResultsDir, GatlingResultsParser.METRICS_SIDECAR_FILE)
                     .getAbsoluteFile().toPath();
             runConfig.metricsSidecarPath = sidecar.toString();
@@ -117,7 +151,9 @@ public final class GatlingEngine implements LoadTestEngine {
 
             // Always run in an isolated JVM subprocess to ensure 100% clean state between
             // consecutive simulations and prevent Gatling Scala singleton state caching.
-            runGatlingForked(specificResultsDir.getAbsolutePath(), runConfig, simulationName);
+            boolean nativeAssertionsFailed =
+                    runGatlingForked(specificResultsDir.getAbsolutePath(), runConfig, simulationName,
+                            !runConfig.assertions.isEmpty());
 
             System.out.println("[LoadTest] Gatling execution complete. Parsing results...");
 
@@ -127,6 +163,15 @@ public final class GatlingEngine implements LoadTestEngine {
                 throw new IllegalStateException(
                         "[LoadTest] Gatling simulation finished but 0 requests were recorded for '" +
                                 simulationName + "'. Check console logs for errors.");
+            }
+            if (!runConfig.assertions.isEmpty()) {
+                warnIfVerdictsDisagree(simulationName, runConfig, metrics, nativeAssertionsFailed);
+            }
+            int rules = simRules.size() + runs.stream().mapToInt(r -> r.slaRules().size()).sum();
+            if (rules > runConfig.assertions.size()) {
+                LOGGER.info("[LoadTest] {}: {} of {} SLA rule(s) have no native Gatling assertion (a scenario's global "
+                                + "rules in a multi-scenario run, or steps the run does not have); only TestFly "
+                                + "evaluates them", simulationName, rules - runConfig.assertions.size(), rules);
             }
             return metrics;
 
@@ -139,6 +184,34 @@ public final class GatlingEngine implements LoadTestEngine {
             GatlingRunConfig.clear();
             GATLING_LOCK.unlock();
         }
+    }
+
+    /**
+     * Logs a WARN when TestFly's verdict on the natively registered rules disagrees with Gatling's native assertions
+     * (exit code 2). TestFly's verdict is authoritative: Gatling estimates percentiles with t-digest over all
+     * responses, TestFly computes them exactly from its millisecond histogram over the requests that received a
+     * response. Rules without a native counterpart are not compared.
+     */
+    private static void warnIfVerdictsDisagree(String simulationName, GatlingRunConfig runConfig,
+            GatlingResultsParser.SimulationMetrics metrics, boolean nativeAssertionsFailed) {
+        List<String> scenarioNames = runConfig.scenarios.stream().map(sc -> sc.scenarioName).toList();
+        boolean testflyPassed = true;
+        for (GatlingRunConfig.GatlingAssertion a : runConfig.assertions) {
+            SlaRule rule = a.toRule();
+            List<SlaResult> r = a.source == null
+                    ? SlaEvaluator.evaluateSimulation(List.of(rule), metrics.global(), scenarioNames)
+                    : SlaEvaluator.evaluate(List.of(rule), metrics.scenario(a.source));
+            testflyPassed &= r.get(0).passed();
+        }
+        if (testflyPassed == !nativeAssertionsFailed) {
+            return;
+        }
+        LOGGER.warn("[LoadTest] {}: TestFly's SLA verdict ({}) and Gatling's native assertions ({}, exit code {}) "
+                        + "disagree on the same rules. TestFly's verdict is authoritative: it uses exact percentiles "
+                        + "from its own millisecond histogram over requests that received a response, while Gatling "
+                        + "uses t-digest estimates over all responses.",
+                simulationName, testflyPassed ? "passed" : "failed",
+                nativeAssertionsFailed ? "failed" : "passed", nativeAssertionsFailed ? 2 : 0);
     }
 
     /** The scenario's own base URL, else the run's, else the resolved config's, else {@code execution.baseUrl}. */
@@ -184,8 +257,11 @@ public final class GatlingEngine implements LoadTestEngine {
      * {@code --add-opens java.base/java.lang=ALL-UNNAMED}
      * so Gatling can run without requiring manual IDE VM options.
      */
-    private void runGatlingForked(String resultsDir, GatlingRunConfig runConfig, String runDescription)
-            throws IOException {
+    /**
+     * @return {@code true} if Gatling exited with code 2 (its native assertions failed; the run is still parsed)
+     */
+    private boolean runGatlingForked(String resultsDir, GatlingRunConfig runConfig, String runDescription,
+            boolean nativeAssertionsRegistered) throws IOException {
         Path tempConfig = createPrivateTempFile();
         Thread shutdownHook = null;
         try {
@@ -246,12 +322,7 @@ public final class GatlingEngine implements LoadTestEngine {
                         + "s and was terminated");
             }
 
-            int exitCode = process.exitValue();
-            if (exitCode != 0) {
-                throw new IllegalStateException("[LoadTest] Gatling subprocess failed with exit code "
-                        + exitCode + " (" + exitCodeMeaning(exitCode) + "). Last lines of "
-                        + logFile.getAbsolutePath() + " (redacted):" + logTail(logFile));
-            }
+            return checkExitCode(process.exitValue(), runDescription, logFile, nativeAssertionsRegistered);
         } finally {
             if (shutdownHook != null) {
                 try {
@@ -266,6 +337,31 @@ public final class GatlingEngine implements LoadTestEngine {
                 // best effort
             }
         }
+    }
+
+    /**
+     * Interprets the exit code of the Gatling child JVM.
+     *
+     * @param nativeAssertionsRegistered whether TestFly registered native assertions; only then can exit code 2 mean
+     *                                   "assertions failed"
+     * @return {@code false} for 0; {@code true} for 2 with native assertions registered ("Gatling assertions
+     *         failed": not a crash, the run's metrics are still parsed and TestFly's own SLA verdict decides)
+     * @throws IllegalStateException for any other code, and for 2 without native assertions, with the redacted tail
+     *                               of {@code logFile}
+     */
+    static boolean checkExitCode(int exitCode, String runDescription, File logFile,
+            boolean nativeAssertionsRegistered) {
+        if (exitCode == 0) {
+            return false;
+        }
+        if (exitCode == 2 && nativeAssertionsRegistered) {
+            System.out.println("[LoadTest] Gatling native assertions failed for '" + runDescription
+                    + "' (exit code 2); the report is still written and TestFly evaluates the SLA from its metrics");
+            return true;
+        }
+        throw new IllegalStateException("[LoadTest] Gatling subprocess failed with exit code "
+                + exitCode + " (" + exitCodeMeaning(exitCode) + "). Last lines of "
+                + logFile.getAbsolutePath() + " (redacted):" + logTail(logFile));
     }
 
     private static String exitCodeMeaning(int exitCode) {

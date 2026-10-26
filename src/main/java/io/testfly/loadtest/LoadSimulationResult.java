@@ -46,6 +46,21 @@ public final class LoadSimulationResult {
         return new LoadTestAssert(scenarioMetrics(name));
     }
 
+    /**
+     * All SLA results of the run: the simulation-level SLA (on the global metrics) first, then each scenario's own
+     * SLA in scenario order; empty when no SLA was declared.
+     *
+     * <p>The flattened list does not say which scenario a result belongs to (a scenario's rules carry only the step
+     * name or {@code "global"}). For attributed results use {@code globalMetrics().slaResults()} for the
+     * simulation-level SLA and {@code scenarioMetrics(name).slaResults()} for one scenario's SLA.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public List<SlaResult> slaResults() {
+        List<SlaResult> all = new java.util.ArrayList<>(global.slaResults());
+        scenarios.values().forEach(m -> all.addAll(m.slaResults()));
+        return List.copyOf(all);
+    }
+
     /** Scenario names in insertion order. */
     @TestFlyApi(since = "1.1.0")
     public List<String> scenarioNames() {

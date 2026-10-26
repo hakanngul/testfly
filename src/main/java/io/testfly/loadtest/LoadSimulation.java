@@ -40,6 +40,7 @@ public final class LoadSimulation {
     private final List<LoadScenario> scenarios = new ArrayList<>();
     private String baseUrl;
     private String engine;
+    private LoadSla sla;
 
     private LoadSimulation(String name) {
         this.name = name;
@@ -77,6 +78,23 @@ public final class LoadSimulation {
     public LoadSimulation engine(String engine) {
         this.engine = engine;
         return this;
+    }
+
+    /**
+     * Attaches an SLA evaluated against the simulation's global metrics. A step rule names
+     * {@code "<scenario> :: <step>"}, or a bare step name that is unique across the scenarios (an ambiguous one is
+     * rejected before the run). SLAs set on the scenarios apply to each scenario's own metrics.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LoadSimulation sla(LoadSla sla) {
+        this.sla = sla;
+        return this;
+    }
+
+    /** The simulation-level SLA, or {@code null}. */
+    @TestFlyApi(since = "1.1.0")
+    public LoadSla sla() {
+        return sla;
     }
 
     /** Validates, runs all scenarios in one Gatling simulation and returns per-scenario and global results. */
