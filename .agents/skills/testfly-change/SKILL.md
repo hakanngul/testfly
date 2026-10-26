@@ -26,9 +26,9 @@ Use this map to locate evidence; source remains authoritative.
 - Reporting/observability: `reporting`, `metrics`, `steps`, `tracing`, `recording`
 - Configuration: `config`, `testfly.yml`, environment and system-property inputs
 - Extension points: `extension`, `hooks`, `driver.NamedDriverProvider`, `reporting.ReportAdapter`, `META-INF/services`
-- Engines: TestNG listeners, `junit5`, and `cucumber` bridges
+- Engines: TestNG listeners, `junit5`, and `cucumber` bridges. The `@mobile` branches of these bridges and everything in `io.testfly.mobile` belong to `testfly-mobile`; shared lifecycle code stays here.
 
-Selenium is an adapter, not the framework boundary. Mobile support means browser/device emulation unless current source proves otherwise.
+Selenium is an adapter, not the framework boundary. Native mobile is a separate incubating module (`io.testfly.mobile`, driven through mobilecli); use `testfly-mobile` for it. Browser or device emulation is a web feature and is not mobile support.
 
 ## Preserve contracts
 

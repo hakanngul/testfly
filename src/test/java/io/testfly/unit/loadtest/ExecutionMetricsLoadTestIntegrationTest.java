@@ -6,8 +6,9 @@ import io.testfly.loadtest.LoadTestMetrics;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.metrics.TestTiming;
 import io.testfly.reporting.ReportPaths;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
+import org.testng.IHookCallBack;
+import org.testng.IHookable;
+import org.testng.ITestResult;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -21,12 +22,30 @@ import static org.testng.Assert.*;
  * {@link TestTiming}, and JSON export.
  */
 @Test(singleThreaded = true)
-public class ExecutionMetricsLoadTestIntegrationTest {
+public class ExecutionMetricsLoadTestIntegrationTest implements IHookable {
 
-    @BeforeMethod
-    @AfterMethod
-    public void cleanup() {
-        ExecutionMetrics.reset();
+    /**
+     * Each test, with its reset before and after, holds the same monitors as {@code HtmlReportGeneratorLoadTestTest}
+     * (same order): both classes reset the static {@link ExecutionMetrics} and use the shared
+     * {@link ReportPaths#metricsJson()}, and surefire runs test classes in parallel. The reports directory is
+     * this class's own, because classes in other surefire forks delete {@code target/testfly-metrics.json}.
+     */
+    @Override
+    @Test(enabled = false) // the class-level @Test would otherwise make this public hook a test
+    public void run(IHookCallBack callBack, ITestResult testResult) {
+        synchronized (ReportPaths.class) {
+            synchronized (io.testfly.internal.TestFlyContext.class) {
+                // Own directory: surefire forks run other classes that delete target/testfly-metrics.json.
+                System.setProperty("testfly.reports.dir", "target/reports-isolated/ExecutionMetricsLoadTestIntegrationTest");
+                ExecutionMetrics.reset();
+                try {
+                    callBack.runTestMethod(testResult);
+                } finally {
+                    ExecutionMetrics.reset();
+                    System.clearProperty("testfly.reports.dir");
+                }
+            }
+        }
     }
 
     private LoadTestMetrics sampleMetrics(String scenarioName) {
@@ -87,6 +106,28 @@ public class ExecutionMetricsLoadTestIntegrationTest {
 
         ExecutionMetrics.reset();
         assertTrue(ExecutionMetrics.getLoadTests().isEmpty());
+    }
+
+    @Test
+    public void testLoadTestMetricsToMapWritesUnmeasuredAsNull() throws Exception {
+        LoadTestMetrics m = new LoadTestMetrics("Unmeasured", 3, 3, 0, 1, 5, 4, Double.NaN, 9, 10, 1, 12, 0,
+                Map.of(201, 3L), 1000, 1, "gatling",
+                Map.of("s", new LoadTestMetrics.StepMetrics("s", 3, 3, 0, Double.NaN, 0)), 6);
+        Map<String, Object> map = ExecutionMetrics.loadTestMetricsToMap(m);
+
+        assertEquals(map.get("p75LatencyMs"), 6.0);
+        assertTrue(map.containsKey("p90LatencyMs"));
+        assertNull(map.get("p90LatencyMs"), "NaN must be written as null, never 0");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> step = (Map<String, Object>) ((Map<String, Object>) map.get("steps")).get("s");
+        assertNull(step.get("p95LatencyMs"));
+
+        String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(map);
+        assertTrue(json.contains("\"p90LatencyMs\":null"), json);
+        assertFalse(json.contains("NaN"), json);
+
+        // legacy constructor: p75 not measured → null
+        assertNull(ExecutionMetrics.loadTestMetricsToMap(sampleMetrics("Legacy")).get("p75LatencyMs"));
     }
 
     @Test

@@ -1,22 +1,53 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { BrowserPanel } from './browserPanel';
+import { findBrowsers } from './browsers';
+import { LensCount, LocatorLensProvider, LocatorTarget, selectorFor } from './codeLens';
+import { JavaLocator } from './javaLocators';
 import { DeviceInfo, MobileCli, RpcError, ScreenSize } from './mobilecli';
+import { recentUrls, rememberUrl, SidebarProvider } from './sidebar';
+import { webviewHtml } from './webview';
 
 let panel: InspectorPanel | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.commands.registerCommand('testflyInspector.open', () => {
+    // an optional device id (from the sidebar's device list) selects that device
+    context.subscriptions.push(vscode.commands.registerCommand('testflyInspector.open', (deviceId?: unknown) => {
+        const id = typeof deviceId === 'string' ? deviceId : undefined;
         if (panel) {
             panel.reveal();
+            if (id) {
+                void panel.inspect(id);
+            }
         } else {
-            panel = new InspectorPanel(context, () => (panel = undefined));
+            panel = new InspectorPanel(context, () => (panel = undefined), id);
         }
     }));
+    const sidebar = new SidebarProvider(context);
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider(SidebarProvider.viewId, sidebar), sidebar);
+    context.subscriptions.push(vscode.commands.registerCommand('testflyInspector.openBrowser', () => openBrowser(context)));
+    LocatorLensProvider.register(context);
+}
+
+/** Command palette entry: asks for a URL and opens it in the first browser found, without a window and with a kept session. */
+async function openBrowser(context: vscode.ExtensionContext) {
+    const browser = findBrowsers(vscode.workspace.getConfiguration('testflyInspector').get('browserPath', ''))[0];
+    if (!browser) {
+        void vscode.window.showErrorMessage('No Chrome, Edge or Chromium found. Install one or set testflyInspector.browserPath.');
+        return;
+    }
+    const url = await vscode.window.showInputBox({ title: 'Browser Inspector', prompt: `Page to open in ${browser.name}`, value: recentUrls(context)[0] ?? 'https://' });
+    if (!url) {
+        return;
+    }
+    await rememberUrl(context, url);
+    BrowserPanel.show(context, { browser, url, width: 1440, height: 900, headless: true, keepSession: true });
 }
 
 export function deactivate() {
     panel?.dispose();
+    BrowserPanel.disposeCurrent();
 }
 
 /** Messages the webview sends; see media/inspector.js. */
@@ -24,14 +55,16 @@ type Inbound =
     | { type: 'ready' }
     | { type: 'devices' }
     | { type: 'selectDevice'; id: string }
-    | { type: 'refresh' }
+    | { type: 'server'; action: 'start' | 'stop' }
+    | { type: 'refresh'; quiet?: boolean }
     | { type: 'snapshotText' }
     | { type: 'tap' | 'longPress'; x: number; y: number }
     | { type: 'text'; text: string }
     | { type: 'tapType'; x: number; y: number; text: string }
-    | { type: 'swipe'; direction: 'up' | 'down' | 'left' | 'right' }
+    | { type: 'swipe'; direction: 'up' | 'down' | 'left' | 'right'; x1?: number; y1?: number; x2?: number; y2?: number }
     | { type: 'button'; button: string }
-    | { type: 'copy'; text: string; label: string };
+    | { type: 'copy'; text: string; label: string }
+    | { type: 'resolved'; id: number; results: LensCount[] };
 
 class InspectorPanel {
     private readonly webview: vscode.WebviewPanel;
@@ -40,8 +73,11 @@ class InspectorPanel {
     private screen?: ScreenSize;
     private busy = false;
     private warm = false; // mobilecli's agent is up for this device: tree and screenshot can run together
+    private serverStopped = false; // stopped from the panel: no auto-start until it is started from the panel again
+    private nextResolve = 1;
+    private readonly resolving = new Map<number, (results: LensCount[]) => void>();
 
-    constructor(private readonly context: vscode.ExtensionContext, private readonly onDispose: () => void) {
+    constructor(private readonly context: vscode.ExtensionContext, private readonly onDispose: () => void, private wanted?: string) {
         const cfg = vscode.workspace.getConfiguration('testflyInspector');
         this.cli = new MobileCli(cfg.get('serverUrl', 'http://localhost:12000'), cfg.get('mobilecliPath', 'mobilecli'),
             cfg.get('autoStartServer', true));
@@ -60,9 +96,35 @@ class InspectorPanel {
         this.webview.reveal();
     }
 
+    /** Selects a device chosen in the sidebar, reading the device list again so a just-booted one is found. */
+    async inspect(id: string) {
+        this.wanted = id;
+        await this.handle({ type: 'devices' });
+    }
+
     dispose() {
+        LocatorLensProvider.update('mobile', undefined);
         this.cli.dispose();
         this.onDispose();
+    }
+
+    /** The current screen, for the code lenses over @MobileFind fields and screen().getBy… calls. */
+    private lensTarget(device: DeviceInfo): LocatorTarget {
+        return {
+            domain: 'mobile',
+            label: device.name,
+            platform: device.platform,
+            count: (locators: JavaLocator[]) => new Promise<LensCount[] | undefined>(resolve => {
+                const id = this.nextResolve++;
+                const timer = setTimeout(() => (this.resolving.delete(id), resolve(undefined)), 5_000);
+                this.resolving.set(id, results => (clearTimeout(timer), resolve(results)));
+                this.post({ type: 'resolve', id, selectors: locators.map(l => selectorFor(l, device.platform) ?? '') });
+            }),
+            reveal: (locator: JavaLocator) => {
+                this.webview.reveal();
+                this.post({ type: 'reveal', selector: selectorFor(locator, device.platform) ?? '' });
+            },
+        };
     }
 
     private post(message: unknown) {
@@ -77,8 +139,10 @@ class InspectorPanel {
                     return await this.loadDevices();
                 case 'selectDevice':
                     return await this.selectDevice(m.id);
+                case 'server':
+                    return m.action === 'start' ? await this.startServer() : await this.stopServer();
                 case 'refresh':
-                    return await this.refresh();
+                    return await this.refresh(m.quiet);
                 case 'snapshotText':
                     return this.post({ type: 'snapshotText', text: await this.cli.snapshotText(this.requireDevice().id) });
                 case 'tap':
@@ -96,23 +160,36 @@ class InspectorPanel {
                 case 'button':
                     return await this.act(id => this.cli.pressButton(id, m.button));
                 case 'swipe':
-                    return await this.act(id => this.swipe(id, m.direction));
+                    return await this.act(id => m.x1 != null && m.y1 != null && m.x2 != null && m.y2 != null
+                        ? this.cli.swipe(id, m.x1, m.y1, m.x2, m.y2) // dragged on the screenshot
+                        : this.swipe(id, m.direction));
                 case 'copy':
                     await vscode.env.clipboard.writeText(m.text);
                     vscode.window.setStatusBarMessage(`$(check) Copied ${m.label}`, 2500);
                     return;
+                case 'resolved':
+                    this.resolving.get(m.id)?.(m.results);
+                    this.resolving.delete(m.id);
+                    return;
             }
         } catch (e) {
-            this.post({ type: 'error', message: (e as Error).message, unreachable: e instanceof RpcError && e.unreachable });
+            const unreachable = e instanceof RpcError && e.unreachable;
+            if (unreachable) {
+                this.post({ type: 'server', running: false });
+            }
+            this.post({ type: 'error', message: (e as Error).message, unreachable });
         }
     }
 
     private async loadDevices() {
         this.post({ type: 'status', state: 'connecting', message: 'Connecting to mobilecli…' });
-        const version = await this.cli.ensureServer();
+        const version = await this.cli.ensureServer(undefined, this.serverStopped ? false : undefined);
+        this.post({ type: 'server', running: true, version });
         const devices = (await this.cli.devices()).filter(d => d.state === 'online');
         this.post({ type: 'devices', devices, version });
-        const keep = devices.find(d => d.id === this.device?.id) ?? (devices.length === 1 ? devices[0] : undefined);
+        const wanted = this.wanted;
+        this.wanted = undefined;
+        const keep = devices.find(d => d.id === (wanted ?? this.device?.id)) ?? (devices.length === 1 ? devices[0] : undefined);
         if (keep) {
             await this.selectDevice(keep.id, devices);
         } else if (!devices.length) {
@@ -120,6 +197,26 @@ class InspectorPanel {
         } else {
             this.post({ type: 'status', state: 'idle', message: 'Choose a device.' });
         }
+    }
+
+    private async startServer() {
+        this.serverStopped = false;
+        this.post({ type: 'status', state: 'connecting', message: 'Starting mobilecli server…' });
+        await this.cli.startServer();
+        await this.loadDevices();
+    }
+
+    private async stopServer() {
+        this.serverStopped = true;
+        this.post({ type: 'status', state: 'loading', message: 'Stopping mobilecli server…' });
+        await this.cli.stopServer();
+        this.device = undefined;
+        this.screen = undefined;
+        this.warm = false;
+        LocatorLensProvider.update('mobile', undefined);
+        this.post({ type: 'server', running: false });
+        this.post({ type: 'devices', devices: [] });
+        this.post({ type: 'status', state: 'idle', message: 'mobilecli server stopped. Start it from the Server button.' });
     }
 
     private async selectDevice(id: string, known?: DeviceInfo[]) {
@@ -134,20 +231,23 @@ class InspectorPanel {
         await this.refresh();
     }
 
-    private async refresh() {
+    /** quiet: a Live refresh, which neither dims the screen nor reports progress. */
+    private async refresh(quiet = false) {
         const device = this.requireDevice();
         if (this.busy) {
             return;
         }
         this.busy = true;
-        this.post({ type: 'status', state: 'loading', message: `Reading ${device.name}…` });
+        if (!quiet) {
+            this.post({ type: 'status', state: 'loading', message: `Reading ${device.name}…` });
+        }
         try {
             const started = Date.now();
             this.screen ??= await this.cli.screenSize(device.id);
             let elements, screenshot;
             if (this.warm) {
                 // Both at once; the picture is shown as soon as it arrives, the tree follows.
-                const shot = this.cli.screenshot(device.id).then(s => (this.post({ type: 'shot', screenshot: s }), s));
+                const shot = this.cli.screenshot(device.id).then(s => (quiet || this.post({ type: 'shot', screenshot: s }), s));
                 [elements, screenshot] = await Promise.all([this.cli.dump(device.id), shot]);
             } else {
                 // The tree first: on iOS it also starts mobilecli's agent, which the screenshot then reuses.
@@ -155,7 +255,8 @@ class InspectorPanel {
                 screenshot = await this.cli.screenshot(device.id);
                 this.warm = true;
             }
-            this.post({ type: 'screen', device, screen: this.screen, elements, screenshot, ms: Date.now() - started });
+            this.post({ type: 'screen', device, screen: this.screen, elements, screenshot, ms: Date.now() - started, quiet });
+            LocatorLensProvider.update('mobile', this.lensTarget(device));
         } finally {
             this.busy = false;
         }
@@ -167,6 +268,8 @@ class InspectorPanel {
         if (vscode.workspace.getConfiguration('testflyInspector').get('autoRefreshAfterAction', true)) {
             await new Promise(r => setTimeout(r, 300)); // let the UI settle (animations, navigation)
             await this.refresh();
+        } else {
+            this.post({ type: 'status', state: 'ok', message: `${device.name} · done; press Refresh to read the screen` });
         }
     }
 
@@ -191,24 +294,9 @@ class InspectorPanel {
     }
 
     private html(): string {
-        const webview = this.webview.webview;
-        const media = (file: string) => webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', file));
-        const nonce = Array.from({ length: 32 }, () => Math.floor(Math.random() * 36).toString(36)).join('');
-        return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link href="${media('inspector.css')}" rel="stylesheet">
-<title>Mobile Inspector</title>
-</head>
-<body>
-${INSPECTOR_BODY}
-<script nonce="${nonce}" src="${media('selectors.js')}"></script>
-<script nonce="${nonce}" src="${media('inspector.js')}"></script>
-</body>
-</html>`;
+        return webviewHtml(this.webview.webview, this.context.extensionUri, {
+            title: 'Mobile Inspector', styles: ['inspector.css'], scripts: ['selectors.js', 'inspector.js'], body: INSPECTOR_BODY,
+        });
     }
 }
 

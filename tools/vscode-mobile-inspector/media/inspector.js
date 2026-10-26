@@ -14,27 +14,47 @@
         term: '<svg viewBox="0 0 16 16"><path d="M3 4.5l3.5 3.5L3 11.5"/><path d="M8.5 12h4.5"/></svg>',
         type: '<svg viewBox="0 0 16 16"><path d="M3 4h10M8 4v9"/></svg>',
     };
-    const KIND_LABEL = { button: 'B', textfield: 'T', text: 'A', image: 'I', switch: 'S', checkbox: 'C', link: 'L', cell: 'R', tab: 'Tb' };
+    // Badges for interactive roles; other roles (list, listitem, header, …) show as containers.
+    const KIND_LABEL = { button: 'B', textfield: 'T', text: 'A', image: 'I', switch: 'S', checkbox: 'C', radio: 'R', slider: 'Sl', combobox: 'Cb', link: 'L', tab: 'Tb' };
+    // Appium Inspector's strategies as TestFly selectors (MobileScreen.locate / @MobileFind syntax).
+    const STRATEGY = {
+        testfly: { placeholder: 'loginButton, text=Sign in, role=button;name=Go, //…', selector: q => (/^[/(]/.test(q) ? 'xpath=' + q : q) },
+        id: { placeholder: 'com.app:id/login or login', selector: q => 'id=' + q },
+        accessibility: { placeholder: 'accessibility id, e.g. Login', selector: q => 'accessibility=' + q },
+        xpath: { placeholder: "//android.widget.Button[@text='Go']", selector: q => 'xpath=' + q },
+        type: { placeholder: 'android.widget.EditText or XCUIElementTypeButton', selector: q => 'type=' + q },
+        text: { placeholder: 'exact text, e.g. Sign in', selector: q => 'text=' + q },
+        contains: { placeholder: 'any part of a text, id, type or @ref', selector: null },
+    };
+    const INDENT = 16; // px per tree level; .row .indent guide lines in inspector.css use the same step
+    const HOLD_MS = 500; // a press held this long without moving is a long press
+    const DRAG_PX = 12; // a press that moves this far (on the picture) is a swipe
 
     const saved = vscode.getState() || {};
     const state = {
         devices: [], device: null, screen: null, elements: [], flat: [], paths: new Map(),
         selected: null, hovered: null, expanded: new Set(saved.expanded || []), collapsedAll: false,
-        mode: saved.mode || 'inspect', tab: 'tree', filter: '', xml: null, snapshot: null, ms: 0, steps: [],
+        mode: saved.mode || 'inspect', tab: 'tree', xml: null, xmlNodes: new Map(), snapshot: null, ms: 0, steps: [],
+        find: { strategy: STRATEGY[saved.strategy] ? saved.strategy : 'testfly', query: '', selector: '', matches: [], set: new Set(), current: -1, error: '' },
+        live: { on: !!saved.live, every: [2, 3, 5, 10].includes(saved.liveEvery) ? saved.liveEvery : 3, timer: 0, inFlight: 0, last: '' },
     };
 
     // ── host messages ───────────────────────────────────────────────────
     window.addEventListener('message', e => {
-        if (e.source !== window || !e.data || typeof e.data !== 'object') return;
+        // VS Code relays extension messages from its own webview origin; e.source matches no window here
+        if (e.origin !== window.location.origin || !e.data || typeof e.data !== 'object') return;
         const m = e.data;
         switch (m.type) {
+            case 'server': return onServer(m.running, m.version);
             case 'devices': return onDevices(m.devices);
             case 'device': return onDevice(m.device);
-            case 'screen': return onScreen(m);
+            case 'screen': return onScreen(m), liveDone();
             case 'shot': $('shot').src = imageSrc(m.screenshot); return; // early picture; the tree comes with 'screen'
             case 'snapshotText': state.snapshot = m.text; return renderSnapshot();
             case 'status': return setStatus(m.state, m.message);
-            case 'error': return onError(m.message, m.unreachable);
+            case 'error': return onError(m.message, m.unreachable), liveFailed();
+            case 'resolve': return send({ type: 'resolved', id: m.id, results: (m.selectors || []).map(resolveCount) });
+            case 'reveal': return reveal(String(m.selector || ''));
         }
     });
 
@@ -43,7 +63,8 @@
     }
 
     function persist() {
-        vscode.setState({ mode: state.mode, expanded: [...state.expanded], cols: saved.cols });
+        vscode.setState({ mode: state.mode, expanded: [...state.expanded], cols: saved.cols, strategy: state.find.strategy,
+            live: state.live.on, liveEvery: state.live.every });
     }
 
     // ── status & toasts ─────────────────────────────────────────────────
@@ -68,6 +89,7 @@
     }
 
     function onError(message, unreachable) {
+        $('server').classList.remove('busy');
         setStatus('error', unreachable ? 'mobilecli not reachable' : 'Error');
         toast(message, true);
         if (!state.elements.length) {
@@ -79,6 +101,27 @@
         send({ type: 'copy', text, label });
         toast('Copied ' + label);
     }
+
+    // ── server ──────────────────────────────────────────────────────────
+    function onServer(running, version) {
+        const b = $('server');
+        b.classList.remove('busy');
+        b.dataset.running = String(running);
+        $('serverText').textContent = running ? 'Server on' : 'Server off';
+        b.title = running ? `mobilecli server${version ? ' ' + version : ''} is running. Click to stop it.`
+            : 'mobilecli server is not running. Click to start it.';
+        if (!running) {
+            state.device = null;
+            $('platform').hidden = true;
+        }
+    }
+
+    $('server').addEventListener('click', () => {
+        const b = $('server');
+        if (b.classList.contains('busy')) return;
+        b.classList.add('busy');
+        send({ type: 'server', action: b.dataset.running === 'true' ? 'stop' : 'start' });
+    });
 
     // ── devices ─────────────────────────────────────────────────────────
     function onDevices(devices) {
@@ -109,6 +152,14 @@
 
     // ── screen ──────────────────────────────────────────────────────────
     function onScreen(m) {
+        const same = JSON.stringify(m.elements || []);
+        if (m.quiet && same === state.live.last && state.elements.length) {
+            // a live refresh that found the same tree: only the picture may have changed (a clock, a caret)
+            $('shot').src = imageSrc(m.screenshot);
+            setStatus('ok', `${m.device.name} · ${state.flat.length} elements · ${m.ms} ms · live`);
+            return;
+        }
+        state.live.last = same;
         const previous = state.selected;
         state.device = m.device;
         state.elements = m.elements || [];
@@ -134,7 +185,8 @@
         $('emptyScreen').hidden = true;
         $('screenMeta').textContent = m.screen && m.screen.width ? `${m.screen.width}×${m.screen.height}` : '';
         $('treeCount').textContent = `${state.flat.length} elements`;
-        setStatus('ok', `${m.device.name} · ${state.flat.length} elements · ${m.ms} ms`);
+        setStatus('ok', `${m.device.name} · ${state.flat.length} elements · ${m.ms} ms${state.live.on ? ' · live' : ''}`);
+        if (state.find.query) runFind(true);
         renderTree();
         renderDetails();
         if (state.tab === 'snapshot') send({ type: 'snapshotText' });
@@ -163,7 +215,8 @@
 
     function buildXml(elements) {
         try {
-            return S.toXml(elements, document.implementation.createDocument(null, null, null));
+            state.xmlNodes = new Map();
+            return S.toXml(elements, document.implementation.createDocument(null, null, null), state.xmlNodes);
         } catch (e) {
             return null;
         }
@@ -261,24 +314,79 @@
         renderHover();
     });
     screenEl.addEventListener('click', e => {
-        if (!state.screen) return;
+        if (!state.screen || state.mode !== 'inspect') return;
         const p = toDevice(e);
+        select(S.hitTest(state.elements, p.x, p.y), true);
+    });
+
+    // Tap and Record: a click taps, a press held still long-presses, a drag swipes from where it started.
+    let press = null;
+    screenEl.addEventListener('pointerdown', e => {
+        if (!state.screen || state.mode === 'inspect' || e.button !== 0) return;
+        e.preventDefault();
+        screenEl.setPointerCapture(e.pointerId);
+        press = { x: e.clientX, y: e.clientY, at: toDevice(e), t: Date.now(), moved: false,
+            timer: setTimeout(() => press && !press.moved && screenEl.classList.add('holding'), HOLD_MS) };
+    });
+    screenEl.addEventListener('pointermove', e => {
+        if (!press) return;
+        if (Math.hypot(e.clientX - press.x, e.clientY - press.y) >= DRAG_PX) press.moved = true;
+        if (press.moved) drawDrag(press, e);
+    });
+    screenEl.addEventListener('pointercancel', () => endPress());
+    screenEl.addEventListener('pointerup', e => {
+        const p = endPress();
+        if (!p) return;
+        const to = toDevice(e);
+        if (p.moved) return swipeGesture(p.at, to);
+        ripple(e);
+        gesture(Date.now() - p.t >= HOLD_MS ? 'longPress' : 'tap', p.at);
+    });
+
+    function endPress() {
+        const p = press;
+        press = null;
+        if (p) clearTimeout(p.timer);
+        screenEl.classList.remove('holding');
+        $('dragLine').hidden = true;
+        return p;
+    }
+
+    function drawDrag(p, e) {
+        const rect = screenEl.getBoundingClientRect();
+        const line = $('dragPath');
+        line.setAttribute('x1', p.x - rect.left);
+        line.setAttribute('y1', p.y - rect.top);
+        line.setAttribute('x2', e.clientX - rect.left);
+        line.setAttribute('y2', e.clientY - rect.top);
+        $('dragLine').hidden = false;
+    }
+
+    /** A tap or long press at a point; Record taps the centre of the element under it so the step replays. */
+    function gesture(action, p) {
+        let x = p.x, y = p.y;
         if (state.mode === 'record') {
-            ripple(e);
             const hit = S.hitTest(state.elements, p.x, p.y);
             const r = hit && hit.rect;
-            const x = r ? r.x + r.width / 2 : p.x, y = r ? r.y + r.height / 2 : p.y;
-            record(hit, 'tap', { x: p.x, y: p.y });
-            send({ type: 'tap', x, y });
-            setStatus('loading', 'Tapping…');
-        } else if (state.mode === 'tap') {
-            ripple(e);
-            send({ type: 'tap', x: p.x, y: p.y });
-            setStatus('loading', `Tapping ${Math.round(p.x)}, ${Math.round(p.y)}…`);
-        } else {
-            select(S.hitTest(state.elements, p.x, p.y), true);
+            if (r) { x = r.x + r.width / 2; y = r.y + r.height / 2; }
+            record(hit, action, { x: p.x, y: p.y });
         }
-    });
+        send({ type: action, x, y });
+        setStatus('loading', `${action === 'tap' ? 'Tapping' : 'Long-pressing'} ${Math.round(x)}, ${Math.round(y)}…`);
+    }
+
+    function swipeGesture(from, to) {
+        const dx = to.x - from.x, dy = to.y - from.y;
+        const direction = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+        if (state.mode === 'record') {
+            // replays as element.swipe(...) when the drag starts on an element with a selector, else screen().swipe(...)
+            const hit = S.hitTest(state.elements, from.x, from.y);
+            const sel = hit && bestSelector(hit);
+            recordDevice(sel ? { action: 'swipe', direction, el: hit, selector: sel } : { action: 'swipe', direction });
+        }
+        send({ type: 'swipe', direction, x1: from.x, y1: from.y, x2: to.x, y2: to.y });
+        setStatus('loading', `Swiping ${direction}…`);
+    }
 
     function ripple(e) {
         const r = $('ripple');
@@ -312,13 +420,25 @@
     }
 
     // ── tree ────────────────────────────────────────────────────────────
-    function kindOf(el) {
-        const role = S.roleOf(el);
-        return { role: role || 'other', label: role ? KIND_LABEL[role] : (S.bareType(el.type).charAt(0) || '?').toUpperCase() };
+    // Containers have no selector role; they get a colour of their own so the tree's structure stands out.
+    const LIST_TYPES = ['recyclerview', 'listview', 'gridview', 'scrollview', 'horizontalscrollview', 'nestedscrollview',
+        'viewpager', 'viewpager2', 'table', 'collectionview'];
+    const LAYOUT_TYPES = ['viewgroup', 'group', 'window', 'toolbar', 'navigationbar', 'tabbar', 'cardview'];
+
+    function containerOf(el) {
+        const bare = S.bareType(el.type);
+        if (LIST_TYPES.includes(bare)) return 'list';
+        if (bare.endsWith('layout') || LAYOUT_TYPES.includes(bare)) return 'layout';
+        return 'other';
     }
 
-    function matches(el, q) {
-        if (!q) return true;
+    function kindOf(el) {
+        const role = S.roleOf(el);
+        if (role && KIND_LABEL[role]) return { role, label: KIND_LABEL[role] };
+        return { role: containerOf(el), label: (S.bareType(el.type).charAt(0) || '?').toUpperCase() };
+    }
+
+    function containsText(el, q) {
         const hay = [el.ref, el.type, el.identifier, el.text, el.label, el.name, el.value, el.placeholder].filter(Boolean).join(' ').toLowerCase();
         return hay.includes(q);
     }
@@ -330,45 +450,30 @@
 
     function renderTree() {
         const tree = $('tree');
-        const q = state.filter.trim().toLowerCase();
-        const visible = new Set();
-        if (q) {
-            for (const el of state.flat) {
-                if (!matches(el, q)) continue;
-                const parts = state.paths.get(el).split('/');
-                for (let i = 1; i <= parts.length; i++) visible.add(parts.slice(0, i).join('/'));
-            }
-        }
         const frag = document.createDocumentFragment();
         const walk = (list, depth) => {
             for (const el of list) {
                 const key = state.paths.get(el);
-                if (q && !visible.has(key)) continue;
                 const kids = el.children || [];
-                const open = q ? true : state.expanded.has(key) || depth < 2;
-                frag.append(row(el, key, depth, kids.length > 0, open, q));
+                const open = state.expanded.has(key) || depth < 2;
+                frag.append(row(el, key, depth, kids.length > 0, open));
                 if (kids.length && open) walk(kids, depth + 1);
             }
         };
         walk(state.elements, 0);
         tree.innerHTML = '';
         if (!frag.childNodes.length) {
-            tree.innerHTML = `<div class="empty-state small"><p>${state.elements.length ? 'No element matches the filter.' : 'The tree appears after the first refresh.'}</p></div>`;
+            tree.innerHTML = '<div class="empty-state small"><p>The tree appears after the first refresh.</p></div>';
             return;
         }
         tree.append(frag);
     }
 
-    function hl(text, q) {
-        const t = esc(text);
-        if (!q) return t;
-        const i = text.toLowerCase().indexOf(q);
-        return i < 0 ? t : esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
-    }
-
-    function row(el, key, depth, hasKids, open, q) {
+    function row(el, key, depth, hasKids, open) {
         const r = document.createElement('div');
-        r.className = 'row' + (el === state.selected ? ' selected' : '') + (q && !matches(el, q) ? ' dim' : '');
+        const f = state.find;
+        r.className = 'row' + (el === state.selected ? ' selected' : '')
+            + (f.set.has(el) ? ' match' + (f.matches[f.current] === el ? ' current' : '') : '');
         r.dataset.key = key;
         r.setAttribute('role', 'treeitem');
         if (hasKids) r.setAttribute('aria-expanded', String(open));
@@ -376,13 +481,15 @@
         const text = S.displayText(el);
         const id = el.identifier ? el.identifier.replace(/^.*:id\//, '') : '';
         r.innerHTML =
-            `<span class="indent" style="width:${depth * 14 + 4}px"></span>` +
+            '<span class="indent"></span>' +
             ICON.chev.replace('class="chev"', `class="chev${hasKids ? (open ? ' open' : '') : ' none'}"`) +
             `<span class="kind ${k.role}">${k.label}</span>` +
-            `<span class="type">${hl(shortType(el.type), q)}</span>` +
-            (text ? `<span class="txt">“<b>${hl(text, q)}</b>”</span>` : '') +
-            (id ? `<span class="id">#${hl(id, q)}</span>` : '') +
-            `<span class="ref">${hl(el.ref || '', q)}</span>`;
+            `<span class="type">${esc(shortType(el.type))}</span>` +
+            (text ? `<span class="txt">“<b>${esc(text)}</b>”</span>` : '') +
+            (id ? `<span class="id">#${esc(id)}</span>` : '') +
+            `<span class="ref">${esc(el.ref || '')}</span>`;
+        // set through the CSSOM: the webview CSP drops inline style="" attributes
+        r.querySelector('.indent').style.width = `${depth * INDENT + 4}px`;
         r.addEventListener('click', ev => {
             if (hasKids && ev.target.closest('.chev')) {
                 toggle(key, !open);
@@ -413,10 +520,110 @@
         renderTree();
     }
 
-    $('search').addEventListener('input', e => {
-        state.filter = e.target.value;
+    // ── finder (Appium Inspector's "Search for element", TestFly's matching rules) ──
+    function evalXpath(expr) {
+        if (!state.xml) return [];
+        const res = state.xml.evaluate(expr, state.xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        const out = [];
+        for (let i = 0; i < res.snapshotLength; i++) {
+            let n = res.snapshotItem(i);
+            if (n.nodeType === 2) n = n.ownerElement; // @attribute
+            else if (n.nodeType !== 1) n = n.parentNode;
+            const el = state.xmlNodes.get(n);
+            if (el && !out.includes(el)) out.push(el);
+        }
+        return out;
+    }
+
+    /** Runs the query; keep=true (after a refresh) keeps the selection instead of jumping to the first match. */
+    function runFind(keep) {
+        const f = state.find;
+        const s = STRATEGY[f.strategy];
+        f.selector = f.query && s.selector ? s.selector(f.query) : '';
+        let res = { matches: [] };
+        if (f.query) {
+            res = s.selector ? S.resolve(f.selector, state.elements, evalXpath) : { matches: state.flat.filter(el => containsText(el, f.query.toLowerCase())) };
+        }
+        f.error = res.error || '';
+        f.matches = res.matches || [];
+        f.set = new Set(f.matches);
+        f.current = keep && state.selected ? f.matches.indexOf(state.selected) : -1;
+        if (!keep && f.matches.length) return step(1);
         renderTree();
+        renderFindCount();
+    }
+
+    /** Match count of a selector on the current screen, for the editor's code lenses. */
+    function resolveCount(selector) {
+        if (!state.elements.length) return { count: -1 };
+        const r = S.resolve(String(selector), state.elements, evalXpath);
+        return r.error ? { error: r.error } : { count: r.matches.length };
+    }
+
+    /** Shows a selector from the editor in the finder. */
+    function reveal(selector) {
+        state.find.strategy = 'testfly';
+        state.find.query = selector;
+        $('strategy').value = 'testfly';
+        $('search').value = selector;
+        $('search').placeholder = STRATEGY.testfly.placeholder + '  ( / )';
+        if (state.tab !== 'tree') document.querySelector('.tab[data-tab=tree]').click();
+        persist();
+        runFind(false);
+    }
+
+    function step(dir) {
+        const f = state.find;
+        if (!f.matches.length) return renderFindCount();
+        f.current = (f.current + dir + f.matches.length) % f.matches.length;
+        renderFindCount();
+        select(f.matches[f.current], true);
+    }
+
+    function renderFindCount() {
+        const f = state.find;
+        const el = $('findCount');
+        el.textContent = !f.query ? '' : f.error ? 'Invalid' : f.matches.length ? `${f.current >= 0 ? f.current + 1 : '–'} of ${f.matches.length}` : 'No match';
+        el.classList.toggle('none', !!f.query && (!!f.error || !f.matches.length));
+        el.title = f.error || (f.selector ? 'TestFly selector: ' + f.selector : '');
+        $('findPrev').disabled = $('findNext').disabled = f.matches.length < 2;
+        $('findCopy').disabled = !f.selector || !!f.error;
+    }
+
+    let findTimer;
+    $('search').addEventListener('input', e => {
+        clearTimeout(findTimer);
+        state.find.query = e.target.value.trim();
+        findTimer = setTimeout(() => runFind(false), 150);
     });
+    $('search').addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(findTimer);
+            if (state.find.query !== e.target.value.trim()) {
+                state.find.query = e.target.value.trim();
+                return runFind(false);
+            }
+            step(e.shiftKey ? -1 : 1);
+        } else if (e.key === 'Escape' && e.target.value) {
+            e.stopPropagation();
+            e.target.value = '';
+            state.find.query = '';
+            runFind(false);
+        }
+    });
+    $('strategy').addEventListener('change', e => {
+        state.find.strategy = e.target.value;
+        $('search').placeholder = STRATEGY[state.find.strategy].placeholder + '  ( / )';
+        persist();
+        runFind(false);
+    });
+    $('findNext').addEventListener('click', () => step(1));
+    $('findPrev').addEventListener('click', () => step(-1));
+    $('findCopy').addEventListener('click', () => state.find.selector && copy(state.find.selector, 'TestFly selector'));
+    $('strategy').value = state.find.strategy;
+    $('search').placeholder = STRATEGY[state.find.strategy].placeholder + '  ( / )';
+    renderFindCount();
 
     // keyboard navigation in the tree
     $('tree').addEventListener('keydown', e => {
@@ -439,12 +646,18 @@
     /** Adds a step in Record mode; an element without a selector falls back to a coordinate tap. */
     function record(el, action, extra) {
         if (state.mode !== 'record') return;
-        const suggestions = el ? S.suggest(el, state.elements, countXpath) : [];
-        const best = suggestions.find(x => x.count === 1) || suggestions[0];
-        if (best) state.steps.push({ action, el, selector: best.selector, ...extra });
-        else if (action === 'tap') state.steps.push({ action: 'tapAt', x: extra.x, y: extra.y });
+        const selector = el && bestSelector(el);
+        if (selector) state.steps.push({ action, el, selector, ...extra });
+        else if ((action === 'tap' || action === 'longPress') && extra.x != null) state.steps.push({ action: action + 'At', x: extra.x, y: extra.y });
         else return toast('This element has no selector; the step was not recorded', true);
         renderRecorded();
+    }
+
+    /** The unique selector, else the first one, else null. */
+    function bestSelector(el) {
+        const suggestions = S.suggest(el, state.elements, countXpath);
+        const best = suggestions.find(x => x.count === 1) || suggestions[0];
+        return best ? best.selector : null;
     }
 
     function recordDevice(step) {
@@ -614,6 +827,54 @@
         setStatus('loading', 'Typing…');
     }
 
+    // ── live refresh ────────────────────────────────────────────────────
+    // While Live is on, the screen is read again a few seconds after the previous read finished, so reads never pile up.
+    function scheduleLive() {
+        clearTimeout(state.live.timer);
+        if (state.live.on) state.live.timer = setTimeout(liveTick, state.live.every * 1000);
+    }
+
+    function liveTick() {
+        const busy = Date.now() - state.live.inFlight < 30000 || press
+            || $('status').dataset.state === 'loading' || $('status').dataset.state === 'connecting'
+            || (document.activeElement && document.activeElement.id === 'typeText'); // a refresh would wipe the text being typed
+        if (!state.live.on) return;
+        if (busy || document.hidden || !state.device) return scheduleLive();
+        state.live.inFlight = Date.now();
+        send({ type: 'refresh', quiet: true });
+    }
+
+    function liveDone() {
+        state.live.inFlight = 0;
+        scheduleLive();
+    }
+
+    function liveFailed() {
+        state.live.inFlight = 0;
+        if (state.live.on) {
+            setLive(false);
+            toast('Live refresh paused after an error; turn Live on again when the device is back', true);
+        }
+    }
+
+    function setLive(on) {
+        state.live.on = on;
+        $('live').checked = on;
+        $('live').closest('.toggle').classList.toggle('on', on);
+        $('liveEvery').disabled = !on;
+        persist();
+        if (on) liveTick(); else clearTimeout(state.live.timer);
+    }
+
+    $('live').addEventListener('change', e => setLive(e.target.checked));
+    $('liveEvery').addEventListener('change', e => {
+        state.live.every = Number(e.target.value);
+        persist();
+        scheduleLive();
+    });
+    $('liveEvery').value = String(state.live.every);
+    document.addEventListener('visibilitychange', () => !document.hidden && state.live.on && scheduleLive());
+
     // ── toolbar ─────────────────────────────────────────────────────────
     $('device').addEventListener('change', e => e.target.value && send({ type: 'selectDevice', id: e.target.value }));
     $('reloadDevices').addEventListener('click', () => send({ type: 'devices' }));
@@ -659,6 +920,7 @@
         else if (e.key === 'i') setMode('inspect');
         else if (e.key === 't') setMode('tap');
         else if (e.key === 'e') setMode('record');
+        else if (e.key === 'l') setLive(!state.live.on);
     });
 
     // ── resizable panes ─────────────────────────────────────────────────
@@ -700,6 +962,7 @@
     }
 
     setMode(state.mode);
+    setLive(state.live.on);
     renderTree();
     send({ type: 'ready' });
 })();

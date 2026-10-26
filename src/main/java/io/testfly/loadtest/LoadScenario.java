@@ -56,6 +56,8 @@ public final class LoadScenario {
     private long thinkTimeMinMs = -1;
     private long thinkTimeMaxMs = -1;
     private Duration thinkTimeFixed;
+    private Workload workload;
+    private LoadSla sla;
 
     LoadScenario(String name) {
         this.name = name;
@@ -75,27 +77,56 @@ public final class LoadScenario {
 
     // ── Configuration ────────────────────────────────────────────────────
 
-    /** Sets the number of concurrent virtual users. */
+    /**
+     * Sets the number of virtual users, started over {@link #rampUp(Duration) rampUp}. This is not a concurrency
+     * target: how many users are active at once depends on the ramp-up, the hold and the response times.
+     */
     public LoadScenario users(int users) {
         this.users = users;
         return this;
     }
 
-    /** Sets the ramp-up duration — time to reach full user count. */
+    /**
+     * Sets the ramp-up duration: the window over which the virtual users start, evenly spaced (not a concurrency
+     * target).
+     */
     public LoadScenario rampUp(Duration duration) {
         this.rampUp = duration;
         return this;
     }
 
-    /** Sets the hold duration — how long all users stay active. */
+    /**
+     * Sets the hold duration: how long each user keeps iterating, counted from that user's own start (users that
+     * start later in the ramp-up also stop later).
+     */
     public LoadScenario hold(Duration duration) {
         this.hold = duration;
         return this;
     }
 
-    /** Sets the cooldown duration — gradual user removal after hold. */
+    /**
+     * Sets the cooldown duration. Currently accepted but not applied by any engine
+     * (see ADR-0003); a warning is logged once per JVM when it is greater than zero.
+     */
     public LoadScenario cooldown(Duration duration) {
         this.cooldown = duration;
+        return this;
+    }
+
+    /**
+     * Sets the workload model (open or closed injection steps). With a workload, each virtual user runs
+     * the steps once, there is no hold loop, and the scenario needs the Gatling engine. It cannot be
+     * combined with {@link #users(int)}, {@link #rampUp(Duration)}, {@link #hold(Duration)} or
+     * {@link #cooldown(Duration)}; {@code @LoadTest} and {@code testfly.yml} values for those are ignored.
+     *
+     * @throws IllegalArgumentException if {@code workload} is {@code null}
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LoadScenario workload(Workload workload) {
+        if (workload == null) {
+            throw new IllegalArgumentException("[LoadTest] workload cannot be null");
+        }
+        this.workload = workload;
         return this;
     }
 
@@ -217,8 +248,10 @@ public final class LoadScenario {
 
     /**
      * Runs the scenario and asserts all responses returned the given status code.
+     * Fails with "HTTP status codes were not measured" if the engine could not record them.
      */
     public LoadTestAssert assertStatus(int expected) {
+        // assertStatus(int) fails first when status codes were not measured
         LoadTestAssert result = run().assertStatus(expected);
         // "All responses": no other status code (including -1 for transport failures) may occur.
         for (Integer code : result.metrics().statusCodes().keySet()) {
@@ -298,5 +331,28 @@ public final class LoadScenario {
 
     public Duration thinkTimeFixed() {
         return thinkTimeFixed;
+    }
+
+    /**
+     * Attaches an SLA: after the run TestFly evaluates it from the metrics, records the run, and {@link #run()}
+     * throws {@link AssertionError} if a rule failed. In a {@link LoadSimulation} it applies to this scenario's
+     * metrics (step names unprefixed).
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LoadScenario sla(LoadSla sla) {
+        this.sla = sla;
+        return this;
+    }
+
+    /** The attached SLA, or {@code null}. */
+    @TestFlyApi(since = "1.1.0")
+    public LoadSla sla() {
+        return sla;
+    }
+
+    /** The workload model, or {@code null} for the legacy {@code users/rampUp/hold} shape. */
+    @TestFlyApi(since = "1.1.0")
+    public Workload workload() {
+        return workload;
     }
 }

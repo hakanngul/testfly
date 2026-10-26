@@ -25,6 +25,8 @@ import java.util.concurrent.atomic.AtomicLong;
 @TestFlyApi(since = "1.1.0")
 public abstract class LoadTestFeeder {
 
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(LoadTestFeeder.class);
+
     /**
      * Returns the next set of variable bindings, or {@code null} when exhausted.
      */
@@ -88,21 +90,29 @@ public abstract class LoadTestFeeder {
     // ── Factory methods ──────────────────────────────────────────────────
 
     /**
-     * Creates a CSV file feeder. Each row becomes a variable map
-     * (column headers → values). Rows are cycled round-robin.
+     * Creates a CSV file feeder. The first line holds the column names; each following row becomes a variable map
+     * (column name → value). Rows are cycled round-robin.
      *
      * <p>
-     * Full implementation in Sprint 2.
+     * The file is read once, here. {@code path} is resolved in this order: the classpath, the file system
+     * (relative to the working directory), then {@code src/test/resources/}. A missing or unreadable file only logs
+     * a WARN and gives a feeder without rows; this method never throws. Running a scenario with such a feeder
+     * fails fast, before any request, with an {@link IllegalArgumentException} that names the path ("not found or
+     * has no rows").
      */
     public static LoadTestFeeder csv(String path) {
         return new CsvFeeder(path);
     }
 
     /**
-     * Creates a JSON array file feeder. Each element becomes a variable map.
+     * Creates a JSON array file feeder. Each element (an object) becomes a variable map. Elements are cycled
+     * round-robin.
      *
      * <p>
-     * Full implementation in Sprint 2.
+     * The file is read once, here, and {@code path} is resolved like {@link #csv(String)}: the classpath, the file
+     * system, then {@code src/test/resources/}. A missing or unreadable file, or an empty array, gives a feeder
+     * without rows (a WARN for a missing or unreadable file); this method never throws. Running a scenario with such
+     * a feeder fails fast, before any request, with an {@link IllegalArgumentException} that names the path.
      */
     public static LoadTestFeeder json(String path) {
         return new JsonFeeder(path);
@@ -134,7 +144,6 @@ public abstract class LoadTestFeeder {
         private final String variable;
         private final int min;
         private final int max;
-        private final java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
 
         RandomFeeder(String variable, int min, int max) {
             this.variable = variable;
@@ -268,7 +277,7 @@ public abstract class LoadTestFeeder {
             List<Map<String, Object>> result = new ArrayList<>();
             java.io.File file = resolveFile(path);
             if (file == null || !file.exists()) {
-                System.err.println("[LoadTest] CSV feeder file not found: " + path);
+                LOGGER.warn("[LoadTest] CSV feeder file not found: {}", path);
                 return result;
             }
             try (var reader = new java.io.BufferedReader(new java.io.FileReader(file))) {
@@ -293,7 +302,7 @@ public abstract class LoadTestFeeder {
                     result.add(row);
                 }
             } catch (java.io.IOException e) {
-                System.err.println("[LoadTest] Failed to read CSV feeder: " + path + " — " + e.getMessage());
+                LOGGER.warn("[LoadTest] Failed to read CSV feeder: {} — {}", path, e.getMessage());
             }
             return result;
         }
@@ -336,7 +345,7 @@ public abstract class LoadTestFeeder {
             List<Map<String, Object>> result = new ArrayList<>();
             java.io.File file = resolveFile(path);
             if (file == null || !file.exists()) {
-                System.err.println("[LoadTest] JSON feeder file not found: " + path);
+                LOGGER.warn("[LoadTest] JSON feeder file not found: {}", path);
                 return result;
             }
             try {
@@ -352,7 +361,7 @@ public abstract class LoadTestFeeder {
                     result.add((Map<String, Object>) map);
                 }
             } catch (java.io.IOException e) {
-                System.err.println("[LoadTest] Failed to read JSON feeder: " + path + " — " + e.getMessage());
+                LOGGER.warn("[LoadTest] Failed to read JSON feeder: {} — {}", path, e.getMessage());
             }
             return result;
         }

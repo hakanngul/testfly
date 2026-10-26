@@ -28,6 +28,8 @@ import java.util.List;
 @TestFlyApi(since = "1.1.0")
 public final class LoadTestReportAdapter implements ReportAdapter {
 
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(LoadTestReportAdapter.class);
+
     @Override
     public String getName() {
         return "loadtest";
@@ -84,7 +86,7 @@ public final class LoadTestReportAdapter implements ReportAdapter {
 
         } catch (Exception e) {
             // Per Acceptance Criteria: Report generation failure must NOT fail the build
-            System.err.println("[LoadTest] Report generation error (non-fatal): " + e.getMessage());
+            LOGGER.warn("[LoadTest] Report generation error (non-fatal): {}", e.getMessage());
         }
     }
 

@@ -80,13 +80,64 @@ public final class MobileCliClient implements AutoCloseable {
 
     /** Checks the server; runs {@code mobilecli server start} once when a local server does not answer. */
     public String ensureServer(Duration startTimeout) {
+        return ensureServer(startTimeout, autoStart);
+    }
+
+    /** As {@link #ensureServer(Duration)}, with auto-start decided by the caller (off after a stop from the panel). */
+    public String ensureServer(Duration startTimeout, boolean start) {
         try {
             return version();
         } catch (RpcException e) {
-            if (!e.unreachable || !autoStart || !isLoopback(serverUrl) || server != null) {
+            if (!e.unreachable || !start || !isLoopback(serverUrl) || server != null) {
                 throw e;
             }
         }
+        return spawnServer(startTimeout);
+    }
+
+    /** Starts a local server on request, whatever the auto-start setting says; a running server is kept. */
+    public String startServer(Duration startTimeout) {
+        try {
+            return version();
+        } catch (RpcException e) {
+            if (!e.unreachable) {
+                throw e;
+            }
+        }
+        if (!isLoopback(serverUrl)) {
+            throw new RpcException("Only a local mobilecli server can be started; start the one at " + serverUrl + " on its host.", true);
+        }
+        close(); // a server this client started earlier that no longer answers
+        return spawnServer(startTimeout);
+    }
+
+    /** Stops the server through {@code server.shutdown}, also one started outside this client, and waits until it is gone. */
+    public void stopServer(Duration stopTimeout) {
+        try {
+            call("server.shutdown", new JsonObject(), Duration.ofSeconds(3));
+        } catch (RpcException e) {
+            if (e.unreachable) {
+                return; // already down
+            }
+            throw e;
+        }
+        server = null; // the process exits by itself after server.shutdown
+        long deadline = System.nanoTime() + stopTimeout.toNanos();
+        while (System.nanoTime() < deadline) {
+            try {
+                version();
+            } catch (RpcException e) {
+                if (e.unreachable) {
+                    return;
+                }
+                throw e;
+            }
+            sleep(200);
+        }
+        throw new RpcException("mobilecli server at " + serverUrl + " still answers " + stopTimeout.toMillis() + " ms after server.shutdown", false);
+    }
+
+    private String spawnServer(Duration startTimeout) {
         URI uri = URI.create(serverUrl);
         int port = uri.getPort() > 0 ? uri.getPort() : 12000;
         try {
@@ -130,6 +181,25 @@ public final class MobileCliClient implements AutoCloseable {
             }
         }
         return online;
+    }
+
+    /** Every device mobilecli knows, offline emulators and simulators too (they can be booted). */
+    public JsonArray allDevices() {
+        JsonObject p = new JsonObject();
+        p.addProperty("includeOffline", true);
+        JsonElement result = call("devices.list", p);
+        return result.isJsonArray() ? result.getAsJsonArray()
+                : result.isJsonObject() && result.getAsJsonObject().has("devices") ? result.getAsJsonObject().getAsJsonArray("devices") : new JsonArray();
+    }
+
+    /** Starts an offline emulator or simulator and waits until it is ready. */
+    public void boot(String deviceId) {
+        call("device.boot", device(deviceId), Duration.ofMinutes(4));
+    }
+
+    /** Shuts an emulator or simulator down. */
+    public void shutdown(String deviceId) {
+        call("device.shutdown", device(deviceId), Duration.ofMinutes(1));
     }
 
     public JsonObject screenSize(String deviceId) {

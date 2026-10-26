@@ -47,7 +47,8 @@ import java.lang.annotation.Target;
 public @interface LoadTest {
 
     /**
-     * Number of concurrent virtual users. {@code -1} means "use config default".
+     * Number of virtual users, started over {@link #rampUp()}; not a concurrency target.
+     * {@code -1} means "use config default".
      */
     int users() default -1;
 
@@ -58,14 +59,14 @@ public @interface LoadTest {
     String rampUp() default "";
 
     /**
-     * Hold duration — how long all users stay active.
+     * Hold duration: how long each user keeps iterating, counted from that user's own start.
      * Empty string means "use config default".
      */
     String hold() default "";
 
     /**
-     * Cooldown duration — gradual user removal after hold.
-     * Empty string means "use config default".
+     * Cooldown duration. Accepted but not applied by any engine yet (ADR-0003); a WARN is logged when it is
+     * greater than zero. Empty string means "use config default".
      */
     String cooldown() default "";
 

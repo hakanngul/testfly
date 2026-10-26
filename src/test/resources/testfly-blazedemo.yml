@@ -1,0 +1,31 @@
+# Load-test profile for https://blazedemo.com
+# Run: mvn test -Pexamples -Dtestfly.profile=blazedemo -Dtest=BlazeDemoLoadTest
+#
+# Values here are project-wide defaults; @LoadTest on the class/method and the
+# fluent scenario API (.users(), .hold(), ...) override them.
+
+# browser/execution/timeouts are required by config validation; BaseLoadTest
+# never starts a browser.
+browser:
+  name: chrome
+  headless: true
+
+execution:
+  mode: local
+  baseUrl: ${BLAZEDEMO_BASE_URL:-https://blazedemo.com}
+
+timeouts:
+  explicit: 10
+  pageLoad: 30
+
+loadtest:
+  enabled: true
+  baseUrl: ${BLAZEDEMO_BASE_URL:-https://blazedemo.com}
+  engine: ${LOADTEST_ENGINE:-jdk}   # jdk | gatling | auto
+  users: 10
+  rampUp: 10s
+  hold: 30s
+  cooldown: 5s
+  maxUsers: 100                     # guard against overloading a public demo site
+  resultsDir: target/loadtest/blazedemo
+  reportEnabled: true

@@ -23,4 +23,4 @@ Trace TestFly failures through engine adapter → lifecycle/execution → domain
 
 ## Outcome
 
-State the smallest reproduction, evidence, classification, root cause or ranked hypotheses, and the next discriminating check. Do not weaken assertions, add sleeps/retries, or alter production behavior merely to make a symptom disappear. If asked to fix the confirmed cause, switch to `testfly-change` or `testfly-test-authoring`, then use `testfly-verify`.
+State the smallest reproduction, evidence, classification, root cause or ranked hypotheses, and the next discriminating check. Do not weaken assertions, add sleeps/retries, or alter production behavior merely to make a symptom disappear. If asked to fix the confirmed cause: a test, fixture or test-configuration defect may be fixed here with the smallest change; a production defect (`src/main`) is handed to the lead with the evidence and a proposed patch, and implemented under `testfly-change` (or `testfly-mobile`). Then use `testfly-verify`.

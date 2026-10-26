@@ -2,6 +2,7 @@ package io.testfly.inspector;
 
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -19,13 +20,22 @@ public final class OpenInspectorAction extends AnAction implements DumbAware {
     }
 
     static void open(Project project) {
+        open(project, null);
+    }
+
+    /** Opens (or shows) the inspector tab; with a device id, that device is selected. */
+    static void open(Project project, String deviceId) {
         FileEditorManager editors = FileEditorManager.getInstance(project);
+        VirtualFile file = null;
         for (VirtualFile f : editors.getOpenFiles()) {
             if (f instanceof InspectorFile) {
-                editors.openFile(f, true);
-                return;
+                file = f;
             }
         }
-        editors.openFile(new InspectorFile(), true);
+        for (FileEditor editor : editors.openFile(file != null ? file : new InspectorFile(), true)) {
+            if (deviceId != null && editor instanceof InspectorEditor inspector) {
+                inspector.inspect(deviceId);
+            }
+        }
     }
 }

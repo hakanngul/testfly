@@ -31,11 +31,18 @@ public final class InspectorController implements AutoCloseable {
     private JsonObject screen;
     private boolean busy;
     private boolean warm; // mobilecli's agent is up for this device: tree and screenshot can run together
+    private boolean serverStopped; // stopped from the panel: no auto-start until it is started from the panel again
+    private volatile String wanted; // a device chosen in the tool window's device list, selected on the next listing
 
     public InspectorController(MobileCliClient cli, Consumer<JsonObject> post, Ide ide) {
         this.cli = cli;
         this.post = post;
         this.ide = ide;
+    }
+
+    /** Selects this device the next time the devices are listed (the tool window's Inspect button). */
+    public void want(String deviceId) {
+        wanted = deviceId;
     }
 
     /** One message from the webview, as JSON text. */
@@ -45,7 +52,14 @@ public final class InspectorController implements AutoCloseable {
             switch (MobileCliClient.str(m, "type")) {
                 case "ready", "devices" -> loadDevices();
                 case "selectDevice" -> selectDevice(MobileCliClient.str(m, "id"), null);
-                case "refresh" -> refresh();
+                case "refresh" -> refresh(m.has("quiet") && m.get("quiet").getAsBoolean());
+                case "server" -> {
+                    if ("start".equals(MobileCliClient.str(m, "action"))) {
+                        startServer();
+                    } else {
+                        stopServer();
+                    }
+                }
                 case "snapshotText" -> post(msg("snapshotText").withText("text", cli.snapshotText(requireDevice())));
                 case "tap" -> act(id -> cli.tap(id, num(m, "x"), num(m, "y")));
                 case "longPress" -> act(id -> cli.longPress(id, num(m, "x"), num(m, "y")));
@@ -56,28 +70,41 @@ public final class InspectorController implements AutoCloseable {
                     cli.typeText(id, MobileCliClient.str(m, "text"));
                 });
                 case "button" -> act(id -> cli.pressButton(id, MobileCliClient.str(m, "button")));
-                case "swipe" -> act(id -> swipe(id, MobileCliClient.str(m, "direction")));
+                case "swipe" -> act(id -> {
+                    if (m.has("x1") && m.has("y1") && m.has("x2") && m.has("y2")) {
+                        cli.swipe(id, num(m, "x1"), num(m, "y1"), num(m, "x2"), num(m, "y2")); // dragged on the screenshot
+                    } else {
+                        swipe(id, MobileCliClient.str(m, "direction"));
+                    }
+                });
                 case "copy" -> ide.copy(MobileCliClient.str(m, "text"), MobileCliClient.str(m, "label"));
                 default -> {
                 }
             }
         } catch (RuntimeException e) {
+            boolean unreachable = e instanceof MobileCliClient.RpcException r && r.unreachable;
+            if (unreachable) {
+                post.accept(server(false, ""));
+            }
             JsonObject error = msg("error").withText("message", e.getMessage()).json;
-            error.addProperty("unreachable", e instanceof MobileCliClient.RpcException r && r.unreachable);
+            error.addProperty("unreachable", unreachable);
             post.accept(error);
         }
     }
 
     private void loadDevices() {
         status("connecting", "Connecting to mobilecli…");
-        String version = cli.ensureServer(Duration.ofSeconds(20));
+        String version = serverStopped ? cli.ensureServer(Duration.ofSeconds(20), false) : cli.ensureServer(Duration.ofSeconds(20));
+        post.accept(server(true, version));
         JsonArray devices = cli.onlineDevices();
         JsonObject list = msg("devices").withText("version", version).json;
         list.add("devices", devices);
         post.accept(list);
+        String want = wanted != null ? wanted : device != null ? MobileCliClient.str(device, "id") : null;
+        wanted = null;
         JsonObject keep = null;
         for (JsonElement d : devices) {
-            if (device != null && MobileCliClient.str(d.getAsJsonObject(), "id").equals(MobileCliClient.str(device, "id"))) {
+            if (want != null && MobileCliClient.str(d.getAsJsonObject(), "id").equals(want)) {
                 keep = d.getAsJsonObject();
             }
         }
@@ -89,6 +116,33 @@ public final class InspectorController implements AutoCloseable {
         } else {
             status("idle", devices.isEmpty() ? "No online device. Boot a simulator or emulator, then press refresh." : "Choose a device.");
         }
+    }
+
+    private void startServer() {
+        serverStopped = false;
+        status("connecting", "Starting mobilecli server…");
+        cli.startServer(Duration.ofSeconds(20));
+        loadDevices();
+    }
+
+    private void stopServer() {
+        serverStopped = true;
+        status("loading", "Stopping mobilecli server…");
+        cli.stopServer(Duration.ofSeconds(5));
+        device = null;
+        screen = null;
+        warm = false;
+        post.accept(server(false, ""));
+        JsonObject list = msg("devices").json;
+        list.add("devices", new JsonArray());
+        post.accept(list);
+        status("idle", "mobilecli server stopped. Start it from the Server button.");
+    }
+
+    private JsonObject server(boolean running, String version) {
+        JsonObject m = msg("server").withText("version", version).json;
+        m.addProperty("running", running);
+        return m;
     }
 
     private void selectDevice(String id, JsonArray known) {
@@ -107,10 +161,11 @@ public final class InspectorController implements AutoCloseable {
         JsonObject m = msg("device").json;
         m.add("device", device);
         post.accept(m);
-        refresh();
+        refresh(false);
     }
 
-    private void refresh() {
+    /** quiet: a Live refresh, which neither dims the screen nor reports progress. */
+    private void refresh(boolean quiet) {
         String id = requireDevice();
         synchronized (this) {
             if (busy) {
@@ -118,7 +173,9 @@ public final class InspectorController implements AutoCloseable {
             }
             busy = true;
         }
-        status("loading", "Reading " + MobileCliClient.str(device, "name") + "…");
+        if (!quiet) {
+            status("loading", "Reading " + MobileCliClient.str(device, "name") + "…");
+        }
         try {
             long started = System.nanoTime();
             if (screen == null) {
@@ -130,7 +187,9 @@ public final class InspectorController implements AutoCloseable {
                 // Both at once; the picture is shown as soon as it arrives, the tree follows.
                 CompletableFuture<String> shot = CompletableFuture.supplyAsync(() -> {
                     String s = cli.screenshot(id);
-                    post(msg("shot").withText("screenshot", s));
+                    if (!quiet) {
+                        post(msg("shot").withText("screenshot", s));
+                    }
                     return s;
                 });
                 elements = cli.dump(id);
@@ -150,6 +209,7 @@ public final class InspectorController implements AutoCloseable {
             m.add("screen", screen);
             m.add("elements", elements);
             m.addProperty("ms", (System.nanoTime() - started) / 1_000_000);
+            m.addProperty("quiet", quiet);
             post.accept(m);
         } finally {
             synchronized (this) {
@@ -167,7 +227,9 @@ public final class InspectorController implements AutoCloseable {
         action.run(id);
         if (ide.autoRefreshAfterAction()) {
             sleep(300); // let the UI settle (animations, navigation)
-            refresh();
+            refresh(false);
+        } else {
+            status("ok", MobileCliClient.str(device, "name") + " · done; press Refresh to read the screen");
         }
     }
 

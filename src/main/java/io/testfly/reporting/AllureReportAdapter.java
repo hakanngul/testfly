@@ -192,16 +192,17 @@ public class AllureReportAdapter implements ReportAdapter {
             JsonNode lt = test.path("loadTestMetrics");
             addParameter(parameters, "Load Engine", lt.path("engine").asText("gatling").toUpperCase(Locale.ROOT));
             if (lt.has("users")) {
-                addParameter(parameters, "Concurrent Users", lt.path("users").asText() + " VUs");
+                // virtual users started over rampUp, not a concurrency target (ADR 0003)
+                addParameter(parameters, "Virtual Users", lt.path("users").asText() + " VUs");
             }
             if (lt.has("totalRequests")) {
                 addParameter(parameters, "Total Requests", lt.path("totalRequests").asText());
             }
             if (lt.has("throughputRps")) {
-                addParameter(parameters, "Throughput", String.format(Locale.ROOT, "%.1f req/s", lt.path("throughputRps").asDouble()));
+                addParameter(parameters, "Throughput", throughputOrNa(lt.path("throughputRps")));
             }
             if (lt.has("p95LatencyMs")) {
-                addParameter(parameters, "P95 Latency", String.format(Locale.ROOT, "%.0f ms", lt.path("p95LatencyMs").asDouble()));
+                addParameter(parameters, "P95 Latency", latencyOrNa(lt.path("p95LatencyMs")));
             }
             if (lt.has("errorRate")) {
                 addParameter(parameters, "Error Rate", String.format(Locale.ROOT, "%.2f%%", lt.path("errorRate").asDouble() * 100));
@@ -320,30 +321,67 @@ public class AllureReportAdapter implements ReportAdapter {
         return null;
     }
 
+    /** "n ms", or "n/a" when the engine did not measure the value (missing, null or non-numeric). */
+    private static String latencyOrNa(JsonNode node) {
+        if (node == null || !(node.isNumber() || node.isTextual())) {
+            return "n/a";
+        }
+        double v = node.asDouble(Double.NaN);
+        return Double.isNaN(v) ? "n/a" : Math.round(v) + " ms";
+    }
+
+    /** "n req/s", or "n/a" when the engine did not measure throughput (missing, null or non-numeric). */
+    private static String throughputOrNa(JsonNode node) {
+        if (node == null || !(node.isNumber() || node.isTextual())) {
+            return "n/a";
+        }
+        double v = node.asDouble(Double.NaN);
+        return Double.isNaN(v) ? "n/a" : String.format(Locale.ROOT, "%.1f req/s", v);
+    }
+
+    /** A plain number (no exponent, no trailing zeros), or "n/a" when missing, null or not finite. */
+    private static String numberOrNa(JsonNode node) {
+        if (node == null || !(node.isNumber() || node.isTextual())) {
+            return "n/a";
+        }
+        double v = node.asDouble(Double.NaN);
+        if (!Double.isFinite(v)) {
+            return "n/a";
+        }
+        return java.math.BigDecimal.valueOf(v).stripTrailingZeros().toPlainString();
+    }
+
+    /** A Markdown table cell: backslashes and pipes escaped, line breaks flattened. */
+    private static String mdCell(String text) {
+        return text.replace("\\", "\\\\").replace("|", "\\|").replace("\r", " ").replace("\n", " ");
+    }
+
     private String buildLoadTestSummaryMarkdown(JsonNode lt) {
         StringBuilder sb = new StringBuilder();
         String scenario = lt.path("scenarioName").asText("Load Scenario");
         sb.append("# ⚡ Load Test Metrics Summary: ").append(scenario).append("\n\n");
         sb.append("- **Engine:** ").append(lt.path("engine").asText("gatling").toUpperCase(Locale.ROOT)).append("\n");
-        sb.append("- **Concurrent Users:** ").append(lt.path("users").asInt(0)).append(" VUs\n");
+        sb.append("- **Virtual Users:** ").append(lt.path("users").asInt(0)).append(" VUs\n");
         sb.append("- **Duration:** ").append(String.format(Locale.ROOT, "%.1fs", lt.path("durationMs").asDouble(0) / 1000.0)).append("\n");
         sb.append("- **Total Requests:** ").append(lt.path("totalRequests").asLong(0))
           .append(" (OK: ").append(lt.path("successfulRequests").asLong(0))
           .append(", KO: ").append(lt.path("failedRequests").asLong(0)).append(")\n");
-        sb.append("- **Throughput:** ").append(String.format(Locale.ROOT, "%.1f req/s", lt.path("throughputRps").asDouble(0))).append("\n");
-        sb.append("- **Error Rate:** ").append(String.format(Locale.ROOT, "%.2f%%", lt.path("errorRate").asDouble(0) * 100)).append("\n\n");
+        sb.append("- **Throughput:** ").append(throughputOrNa(lt.path("throughputRps"))).append("\n");
+        sb.append("- **Error Rate:** ").append(String.format(Locale.ROOT, "%.2f%%", lt.path("errorRate").asDouble(0) * 100)).append("\n");
+        // partial: some requests have no recorded outcome, so latency, status and error figures are incomplete
+        sb.append("- **Partial:** ").append(lt.path("partial").asBoolean(false) ? "yes" : "no").append("\n\n");
 
         sb.append("## Latency Percentiles\n\n");
         sb.append("| Percentile | Latency |\n");
         sb.append("| :--- | :--- |\n");
-        sb.append("| **Min** | ").append(Math.round(lt.path("minLatencyMs").asDouble(0))).append(" ms |\n");
-        sb.append("| **P50** | ").append(Math.round(lt.path("p50LatencyMs").asDouble(0))).append(" ms |\n");
-        sb.append("| **P75** | ").append(Math.round(lt.path("p75LatencyMs").asDouble(0))).append(" ms |\n");
-        sb.append("| **P90** | ").append(Math.round(lt.path("p90LatencyMs").asDouble(0))).append(" ms |\n");
-        sb.append("| **P95** | ").append(Math.round(lt.path("p95LatencyMs").asDouble(0))).append(" ms |\n");
-        sb.append("| **P99** | ").append(Math.round(lt.path("p99LatencyMs").asDouble(0))).append(" ms |\n");
-        sb.append("| **Max** | ").append(Math.round(lt.path("maxLatencyMs").asDouble(0))).append(" ms |\n");
-        sb.append("| **Mean** | ").append(Math.round(lt.path("meanLatencyMs").asDouble(0))).append(" ms |\n\n");
+        sb.append("| **Min** | ").append(latencyOrNa(lt.path("minLatencyMs"))).append(" |\n");
+        sb.append("| **P50** | ").append(latencyOrNa(lt.path("p50LatencyMs"))).append(" |\n");
+        sb.append("| **P75** | ").append(latencyOrNa(lt.path("p75LatencyMs"))).append(" |\n");
+        sb.append("| **P90** | ").append(latencyOrNa(lt.path("p90LatencyMs"))).append(" |\n");
+        sb.append("| **P95** | ").append(latencyOrNa(lt.path("p95LatencyMs"))).append(" |\n");
+        sb.append("| **P99** | ").append(latencyOrNa(lt.path("p99LatencyMs"))).append(" |\n");
+        sb.append("| **Max** | ").append(latencyOrNa(lt.path("maxLatencyMs"))).append(" |\n");
+        sb.append("| **Mean** | ").append(latencyOrNa(lt.path("meanLatencyMs"))).append(" |\n\n");
 
         if (lt.has("steps") && lt.path("steps").isObject() && lt.path("steps").size() > 0) {
             sb.append("## Steps Breakdown\n\n");
@@ -355,9 +393,27 @@ public class AllureReportAdapter implements ReportAdapter {
                   .append(st.path("totalRequests").asLong(0)).append(" | ")
                   .append(st.path("successfulRequests").asLong(0)).append(" | ")
                   .append(st.path("failedRequests").asLong(0)).append(" | ")
-                  .append(Math.round(st.path("p95LatencyMs").asDouble(0))).append(" ms | ")
+                  .append(latencyOrNa(st.path("p95LatencyMs"))).append(" | ")
                   .append(String.format(Locale.ROOT, "%.1f%%", st.path("errorRate").asDouble(0) * 100)).append(" |\n");
             });
+            sb.append("\n");
+        }
+
+        JsonNode sla = lt.path("sla");
+        if (sla.isArray() && !sla.isEmpty()) {
+            // declaration order; an unmeasured actual is exported as null and shown as n/a
+            sb.append("## SLA\n\n");
+            sb.append("| Scope | Metric | Comparison | Threshold | Actual | Result | Reason |\n");
+            sb.append("| :--- | :--- | :--- | ---: | ---: | :--- | :--- |\n");
+            for (JsonNode r : sla) {
+                sb.append("| ").append(mdCell(r.path("scope").asText(""))).append(" | ")
+                  .append(mdCell(r.path("metric").asText(""))).append(" | ")
+                  .append(mdCell(r.path("comparison").asText(""))).append(" | ")
+                  .append(numberOrNa(r.path("threshold"))).append(" | ")
+                  .append(numberOrNa(r.path("actual"))).append(" | ")
+                  .append(r.path("passed").asBoolean(false) ? "PASS" : "FAIL").append(" | ")
+                  .append(mdCell(r.path("reason").asText(""))).append(" |\n");
+            }
             sb.append("\n");
         }
 

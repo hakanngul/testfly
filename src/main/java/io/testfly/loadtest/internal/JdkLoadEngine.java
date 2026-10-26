@@ -7,11 +7,16 @@ import io.testfly.loadtest.LoadTestConfig;
 import io.testfly.loadtest.LoadTestFeeder;
 import io.testfly.loadtest.LoadTestMetrics;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,6 +33,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * JDK-based load-test engine — zero external dependencies.
@@ -40,18 +48,22 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <h3>Execution phases</h3>
  * <ol>
- * <li><b>Ramp-up</b> — users are started gradually over {@code rampUp}
- * duration</li>
- * <li><b>Hold</b> — all users are active, executing steps in a loop</li>
- * <li><b>Cooldown</b> — users are stopped gradually</li>
+ * <li><b>Ramp-up</b> — users are started evenly over {@code rampUp}</li>
+ * <li><b>Hold</b> — each user executes the steps in a loop for {@code hold}, counted from its own start</li>
  * </ol>
+ * {@code cooldown} is accepted but not applied (ADR-0003).
+ *
+ * <h3>Request outcome</h3>
+ * <p>
+ * Every sent request is counted. It is KO when there is no HTTP response (status {@code -1}),
+ * when the default status check fails (no explicit status check and status not 2xx/304), when any
+ * check fails, or when an {@code extract(..)} path is not found — the same semantics as the Gatling
+ * engine. Any other error (e.g. a malformed URI) aborts the run with an {@link IllegalStateException}.
  *
  * <h3>Metrics collection</h3>
  * <p>
- * Per-request latency is recorded in a lock-free
- * {@link java.util.concurrent.ConcurrentLinkedQueue}-style
- * structure. After execution, percentiles (p50, p90, p95, p99) are computed via
- * sorted-array nearest-rank method.
+ * Per-request latency is recorded in synchronized lists. After execution, percentiles
+ * (p50, p75, p90, p95, p99) are computed with linear interpolation ({@link PercentileCalculator}).
  *
  * <h3>Thread safety</h3>
  * <p>
@@ -91,12 +103,8 @@ public final class JdkLoadEngine implements LoadTestEngine {
                             "or @LoadTest(baseUrl = \"...\") or .baseUrl(\"...\") on the scenario.");
         }
 
+        LoadScenarioValidator.validate(scenario, name(), config.getMaxUsers());
         List<LoadStep> steps = scenario.steps();
-        if (steps.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "[LoadTest] Scenario '" + scenario.name() + "' has no steps. " +
-                            "Add at least one step via .get(), .post(), or .step().");
-        }
 
         LoadTestFeeder feeder = scenario.feeder();
         long thinkMinMs = scenario.thinkTimeMinMs();
@@ -129,7 +137,7 @@ public final class JdkLoadEngine implements LoadTestEngine {
         long startTimeMs = System.currentTimeMillis();
         ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
         CountDownLatch allDone = new CountDownLatch(users);
-        AtomicLong activeUsers = new AtomicLong(0);
+        AtomicReference<Failure> firstFailure = new AtomicReference<>();
 
         long totalDurationMs = (rampUpSeconds + holdSeconds + cooldownSeconds) * 1000;
         long rampUpPerUserMs = users > 1 ? (rampUpSeconds * 1000) / (users - 1) : 0;
@@ -137,17 +145,16 @@ public final class JdkLoadEngine implements LoadTestEngine {
         final String finalBaseUrl = baseUrl;
 
         for (int i = 0; i < users; i++) {
-            final int userId = i;
-            final long userStartDelay = rampUpPerUserMs * userId;
+            final long userStartDelay = rampUpPerUserMs * i;
 
             executor.submit(() -> {
+                String currentStep = "<feeder>";
                 try {
                     // Ramp-up delay
                     if (userStartDelay > 0) {
                         Thread.sleep(userStartDelay);
                     }
 
-                    activeUsers.incrementAndGet();
                     long userEndTime = System.currentTimeMillis() + (holdSeconds * 1000);
 
                     // Feeder row for this user (never mutated — each iteration works on a copy)
@@ -155,30 +162,44 @@ public final class JdkLoadEngine implements LoadTestEngine {
                             ? feeder.next()
                             : Collections.emptyMap();
 
-                    // Hold phase — loop until hold duration expires
-                    while (System.currentTimeMillis() < userEndTime) {
+                    // Hold phase — loop until hold duration expires or the run is aborted
+                    while (System.currentTimeMillis() < userEndTime && firstFailure.get() == null
+                            && !Thread.currentThread().isInterrupted()) {
                         // Per-iteration copy so extract() works without a feeder, with
                         // immutable feeder rows, and never leaks values across iterations.
                         Map<String, Object> vars = new HashMap<>(feederRow != null ? feederRow : Map.of());
                         for (LoadStep step : steps) {
+                            if (firstFailure.get() != null) {
+                                return;
+                            }
+                            currentStep = step.name();
+                            // Build first: a malformed request is a programming error, not a KO
+                            HttpRequest request = buildRequest(step, finalBaseUrl, vars, timeoutSeconds);
+
                             long reqStart = System.nanoTime();
+                            boolean ok;
                             try {
-                                executeStep(httpClient, step, finalBaseUrl, vars, timeoutSeconds, statusCounts);
-                                double latencyMs = (System.nanoTime() - reqStart) / 1_000_000.0;
+                                HttpResponse<String> response =
+                                        httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                                // Record the status before checks run, so failed checks are still counted
+                                recordStatus(statusCounts, response.statusCode());
+                                evaluateResponse(step, response, vars);
+                                ok = true;
+                            } catch (CheckFailedException e) {
+                                ok = false;
+                            } catch (IOException e) {
+                                // No HTTP response at all (connect failure, timeout, ...)
+                                recordStatus(statusCounts, TRANSPORT_ERROR_STATUS);
+                                ok = false;
+                            }
+                            double latencyMs = (System.nanoTime() - reqStart) / 1_000_000.0;
 
-                                totalRequests.incrementAndGet();
-                                successRequests.incrementAndGet();
-                                latencies.add(new double[] { latencyMs });
-                                stepLatencies.get(step.name()).add(new double[] { latencyMs });
-                                stepTotal.get(step.name()).incrementAndGet();
-                            } catch (Exception e) {
-                                double latencyMs = (System.nanoTime() - reqStart) / 1_000_000.0;
-
-                                totalRequests.incrementAndGet();
-                                failedRequests.incrementAndGet();
-                                latencies.add(new double[] { latencyMs });
-                                stepLatencies.get(step.name()).add(new double[] { latencyMs });
-                                stepTotal.get(step.name()).incrementAndGet();
+                            totalRequests.incrementAndGet();
+                            (ok ? successRequests : failedRequests).incrementAndGet();
+                            latencies.add(new double[] { latencyMs });
+                            stepLatencies.get(step.name()).add(new double[] { latencyMs });
+                            stepTotal.get(step.name()).incrementAndGet();
+                            if (!ok) {
                                 stepFailed.get(step.name()).incrementAndGet();
                             }
 
@@ -187,32 +208,58 @@ public final class JdkLoadEngine implements LoadTestEngine {
                         }
 
                         // Refresh feeder variables each full iteration
+                        currentStep = "<feeder>";
                         if (feeder != null && feeder.hasNext()) {
                             feederRow = feeder.next();
                         }
                     }
-
-                    activeUsers.decrementAndGet();
                 } catch (InterruptedException e) {
+                    // Stop this virtual user
                     Thread.currentThread().interrupt();
+                } catch (Throwable t) {
+                    // Programming/configuration error: abort the whole run, never count it as a KO
+                    firstFailure.compareAndSet(null, new Failure(currentStep, t));
                 } finally {
                     allDone.countDown();
                 }
             });
         }
 
-        // Wait for all users to finish (with a safety timeout)
+        // Wait for all users to finish (with a safety timeout); stop promptly on abort
+        long safetyTimeoutMs = totalDurationMs + 60_000;
+        long deadline = System.currentTimeMillis() + safetyTimeoutMs;
+        boolean finished = false;
+        boolean cancelled = false;
         try {
-            boolean finished = allDone.await(totalDurationMs + 60_000, TimeUnit.MILLISECONDS);
-            if (!finished) {
-                System.err.println("[LoadTest] Warning: load test timed out after " +
-                        (totalDurationMs + 60_000) / 1000 + "s. Some users may not have completed.");
+            while (!finished && firstFailure.get() == null && System.currentTimeMillis() < deadline) {
+                finished = allDone.await(Math.min(100, Math.max(1, deadline - System.currentTimeMillis())),
+                        TimeUnit.MILLISECONDS);
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            cancelled = true;
         }
 
-        executor.shutdownNow();
+        // Stop every virtual user and wait (bounded) BEFORE reading any accumulator
+        if (finished && !cancelled && firstFailure.get() == null) {
+            executor.shutdown();
+        } else {
+            executor.shutdownNow();
+        }
+        boolean terminated = awaitTermination(executor);
+        if (cancelled) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("[LoadTest] Scenario '" + scenario.name() + "' was cancelled"
+                    + (terminated ? "" : "; some virtual users did not stop within 10s"));
+        }
+        if (firstFailure.get() != null) {
+            Failure f = firstFailure.get();
+            throw new IllegalStateException("[LoadTest] Scenario '" + scenario.name()
+                    + "' aborted: unexpected error in step '" + f.step() + "'", f.cause());
+        }
+        if (!finished) {
+            throw new IllegalStateException("[LoadTest] Scenario '" + scenario.name()
+                    + "' exceeded safety timeout of " + safetyTimeoutMs / 1000 + "s and was stopped");
+        }
         long endTimeMs = System.currentTimeMillis();
         long actualDurationMs = endTimeMs - startTimeMs;
 
@@ -249,10 +296,11 @@ public final class JdkLoadEngine implements LoadTestEngine {
                     total - failed,
                     failed,
                     percentile(sorted, 95),
-                    total > 0 ? (double) failed / total : 0));
+                    total > 0 ? (double) failed / total : 0,
+                    percentile(sorted, 99)));
         }
 
-        return new LoadTestMetrics(
+        LoadTestMetrics metrics = new LoadTestMetrics(
                 scenario.name(),
                 totalRequests.get(),
                 successRequests.get(),
@@ -270,15 +318,48 @@ public final class JdkLoadEngine implements LoadTestEngine {
                 actualDurationMs,
                 users,
                 name(),
-                stepMetrics);
+                stepMetrics,
+                percentile(sortedLatencies, 75));
+
+        // the per-run artefact (never fails the run): <resultsDir>/<slug>-<millis>/testfly-loadtest-result.json
+        RunArtefacts.writeJdkRunResult(config.getResultsDir(), scenario.name(), metrics);
+        return metrics;
     }
 
-    // ── Step execution ───────────────────────────────────────────────────
+    /**
+     * Waits up to 10s for all virtual users to stop. A pending interrupt of the calling thread is
+     * cleared for the wait and restored afterwards.
+     */
+    private static boolean awaitTermination(ExecutorService executor) {
+        boolean interrupted = Thread.interrupted();
+        boolean terminated = false;
+        try {
+            terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            interrupted = true;
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        return terminated;
+    }
 
-    private void executeStep(HttpClient client, LoadStep step, String baseUrl,
-            Map<String, Object> vars, int timeoutSeconds,
-            ConcurrentHashMap<Integer, AtomicLong> statusCounts) throws Exception {
+    /** First unexpected error of a run and the step it happened in. */
+    private record Failure(String step, Throwable cause) {
+    }
 
+    /** A response failed a check, the default status check, or an extraction: the request is KO. */
+    static final class CheckFailedException extends RuntimeException {
+        CheckFailedException(String message) {
+            super(message, null, false, false);
+        }
+    }
+
+    // ── Request building ─────────────────────────────────────────────────
+
+    private HttpRequest buildRequest(LoadStep step, String baseUrl, Map<String, Object> vars,
+            int timeoutSeconds) {
         String path = VariableResolver.resolve(step.path(), vars);
         String url = buildUrl(baseUrl, path, step.queryParams(), vars);
 
@@ -291,99 +372,173 @@ public final class JdkLoadEngine implements LoadTestEngine {
             reqBuilder.header(h.getKey(), VariableResolver.resolve(h.getValue(), vars));
         }
 
-        // Body
+        // Body: JSON body, or urlencoded form params (never both — rejected by validation)
+        String bodyStr = null;
+        String defaultContentType = null;
         Object body = step.body();
         if (body != null) {
             Object resolved = VariableResolver.resolveBody(body, vars);
-            String bodyStr = resolved instanceof String s ? s : toJson(resolved);
-            HttpRequest.BodyPublisher publisher = HttpRequest.BodyPublishers.ofString(bodyStr);
-            reqBuilder = switch (step.method()) {
-                case "POST" -> reqBuilder.POST(publisher);
-                case "PUT" -> reqBuilder.PUT(publisher);
-                case "PATCH" -> reqBuilder.method("PATCH", publisher);
-                default -> reqBuilder;
-            };
-            if (!step.headers().containsKey("Content-Type")) {
-                reqBuilder.header("Content-Type", "application/json");
+            bodyStr = resolved instanceof String s ? s : toJson(resolved);
+            defaultContentType = "application/json";
+        } else if (!step.formParams().isEmpty()) {
+            bodyStr = formBody(step.formParams(), vars);
+            defaultContentType = "application/x-www-form-urlencoded";
+        }
+
+        if (bodyStr != null) {
+            reqBuilder.method(step.method(), HttpRequest.BodyPublishers.ofString(bodyStr, StandardCharsets.UTF_8));
+            if (!hasHeader(step, "Content-Type")) {
+                reqBuilder.header("Content-Type", defaultContentType);
             }
         } else {
-            reqBuilder = switch (step.method()) {
+            switch (step.method()) {
                 case "POST" -> reqBuilder.POST(HttpRequest.BodyPublishers.noBody());
                 case "PUT" -> reqBuilder.PUT(HttpRequest.BodyPublishers.noBody());
                 case "DELETE" -> reqBuilder.DELETE();
                 case "PATCH" -> reqBuilder.method("PATCH", HttpRequest.BodyPublishers.noBody());
                 default -> reqBuilder.GET();
-            };
-        }
-
-        HttpResponse<String> response;
-        try {
-            response = client.send(reqBuilder.build(), HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            // No HTTP response at all (connect failure, timeout, ...)
-            recordStatus(statusCounts, TRANSPORT_ERROR_STATUS);
-            throw e;
-        }
-
-        // Record the status code before checks run, so failed checks are still counted
-        recordStatus(statusCounts, response.statusCode());
-
-        // Run checks
-        for (CheckCondition check : step.checks()) {
-            evaluateCheck(check, response);
-        }
-
-        // Run extractions
-        for (Map.Entry<String, String> ext : step.extractions().entrySet()) {
-            String extracted = extractJsonPath(response.body(), ext.getValue());
-            if (extracted != null) {
-                vars.put(ext.getKey(), extracted);
             }
         }
+        return reqBuilder.build();
+    }
+
+    private static boolean hasHeader(LoadStep step, String name) {
+        return step.headers().keySet().stream().anyMatch(name::equalsIgnoreCase);
+    }
+
+    private static String formBody(Map<String, String> formParams, Map<String, Object> vars) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, String> fp : formParams.entrySet()) {
+            if (!sb.isEmpty()) {
+                sb.append('&');
+            }
+            String value = VariableResolver.resolve(fp.getValue() != null ? fp.getValue() : "", vars);
+            sb.append(URLEncoder.encode(fp.getKey(), StandardCharsets.UTF_8))
+                    .append('=')
+                    .append(URLEncoder.encode(value, StandardCharsets.UTF_8));
+        }
+        return sb.toString();
     }
 
     private static void recordStatus(ConcurrentHashMap<Integer, AtomicLong> statusCounts, int status) {
         statusCounts.computeIfAbsent(status, k -> new AtomicLong()).incrementAndGet();
     }
 
-    private void evaluateCheck(CheckCondition check, HttpResponse<String> response) {
+    // ── Checks (same semantics as the Gatling engine) ────────────────────
+
+    /**
+     * Applies the default status check (unless the step has an explicit status check), every
+     * check, and every extraction. Throws {@link CheckFailedException} on the first failure.
+     */
+    private static void evaluateResponse(LoadStep step, HttpResponse<String> response, Map<String, Object> vars) {
+        boolean explicitStatus = step.checks().stream().anyMatch(c ->
+                c.type() == CheckCondition.Type.STATUS_IS || c.type() == CheckCondition.Type.STATUS_IN);
+        int status = response.statusCode();
+        if (!explicitStatus && !isDefaultOk(status)) {
+            throw new CheckFailedException("[LoadTest] Status " + status + " is not 2xx or 304");
+        }
+
+        JsonBody json = new JsonBody(response.body());
+        for (CheckCondition check : step.checks()) {
+            evaluateCheck(check, response, json);
+        }
+
+        for (Map.Entry<String, String> ext : step.extractions().entrySet()) {
+            JsonNode extracted = json.nodeAt(ext.getValue());
+            if (extracted == null) {
+                throw new CheckFailedException("[LoadTest] extract('" + ext.getKey() + "'): JSONPath '"
+                        + ext.getValue() + "' not found in response");
+            }
+            // JSON null: found (OK, like Gatling 3.13.5), stored as null → ${var} stays unresolved
+            vars.put(ext.getKey(), extracted.isNull() ? null : asString(extracted));
+        }
+    }
+
+    /** Gatling's default status check: 2xx (200..299) or 304. */
+    static boolean isDefaultOk(int status) {
+        return (status >= 200 && status <= 299) || status == 304;
+    }
+
+    private static void evaluateCheck(CheckCondition check, HttpResponse<String> response, JsonBody json) {
         switch (check.type()) {
             case STATUS_IS -> {
                 int expected = (int) check.expected();
                 if (response.statusCode() != expected) {
-                    throw new AssertionError("[LoadTest] Expected status " + expected +
+                    throw new CheckFailedException("[LoadTest] Expected status " + expected +
                             " but got " + response.statusCode());
                 }
             }
             case STATUS_IN -> {
                 int[] allowed = (int[]) check.expected();
                 int actual = response.statusCode();
-                boolean found = Arrays.stream(allowed).anyMatch(s -> s == actual);
-                if (!found) {
-                    throw new AssertionError("[LoadTest] Expected status in " +
+                if (Arrays.stream(allowed).noneMatch(s -> s == actual)) {
+                    throw new CheckFailedException("[LoadTest] Expected status in " +
                             Arrays.toString(allowed) + " but got " + actual);
                 }
             }
             case JSON_EXISTS -> {
-                String jsonPath = check.target();
-                String value = extractJsonPath(response.body(), jsonPath);
-                if (value == null) {
-                    throw new AssertionError("[LoadTest] JSONPath '" + jsonPath +
+                // JSON null counts as existing (observed Gatling 3.13.5 behaviour)
+                if (json.nodeAt(check.target()) == null) {
+                    throw new CheckFailedException("[LoadTest] JSONPath '" + check.target() +
                             "' not found in response");
+                }
+            }
+            case JSON_EQUALS -> {
+                String actual = json.valueAt(check.target());   // JSON null → null → KO, like Gatling
+                String expected = String.valueOf(check.expected());
+                if (!expected.equals(actual)) {
+                    throw new CheckFailedException("[LoadTest] JSONPath '" + check.target() + "' expected "
+                            + expected + " but was " + actual);
+                }
+            }
+            case JSON_IN -> {
+                String actual = json.valueAt(check.target());
+                int[] allowed = (int[]) check.expected();
+                if (actual == null || Arrays.stream(allowed).mapToObj(String::valueOf).noneMatch(actual::equals)) {
+                    throw new CheckFailedException("[LoadTest] JSONPath '" + check.target() + "' expected one of "
+                            + Arrays.toString(allowed) + " but was " + actual);
                 }
             }
             case BODY_MATCHES -> {
                 String regex = (String) check.expected();
-                if (!response.body().matches("(?s).*" + regex + ".*")) {
-                    throw new AssertionError("[LoadTest] Response body does not match: " + regex);
+                String body = response.body() != null ? response.body() : "";
+                if (!Pattern.compile(regex).matcher(body).find()) {
+                    throw new CheckFailedException("[LoadTest] Response body does not match: " + regex);
                 }
             }
             case HEADER_PRESENT -> {
                 String header = check.target();
                 if (response.headers().firstValue(header).isEmpty()) {
-                    throw new AssertionError("[LoadTest] Header '" + header + "' not present");
+                    throw new CheckFailedException("[LoadTest] Header '" + header + "' not present");
                 }
             }
+            default -> throw new IllegalArgumentException("[LoadTest] Unsupported check type " + check.type());
+        }
+    }
+
+    /** Lazily parsed JSON response body (parsed at most once per response). */
+    private static final class JsonBody {
+        private final String raw;
+        private JsonNode tree;
+        private boolean parsed;
+
+        JsonBody(String raw) {
+            this.raw = raw;
+        }
+
+        /** Node at the path ({@code NullNode} for JSON null), or {@code null} if missing / not JSON. */
+        JsonNode nodeAt(String path) {
+            if (!parsed) {
+                parsed = true;
+                tree = readTree(raw);
+            }
+            return tree == null ? null : JdkLoadEngine.nodeAt(tree, path);
+        }
+
+        /** String form of the value at the path; {@code null} if missing, not JSON, or JSON null. */
+        String valueAt(String path) {
+            JsonNode node = nodeAt(path);
+            return node == null || node.isNull() ? null : asString(node);
         }
     }
 
@@ -402,13 +557,15 @@ public final class JdkLoadEngine implements LoadTestEngine {
         }
 
         if (!queryParams.isEmpty()) {
-            url.append('?');
+            url.append(url.indexOf("?") >= 0 ? '&' : '?');
             boolean first = true;
             for (Map.Entry<String, Object> qp : queryParams.entrySet()) {
                 if (!first)
                     url.append('&');
                 String value = VariableResolver.resolve(String.valueOf(qp.getValue()), vars);
-                url.append(qp.getKey()).append('=').append(value);
+                // Values are URL-encoded after variable resolution (spaces as %20), like Gatling
+                url.append(qp.getKey()).append('=')
+                        .append(URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20"));
                 first = false;
             }
         }
@@ -416,78 +573,120 @@ public final class JdkLoadEngine implements LoadTestEngine {
         return url.toString();
     }
 
-    private void applyThinkTime(long minMs, long maxMs, Duration fixed) {
-        try {
-            if (fixed != null) {
-                Thread.sleep(fixed.toMillis());
-            } else if (minMs >= 0 && maxMs >= minMs) {
-                long sleep = ThreadLocalRandom.current().nextLong(minMs, maxMs + 1);
-                Thread.sleep(sleep);
+    private static void applyThinkTime(long minMs, long maxMs, Duration fixed) throws InterruptedException {
+        if (fixed != null) {
+            Thread.sleep(fixed.toMillis());
+        } else if (minMs >= 0 && maxMs >= minMs) {
+            long sleep = ThreadLocalRandom.current().nextLong(minMs, maxMs + 1);
+            Thread.sleep(sleep);
+        }
+    }
+
+    // ── JSONPath (supported subset) ──────────────────────────────────────
+
+    private static final ObjectMapper JSON = new ObjectMapper();
+
+    /** One segment: {@code .name} or {@code [index]}. */
+    private static final Pattern JSON_PATH_SEGMENT = Pattern.compile("\\.([^.\\[\\]*?@()'\"\\s$:,]+)|\\[(\\d+)]");
+
+    /**
+     * Returns {@code true} if the JDK engine supports the JSONPath: a {@code $} root followed by
+     * {@code .name} and {@code [index]} segments ({@code $.a.b}, {@code $.a[0].b}, {@code $[0]}).
+     * Wildcards, deep scan, filters, slices and bracket-quoted names are not supported.
+     */
+    public static boolean isSupportedJsonPath(String path) {
+        return parseJsonPath(LoadScenarioValidator.normalizeJsonPath(path)) != null;
+    }
+
+    /** @return segments (String names / Integer indexes), or {@code null} if unsupported */
+    private static List<Object> parseJsonPath(String path) {
+        if (path == null || path.length() < 2 || path.charAt(0) != '$') {
+            return null;
+        }
+        List<Object> segments = new ArrayList<>();
+        Matcher m = JSON_PATH_SEGMENT.matcher(path);
+        int pos = 1;
+        while (pos < path.length()) {
+            if (!m.find(pos) || m.start() != pos) {
+                return null;
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            if (m.group(1) != null) {
+                segments.add(m.group(1));
+            } else {
+                try {
+                    segments.add(Integer.valueOf(m.group(2)));
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+            }
+            pos = m.end();
+        }
+        return segments;
+    }
+
+    private static IllegalArgumentException unsupportedJsonPath(String path) {
+        return new IllegalArgumentException("[LoadTest] JSONPath '" + path
+                + "' is not supported by the JDK engine (supported: $.a.b, $.a[0].b, $[0]); "
+                + "the Gatling engine supports it");
+    }
+
+    private static JsonNode readTree(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return JSON.readTree(json);
+        } catch (IOException e) {
+            return null; // not JSON: every JSON check/extraction fails
         }
     }
 
     /**
-     * Minimal JSONPath extraction — supports simple {@code $.key} and
-     * {@code $.key.subkey} paths. Full JSONPath (filters, arrays, wildcards)
-     * would require Jackson; this covers the common
-     * {@code extract("token", "$.accessToken")}
-     * use case without extra dependencies.
+     * Node at the (normalised) path: {@code NullNode} for JSON null, {@code null} if the path
+     * is not found.
+     */
+    private static JsonNode nodeAt(JsonNode root, String path) {
+        String normalized = LoadScenarioValidator.normalizeJsonPath(path);
+        List<Object> segments = parseJsonPath(normalized);
+        if (segments == null) {
+            throw unsupportedJsonPath(path);
+        }
+        JsonNode node = root;
+        for (Object seg : segments) {
+            node = seg instanceof Integer i ? node.path(i) : node.path((String) seg);
+            if (node.isMissingNode()) {
+                return null;
+            }
+        }
+        return node;
+    }
+
+    /** Scalars as their string form (number 5 → "5"), objects/arrays as compact JSON. */
+    private static String asString(JsonNode node) {
+        return node.isValueNode() ? node.asText() : node.toString();
+    }
+
+    /**
+     * Extracts the value at a JSONPath from a JSON document, using the supported subset
+     * ({@code $.a.b}, {@code $.a[0].b}, {@code $[0]}). Scalars are returned in their string form
+     * (JSON number {@code 5} → {@code "5"}), objects/arrays as compact JSON.
+     *
+     * A path without a leading {@code $} ({@code "token"}, {@code "data.token"}) is read as
+     * {@code "$." + path}, as before.
+     *
+     * @return the value, or {@code null} if the input is {@code null}, not JSON, or the path is
+     *         not found (or holds JSON {@code null})
+     * @throws IllegalArgumentException if the path uses syntax outside the supported subset
      */
     public static String extractJsonPath(String json, String path) {
         if (json == null || path == null)
             return null;
-        // Strip leading "$."
-        String key = path.startsWith("$.") ? path.substring(2) : path;
-        // Simple key lookup: "key" or "key.subkey"
-        String[] parts = key.split("\\.");
-        String current = json;
-        for (String part : parts) {
-            int idx = current.indexOf("\"" + part + "\"");
-            if (idx < 0)
-                return null;
-            int colonIdx = current.indexOf(':', idx);
-            if (colonIdx < 0)
-                return null;
-            int valueStart = colonIdx + 1;
-            // Skip whitespace
-            while (valueStart < current.length() && Character.isWhitespace(current.charAt(valueStart))) {
-                valueStart++;
-            }
-            if (valueStart >= current.length())
-                return null;
-            char c = current.charAt(valueStart);
-            if (c == '"') {
-                int valueEnd = current.indexOf('"', valueStart + 1);
-                if (valueEnd < 0)
-                    return null;
-                current = current.substring(valueStart + 1, valueEnd);
-            } else if (c == '{') {
-                int depth = 0;
-                int end = valueStart;
-                for (; end < current.length(); end++) {
-                    if (current.charAt(end) == '{')
-                        depth++;
-                    else if (current.charAt(end) == '}') {
-                        depth--;
-                        if (depth == 0) {
-                            end++;
-                            break;
-                        }
-                    }
-                }
-                current = current.substring(valueStart, end);
-            } else {
-                // Number, boolean, null
-                int end = valueStart;
-                while (end < current.length() && current.charAt(end) != ',' && current.charAt(end) != '}')
-                    end++;
-                current = current.substring(valueStart, end).trim();
-            }
+        if (!isSupportedJsonPath(path)) {
+            throw unsupportedJsonPath(path);
         }
-        return current;
+        JsonNode root = readTree(json);
+        JsonNode node = root == null ? null : nodeAt(root, path);
+        return node == null || node.isNull() ? null : asString(node);
     }
 
     private String toJson(Object obj) {

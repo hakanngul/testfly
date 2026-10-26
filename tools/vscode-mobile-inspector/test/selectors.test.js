@@ -72,10 +72,49 @@ test('codegen turns recorded steps into a page object with one field per selecto
         { action: 'swipe', direction: 'left' },
         { action: 'button', button: 'BACK' },
         { action: 'tapAt', x: 10.4, y: 20.6 },
+        { action: 'swipe', direction: 'up', el: user, selector: 'username' },
+        { action: 'longPressAt', x: 5, y: 6 },
     ], 'ios');
     assert.match(code, /@MobileFind\(ios = "username"\)\n {4}private MobileLocator username;/);
     assert.strictEqual(code.match(/@MobileFind/g).length, 3, 'one field per selector');
     assert.match(code, /private MobileLocator go2;/, 'clashing names get a suffix');
     assert.match(code, / {8}username\.fill\("say \\"hi\\""\);\n {8}go\.tap\(\);\n {8}go\.tap\(\);\n {8}go2\.longPress\(\);/);
-    assert.match(code, /screen\(\)\.swipe\(SwipeDirection\.LEFT\);\n {8}device\(\)\.pressButton\("BACK"\);\n {8}screen\(\)\.tap\(10, 21\);/);
+    assert.match(code, /screen\(\)\.swipe\(SwipeDirection\.LEFT\);\n {8}device\(\)\.pressButton\("BACK"\);\n {8}screen\(\)\.tap\(10, 21\);\n {8}username\.swipe\(SwipeDirection\.UP\);\n {8}screen\(\)\.longPress\(5, 6\);/);
+});
+
+test('resolve reads selectors like SelectorParser and LocatorEngine', () => {
+    const tree = [{ type: 'android.widget.FrameLayout', children: [
+        { type: 'android.widget.Button', identifier: 'com.app:id/login', text: 'Sign in' },
+        { type: 'android.widget.ImageButton', label: 'Menu', identifier: 'com.app:id/menu' },
+        { type: 'android.widget.EditText', placeholder: 'Email', identifier: 'com.app:id/email' },
+        { type: 'android.widget.TextView', text: 'Sign in' },
+        { type: 'androidx.appcompat.widget.AppCompatCheckBox', text: 'Remember me' },
+    ] }];
+    const ids = sel => { const r = S.resolve(sel, tree); return r.error ? 'error: ' + r.error : r.matches.map(e => (e.identifier || e.type).replace(/^.*[/.]/, '')).join(' '); };
+    assert.strictEqual(ids('login'), 'login'); // bare string: test id, short form
+    assert.strictEqual(ids('id=com.app:id/login'), 'login');
+    assert.strictEqual(ids('accessibility=Menu'), 'menu');
+    assert.strictEqual(ids('text=Sign in'), 'login TextView');
+    assert.strictEqual(ids('text=Sign'), ''); // exact, as text= in TestFly
+    assert.strictEqual(ids('placeholder=Email'), 'email');
+    assert.strictEqual(ids('type=ANDROID.WIDGET.EDITTEXT'), 'email'); // class name, case-insensitive
+    assert.strictEqual(ids('role=button'), 'login menu');
+    assert.strictEqual(ids('role=button;name=Menu'), 'menu');
+    // AppCompatCheckBox is not in MobileRole.CHECKBOX, so TestFly's role=checkbox does not find it
+    assert.strictEqual(ids('role=checkbox'), '');
+    assert.match(ids('role=knob'), /^error: unknown role 'knob'/);
+    assert.match(ids('role=button;label=x'), /^error: only ';name=…'/);
+    assert.match(ids('colour=red'), /^error: unknown key 'colour'/);
+    assert.match(ids('predicate=label == "x"'), /^error: iOS predicate/);
+    assert.match(ids('text='), /^error: 'text' has no value/);
+    const xp = S.resolve('xpath=//x', tree, expr => { assert.strictEqual(expr, '//x'); return [tree[0]]; });
+    assert.deepStrictEqual(xp.matches, [tree[0]]);
+});
+
+test('roles mirror io.testfly.mobile.MobileRole', { skip: !require('node:fs').existsSync(require('node:path').join(__dirname, '../../../src/main/java/io/testfly/mobile/MobileRole.java')) }, () => {
+    const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '../../../src/main/java/io/testfly/mobile/MobileRole.java'), 'utf8');
+    const java = Object.fromEntries([...src.matchAll(/^\s{4}([A-Z]+)\(((?:"[a-z]+"(?:,\s*)?)+)\)/gm)]
+        .map(m => [m[1].toLowerCase(), [...m[2].matchAll(/"([a-z]+)"/g)].map(x => x[1])]));
+    assert.ok(Object.keys(java).length >= 10, 'parsed MobileRole.java');
+    assert.deepStrictEqual(S.ROLE_TYPES, java);
 });

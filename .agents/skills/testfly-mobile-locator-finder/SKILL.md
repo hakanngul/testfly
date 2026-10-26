@@ -57,6 +57,15 @@ mobilecli snapshot --device <id>          # the new screen; refs are new
 
 To reach a screen behind a form, `mobilecli io fill --device <id> 'text'` replaces the focused field's text and `mobilecli io button --device <id> HOME` presses a hardware button. Do not type real credentials unless the user provides them for this purpose; never write them into files.
 
+### Safe interaction rules
+
+The finder reads screens; taps are only for navigation. A real device or account may be behind the screen.
+
+- Before every tap, read the target's `label`/`text` in the latest snapshot. Never tap controls that delete, remove, reset, erase, clear, log out, sign out, buy, pay, subscribe, confirm an order, send, post, publish, transfer or grant a permission, in any language, unless the lead named that exact control for this scan. When unsure, stop and ask.
+- Never run `apps uninstall`, `apps install`, or device-level erase, reset, wipe, shutdown, reboot or data-clearing commands, and never `adb`/`xcrun simctl` equivalents. The guard hook blocks them for this agent.
+- Prefer a test account or a fresh simulator. Do not type secrets; use only values the lead supplies as placeholders.
+- Write scratch output only under `/tmp/`. Return the page objects as text; the lead writes project files.
+
 A screenshot helps to pair elements visually: `mobilecli screenshot --device <id> --output /tmp/<screen>.png`.
 
 ## Both platforms

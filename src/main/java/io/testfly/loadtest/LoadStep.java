@@ -93,6 +93,11 @@ public final class LoadStep {
         return this;
     }
 
+    /**
+     * Adds a form parameter. A step with form parameters and no body is sent as
+     * {@code application/x-www-form-urlencoded} (unless a Content-Type header is set).
+     * Combining form parameters with {@link #body(Object)} is rejected before the run starts.
+     */
     public LoadStep formParam(String name, String value) {
         formParams.put(name, value);
         return this;
@@ -109,7 +114,8 @@ public final class LoadStep {
     /**
      * Extracts a value from the response JSON via JSONPath and stores it
      * as a variable for subsequent steps (e.g.
-     * {@code extract("token", "$.accessToken")}).
+     * {@code extract("token", "$.accessToken")}). If the path is not found,
+     * the request is counted as KO (both engines).
      */
     public LoadStep extract(String variable, String jsonPath) {
         extractions.put(variable, jsonPath);
@@ -183,7 +189,12 @@ public final class LoadStep {
         return CheckCondition.statusBuilder();
     }
 
-    /** Creates a JSONPath existence check: {@code jsonPath("$.id").exists()}. */
+    /**
+     * Creates a JSONPath check builder: {@code jsonPath("$.id").exists()},
+     * {@code jsonPath("$.id").is(5)} or {@code jsonPath("$.code").in(1, 2)}.
+     * The JDK engine supports the paths {@code $.a.b}, {@code $.a[0].b} and {@code $[0]};
+     * wildcards, deep scan, filters and slices require the Gatling engine.
+     */
     public static CheckCondition.Builder jsonPath(String path) {
         return CheckCondition.jsonPathBuilder(path);
     }

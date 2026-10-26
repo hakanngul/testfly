@@ -23,9 +23,12 @@ export interface DeviceInfo {
     id: string;
     name: string;
     platform: string;
+    /** "emulator", "simulator" or "real" */
     type: string;
+    /** "online" or "offline"; the device list also shows adb's "unauthorized" */
     state: string;
     version?: string;
+    model?: string;
 }
 
 export interface ScreenSize {
@@ -75,14 +78,61 @@ export class MobileCli {
     }
 
     /** Checks the server; starts `mobilecli server start` once when a local server does not answer. */
-    async ensureServer(startTimeoutMs = 20_000): Promise<string> {
+    async ensureServer(startTimeoutMs = 20_000, autoStart = this.autoStart): Promise<string> {
         try {
             return await this.version();
         } catch (e) {
-            if (!(e instanceof RpcError) || !e.unreachable || !this.autoStart || !isLoopback(this.serverUrl) || this.server) {
+            if (!(e instanceof RpcError) || !e.unreachable || !autoStart || !isLoopback(this.serverUrl) || this.server) {
                 throw e;
             }
         }
+        return this.spawnServer(startTimeoutMs);
+    }
+
+    /** Starts a local server on request, whatever autoStartServer says; a running server is kept. */
+    async startServer(startTimeoutMs = 20_000): Promise<string> {
+        try {
+            return await this.version();
+        } catch (e) {
+            if (!(e instanceof RpcError) || !e.unreachable) {
+                throw e;
+            }
+        }
+        if (!isLoopback(this.serverUrl)) {
+            throw new RpcError(`Only a local mobilecli server can be started; start the one at ${this.serverUrl} on its host.`, undefined, true);
+        }
+        this.server?.kill(); // a server this client started earlier that no longer answers
+        this.server = undefined;
+        return this.spawnServer(startTimeoutMs);
+    }
+
+    /** Stops the server through `server.shutdown`, also one started outside this client, and waits until it is gone. */
+    async stopServer(stopTimeoutMs = 5_000): Promise<void> {
+        try {
+            await this.call('server.shutdown', {}, 3_000);
+        } catch (e) {
+            if (e instanceof RpcError && e.unreachable) {
+                return; // already down
+            }
+            throw e;
+        }
+        this.server = undefined; // the process exits by itself after server.shutdown
+        const deadline = Date.now() + stopTimeoutMs;
+        while (Date.now() < deadline) {
+            try {
+                await this.version();
+            } catch (e) {
+                if (e instanceof RpcError && e.unreachable) {
+                    return;
+                }
+                throw e;
+            }
+            await new Promise(r => setTimeout(r, 200));
+        }
+        throw new RpcError(`mobilecli server at ${this.serverUrl} still answers ${stopTimeoutMs} ms after server.shutdown`);
+    }
+
+    private async spawnServer(startTimeoutMs: number): Promise<string> {
         const port = new URL(this.serverUrl).port || '12000';
         this.server = spawn(this.mobilecliPath, ['server', 'start', '--listen', `localhost:${port}`], { stdio: 'ignore' });
         const spawnError = new Promise<never>((_, reject) => this.server!.once('error', err =>
@@ -106,10 +156,21 @@ export class MobileCli {
         return info?.version ?? '';
     }
 
-    async devices(): Promise<DeviceInfo[]> {
-        const result = await this.call<any>('devices.list', {});
+    /** includeOffline: also emulators and simulators that are not running (they can be booted). */
+    async devices(includeOffline = false): Promise<DeviceInfo[]> {
+        const result = await this.call<any>('devices.list', includeOffline ? { includeOffline: true } : {});
         const list: any[] = Array.isArray(result) ? result : result?.devices ?? [];
-        return list.map(d => ({ id: d.id, name: d.name, platform: d.platform, type: d.type, state: d.state, version: d.version }));
+        return list.map(d => ({ id: d.id, name: d.name, platform: d.platform, type: d.type, state: d.state, version: d.version, model: d.model }));
+    }
+
+    /** Starts an offline emulator or simulator and waits until it is ready (minutes for a cold Android boot). */
+    boot(deviceId: string) {
+        return this.call('device.boot', { deviceId }, 240_000);
+    }
+
+    /** Shuts an emulator or simulator down. */
+    shutdown(deviceId: string) {
+        return this.call('device.shutdown', { deviceId }, 60_000);
     }
 
     async screenSize(deviceId: string): Promise<ScreenSize> {

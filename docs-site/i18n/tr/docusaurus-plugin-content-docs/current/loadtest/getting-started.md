@@ -41,7 +41,6 @@ loadtest:
   users: 10
   rampUp: 2s
   hold: 5s
-  cooldown: 1s
 ```
 
 ## İlk test
@@ -66,4 +65,4 @@ Eşikler örnektir; servis SLO’larınıza ve ölçülmüş başlangıç değer
 
 ## Sonraki adımlar
 
-[Yapılandırma](./configuration.md) · [Fluent API](./fluent-api.md) · [Anotasyonlar](./annotations.md) · [Feeder](./feeders.md) · [Assertion](./assertions.md)
+[Yapılandırma](./configuration.md) · [Fluent API](./fluent-api.md) · [Anotasyonlar](./annotations.md) · [Feeder](./feeders.md) · [Assertion](./assertions.md) · [Simülasyonlar ve SLA'lar](./simulations-sla.md) · [Baseline'lar](./baselines.md)

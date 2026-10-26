@@ -1,8 +1,8 @@
 {
   "name": "testfly-mobile-inspector",
-  "displayName": "TestFly Mobile Inspector",
-  "description": "Inspect iOS and Android screens through mobilecli: live screenshot, UI tree with @eN refs, element details and ready-to-paste TestFly @MobileFind selectors.",
-  "version": "0.2.0",
+  "displayName": "TestFly Inspector",
+  "description": "Inspect iOS and Android screens through mobilecli and web pages in Chrome or Edge: screenshot, UI or DOM tree, element details and ready-to-paste TestFly @MobileFind fields and Locator declarations.",
+  "version": "0.5.0",
   "publisher": "hakanngul",
   "license": "Apache-2.0",
   "repository": {
@@ -23,7 +23,10 @@
     "appium",
     "inspector",
     "ios",
-    "android"
+    "android",
+    "locator",
+    "selenium",
+    "chrome"
   ],
   "icon": "media/icon.png",
   "main": "./out/extension.js",
@@ -35,10 +38,16 @@
         "title": "Open Mobile Inspector",
         "category": "TestFly",
         "icon": "$(device-mobile)"
+      },
+      {
+        "command": "testflyInspector.openBrowser",
+        "title": "Open Browser Inspector",
+        "category": "TestFly",
+        "icon": "$(globe)"
       }
     ],
     "configuration": {
-      "title": "TestFly Mobile Inspector",
+      "title": "TestFly Inspector",
       "properties": {
         "testflyInspector.serverUrl": {
           "type": "string",
@@ -59,6 +68,21 @@
           "type": "boolean",
           "default": true,
           "description": "Read the screen again after a tap, swipe, text or button action."
+        },
+        "testflyInspector.browserPath": {
+          "type": "string",
+          "default": "",
+          "description": "Chrome, Edge or Chromium executable for the Browser Inspector. Empty: the installed Chrome, Edge or Chromium is found automatically."
+        },
+        "testflyInspector.codeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "While an inspector is open, show above each TestFly locator in Java files how many elements it matches on the inspected screen or page."
+        },
+        "testflyInspector.testIdAttribute": {
+          "type": "string",
+          "default": "data-testid",
+          "description": "Attribute that getByTestId() reads; keep it equal to locators.testIdAttribute in your TestFly configuration."
         }
       }
     },
@@ -66,7 +90,7 @@
       "activitybar": [
         {
           "id": "testflyInspector",
-          "title": "TestFly Mobile",
+          "title": "TestFly",
           "icon": "media/activity.svg"
         }
       ]
@@ -74,23 +98,23 @@
     "views": {
       "testflyInspector": [
         {
+          "type": "webview",
           "id": "testflyInspector.home",
-          "name": "Mobile Inspector"
+          "name": "Inspector"
         }
       ]
     },
-    "viewsWelcome": [
-      {
-        "view": "testflyInspector.home",
-        "contents": "Inspect an iOS or Android screen through mobilecli: screenshot, UI tree with @eN refs and ready-to-paste TestFly selectors.\n[$(device-mobile) Open Mobile Inspector](command:testflyInspector.open)\nNeeds mobilecli and a booted simulator, emulator or device. [Settings](command:workbench.action.openSettings?%5B%22testflyInspector%22%5D)"
-      }
-    ],
     "menus": {
       "view/title": [
         {
           "command": "testflyInspector.open",
           "when": "view == testflyInspector.home",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "testflyInspector.openBrowser",
+          "when": "view == testflyInspector.home",
+          "group": "navigation@2"
         }
       ]
     }

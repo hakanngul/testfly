@@ -1,0 +1,153 @@
+<div class="app" id="app">
+  <header class="toolbar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" class="logo" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>
+      <span>Browser Inspector</span>
+    </div>
+    <span class="platform-badge" data-platform="browser" id="product" hidden></span>
+
+    <div class="group" role="group" aria-label="Navigation">
+      <button class="icon" id="back" title="Back"><svg viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></svg></button>
+      <button class="icon" id="forward" title="Forward"><svg viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></svg></button>
+      <button class="icon" id="reload" title="Reload the page"><svg viewBox="0 0 16 16"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg></button>
+    </div>
+
+    <form class="url-bar" id="urlForm" autocomplete="off">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2.2 2 9.8 0 12M8 2c-2 2.2-2 9.8 0 12"/></svg>
+      <input id="url" type="text" spellcheck="false" placeholder="Enter a URL and press Enter" aria-label="Page URL">
+    </form>
+
+    <select id="viewport" aria-label="Viewport" title="Viewport">
+      <option value="1440x900">Desktop · 1440 × 900</option>
+      <option value="1280x800">Laptop · 1280 × 800</option>
+      <option value="768x1024">Tablet · 768 × 1024</option>
+      <option value="390x844">Mobile · 390 × 844</option>
+    </select>
+
+    <button class="primary" id="refresh" title="Read the page again (R)">
+      <svg viewBox="0 0 16 16"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>
+      <span>Refresh</span>
+    </button>
+
+    <div class="segmented" id="mode" role="radiogroup" aria-label="Click mode">
+      <button data-mode="inspect" class="active" title="Click selects an element (I)">
+        <svg viewBox="0 0 16 16"><path d="M3 2l9 4.5-4 1.5-1.5 4z"/></svg><span>Inspect</span>
+      </button>
+      <button data-mode="click" title="Click clicks in the browser (C)">
+        <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><circle cx="8" cy="8" r="5.5"/></svg><span>Click</span>
+      </button>
+      <button data-mode="record" title="Click clicks in the browser and records a page-object step (E)">
+        <svg viewBox="0 0 16 16"><circle class="rec-dot" cx="8" cy="8" r="4"/></svg><span>Record</span>
+      </button>
+    </div>
+
+    <div class="spacer"></div>
+    <button id="closeBrowser" title="Close the browser; the panel stays and Refresh starts it again">
+      <svg viewBox="0 0 16 16"><path d="M8 2v6"/><path d="M4.5 4.2a5 5 0 1 0 7 0"/></svg><span>Close browser</span>
+    </button>
+    <div class="status" id="status" data-state="connecting">
+      <span class="dot"></span><span id="statusText">Starting…</span>
+    </div>
+  </header>
+
+  <main class="browser-panes" id="panes">
+    <section class="pane page-pane">
+      <div class="stage page-stage" id="stage">
+        <div class="page" id="page" hidden>
+          <img id="shot" alt="Page screenshot" draggable="false">
+          <div class="overlay" id="overlay"></div>
+          <div class="hover-box" id="hoverBox" hidden></div>
+          <div class="select-box" id="selectBox" hidden></div>
+          <div class="tap-ripple" id="ripple" hidden></div>
+        </div>
+        <div class="empty-state" id="emptyScreen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>
+          <p class="title">No page yet</p>
+          <p id="emptyHint">Starting the browser…</p>
+        </div>
+      </div>
+      <div class="loading-bar" id="loadingBar" hidden></div>
+    </section>
+
+    <div class="resizer horizontal" id="drawerResizer" title="Drag to resize"></div>
+
+    <section class="drawer" id="drawer">
+      <section class="pane tree-pane">
+        <div class="pane-header tabs" role="tablist" id="leftTabs">
+          <button class="tab active" data-ltab="tree" role="tab">DOM Tree</button>
+          <button class="tab" data-ltab="recorded" role="tab">Recorded <span class="tab-count" id="recordedCount" hidden></span></button>
+          <button class="tab" data-ltab="console" role="tab">Console <span class="tab-count error" id="consoleCount" hidden></span></button>
+          <button class="tab" data-ltab="network" role="tab">Network <span class="tab-count" id="networkCount" hidden></span></button>
+          <span class="spacer"></span>
+          <span class="muted" id="treeCount"></span>
+        </div>
+        <div class="search" id="searchBox">
+          <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+          <input id="search" type="search" placeholder="Find by string, selector, or XPath  ( / )" spellcheck="false" title="CSS selector (#id, .class, div > a), XPath (//div[@id='x']) or text; Enter: next match, Shift+Enter: previous">
+          <span class="find-count" id="findCount"></span>
+          <button class="icon mini" id="findPrev" title="Previous match (Shift+Enter)"><svg viewBox="0 0 16 16"><path d="M4 10l4-4 4 4"/></svg></button>
+          <button class="icon mini" id="findNext" title="Next match (Enter)"><svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg></button>
+        </div>
+        <div class="tree" id="tree" role="tree" tabindex="0"></div>
+
+        <div class="snapshot-wrap" id="recordedWrap" hidden>
+          <div class="snapshot-bar">
+            <span>Steps recorded in Record mode</span>
+            <span><button class="link" id="copyRecorded">Copy</button> · <button class="link" id="clearRecorded">Clear</button></span>
+          </div>
+          <pre class="snapshot" id="recorded"></pre>
+        </div>
+
+        <div class="log-wrap" id="consoleWrap" hidden>
+          <div class="log-bar">
+            <select id="consoleLevel" class="mini-select" aria-label="Console level">
+              <option value="all">All levels</option>
+              <option value="error">Errors</option>
+              <option value="warning">Warnings and errors</option>
+            </select>
+            <input id="consoleFilter" type="search" placeholder="Filter" spellcheck="false">
+            <label class="toggle" title="Keep messages when the page navigates"><input type="checkbox" id="preserveLog"><span>Preserve log</span></label>
+            <span class="spacer"></span>
+            <button class="link" id="clearConsole">Clear</button>
+          </div>
+          <div class="log" id="console"></div>
+        </div>
+
+        <div class="log-wrap" id="networkWrap" hidden>
+          <div class="log-bar">
+            <select id="netType" class="mini-select" aria-label="Request type">
+              <option value="all">All</option>
+              <option value="xhr">Fetch/XHR</option>
+              <option value="document">Doc</option>
+              <option value="script">JS</option>
+              <option value="stylesheet">CSS</option>
+              <option value="image">Img</option>
+              <option value="font">Font</option>
+              <option value="other">Other</option>
+            </select>
+            <input id="netFilter" type="search" placeholder="Filter URL" spellcheck="false">
+            <span class="spacer"></span>
+            <span class="muted" id="netSummary"></span>
+            <button class="link" id="clearNetwork">Clear</button>
+          </div>
+          <div class="net-row net-head"><span>Status</span><span>Method</span><span>Name</span><span>Type</span><span>Size</span><span>Time</span></div>
+          <div class="log" id="network"></div>
+        </div>
+      </section>
+
+      <div class="resizer" id="colResizer" title="Drag to resize"></div>
+
+      <section class="pane details-pane">
+        <div class="pane-header tabs" role="tablist">
+          <button class="tab active" data-tab="locators" role="tab">Locators</button>
+          <button class="tab" data-tab="attributes" role="tab">Attributes</button>
+          <span class="spacer"></span>
+          <span class="ref-chip" id="selRef" hidden></span>
+        </div>
+        <div class="details" id="details"></div>
+      </section>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>

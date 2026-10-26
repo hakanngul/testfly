@@ -54,6 +54,7 @@ build/
 !.claude/agents/
 !.claude/skills
 !.claude/settings.json
+!.claude/CLAUDE.md
 PLAN.md
 YOUTUBE_PLAN.md
 PLAYWRIGHT_PARITY_PLAN.md

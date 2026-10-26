@@ -1,6 +1,7 @@
 // TestFly selector suggestions for a mobilecli UI element, ranked like TestFly's locator guidance
 // (id, role + name, label, placeholder, text, xpath) with how many elements of the tree each one
-// matches. The matching rules are a simplified copy of io.testfly.mobile.internal.LocatorEngine.
+// matches, and resolve() for the finder. The matching rules copy io.testfly.mobile.internal.LocatorEngine
+// and SelectorParser; ROLE_TYPES is MobileRole's table (a test keeps them in step).
 // Plain script: the webview loads it as a global, the Node tests require it.
 (function (root, factory) {
     if (typeof module === 'object' && module.exports) {
@@ -11,17 +12,24 @@
 })(typeof self !== 'undefined' ? self : this, function () {
     'use strict';
 
-    // shortcut: role mapping covers the common native classes; TestFly's MobileRole has more aliases.
+    // io.testfly.mobile.MobileRole, in declaration order.
     const ROLE_TYPES = {
-        button: ['button', 'imagebutton', 'materialbutton', 'appcompatbutton'],
-        textfield: ['textfield', 'securetextfield', 'edittext', 'textinputedittext', 'appcompatedittext', 'searchfield'],
-        switch: ['switch', 'switchcompat', 'switchmaterial', 'togglebutton'],
-        checkbox: ['checkbox', 'appcompatcheckbox', 'materialcheckbox'],
-        image: ['image', 'imageview', 'appcompatimageview'],
-        text: ['statictext', 'textview', 'appcompattextview', 'materialtextview'],
-        link: ['link'],
-        cell: ['cell'],
+        button: ['button', 'imagebutton', 'floatingactionbutton', 'materialbutton', 'appcompatbutton'],
+        textfield: ['textfield', 'securetextfield', 'searchfield', 'edittext', 'appcompatedittext', 'textinputedittext', 'reactedittext'],
+        text: ['statictext', 'textview', 'appcompattextview', 'materialtextview', 'text', 'reacttextview'],
+        image: ['image', 'imageview', 'appcompatimageview', 'shapeableimageview', 'reactimageview'],
+        switch: ['switch', 'toggle', 'togglebutton'],
+        checkbox: ['checkbox'],
+        radio: ['radio', 'radiobutton', 'appcompatradiobutton'],
+        slider: ['slider', 'seekbar'],
+        progressbar: ['progressindicator', 'activityindicator', 'progressbar'],
+        alert: ['alert', 'sheet'],
+        combobox: ['picker', 'pickerwheel', 'spinner', 'appcompatspinner'],
+        list: ['table', 'collectionview', 'listview', 'recyclerview', 'scrollview', 'reactscrollview'],
+        listitem: ['cell', 'linearlayout', 'relativelayout', 'other'],
         tab: ['tab', 'tabbar'],
+        link: ['link'],
+        header: ['navigationbar', 'toolbar', 'header'],
     };
 
     function flatten(elements, out) {
@@ -43,6 +51,8 @@
 
     function roleOf(el) {
         const bare = bareType(el.type);
+        // LocatorEngine.matchesRole: React Native's ReactViewGroup is a button only when clickable or accessible.
+        if (bare === 'reactviewgroup') return el.clickable === true || el.accessible === true ? 'button' : null;
         for (const role of Object.keys(ROLE_TYPES)) {
             if (ROLE_TYPES[role].includes(bare)) return role;
         }
@@ -60,7 +70,58 @@
 
     function matchesTestId(el, id) {
         const own = el.identifier || '';
-        return own === id || own.endsWith(':id/' + id);
+        return own === id || el.key === id || el.resourceId === id || own.endsWith(':id/' + id);
+    }
+
+    const SELECTOR_FORMATS = 'test id, testid=… / id=…, accessibility=…, text=…, label=…, placeholder=…, type=…, role=button[;name=…], xpath=…';
+
+    /**
+     * The elements a TestFly selector string finds, as MobileScreen.locate / @MobileFind read it (SelectorParser):
+     * {matches} or {error}. `evalXpath(expr)` returns the elements an XPath selects (the webview's tree document).
+     */
+    function resolve(selector, elements, evalXpath) {
+        const all = flatten(elements);
+        const s = String(selector || '').trim();
+        if (!s) return { error: 'the selector is blank' };
+        const eq = s.indexOf('=');
+        if (eq < 0) return { matches: all.filter(e => matchesTestId(e, s)) };
+        const key = s.substring(0, eq).trim().toLowerCase();
+        const value = s.substring(eq + 1).trim();
+        if (!value) return { error: `'${key}' has no value` };
+        const by = pred => ({ matches: all.filter(pred) });
+        switch (key) {
+            case 'testid':
+            case 'id': return by(e => matchesTestId(e, value));
+            case 'accessibility': return by(e => e.identifier === value || e.name === value || e.label === value);
+            case 'text': return by(e => displayText(e) === value);
+            case 'label': return by(e => e.label === value);
+            case 'placeholder': return by(e => e.placeholder === value);
+            case 'type': return by(e => String(e.type || '').toLowerCase() === value.toLowerCase());
+            case 'xpath':
+                try {
+                    return { matches: evalXpath ? evalXpath(value) : [] };
+                } catch (x) {
+                    return { error: 'invalid XPath: ' + (x && x.message ? x.message : x) };
+                }
+            case 'chain':
+            case 'predicate':
+                return { error: `iOS ${key === 'chain' ? 'class chain' : 'predicate'} selectors are not evaluated here; check them in a test` };
+            case 'role': {
+                let role = value;
+                let name = null;
+                const semi = value.indexOf(';');
+                if (semi >= 0) {
+                    role = value.substring(0, semi).trim();
+                    const rest = value.substring(semi + 1).trim();
+                    if (!rest.toLowerCase().startsWith('name=') || !rest.substring(5).trim()) return { error: "only ';name=…' may follow a role" };
+                    name = rest.substring(5).trim();
+                }
+                role = role.toLowerCase();
+                if (!ROLE_TYPES[role]) return { error: `unknown role '${role}'; roles: ${Object.keys(ROLE_TYPES).join(', ')}` };
+                return by(e => roleOf(e) === role && (name === null || accessibleName(e) === name));
+            }
+            default: return { error: `unknown key '${key}'. Formats: ${SELECTOR_FORMATS}` };
+        }
     }
 
     /** Appium-style element name used in XPath: XCUIElementTypeButton, android.widget.Button. */
@@ -115,8 +176,8 @@
         return out;
     }
 
-    /** XML document mirroring TestFly's XPathQuery, so XPath counts in the inspector match the framework. */
-    function toXml(elements, doc) {
+    /** XML document mirroring TestFly's XPathQuery, so XPath counts in the inspector match the framework; `nodes` (a Map) gets node → element. */
+    function toXml(elements, doc, nodes) {
         const rootEl = doc.createElement('hierarchy');
         doc.appendChild(rootEl);
         const attrs = ['text', 'label', 'name', 'value', 'placeholder', 'identifier'];
@@ -132,6 +193,7 @@
             const r = el.rect || {};
             for (const k of ['x', 'y', 'width', 'height']) node.setAttribute(k, String(r[k] ?? 0));
             parent.appendChild(node);
+            if (nodes) nodes.set(node, el);
             for (const c of el.children || []) add(node, c);
         };
         for (const el of elements || []) add(rootEl, el);
@@ -159,7 +221,7 @@
     /**
      * Java for recorded steps: a MobilePage with one @MobileFind field per distinct selector and a
      * recordedFlow() method. Steps: {action: tap|longPress|fill, el, selector, text?},
-     * {action: tapAt, x, y}, {action: swipe, direction}, {action: button, button}.
+     * {action: tapAt|longPressAt, x, y}, {action: swipe, direction, el?, selector?}, {action: button, button}.
      */
     function codegen(steps, platform) {
         const names = new Map();
@@ -182,7 +244,8 @@
                 case 'longPress': lines.push(field(st) + '.longPress();'); break;
                 case 'fill': lines.push(field(st) + '.fill(' + str(st.text) + ');'); break;
                 case 'tapAt': lines.push('screen().tap(' + Math.round(st.x) + ', ' + Math.round(st.y) + ');'); break;
-                case 'swipe': lines.push('screen().swipe(SwipeDirection.' + String(st.direction).toUpperCase() + ');'); break;
+                case 'longPressAt': lines.push('screen().longPress(' + Math.round(st.x) + ', ' + Math.round(st.y) + ');'); break;
+                case 'swipe': lines.push((st.selector ? field(st) : 'screen()') + '.swipe(SwipeDirection.' + String(st.direction).toUpperCase() + ');'); break;
                 case 'button': lines.push('device().pressButton(' + str(st.button) + ');'); break;
             }
         }
@@ -192,7 +255,7 @@
             + '    public void recordedFlow() {\n' + lines.map(l => '        ' + l + '\n').join('') + '    }\n}\n';
     }
 
-        /** Smallest element whose rect contains (x, y), in device coordinates. */
+    /** Smallest element whose rect contains (x, y), in device coordinates. */
     function hitTest(elements, x, y) {
         let best = null;
         let bestArea = Infinity;
@@ -210,5 +273,5 @@
         return best;
     }
 
-    return { flatten, bareType, roleOf, displayText, suggest, toXml, fieldName, mobileFind, hitTest, xpathName, codegen };
+    return { flatten, bareType, roleOf, displayText, accessibleName, suggest, resolve, toXml, fieldName, mobileFind, hitTest, xpathName, codegen, ROLE_TYPES };
 });

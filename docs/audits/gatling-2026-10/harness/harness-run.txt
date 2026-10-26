@@ -1,0 +1,244 @@
+
+##### V01_smoke
+07:35:34.022 [WARN] [STEP] No active test context — step ignored: Load Test: V01 (3 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V01 (3 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073537175
+  metrics: total=134 ok=134 ko=0 rps=44.67 p50=43.0 p90=46.2 p95=47.0 p99=77.0 durationMs=2999 status={200=134} steps=[ok]
+RESULT: PASS | requests=134 ko=0 engine=gatling serverHits=134
+
+##### V02_statusCodeFidelity_201
+07:35:40.868 [WARN] [STEP] No active test context — step ignored: Load Test: V02 (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V02 (2 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073543640
+  metrics: total=91 ok=91 ko=0 rps=30.33 p50=43.0 p90=46.2 p95=47.0 p99=51.0 durationMs=3000 status={200=91} steps=[create]
+RESULT: FAIL | server returned only 201; TestFly statusCodes={200=91}
+
+##### V03_correlation_extract_token
+07:35:47.279 [WARN] [STEP] No active test context — step ignored: Load Test: V03 (3 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V03 (3 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073550014
+  metrics: total=138 ok=138 ko=0 rps=46.00 p50=43.0 p90=46.2 p95=47.0 p99=48.0 durationMs=3000 status={200=138} steps=[login, secure]
+RESULT: PASS | authOk=69 authFail=0 ko=0
+
+##### V04_sequence_feeder
+07:35:53.534 [WARN] [STEP] No active test context — step ignored: Load Test: V04 (3 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V04 (3 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073556076
+RESULT: PASS | distinctIds=136 literalPlaceholderSeen=false requests=136
+
+##### V05_csv_feeder
+07:35:59.661 [WARN] [STEP] No active test context — step ignored: Load Test: V05 (3 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V05 (3 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073602377
+RESULT: PASS | usersSeen=[bob, alice, charlie] requests=135
+
+##### V06_failing_status_check
+07:36:06.139 [WARN] [STEP] No active test context — step ignored: Load Test: V06 (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V06 (2 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073609088
+  metrics: total=90 ok=0 ko=90 rps=30.00 p50=43.0 p90=46.2 p95=47.0 p99=51.0 durationMs=3000 status={500=90} steps=[ok]
+RESULT: PASS | errorRate=1.0 statusCodes={500=90} (server only ever returned 200)
+
+##### V07_status_in_check_dropped
+07:36:12.754 [WARN] [STEP] No active test context — step ignored: Load Test: V07-gatling (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V07-gatling (2 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073615613
+RESULT: FAIL | [gatling] status().in(200,204) vs actual 201 -> errorRate=0.0
+07:36:19.189 [WARN] [STEP] No active test context — step ignored: Load Test: V07-jdk (2 users, engine=jdk)
+RESULT: FAIL | [jdk] status().in(200,204) vs actual 201 -> errorRate=0.0
+
+##### V08_http200_business_failure
+07:36:20.406 [WARN] [STEP] No active test context — step ignored: Load Test: V08-gatling (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V08-gatling (2 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073623285
+RESULT: FAIL | [gatling] body {success:false} with body-regex check -> errorRate=0.0
+07:36:26.834 [WARN] [STEP] No active test context — step ignored: Load Test: V08-jdk (2 users, engine=jdk)
+RESULT: FAIL | [jdk] body {success:false} with body-regex check -> errorRate=0.0
+
+##### V09_jsonPath_is_becomes_status_check
+07:36:27.841 [WARN] [STEP] No active test context — step ignored: Load Test: V09 (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V09 (1 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073630645
+RESULT: FAIL | jsonPath("$.id").is(5) on body {id:'abc'} -> errorRate=1.0 statusCodes={500=45} (type is STATUS_IS; semantics: expected status 5)
+
+##### V10_p90_fabricated
+07:36:33.609 [WARN] [STEP] No active test context — step ignored: Load Test: V10 (3 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V10 (3 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073636358
+RESULT: FAIL | p50=243.0 p90=245.4 p95=246.0 p50+(p95-p50)*0.8=245.4 -> p90 is interpolated, not measured
+
+##### V11_cooldown_ignored
+07:36:40.173 [WARN] [STEP] No active test context — step ignored: Load Test: V11-gatling (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V11-gatling (2 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073642809
+RESULT: FAIL | [gatling] ramp=1s hold=2s cooldown=8s -> reported durationMs=3000 wallMs=6162
+07:36:46.340 [WARN] [STEP] No active test context — step ignored: Load Test: V11-jdk (2 users, engine=jdk)
+RESULT: FAIL | [jdk] ramp=1s hold=2s cooldown=8s -> reported durationMs=3041 wallMs=3043
+
+##### V12_users_semantics_open_vs_closed
+07:36:49.383 [WARN] [STEP] No active test context — step ignored: Load Test: V12-gatling (10 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V12-gatling (10 users, rampUp=6s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073652042
+RESULT: FAIL | [gatling] users(10) rampUp=6s hold=2s -> server-observed peak concurrency=5 (metrics.users=10)
+07:37:00.184 [WARN] [STEP] No active test context — step ignored: Load Test: V12-jdk (10 users, engine=jdk)
+RESULT: FAIL | [jdk] users(10) rampUp=6s hold=2s -> server-observed peak concurrency=4 (metrics.users=10)
+
+##### V13_connection_refused_reported_as_500
+07:37:08.250 [WARN] [STEP] No active test context — step ignored: Load Test: V13 (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V13 (1 users, rampUp=1s, hold=1s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073711016
+  metrics: total=1924 ok=0 ko=1924 rps=962.00 p50=0.0 p90=0.8 p95=1.0 p99=1.0 durationMs=2000 status={500=1924} steps=[down]
+RESULT: FAIL | no HTTP response at all; statusCodes={500=1924} ko=1924
+
+##### V14_simulation_build_failure_error_propagation
+07:37:13.140 [WARN] [STEP] No active test context — step ignored: Load Test: V14 (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V14 (1 users, rampUp=1s, hold=1s)
+[LoadTest] Gatling subprocess finished with exit code: 1
+  [gatling] 	... 9 common frames omitted
+  [gatling] Exception in thread "main" java.lang.reflect.InvocationTargetException
+  [gatling] 	at java.base/jdk.internal.reflect.DirectConstructorHandleAccessor.newInstance(DirectConstructorHandleAccessor.java:74)
+  [gatling] 	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:502)
+  [gatling] 	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:486)
+  [gatling] 	at io.gatling.app.SimulationClass$Java.params(SimulationClass.scala:53)
+  [gatling] 	at io.gatling.app.Runner.load(Runner.scala:72)
+  [gatling] 	at io.gatling.app.Runner.run(Runner.scala:55)
+  [gatling] 	at io.gatling.app.Gatling$.start(Gatling.scala:83)
+  [gatling] 	at io.gatling.app.Gatling$.fromArgs(Gatling.scala:46)
+  [gatling] 	at io.gatling.app.Gatling$.main(Gatling.scala:40)
+  [gatling] 	at io.gatling.app.Gatling.main(Gatling.scala)
+  [gatling] Caused by: io.gatling.core.session.el.ElParserException: Failed to parse /ok?x=#{unclosed with error ''}' expected but end of source found'
+  [gatling] 	at io.gatling.core.session.el.ElCompiler.io$gatling$core$session$el$ElCompiler$$parseEl(ElCompiler.scala:378)
+  [gatling] 	at io.gatling.core.session.el.ElCompiler$.parse(ElCompiler.scala:321)
+  [gatling] 	at io.gatling.core.session.el.ElCompiler$.compile(ElCompiler.scala:324)
+  [gatling] 	at io.gatling.core.session.el.package$El$.el$extension(package.scala:26)
+  [gatling] 	at io.gatling.javaapi.core.internal.Expressions$.toStringExpression(Expressions.scala:86)
+  [gatling] 	at io.gatling.javaapi.core.internal.Expressions.toStringExpression(Expressions.scala)
+  [gatling] 	at io.gatling.javaapi.http.Http.get(Http.java:49)
+  [gatling] 	at io.testfly.loadtest.internal.TestFlyGatlingSimulation.buildRequest(TestFlyGatlingSimulation.java:155)
+  [gatling] 	at io.testfly.loadtest.internal.TestFlyGatlingSimulation.buildStepsChain(TestFlyGatlingSimulation.java:78)
+  [gatling] 	at io.testfly.loadtest.internal.TestFlyGatlingSimulation.<init>(TestFlyGatlingSimulation.java:53)
+  [gatling] 	at java.base/jdk.internal.reflect.DirectConstructorHandleAccessor.newInstance(DirectConstructorHandleAccessor.java:62)
+  [gatling] 	... 9 more
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] No Gatling simulation results in: <scratch>/run/target/loadtest/V14-1792913833140
+[LoadTest] Gatling execution failed: [LoadTest] Gatling simulation finished but 0 requests were recorded for scenario 'V14'. Check console logs for errors.
+RESULT: FAIL | exception=IllegalStateException: [LoadTest] Gatling execution failed: [LoadTest] Gatling simulation finished but 0 requests were recorded for scenario 'V14'. Check console logs for errors.
+
+##### V15_cancellation_orphan_process
+07:37:16.625 [WARN] [STEP] No active test context — step ignored: Load Test: V15 (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V15 (2 users, rampUp=1s, hold=25s)
+[LoadTest] Gatling execution failed: null
+  runner ended: IllegalStateException: [LoadTest] Gatling execution failed: null
+RESULT: PASS | after interrupt: live Gatling child JVMs=0
+
+##### V16_concurrent_executions_serialized
+07:37:24.633 [WARN] [STEP] No active test context — step ignored: Load Test: V16-1 (2 users, engine=gatling)
+07:37:24.633 [WARN] [STEP] No active test context — step ignored: Load Test: V16-0 (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V16-1 (2 users, rampUp=1s, hold=3s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073727032
+[LoadTest] Starting Gatling engine: V16-0 (2 users, rampUp=1s, hold=3s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073734383
+RESULT: PASS | results isolated=true steps0=[ok0] steps1=[ok1] totalWallMs=14340 (serialized by static GATLING_LOCK)
+
+##### V17_html_report_generated
+07:37:38.976 [WARN] [STEP] No active test context — step ignored: Load Test: V17 (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V17 (1 users, rampUp=1s, hold=1s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073741700
+RESULT: PASS | index.html=target/loadtest/V17-1792913858977/testflygatlingsimulation-20261025073741700/index.html (31557 bytes)
+
+##### V18_xml_body_content_type
+07:37:43.690 [WARN] [STEP] No active test context — step ignored: Load Test: V18 (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V18 (1 users, rampUp=1s, hold=1s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073746352
+RESULT: FAIL | XML body sent with Content-Type=[application/json]
+
+##### V19_formParam_ignored
+07:37:48.372 [WARN] [STEP] No active test context — step ignored: Load Test: V19-gatling (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V19-gatling (1 users, rampUp=1s, hold=1s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073751059
+RESULT: FAIL | [gatling] formParam(user,alice) -> bodies seen=[] contentTypes=[null]
+07:37:53.061 [WARN] [STEP] No active test context — step ignored: Load Test: V19-jdk (1 users, engine=jdk)
+RESULT: FAIL | [jdk] formParam(user,alice) -> bodies seen=[] contentTypes=[null]
+
+##### V20_assertion_failure_propagates
+07:37:54.085 [WARN] [STEP] No active test context — step ignored: Load Test: V20 (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V20 (1 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+[LoadTest] Gatling results parsed from: testflygatlingsimulation-20261025073756855
+RESULT: PASS | AssertionError: [LoadTest] V20: p95 latency 245ms is not below 50ms
+
+===== Re-run after harness review fixes (2026-10-25, V02/V09/V13 stricter assertions, V15 waits for the child JVM) =====
+##### V02_statusCodeFidelity_201
+RESULT: FAIL | server returned only 201; expected {201=90}, TestFly statusCodes={200=90}
+##### V09_jsonPath_is_becomes_status_check
+RESULT: FAIL | jsonPath("$.id").is(5) -> type=STATUS_IS target=$.id; run on body {id:'abc'}: errorRate=1.0 statusCodes={500=43}
+##### V13_connection_refused_reported_as_500
+RESULT: FAIL | no HTTP response at all; statusCodes={500=1848} ko=1848
+##### V15_cancellation_orphan_process
+RESULT: FAIL | observed child pids=[5175]; still alive 5s after interrupt=1
+
+===== Re-run after P0 remediation (2026-10-25, working tree on 211977f) =====
+##### V01_smoke
+RESULT: PASS | requests=129 ko=0 engine=gatling serverHits=129
+##### V02_statusCodeFidelity_201
+RESULT: PASS | server returned only 201; expected {201=87}, TestFly statusCodes={201=87}
+##### V03_correlation_extract_token
+RESULT: PASS | authOk=64 authFail=0 ko=0
+##### V04_sequence_feeder
+RESULT: PASS | distinctIds=131 literalPlaceholderSeen=false requests=131
+##### V05_csv_feeder
+RESULT: PASS | usersSeen=[bob, alice, charlie] requests=134
+##### V06_failing_status_check
+RESULT: PASS | errorRate=1.0 statusCodes={200=88} (server only ever returned 200)
+##### V07_status_in_check_dropped
+RESULT: PASS | [gatling] status().in(200,204) vs actual 201 -> errorRate=1.0
+RESULT: PASS | [jdk] status().in(200,204) vs actual 201 -> errorRate=1.0
+##### V08_http200_business_failure
+RESULT: PASS | [gatling] body {success:false} with body-regex check -> errorRate=1.0
+RESULT: PASS | [jdk] body {success:false} with body-regex check -> errorRate=1.0
+##### V09_jsonPath_is_becomes_status_check
+RESULT: PASS | jsonPath("$.id").is(5) -> type=JSON_EQUALS target=$.id; run on body {id:'abc'}: errorRate=1.0 statusCodes={201=41}
+##### V10_p90_fabricated
+RESULT: PASS | p50=243.0 p90=NaN p95=247.0 p50+(p95-p50)*0.8=246.2 -> p90 is interpolated, not measured
+##### V11_cooldown_ignored
+RESULT: FAIL | [gatling] ramp=1s hold=2s cooldown=8s -> reported durationMs=3000 wallMs=5935
+RESULT: FAIL | [jdk] ramp=1s hold=2s cooldown=8s -> reported durationMs=3033 wallMs=3034
+##### V12_users_semantics_open_vs_closed
+RESULT: FAIL | [gatling] users(10) rampUp=6s hold=2s -> server-observed peak concurrency=5 (metrics.users=10)
+RESULT: FAIL | [jdk] users(10) rampUp=6s hold=2s -> server-observed peak concurrency=4 (metrics.users=10)
+##### V13_connection_refused_reported_as_500
+RESULT: PASS | no HTTP response at all; statusCodes={-1=1614} ko=1614
+##### V14_simulation_build_failure_error_propagation
+RESULT: PASS | exception=IllegalStateException: [LoadTest] Gatling subprocess failed with exit code 1 (invalid arguments or crash). Last lines of <run-dir>/gatling-subprocess.log (redacted):
+##### V15_cancellation_orphan_process
+RESULT: PASS | observed child pids=[8391]; still alive 5s after interrupt=0
+##### V16_concurrent_executions_serialized
+RESULT: PASS | results isolated=true steps0=[ok0] steps1=[ok1] totalWallMs=13010 (serialized by static GATLING_LOCK)
+##### V17_html_report_generated
+RESULT: PASS | index.html=target/loadtest/V17-1792923913808/testflygatlingsimulation-20261025102516442/index.html (32912 bytes)
+##### V18_xml_body_content_type
+RESULT: FAIL | XML body sent with Content-Type=[application/json]
+##### V19_formParam_ignored
+RESULT: PASS | [gatling] formParam(user,alice) -> bodies seen=[user=alice] contentTypes=[application/x-www-form-urlencoded]
+RESULT: PASS | [jdk] formParam(user,alice) -> bodies seen=[user=alice] contentTypes=[application/x-www-form-urlencoded]
+##### V20_assertion_failure_propagates
+RESULT: PASS | AssertionError: [LoadTest] V20: p95 latency 323ms is not below 50ms
+FAIL/ERROR results: 5

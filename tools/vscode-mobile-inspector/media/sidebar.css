@@ -1,0 +1,90 @@
+/* Sidebar view: loaded after inspector.css for its tokens and buttons. */
+body { overflow: auto; background: transparent; }
+.side { padding: 10px 14px 18px; }
+.side p { margin: 0 0 12px; line-height: 1.5; }
+.small { font-size: 12px; }
+
+.seg { display: flex; padding: 3px; gap: 3px; border-radius: 8px; background: var(--btn2-bg); margin-bottom: 14px; }
+.seg button { flex: 1; justify-content: center; height: 26px; background: transparent; color: var(--muted); border-radius: 6px; }
+.seg button:hover { color: var(--fg); background: transparent; }
+.seg button.active { background: var(--bg); color: var(--fg); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); border-color: var(--border); }
+
+button.wide { width: 100%; justify-content: center; height: 30px; font-weight: 600; }
+button.link { height: auto; padding: 0; background: none; border: 0; }
+
+.lbl { display: flex; align-items: center; justify-content: space-between; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin: 12px 0 5px; }
+.lbl .rescan { text-transform: none; letter-spacing: 0; font-size: 11.5px; }
+.field { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 1px solid var(--input-border); border-radius: var(--radius); background: var(--input-bg); color: var(--muted); }
+.field:focus-within { border-color: var(--accent); }
+.field input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--fg); font: inherit; }
+.side select { width: 100%; max-width: none; min-width: 0; }
+
+.picks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pick { height: 32px; justify-content: flex-start; gap: 8px; padding: 0 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--fg); overflow: hidden; }
+.pick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--input-bg)); }
+.pick .logo { width: 16px; height: 16px; border-radius: 50%; flex: none; background: var(--muted); }
+.pick .logo.chrome { background: conic-gradient(#e94235 0 33%, #fbbc05 0 66%, #34a853 0); }
+.pick .logo.edge { background: linear-gradient(135deg, #1b9de2, #36c37a); }
+.pick .logo.chromium { background: linear-gradient(135deg, #4c8bf5, #1a5fd0); }
+.none-found { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin: 0; }
+
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; cursor: pointer; font-size: 12.5px; }
+.switch-row small { display: block; color: var(--muted); font-size: 11px; margin-top: 1px; }
+.switch-row input { position: absolute; opacity: 0; pointer-events: none; }
+.switch-row i { flex: none; width: 28px; height: 16px; border-radius: 999px; background: color-mix(in srgb, var(--fg) 22%, transparent); position: relative; transition: background 0.15s; }
+.switch-row i::after { content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: left 0.15s; }
+.switch-row input:checked + i { background: var(--accent); }
+.switch-row input:checked + i::after { left: 14px; }
+.switch-row input:focus-visible + i { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+.launch { margin-top: 16px; }
+.recent { display: flex; flex-direction: column; gap: 1px; }
+.recent button { justify-content: flex-start; height: 24px; background: transparent; padding: 0 6px; color: var(--fg); overflow: hidden; }
+.recent button:hover { background: var(--hover); }
+.recent button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent svg { width: 14px; height: 14px; color: var(--muted); }
+.clear-row { margin: 6px 0 0; font-size: 11.5px; }
+
+/* device list (Mobile) */
+.dev-head { display: flex; align-items: center; gap: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin: 2px 0 6px; }
+.dev-head .spacer { flex: 1; }
+.dev-head .link { text-transform: none; letter-spacing: 0; font-size: 12px; }
+.srv { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); opacity: 0.6; }
+.srv.on { background: var(--ok); opacity: 1; }
+.srv.off { background: var(--err); opacity: 1; }
+.dev-list { margin-bottom: 12px; }
+.dev-group { font-size: 12px; color: var(--muted); margin: 10px 0 2px; }
+.dev-empty { margin: 6px 0; }
+.dev { display: flex; align-items: center; gap: 9px; padding: 5px 4px; border-radius: 6px; }
+.dev:hover { background: var(--hover); }
+.dev .ico { width: 18px; height: 18px; flex: none; color: var(--fg); }
+.dev .ico.android { color: var(--ok); }
+.dev .ico svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.dev .ico.android svg { fill: currentColor; stroke: none; }
+.dev-text { flex: 1; min-width: 0; }
+.dev-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dev-sub { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--muted); min-width: 0; margin-top: 1px; }
+.dev-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.dev.offline .dev-name { color: color-mix(in srgb, var(--fg) 75%, transparent); }
+.badge { flex: none; font-size: 9.5px; font-weight: 700; letter-spacing: 0.5px; padding: 1px 6px; border-radius: 999px; line-height: 14px; }
+.badge.ready { color: var(--ok); background: color-mix(in srgb, var(--ok) 18%, transparent); }
+.badge.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 18%, transparent); }
+.badge.busy { color: var(--info); background: color-mix(in srgb, var(--info) 16%, transparent); animation: pulse 1.4s infinite; }
+.badge.wifi { color: var(--info); background: transparent; border: 1px solid color-mix(in srgb, var(--info) 45%, transparent); font-weight: 600; }
+.dev-actions { display: flex; gap: 4px; flex: none; }
+.dev-actions button { height: 24px; padding: 0 9px; font-size: 12px; }
+.dev-actions button.icon-only { width: 24px; padding: 0; justify-content: center; }
+.dev-actions button.icon-only svg { width: 13px; height: 13px; }
+.dev-actions button:disabled { opacity: 0.45; }
+.dev-error { font-size: 11.5px; color: var(--err); margin: 6px 0; word-break: break-word; }
+.fold { margin-top: 12px; font-size: 12.5px; }
+.fold summary { cursor: pointer; color: var(--fg); }
+.fold form, .fold .help { margin-top: 8px; }
+.fold .wide { margin-top: 10px; }
+.help { padding-left: 16px; margin: 8px 0 0; line-height: 1.5; }
+.help li { margin-bottom: 6px; }
+.help code { font-size: 11px; word-break: break-all; }
+.wifi-out { margin: 8px 0 0; word-break: break-word; }
+.wifi-out.err { color: var(--err); }
+.wifi-out.ok { color: var(--ok); }

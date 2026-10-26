@@ -352,14 +352,15 @@ public class AllureReportAdapterTest {
                 String name = p.path("name").asText();
                 String val = p.path("value").asText();
                 if ("Load Engine".equals(name) && "GATLING".equals(val)) foundEngine = true;
-                if ("Concurrent Users".equals(name) && "20 VUs".equals(val)) foundUsers = true;
+                // ADR 0003 decision 2: users are virtual users started over rampUp, not a concurrency target
+                if ("Virtual Users".equals(name) && "20 VUs".equals(val)) foundUsers = true;
                 if ("Throughput".equals(name) && "50.0 req/s".equals(val)) foundThroughput = true;
                 if ("P95 Latency".equals(name) && "120 ms".equals(val)) foundP95 = true;
                 if ("Error Rate".equals(name) && "2.00%".equals(val)) foundErrorRate = true;
             }
 
             assertTrue(foundEngine, "Must find Load Engine parameter");
-            assertTrue(foundUsers, "Must find Concurrent Users parameter");
+            assertTrue(foundUsers, "Must find Virtual Users parameter: " + parameters);
             assertTrue(foundThroughput, "Must find Throughput parameter");
             assertTrue(foundP95, "Must find P95 Latency parameter");
             assertTrue(foundErrorRate, "Must find Error Rate parameter");
@@ -393,6 +394,176 @@ public class AllureReportAdapterTest {
             dummyReport.delete();
             dummyDir.delete();
         }
+    }
+
+    @Test
+    public void generate_loadTestSummary_showsNaForUnmeasuredPercentiles() throws IOException {
+        // Gatling run: p90 not measured (null), p75 missing (pre-1.1.0 metrics file)
+        String json = "{"
+                + "\"totalTests\": 1, \"passedTests\": 1, \"failedTests\": 0,"
+                + "\"skippedTests\": 0, \"passRate\": 100.0,"
+                + "\"flakyTests\": 0, \"recoveredTests\": 0,"
+                + "\"totalTimeMs\": 1000,"
+                + "\"tests\": [{"
+                + "  \"testId\": \"myLoginTest\","
+                + "  \"testClassName\": \"LoginTest\","
+                + "  \"thread\": \"main\","
+                + "  \"status\": \"PASSED\","
+                + "  \"loadTestMetrics\": {"
+                + "    \"engine\": \"gatling\", \"scenarioName\": \"NaScenario\", \"users\": 2,"
+                + "    \"totalRequests\": 10, \"successfulRequests\": 10, \"failedRequests\": 0,"
+                + "    \"p50LatencyMs\": 4.0, \"p90LatencyMs\": null, \"p95LatencyMs\": null,"
+                + "    \"p99LatencyMs\": null, \"meanLatencyMs\": null, \"minLatencyMs\": null, \"maxLatencyMs\": 40.0,"
+                + "    \"steps\": {\"s1\": {\"name\": \"s1\", \"totalRequests\": 10, \"successfulRequests\": 10,"
+                + "      \"failedRequests\": 0, \"p95LatencyMs\": null, \"errorRate\": 0.0}}"
+                + "  },"
+                + "  \"totalMs\": 1000"
+                + "}]}";
+        Files.writeString(metricsFile.toPath(), json);
+
+        generateSync();
+        JsonNode result = firstResult();
+
+        String summary = null;
+        for (JsonNode att : result.path("attachments")) {
+            if ("⚡ Load Test Summary".equals(att.path("name").asText())) {
+                summary = Files.readString(new File(ALLURE_RESULTS, att.path("source").asText()).toPath());
+            }
+        }
+        assertNotNull(summary, "Load Test Summary attachment missing");
+        assertTrue(summary.contains("| **P75** | n/a |"), summary);
+        assertTrue(summary.contains("| **P90** | n/a |"), summary);
+        assertTrue(summary.contains("| **P50** | 4 ms |"), summary);
+        for (String row : new String[] {"Min", "P95", "P99", "Mean"}) {
+            assertTrue(summary.contains("| **" + row + "** | n/a |"), row + " must be n/a: " + summary);
+        }
+        assertTrue(summary.contains("| **Max** | 40 ms |"), summary);
+        assertTrue(summary.contains("| `s1` | 10 | 10 | 0 | n/a | 0.0% |"), "step p95 must be n/a: " + summary);
+        assertFalse(summary.contains("| 0 ms"), summary);
+
+        boolean p95ParamNa = false;
+        for (JsonNode param : result.path("parameters")) {
+            if ("P95 Latency".equals(param.path("name").asText())) {
+                p95ParamNa = "n/a".equals(param.path("value").asText());
+            }
+        }
+        assertTrue(p95ParamNa, "P95 Latency parameter must be n/a: " + result.path("parameters"));
+    }
+
+    @Test
+    public void generate_loadTestSummary_showsPartialLineSlaTableAndVirtualUsers() throws IOException {
+        String json = "{"
+                + "\"totalTests\": 1, \"passedTests\": 1, \"failedTests\": 0,"
+                + "\"skippedTests\": 0, \"passRate\": 100.0,"
+                + "\"flakyTests\": 0, \"recoveredTests\": 0,"
+                + "\"totalTimeMs\": 1000,"
+                + "\"tests\": [{"
+                + "  \"testId\": \"myLoginTest\","
+                + "  \"testClassName\": \"LoginTest\","
+                + "  \"thread\": \"main\","
+                + "  \"status\": \"PASSED\","
+                + "  \"loadTestMetrics\": {"
+                + "    \"engine\": \"gatling\", \"scenarioName\": \"SlaScenario\", \"users\": 20,"
+                + "    \"totalRequests\": 40, \"successfulRequests\": 40, \"failedRequests\": 0,"
+                + "    \"p95LatencyMs\": 120.0, \"errorRate\": 0.0, \"partial\": true, \"aggregate\": false,"
+                + "    \"sla\": ["
+                + "      {\"scope\": \"global\", \"metric\": \"P95\", \"comparison\": \"BELOW\","
+                + "       \"threshold\": 100.0, \"actual\": 120.0, \"passed\": false,"
+                + "       \"reason\": \"p95 120 ms is not below 100 ms\"},"
+                + "      {\"scope\": \"login\", \"metric\": \"ERROR_RATE\", \"comparison\": \"BELOW\","
+                + "       \"threshold\": 0.05, \"actual\": 0.0, \"passed\": true, \"reason\": \"\"},"
+                + "      {\"scope\": \"global\", \"metric\": \"P90\", \"comparison\": \"BELOW\","
+                + "       \"threshold\": 200.0, \"actual\": null, \"passed\": false,"
+                + "       \"reason\": \"p90 was not measured\"}"
+                + "    ]"
+                + "  },"
+                + "  \"totalMs\": 1000"
+                + "}]}";
+        Files.writeString(metricsFile.toPath(), json);
+
+        generateSync();
+        JsonNode result = firstResult();
+
+        String summary = null;
+        for (JsonNode att : result.path("attachments")) {
+            if ("⚡ Load Test Summary".equals(att.path("name").asText())) {
+                summary = Files.readString(new File(ALLURE_RESULTS, att.path("source").asText()).toPath());
+            }
+        }
+        assertNotNull(summary, "Load Test Summary attachment missing");
+
+        // ADR 0003 decision 2: "Virtual Users", never "Concurrent Users"
+        assertTrue(summary.contains("- **Virtual Users:** 20 VUs"), summary);
+        assertFalse(summary.contains("Concurrent Users"), summary);
+        boolean usersParam = false;
+        for (JsonNode p : result.path("parameters")) {
+            if ("Virtual Users".equals(p.path("name").asText()) && "20 VUs".equals(p.path("value").asText())) {
+                usersParam = true;
+            }
+            assertNotEquals(p.path("name").asText(), "Concurrent Users", "stale label: " + result.path("parameters"));
+        }
+        assertTrue(usersParam, "Virtual Users parameter: " + result.path("parameters"));
+
+        // partial run
+        assertTrue(summary.contains("- **Partial:** yes"), "partial line: " + summary);
+
+        // SLA table, rows in declaration order
+        assertTrue(summary.contains("## SLA\n"), "SLA section: " + summary);
+        assertTrue(summary.contains("| Scope | Metric | Comparison | Threshold | Actual | Result | Reason |"),
+                "SLA table header: " + summary);
+        String failed = line(summary, "| global | P95 | BELOW |");
+        assertTrue(failed.contains("| FAIL |") && failed.contains("p95 120 ms is not below 100 ms"), failed);
+        String passed = line(summary, "| login | ERROR_RATE | BELOW |");
+        assertTrue(passed.contains("| PASS |"), passed);
+        String unmeasured = line(summary, "| global | P90 | BELOW |");
+        assertTrue(unmeasured.contains("| n/a |") && unmeasured.contains("| FAIL |"), unmeasured);
+        assertTrue(summary.indexOf("| global | P95 |") < summary.indexOf("| login | ERROR_RATE |")
+                && summary.indexOf("| login | ERROR_RATE |") < summary.indexOf("| global | P90 |"),
+                "rows keep declaration order: " + summary);
+    }
+
+    @Test
+    public void generate_loadTestSummary_slaReason_escapesBackslashBeforePipe() throws IOException {
+        String json = "{"
+                + "\"totalTests\": 1, \"passedTests\": 1, \"failedTests\": 0,"
+                + "\"skippedTests\": 0, \"passRate\": 100.0,"
+                + "\"flakyTests\": 0, \"recoveredTests\": 0,"
+                + "\"totalTimeMs\": 1000,"
+                + "\"tests\": [{"
+                + "  \"testId\": \"myLoginTest\","
+                + "  \"testClassName\": \"LoginTest\","
+                + "  \"thread\": \"main\","
+                + "  \"status\": \"PASSED\","
+                + "  \"loadTestMetrics\": {"
+                + "    \"engine\": \"gatling\", \"scenarioName\": \"Escape\", \"users\": 1,"
+                + "    \"sla\": [{\"scope\": \"global\", \"metric\": \"P95\", \"comparison\": \"BELOW\","
+                + "      \"threshold\": 100.0, \"actual\": 120.0, \"passed\": false, \"reason\": \"a\\\\|b\"}]"
+                + "  },"
+                + "  \"totalMs\": 1000"
+                + "}]}";
+        Files.writeString(metricsFile.toPath(), json);
+
+        generateSync();
+        JsonNode result = firstResult();
+        String summary = null;
+        for (JsonNode att : result.path("attachments")) {
+            if ("⚡ Load Test Summary".equals(att.path("name").asText())) {
+                summary = Files.readString(new File(ALLURE_RESULTS, att.path("source").asText()).toPath());
+            }
+        }
+        assertNotNull(summary, "Load Test Summary attachment missing");
+        String row = line(summary, "| global | P95 | BELOW |");
+        // the reason a\|b is written a\\\|b (backslash escaped first, then the pipe): it renders as a\|b in one cell
+        assertTrue(row.endsWith("| a\\\\\\|b |"), row);
+    }
+
+    /** The first line of {@code text} that starts with {@code prefix}; fails if there is none. */
+    private static String line(String text, String prefix) {
+        for (String l : text.split("\n")) {
+            if (l.startsWith(prefix)) return l;
+        }
+        fail("no line starting with '" + prefix + "' in:\n" + text);
+        return null;
     }
 
     // ----------------------------------------------------------

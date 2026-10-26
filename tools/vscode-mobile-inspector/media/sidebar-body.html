@@ -1,0 +1,83 @@
+<div class="side">
+  <div class="seg" role="tablist" aria-label="Inspector">
+    <button role="tab" data-side="mobile">
+      <svg viewBox="0 0 16 16"><rect x="4.5" y="1.5" width="7" height="13" rx="1.8"/><path d="M7 12h2"/></svg>Mobile
+    </button>
+    <button role="tab" data-side="browser">
+      <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2.2 2 9.8 0 12M8 2c-2 2.2-2 9.8 0 12"/></svg>Browser
+    </button>
+  </div>
+
+  <section id="sideMobile" class="side-pane" hidden>
+    <div class="dev-head">
+      <span>Devices</span>
+      <span class="srv" id="srv" title="mobilecli server"></span>
+      <span class="spacer"></span>
+      <button type="button" class="link" id="reloadDevices" title="List the devices again">Reload</button>
+    </div>
+    <div class="dev-list" id="deviceList"><p class="muted small dev-empty">Looking for devices…</p></div>
+
+    <button class="primary wide" id="openMobile">
+      <svg viewBox="0 0 16 16"><rect x="4.5" y="1.5" width="7" height="13" rx="1.8"/><path d="M7 12h2"/></svg>Open Mobile Inspector
+    </button>
+
+    <details class="fold" id="wifiBox">
+      <summary>Connect Android over Wi‑Fi</summary>
+      <form id="wifiForm" autocomplete="off">
+        <p class="muted small">On the phone: Developer options → <b>Wireless debugging</b> (Android 11+), same network as this computer. Pair once with the code, then connect with the address on the Wireless debugging screen.</p>
+        <label class="lbl" for="wifiAddr">Address</label>
+        <div class="field"><input id="wifiAddr" type="text" spellcheck="false" placeholder="192.168.1.20:37099"></div>
+        <label class="lbl" for="wifiCode">Pairing code <span class="muted">only to pair</span></label>
+        <div class="field"><input id="wifiCode" type="text" inputmode="numeric" maxlength="6" spellcheck="false" placeholder="6 digits"></div>
+        <button class="wide" id="wifiGo" type="submit">Connect</button>
+        <p class="small wifi-out" id="wifiOut" hidden></p>
+      </form>
+    </details>
+
+    <details class="fold">
+      <summary>A device is missing?</summary>
+      <ul class="help small">
+        <li><b>Android phone</b>: Developer options → USB debugging on, then accept <i>Allow USB debugging</i> on the phone. A phone waiting for that shows as <i>unauthorized</i>.</li>
+        <li><b>iPhone</b>: unlock it, tap <i>Trust This Computer</i> and turn on Settings → Privacy &amp; Security → <b>Developer Mode</b>. Inspecting needs mobilecli's agent once: <code>mobilecli agent install --device &lt;udid&gt; --provisioning-profile &lt;file&gt;</code>.</li>
+        <li><b>iPhone over Wi‑Fi</b>: connect it by cable once, enable <i>Connect via network</i> in Xcode → Devices and Simulators; then it is listed on the same network.</li>
+        <li><b>Simulators</b> are listed after their first boot; <b>emulators</b> from the Android SDK's AVDs.</li>
+      </ul>
+    </details>
+
+    <p class="muted small">Needs mobilecli. <button class="link" data-settings>Settings</button></p>
+  </section>
+
+  <section id="sideBrowser" class="side-pane" hidden>
+    <form id="launchForm" autocomplete="off">
+      <label class="lbl" for="pageUrl">Page URL</label>
+      <div class="field">
+        <svg viewBox="0 0 16 16"><path d="M6.5 9.5l3-3"/><path d="M7 4.5l1-1a2.8 2.8 0 0 1 4 4l-1 1M9 11.5l-1 1a2.8 2.8 0 0 1-4-4l1-1"/></svg>
+        <input id="pageUrl" type="text" spellcheck="false" placeholder="https://example.com or localhost:3000">
+      </div>
+
+      <label class="lbl">Browser <button type="button" class="link rescan" id="rescan" title="Look for installed browsers again">Rescan</button></label>
+      <div class="picks" id="browsers"></div>
+
+      <label class="lbl" for="viewportSel">Viewport</label>
+      <select id="viewportSel">
+        <option value="1440x900">Desktop · 1440 × 900</option>
+        <option value="1280x800">Laptop · 1280 × 800</option>
+        <option value="768x1024">Tablet · 768 × 1024</option>
+        <option value="390x844">Mobile · 390 × 844</option>
+      </select>
+
+      <label class="switch-row"><span>Show browser window<small>Off: the page shows only in the inspector. On: also a browser window, to log in or use the page by hand</small></span><input type="checkbox" id="showWindow"><i></i></label>
+      <label class="switch-row"><span>Keep session<small>Cookies and logins stay between runs</small></span><input type="checkbox" id="keepSession"><i></i></label>
+      <p class="muted small clear-row"><button type="button" class="link" id="clearSession">Clear saved session</button> removes the kept cookies and logins.</p>
+
+      <button class="primary wide launch" id="launch" type="submit">
+        <svg viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg>Launch and inspect
+      </button>
+    </form>
+
+    <div id="recentBox" hidden>
+      <label class="lbl">Recent</label>
+      <div class="recent" id="recent"></div>
+    </div>
+  </section>
+</div>

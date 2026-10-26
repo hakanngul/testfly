@@ -6,8 +6,9 @@ import io.testfly.internal.TestFlyContext;
 import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.metrics.TestTiming;
 import io.testfly.reporting.ReportPaths;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
+import org.testng.IHookCallBack;
+import org.testng.IHookable;
+import org.testng.ITestResult;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -23,55 +24,76 @@ import static org.testng.Assert.*;
 /**
  * Unit tests for {@link ExecutionMetrics}.
  * Thread-safe for parallel=methods via singleThreaded + global file + context
- * locks.
+ * locks; isolated from other surefire forks by its own {@code testfly.reports.dir}.
  */
 @Test(singleThreaded = true)
-public class ExecutionMetricsTest {
+public class ExecutionMetricsTest implements IHookable {
 
     // Global locks shared across all report-related tests
     private static final Object GLOBAL_REPORT_LOCK = ReportPaths.class;
     private static final Object CONTEXT_LOCK = TestFlyContext.class;
 
-    @BeforeMethod
-    public void resetMetrics() throws Exception {
+    /** This class's own reports directory: other surefire forks delete files under the default {@code target}. */
+    private static final String REPORTS_DIR = "target/reports-isolated/ExecutionMetricsTest";
+
+    /**
+     * Runs each test method, with its setup and cleanup, under the report and context monitors (same order as the
+     * other report tests) and with {@code testfly.reports.dir} pointing at {@link #REPORTS_DIR}. The cleanup lives
+     * here, not in {@code @BeforeMethod}/{@code @AfterMethod}: configuration methods run outside this hook, so they
+     * would resolve the default {@code target} directory and delete files that other classes write.
+     */
+    @Override
+    @Test(enabled = false) // the class-level @Test would otherwise make this public hook a test
+    public void run(IHookCallBack callBack, ITestResult testResult) {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
-                ExecutionMetrics.reset();
-                resetTestFlyContext();
-                File json = ReportPaths.metricsJson();
-                if (json.exists())
-                    json.delete();
-                File history = ReportPaths.metricsHistoryDir();
-                if (history.exists()) {
-                    File[] files = history.listFiles();
-                    if (files != null)
-                        for (File f : files)
-                            f.delete();
+                System.setProperty("testfly.reports.dir", REPORTS_DIR);
+                try {
+                    resetMetrics();
+                    callBack.runTestMethod(testResult);
+                } finally {
+                    try {
+                        cleanUp();
+                    } finally {
+                        System.clearProperty("testfly.reports.dir");
+                    }
                 }
             }
         }
     }
 
-    @AfterMethod
-    public void cleanUp() throws Exception {
-        synchronized (GLOBAL_REPORT_LOCK) {
-            synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
-                ExecutionMetrics.reset();
-                resetTestFlyContext();
-                File json = ReportPaths.metricsJson();
-                if (json.exists())
-                    json.delete();
-            }
+    private static void resetMetrics() {
+        ExecutionMetrics.reset();
+        resetTestFlyContext();
+        File json = ReportPaths.metricsJson();
+        if (json.exists())
+            json.delete();
+        File history = ReportPaths.metricsHistoryDir();
+        if (history.exists()) {
+            File[] files = history.listFiles();
+            if (files != null)
+                for (File f : files)
+                    f.delete();
         }
     }
 
-    private static void resetTestFlyContext() throws Exception {
-        Field configField = TestFlyContext.class.getDeclaredField("CONFIG");
-        configField.setAccessible(true);
-        AtomicReference<?> ref = (AtomicReference<?>) configField.get(null);
-        ref.set(null);
+    private static void cleanUp() {
+        ExecutionMetrics.reset();
+        resetTestFlyContext();
+        File json = ReportPaths.metricsJson();
+        if (json.exists())
+            json.delete();
+    }
+
+    private static void resetTestFlyContext() {
+        try {
+            Field configField = TestFlyContext.class.getDeclaredField("CONFIG");
+            configField.setAccessible(true);
+            AtomicReference<?> ref = (AtomicReference<?>) configField.get(null);
+            ref.set(null);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("cannot reset TestFlyContext.CONFIG", e);
+        }
         TestFlyContext.clearCurrentTestId();
         try {
             Field ciField = ExecutionMetrics.class.getDeclaredField("ciMetadata");
@@ -257,7 +279,6 @@ public class ExecutionMetricsTest {
     public void exportToJson_includesRetryCount() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 ExecutionMetrics.markStart("retry-test");
                 ExecutionMetrics.markEnd("retry-test");
                 ExecutionMetrics.recordStatus("retry-test", "PASSED");
@@ -275,7 +296,6 @@ public class ExecutionMetricsTest {
     public void exportToJson_includesPassRate() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 ExecutionMetrics.markStart("pass-test");
                 ExecutionMetrics.markEnd("pass-test");
                 ExecutionMetrics.recordStatus("pass-test", "PASSED");
@@ -292,7 +312,6 @@ public class ExecutionMetricsTest {
     public void exportToJson_includesFlakyCount() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 ExecutionMetrics.markStart("flaky-test");
                 ExecutionMetrics.markEnd("flaky-test");
                 ExecutionMetrics.recordStatus("flaky-test", "PASSED");
@@ -314,7 +333,6 @@ public class ExecutionMetricsTest {
     public void exportToJson_withoutContext_doesNotIncludeCiBlock() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 ExecutionMetrics.markStart("ci-test-1");
                 ExecutionMetrics.markEnd("ci-test-1");
                 ExecutionMetrics.recordStatus("ci-test-1", "PASSED");
@@ -329,7 +347,6 @@ public class ExecutionMetricsTest {
     public void exportToJson_withContextButCaptureDisabled_doesNotIncludeCiBlock() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 TestFlyContext.initialize(minimalConfig(false));
                 ExecutionMetrics.markStart("ci-test-2");
                 ExecutionMetrics.markEnd("ci-test-2");
@@ -345,7 +362,6 @@ public class ExecutionMetricsTest {
     public void exportToJson_withCaptureEnabledAndMetadata_includesCiBlock() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 TestFlyContext.initialize(minimalConfig(true));
                 ExecutionMetrics.setCiMetadata(new CiMetadata(
                         "GitHub Actions", "42", "123", "main",

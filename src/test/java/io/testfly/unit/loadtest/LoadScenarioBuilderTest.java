@@ -149,4 +149,55 @@ public class LoadScenarioBuilderTest {
         assertThrows(UnsupportedOperationException.class, () ->
                 s.steps().add(new LoadStep("hack")));
     }
+
+    // ── CheckCondition builder kinds (1.1.0) ─────────────────────────────
+
+    @Test
+    public void testStatusBuilderKinds() {
+        CheckCondition is = LoadStep.status().is(201);
+        assertEquals(is.type(), CheckCondition.Type.STATUS_IS);
+        assertEquals(is.expected(), 201);
+
+        CheckCondition in = LoadStep.status().in(200, 204);
+        assertEquals(in.type(), CheckCondition.Type.STATUS_IN);
+        assertEquals((int[]) in.expected(), new int[] {200, 204});
+
+        CheckCondition re = LoadStep.status().matches("ok");
+        assertEquals(re.type(), CheckCondition.Type.BODY_MATCHES);
+        assertEquals(re.expected(), "ok");
+    }
+
+    @Test(expectedExceptions = IllegalStateException.class,
+            expectedExceptionsMessageRegExp = "exists\\(\\) is only valid for jsonPath\\(\\.\\.\\.\\)")
+    public void testStatusExistsThrows() {
+        LoadStep.status().exists();
+    }
+
+    @Test
+    public void testJsonPathBuilderKinds() {
+        CheckCondition eq = LoadStep.jsonPath("$.id").is(5);
+        assertEquals(eq.type(), CheckCondition.Type.JSON_EQUALS);
+        assertEquals(eq.expected(), 5);
+        assertEquals(eq.target(), "$.id");
+
+        CheckCondition in = LoadStep.jsonPath("$.code").in(1, 2);
+        assertEquals(in.type(), CheckCondition.Type.JSON_IN);
+        assertEquals((int[]) in.expected(), new int[] {1, 2});
+        assertEquals(in.target(), "$.code");
+
+        CheckCondition ex = LoadStep.jsonPath("$.id").exists();
+        assertEquals(ex.type(), CheckCondition.Type.JSON_EXISTS);
+        assertEquals(ex.target(), "$.id");
+
+        // documented contract: matches() is a whole-body regex on both builders
+        CheckCondition re = LoadStep.jsonPath("$.ok").matches("true");
+        assertEquals(re.type(), CheckCondition.Type.BODY_MATCHES);
+    }
+
+    @Test
+    public void testCheckTypeConstantsAreAppendedNotReordered() {
+        CheckCondition.Type[] t = CheckCondition.Type.values();
+        assertEquals(java.util.Arrays.stream(t).map(Enum::name).toList(), java.util.List.of(
+                "STATUS_IS", "STATUS_IN", "JSON_EXISTS", "HEADER_PRESENT", "BODY_MATCHES", "JSON_EQUALS", "JSON_IN"));
+    }
 }

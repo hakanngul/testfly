@@ -11,8 +11,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
+import org.testng.IHookCallBack;
+import org.testng.IHookable;
+import org.testng.ITestResult;
 import org.testng.annotations.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,49 +26,62 @@ import io.testfly.reporting.ReportPaths;
 
 /**
  * Unit tests for {@link HtmlReportGenerator}.
- * Thread-safe for parallel=methods via singleThreaded + global report + context locks.
+ * Thread-safe for parallel=methods via singleThreaded + global report + context locks; isolated from other
+ * surefire forks by its own {@code testfly.reports.dir}.
  */
 @Test(singleThreaded = true)
-public class HtmlReportGeneratorTest {
+public class HtmlReportGeneratorTest implements IHookable {
 
     private static final Object GLOBAL_REPORT_LOCK = ReportPaths.class;
     private static final Object CONTEXT_LOCK = TestFlyContext.class;
 
-    @BeforeMethod
-    public void setup() throws Exception {
+    /** This class's own reports directory: other surefire forks delete files under the default {@code target}. */
+    private static final String REPORTS_DIR = "target/reports-isolated/HtmlReportGeneratorTest";
+
+    /**
+     * Runs each test method, with its setup and cleanup, under the report and context monitors (same order as the
+     * other report tests) and with {@code testfly.reports.dir} pointing at {@link #REPORTS_DIR}. The cleanup lives
+     * here, not in {@code @BeforeMethod}/{@code @AfterMethod}: configuration methods run outside this hook, so they
+     * would resolve the default {@code target} directory and delete files that other classes write.
+     */
+    @Override
+    @Test(enabled = false) // the class-level @Test would otherwise make this public hook a test
+    public void run(IHookCallBack callBack, ITestResult testResult) {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
-                File html = ReportPaths.htmlReport();
-                File json = ReportPaths.metricsJson();
-                if (html.exists()) html.delete();
-                if (json.exists()) json.delete();
-                resetTestFlyContext();
-                ExecutionMetrics.reset();
+                System.setProperty("testfly.reports.dir", REPORTS_DIR);
+                try {
+                    cleanReports();
+                    callBack.runTestMethod(testResult);
+                } finally {
+                    try {
+                        cleanReports();
+                    } finally {
+                        System.clearProperty("testfly.reports.dir");
+                    }
+                }
             }
         }
     }
 
-    @AfterMethod
-    public void cleanup() throws Exception {
-        synchronized (GLOBAL_REPORT_LOCK) {
-            synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
-                File html = ReportPaths.htmlReport();
-                File json = ReportPaths.metricsJson();
-                if (html.exists()) html.delete();
-                if (json.exists()) json.delete();
-                resetTestFlyContext();
-                ExecutionMetrics.reset();
-            }
-        }
+    private static void cleanReports() {
+        File html = ReportPaths.htmlReport();
+        File json = ReportPaths.metricsJson();
+        if (html.exists()) html.delete();
+        if (json.exists()) json.delete();
+        resetTestFlyContext();
+        ExecutionMetrics.reset();
     }
 
-    private static void resetTestFlyContext() throws Exception {
-        Field configField = TestFlyContext.class.getDeclaredField("CONFIG");
-        configField.setAccessible(true);
-        AtomicReference<?> ref = (AtomicReference<?>) configField.get(null);
-        ref.set(null);
+    private static void resetTestFlyContext() {
+        try {
+            Field configField = TestFlyContext.class.getDeclaredField("CONFIG");
+            configField.setAccessible(true);
+            AtomicReference<?> ref = (AtomicReference<?>) configField.get(null);
+            ref.set(null);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("cannot reset TestFlyContext.CONFIG", e);
+        }
         TestFlyContext.clearCurrentTestId();
         try {
             Field ciField = ExecutionMetrics.class.getDeclaredField("ciMetadata");
@@ -135,7 +149,6 @@ public class HtmlReportGeneratorTest {
     public void generate_createsHtmlReport() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 TestFlyContext.initialize(minimalConfig());
                 writeMetricsWithCi();
                 HtmlReportGenerator.generate();
@@ -149,7 +162,6 @@ public class HtmlReportGeneratorTest {
     public void generate_includesBuildMetadata() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 TestFlyContext.initialize(minimalConfig());
                 writeMetricsWithCi();
                 HtmlReportGenerator.generate();
@@ -169,7 +181,6 @@ public class HtmlReportGeneratorTest {
     public void generate_buildUrlIsLinked() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 TestFlyContext.initialize(minimalConfig());
                 writeMetricsWithCi();
                 HtmlReportGenerator.generate();
@@ -184,7 +195,6 @@ public class HtmlReportGeneratorTest {
     public void generate_noMetricsJson_isNoOp() {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 TestFlyContext.initialize(minimalConfig());
                 File json = ReportPaths.metricsJson();
                 if (json.exists()) json.delete();
@@ -199,7 +209,6 @@ public class HtmlReportGeneratorTest {
     public void generate_archivesTimestampedReport() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 TestFlyContext.initialize(minimalConfig());
                 writeMetricsWithCi();
                 HtmlReportGenerator.generate();
@@ -217,7 +226,6 @@ public class HtmlReportGeneratorTest {
     public void generate_embedsRunHistoryAndCopyButtons() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 TestFlyContext.initialize(minimalConfig());
 
                 // Create metrics with a failed test and stack trace
@@ -258,7 +266,6 @@ public class HtmlReportGeneratorTest {
     public void generate_exportsJsonDataAndCumulativeTotals() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 TestFlyContext.initialize(minimalConfig());
                 writeMetricsWithCi();
 

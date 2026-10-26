@@ -9,12 +9,12 @@ Run `scripts/agent/verify.sh <mode>` from the repository root. Start narrow duri
 
 ## Modes
 
-- `agent`: shared skills, Kiro adapters, discovery metadata, and obsolete-infrastructure checks.
+- `agent`: skill and subagent frontmatter (real YAML parse), references, routing completeness in `AGENTS.md`, `CLAUDE.md` import drift, the subagent guard hook, and the validator and guard fixture tests. Needs python3 and PyYAML.
 - `code`: Java 21 Maven unit suite.
 - `api [baseline-ref]`: compiled `@TestFlyApi` surface comparison against a tag/ref, then `code`.
 - `spi`: registry and discovery tests, then `code`.
 - `consumer [checkout]`: install the current SDK, compile a clean temporary consumer copy, and run configured downstream smoke tests.
-- `docs`: English/Turkish path parity and both Docusaurus production builds.
+- `docs`: English/Turkish path parity and both Docusaurus production builds. It runs `npm ci` when `docs-site/node_modules` is missing, so it needs network access.
 - `release [baseline-ref] [consumer-checkout]`: release metadata/workflow checks plus agent, code, API, SPI, docs, and consumer gates. Consumer availability is mandatory; `TESTFLY_CONSUMER_DIR` is also accepted.
 - `full [baseline-ref]`: agent, code, API, SPI, and docs. Consumer remains explicit because it needs another checkout.
 
