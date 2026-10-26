@@ -4,14 +4,20 @@ import io.testfly.config.TestFlyConfig;
 import io.testfly.mobile.Mobile;
 import io.testfly.mobile.MobileDevice;
 import io.testfly.mobile.MobileServerUnavailableException;
+import io.testfly.mobile.MobileTimeoutException;
+import io.testfly.mobile.internal.MobileServerLauncher;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import static org.testng.Assert.*;
@@ -131,5 +137,95 @@ public class MobileServerLauncherTest {
         TestFlyConfig.Mobile silent = config(freePort(), script(marker, "sleep 20").toString(), "x");
         e = expectThrows(MobileServerUnavailableException.class, () -> Mobile.connect(silent));
         assertTrue(e.getMessage().contains("did not answer within 1500 ms"), e.getMessage());
+    }
+
+    /**
+     * An endpoint key only these direct {@code await} tests use: a failed wait is cached per endpoint for the
+     * whole JVM, so it must not match the endpoint a {@code Mobile.connect} test resolves for a reused port.
+     */
+    private static URI awaitOnlyEndpoint() throws IOException {
+        return URI.create("http://127.0.0.1:" + freePort() + "/launcher-await-test/" + System.nanoTime());
+    }
+
+    /** A live stand-in for the started mobilecli process; the launcher destroys it when the wait fails. */
+    private static Process idleProcess() throws IOException {
+        return new ProcessBuilder("sleep", "20").start();
+    }
+
+    @Test
+    public void keepsWaitingWhenAStartUpProbeTimesOutAndReportsTheStartFailure() throws Exception {
+        URI endpoint = awaitOnlyEndpoint();
+        List<Duration> budgets = new CopyOnWriteArrayList<>();
+        List<MobileTimeoutException> thrown = new CopyOnWriteArrayList<>();
+        Process process = idleProcess();
+        try {
+            MobileServerUnavailableException e = expectThrows(MobileServerUnavailableException.class,
+                    () -> MobileServerLauncher.await(endpoint, process, budget -> {
+                        budgets.add(budget);
+                        // A connect timeout uses up most of its budget before it is reported.
+                        sleepQuietly(budget.minusMillis(10));
+                        MobileTimeoutException timeout = new MobileTimeoutException("Could not connect within "
+                                + budget.toMillis() + " ms while calling server.info");
+                        thrown.add(timeout);
+                        throw timeout;
+                    }, Duration.ofMillis(120), Duration.ofMillis(600), Path.of("target", "mobilecli-autostart.log")));
+
+            assertTrue(e.getMessage().contains("did not answer within 600 ms"), e.getMessage());
+            assertTrue(budgets.size() >= 2, "the launcher must keep probing after a timeout: " + budgets);
+            assertSame(e.getCause(), thrown.get(thrown.size() - 1), "the last probe failure is the cause");
+            for (Duration budget : budgets) {
+                assertTrue(budget.compareTo(MobileServerLauncher.MIN_PROBE_BUDGET) >= 0,
+                        "no probe may start with less than " + MobileServerLauncher.MIN_PROBE_BUDGET + ": " + budgets);
+            }
+        } finally {
+            process.destroy();
+        }
+    }
+
+    @Test
+    public void answersOnceAStartUpProbeSucceedsAfterTimeouts() throws Exception {
+        URI endpoint = awaitOnlyEndpoint();
+        List<Duration> budgets = new CopyOnWriteArrayList<>();
+        Process process = idleProcess();
+        try {
+            String version = MobileServerLauncher.await(endpoint, process, budget -> {
+                budgets.add(budget);
+                if (budgets.size() < 3) {
+                    throw new MobileTimeoutException("Could not connect while calling server.info");
+                }
+                return "1.0.20";
+            }, Duration.ofMillis(1000), Duration.ofSeconds(5), Path.of("target", "mobilecli-autostart.log"));
+            assertEquals(version, "1.0.20");
+            assertEquals(budgets.size(), 3);
+        } finally {
+            process.destroy();
+        }
+    }
+
+    @Test
+    public void startsNoProbeWhenLessThanTheMinimumBudgetIsLeft() throws Exception {
+        URI endpoint = awaitOnlyEndpoint();
+        List<Duration> budgets = new CopyOnWriteArrayList<>();
+        Process process = idleProcess();
+        try {
+            MobileServerUnavailableException e = expectThrows(MobileServerUnavailableException.class,
+                    () -> MobileServerLauncher.await(endpoint, process, budget -> {
+                        budgets.add(budget);
+                        return "1.0.20";
+                    }, Duration.ofMillis(1000), MobileServerLauncher.MIN_PROBE_BUDGET.minusMillis(1),
+                            Path.of("target", "mobilecli-autostart.log")));
+            assertTrue(e.getMessage().contains("did not answer within 49 ms"), e.getMessage());
+            assertTrue(budgets.isEmpty(), "no probe may start below the minimum budget: " + budgets);
+        } finally {
+            process.destroy();
+        }
+    }
+
+    private static void sleepQuietly(Duration duration) {
+        try {
+            Thread.sleep(Math.max(0, duration.toMillis()));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

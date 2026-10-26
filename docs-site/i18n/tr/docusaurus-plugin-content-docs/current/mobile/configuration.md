@@ -92,7 +92,7 @@ Cihazları `devices: [id1, id2]` ile listeleyin ya da `pool: true` ile platformu
 
 - uç nokta ve JVM başına bir kez; paralel testler aynı sunucuyu bekler, başarısız bir başlatma sonraki testlerin aynı hatayla hızlıca düşmesine yol açar;
 - çıktı `target/mobilecli-autostart.log` dosyasına gider;
-- sunucunun cevap vermesi için `timeouts.serverStartMs` kadar bekler;
+- sunucunun cevap vermesi için `timeouts.serverStartMs` kadar bekler. Bu bekleme sırasında zaman aşımına uğrayan bir yoklama "henüz cevap vermiyor" sayılır, 50 ms'den az süre kaldığında yeni yoklama başlatılmaz ve süre dolduğunda hata sunucunun "did not answer within N ms" olduğunu söyler;
 - sunucu JVM kapanırken durdurulur.
 
 Zaten cevap veren bir sunucu olduğu gibi kullanılır ve hiç durdurulmaz. Uzak sunucular hiçbir zaman başlatılmaz. Çalışan bir sunucu şart koşmak için `autoStartServer: false` yapın. mobilecli **ajanı** (yalnızca iOS) otomatik kurulmaz; cihaz başına bir kez kurun (`mobilecli agent install --device <id>`).
