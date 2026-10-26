@@ -35,12 +35,37 @@ api_classes() {
     | sort -u
 }
 
+# The annotated top-level types plus their public nested types (Outer$Inner, Outer$A$B), which javap
+# does not list as members of the outer class. Anonymous and local classes (Outer$1, Outer$1Local) are
+# skipped, and so is a nested type that is not public.
+api_types() {
+  local source_root="$1"
+  local classes_root="$2"
+  local class_name
+  local nested_file
+  local nested_name
+  while IFS= read -r class_name; do
+    [[ -n "$class_name" ]] || continue
+    printf '%s\n' "$class_name"
+    for nested_file in "$classes_root/$(printf '%s' "$class_name" | tr '.' '/')"\$*.class; do
+      [[ -f "$nested_file" ]] || continue
+      nested_name="${nested_file#"$classes_root"/}"
+      nested_name="${nested_name%.class}"
+      nested_name="${nested_name//\//.}"
+      [[ "$nested_name" =~ \$[0-9] ]] && continue
+      javap -classpath "$classes_root" -public "$nested_name" \
+        | rg -q '^public .*(class|interface|enum|record) ' || continue
+      printf '%s\n' "$nested_name"
+    done
+  done < <(api_classes "$source_root") | sort -u
+}
+
 normalize_api() {
   local classpath="$1"
   local class_name="$2"
   javap -classpath "$classpath" -public -s "$class_name" \
     | sed -e '/^Compiled from /d' -e '/^{$/d' -e '/^}$/d' -e 's/^[[:space:]]*//' \
-    | rg '^(public|protected|descriptor:)' \
+    | { rg '^(public|protected|descriptor:)' || true; } \
     | awk '!(/^public / && $0 ~ / (class|interface|enum|record) /)' \
     | sort -u
 }
@@ -94,7 +119,7 @@ while IFS= read -r class_name; do
     sed 's/^/  /' "$work_dir/removed.relations" >&2
     removed=1
   fi
-done < <(api_classes "$baseline_dir")
+done < <(api_types "$baseline_dir" "$baseline_classes")
 
 if [[ "$removed" -ne 0 ]]; then
   exit 1
