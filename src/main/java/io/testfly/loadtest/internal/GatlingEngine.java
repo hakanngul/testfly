@@ -298,10 +298,9 @@ public final class GatlingEngine implements LoadTestEngine {
             cmd.add("--add-opens");
             cmd.add("java.base/java.lang=ALL-UNNAMED");
             cmd.add("-Dtestfly.gatling.config=" + tempConfig.toAbsolutePath());
-            // Pin the percentile slots of Gatling's own report: percentiles1..4 are p50/p75/p95/p99
-            // regardless of any gatling.conf on the classpath (system properties win). TestFly's metrics
-            // come from its sidecar; the pinned slots keep the HTML report and the test-only stats.js
-            // cross-check aligned with them.
+            // Pin the percentile columns of Gatling's own HTML report to p50/p75/p95/p99 regardless of any
+            // gatling.conf on the classpath (system properties win; the keys are unchanged in 3.16). TestFly's
+            // metrics come from its own sidecar, never from the report.
             cmd.add("-Dgatling.charting.indicators.percentile1=50");
             cmd.add("-Dgatling.charting.indicators.percentile2=75");
             cmd.add("-Dgatling.charting.indicators.percentile3=95");

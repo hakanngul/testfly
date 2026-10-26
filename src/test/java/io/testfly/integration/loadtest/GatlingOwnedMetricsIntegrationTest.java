@@ -1,6 +1,5 @@
 package io.testfly.integration.loadtest;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
@@ -38,11 +37,9 @@ import static org.testng.Assert.*;
 
 /**
  * ADR 0004 decision 1 (Phase 1a): Gatling metrics owned by TestFly ({@code testfly-metrics.json}),
- * checked against a real Gatling 3.13.5 run on a local {@link HttpServer}.
- *
- * <p>While 3.13.5 is pinned, Gatling's own {@code js/stats.js} of the same run is the cross-check
- * (read only here, by a test-only reader). It relies on the percentile slots pinned by
- * {@code GatlingEngine} ({@code percentiles1/3} = p50/p95; p99 is not compared, see the test).
+ * checked against a real Gatling run on a local {@link HttpServer}. The oracle is the server's own
+ * per-endpoint counters: Gatling 3.14+ no longer writes a machine-readable {@code js/stats.js}, so the
+ * cross-check against Gatling's statistics that ran while 3.13.5 was pinned is retired (ADR 0004).
  *
  * <p>No class-level {@code @Test}: on a {@link BaseLoadTest} subclass it would turn the inherited public
  * mixin methods into tests. Methods are parallel-safe: the shared run is memoized under a lock, every
@@ -51,9 +48,7 @@ import static org.testng.Assert.*;
 public class GatlingOwnedMetricsIntegrationTest extends BaseLoadTest {
 
     private static final String SIDECAR = "testfly-metrics.json";
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
-            .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final String OK_STEP = "ownedOk";
     private static final String KO_STEP = "ownedKo";
@@ -120,46 +115,13 @@ public class GatlingOwnedMetricsIntegrationTest extends BaseLoadTest {
         assertTrue(m.p99LatencyMs() <= m.maxLatencyMs(), all);
     }
 
-    // ── cross-check against Gatling's own stats.js (3.13.5 only) ─────────
+    // ── Gatling's own HTML report is still written ───────────────────────
 
     @Test
-    public void metrics_matchGatlingStatsJsOfTheSameRun() throws IOException {
+    public void runDir_containsGatlingHtmlReport() {
         SharedRun run = shared();
-        LoadTestMetrics m = run.metrics();
-        JsonNode stats = readStatsJs(run.simDir().resolve("js").resolve("stats.js"));
-
-        JsonNode contents = stats.path("contents");
-        assertTrue(contents.isObject() && contents.size() > 0, "stats.js has no per-request contents");
-        int gatlingTotal = 0;
-        for (var it = contents.elements(); it.hasNext();) {
-            JsonNode req = it.next();
-            String name = req.path("name").asText();
-            JsonNode n = req.path("stats").path("numberOfRequests");
-            int total = n.path("total").asInt(-1);
-            int ok = n.path("ok").asInt(-1);
-            int ko = n.path("ko").asInt(-1);
-            gatlingTotal += total;
-            LoadTestMetrics.StepMetrics s = m.step(name);
-            assertNotNull(s, "stats.js request '" + name + "' missing in TestFly steps " + m.steps().keySet());
-            assertEquals(s.totalRequests(), total, name + " total vs stats.js");
-            assertEquals(s.successfulRequests(), ok, name + " ok vs stats.js");
-            assertEquals(s.failedRequests(), ko, name + " ko vs stats.js");
-        }
-        assertTrue(m.step(KO_STEP) != null && m.step(KO_STEP).failedRequests() > 0,
-                "precondition: the failing status check must produce KO requests");
-        assertEquals(m.totalRequests(), gatlingTotal, "global total vs stats.js");
-
-        JsonNode global = stats.path("stats");
-        assertClose("p50", m.p50LatencyMs(), global.path("percentiles1").path("total").asDouble(Double.NaN));
-        assertClose("p95", m.p95LatencyMs(), global.path("percentiles3").path("total").asDouble(Double.NaN));
-        // p99 is not compared with stats.js: Gatling 3.13.5 estimates it with t-digest
-        // (AVLTreeDigest(100)), whose result depends on sample insertion order. On ~150 samples with one
-        // slow first request the same data gave 103..205 ms across orders, while TestFly's value is the
-        // exact interpolation over the histogram (unit-tested in GatlingResultsParserTest). Only the
-        // ordering invariant is checked here.
-        assertTrue(m.p95LatencyMs() <= m.p99LatencyMs() && m.p99LatencyMs() <= m.maxLatencyMs(),
-                "p95 <= p99 <= max, got p95=" + m.p95LatencyMs() + " p99=" + m.p99LatencyMs()
-                        + " max=" + m.maxLatencyMs());
+        assertTrue(Files.isRegularFile(run.simDir().resolve("index.html")),
+                "Gatling HTML report missing in " + run.simDir());
     }
 
     // ── per-step counts vs the local server ──────────────────────────────
@@ -316,31 +278,13 @@ public class GatlingOwnedMetricsIntegrationTest extends BaseLoadTest {
         }
     }
 
-    /** The Gatling simulation dir inside a run dir: the subdirectory holding {@code js/stats.js}. */
+    /** The Gatling simulation dir inside a run dir: the subdirectory holding {@code index.html}. */
     private static Path simDir(Path runDir) throws IOException {
         try (Stream<Path> dirs = Files.list(runDir)) {
-            return dirs.filter(p -> Files.isRegularFile(p.resolve("js").resolve("stats.js")))
+            return dirs.filter(p -> Files.isRegularFile(p.resolve("index.html")))
                     .max(Comparator.comparingLong(p -> p.toFile().lastModified()))
-                    .orElseThrow(() -> new IllegalStateException("no <sim-dir>/js/stats.js in " + runDir
-                            + " (Gatling 3.13.5 must still write it)"));
+                    .orElseThrow(() -> new IllegalStateException("no <sim-dir>/index.html in " + runDir));
         }
-    }
-
-    /** Test-only reader for Gatling 3.13.5 {@code js/stats.js}: the object literal before {@code fillStats}. */
-    private static JsonNode readStatsJs(Path statsJs) throws IOException {
-        String text = Files.readString(statsJs, StandardCharsets.ISO_8859_1);
-        int start = text.indexOf('{');
-        int fill = text.indexOf("function fillStats");
-        int end = fill > 0 ? text.lastIndexOf('}', fill) : text.lastIndexOf('}');
-        assertTrue(start >= 0 && end > start, "unexpected stats.js shape: " + statsJs);
-        return MAPPER.readTree(text.substring(start, end + 1));
-    }
-
-    private static void assertClose(String what, double testfly, double gatling) {
-        assertFalse(Double.isNaN(gatling), "stats.js has no " + what);
-        double tolerance = Math.max(2.0, 0.02 * gatling);
-        assertTrue(Math.abs(testfly - gatling) <= tolerance,
-                what + ": TestFly " + testfly + " vs stats.js " + gatling + " (tolerance " + tolerance + " ms)");
     }
 
     private void assertStepEqualsServer(LoadTestMetrics m, String step, String path) {

@@ -37,7 +37,7 @@ import static io.testfly.unit.loadtest.WorkloadApi.open;
 import static org.testng.Assert.*;
 
 /**
- * Multi-scenario simulations (ADR 0004 decision 4, Phase 2) against a real Gatling 3.13.5 run on local
+ * Multi-scenario simulations (ADR 0004 decision 4, Phase 2) against a real Gatling run on local
  * {@link HttpServer}s bound to 127.0.0.1. Every endpoint has its own request counter; the server, not
  * TestFly, is the witness of how many requests each scenario sent.
  *

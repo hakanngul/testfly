@@ -61,7 +61,7 @@ public final class GatlingBridge {
                 "  <dependency>\n" +
                 "    <groupId>io.gatling.highcharts</groupId>\n" +
                 "    <artifactId>gatling-charts-highcharts</artifactId>\n" +
-                "    <version>3.13.5</version>\n" +
+                "    <version>3.16.0</version>\n" +
                 "    <scope>test</scope>\n" +
                 "  </dependency>\n\n" +
                 "Or use engine: jdk for the zero-dependency fallback.";

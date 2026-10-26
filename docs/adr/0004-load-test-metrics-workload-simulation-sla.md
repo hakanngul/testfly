@@ -53,7 +53,7 @@ With `during(d, false)` (no exit in mid-iteration), the counts matched `stats.js
    - no-response requests appear under status `-1`;
    - `attempt − (ok + ko) > 0` marks the run as partial, logs a WARN and fails any SLA.
 
-   `js/stats.js` is no longer read at runtime. While Gatling 3.13.5 is pinned, it is used only in tests, as a cross-check.
+   `js/stats.js` is no longer read at runtime. It served as a test-only cross-check while Gatling 3.13.5 was pinned; that check was retired with the 3.16.0 upgrade (decision 7), and the server-observed counters remain the oracle.
 2. **No mid-iteration exit.** The legacy `users/rampUp/hold` loop becomes `during(hold, false)`. The JDK engine already finishes the iteration in progress, so this aligns the engines. A run can now last up to one iteration longer than `rampUp + hold`. Workload-model scenarios run each user once and have no loop.
 3. **Workload models (ADR 0003, decision 4).**
    - New `Workload.open(OpenStep...)` and `Workload.closed(ClosedStep...)`, with distinct step types so mixing them cannot compile.
@@ -72,6 +72,7 @@ With `during(d, false)` (no exit in mid-iteration), the counts matched `stats.js
    - `run()` records the metrics, including the SLA results, before it throws the `AssertionError`, so reports always contain the run.
 6. **Baselines.** `LoadBaseline.save/load` (versioned JSON) and `LoadTestAssert.assertNoRegression(baseline, Tolerance)`. Metrics that are unmeasured on either side are reported as "not compared", never as a pass.
 7. **Gatling upgrade.** Once decision 1 is in place, upgrading to 3.16.x no longer depends on report internals. The upgrade is a separate change, verified by the same regression suites.
+   - Done: Gatling 3.16.0. CLI flags, exit codes 0/1/2, the `charting.indicators.percentile*` and `data.enableAnalytics` keys, the report layout and the assertion wording are unchanged; no production code changed. In 3.16.0 `js/stats.js` is a static UI script with no statistics, and Gatling's report now estimates percentiles with `MergingDigest`.
 
 ## Consequences
 
