@@ -7,8 +7,9 @@ import io.testfly.metrics.ExecutionMetrics;
 import io.testfly.metrics.TestTiming;
 import io.testfly.reporting.JUnitXmlReporter;
 import io.testfly.reporting.ReportPaths;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
+import org.testng.IHookCallBack;
+import org.testng.IHookable;
+import org.testng.ITestResult;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -23,43 +24,53 @@ import static org.testng.Assert.*;
  * Unit tests for {@link JUnitXmlReporter}.
  * Verifies that the generated XML file exists and contains well-formed content.
  * Thread-safe for parallel=methods via singleThreaded and global report +
- * context locks.
+ * context locks; isolated from other surefire forks by its own {@code testfly.reports.dir}.
  */
 @Test(singleThreaded = true)
-public class JUnitXmlReporterTest {
+public class JUnitXmlReporterTest implements IHookable {
 
-    private static final File XML_FILE = new File("target/surefire-reports/TEST-TestFly.xml");
+    /** This class's own reports directory: other surefire forks write and delete the default report files. */
+    private static final String REPORTS_DIR = "target/reports-isolated/JUnitXmlReporterTest";
+    /** The file {@code JUnitXmlReporter.export} writes while {@code testfly.reports.dir} is {@link #REPORTS_DIR}. */
+    private static final File XML_FILE = new File(REPORTS_DIR, "TEST-TestFly.xml");
 
     private static final Object GLOBAL_REPORT_LOCK = ReportPaths.class;
     private static final Object CONTEXT_LOCK = TestFlyContext.class;
 
-    @BeforeMethod
-    public void setup() throws Exception {
+    /**
+     * Runs each test method, with its setup and cleanup, under the report and context monitors (same order as the
+     * other report tests) and with {@code testfly.reports.dir} pointing at {@link #REPORTS_DIR}, which
+     * {@code JUnitXmlReporter.resolveOutputDir()} follows. The cleanup lives here, not in
+     * {@code @BeforeMethod}/{@code @AfterMethod}: configuration methods run outside this hook.
+     */
+    @Override
+    @Test(enabled = false) // the class-level @Test would otherwise make this public hook a test
+    public void run(IHookCallBack callBack, ITestResult testResult) {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
-                if (XML_FILE.exists())
-                    XML_FILE.delete();
-                ExecutionMetrics.reset();
-                resetTestFlyContext();
+                System.setProperty("testfly.reports.dir", REPORTS_DIR);
+                try {
+                    cleanReports();
+                    callBack.runTestMethod(testResult);
+                } finally {
+                    try {
+                        cleanReports();
+                    } finally {
+                        System.clearProperty("testfly.reports.dir");
+                    }
+                }
             }
         }
     }
 
-    @AfterMethod
-    public void cleanup() throws Exception {
-        synchronized (GLOBAL_REPORT_LOCK) {
-            synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
-                if (XML_FILE.exists())
-                    XML_FILE.delete();
-                ExecutionMetrics.reset();
-                resetTestFlyContext();
-            }
-        }
+    private static void cleanReports() {
+        if (XML_FILE.exists())
+            XML_FILE.delete();
+        ExecutionMetrics.reset();
+        resetTestFlyContext();
     }
 
-    private static void resetTestFlyContext() throws Exception {
+    private static void resetTestFlyContext() {
         TestFlyContext.reset();
         // clear ExecutionMetrics ci metadata
         try {
@@ -117,7 +128,6 @@ public class JUnitXmlReporterTest {
     private void exportSync(List<TestTiming> timings, long duration) {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 JUnitXmlReporter.export(timings, duration);
             }
         }
@@ -135,6 +145,15 @@ public class JUnitXmlReporterTest {
                 assertTrue(XML_FILE.exists(), "XML report file should be created");
             }
         }
+    }
+
+    @Test
+    public void xmlFile_isTheFileTheReporterResolvesUnderTheIsolatedDir() throws Exception {
+        java.lang.reflect.Method resolve = JUnitXmlReporter.class.getDeclaredMethod("resolveOutputDir");
+        resolve.setAccessible(true);
+        File resolved = new File((String) resolve.invoke(null), "TEST-TestFly.xml");
+        assertEquals(resolved.getCanonicalFile(), XML_FILE.getCanonicalFile(),
+                "XML_FILE must be the file JUnitXmlReporter writes while testfly.reports.dir=" + REPORTS_DIR);
     }
 
     @Test
@@ -270,7 +289,6 @@ public class JUnitXmlReporterTest {
     public void export_withContextButCaptureDisabled_doesNotIncludeProperties() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 TestFlyContext.setConfig(minimalConfig(false));
                 JUnitXmlReporter.export(List.of(timing("t1", "PASSED")), 100L);
             }
@@ -283,7 +301,6 @@ public class JUnitXmlReporterTest {
     public void export_withCaptureEnabledAndMetadata_includesCiProperties() throws IOException {
         synchronized (GLOBAL_REPORT_LOCK) {
             synchronized (CONTEXT_LOCK) {
-                System.clearProperty("testfly.reports.dir");
                 TestFlyContext.setConfig(minimalConfig(true));
                 ExecutionMetrics.setCiMetadata(new CiMetadata(
                         "GitHub Actions", "42", "123", "main",

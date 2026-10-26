@@ -409,11 +409,11 @@ loadtest:
   enabled: false                    # reserved flag; explicit LoadTestRunner.run() calls are not gated
   baseUrl: https://api.example.com  # target base URL for load tests
   engine: auto                      # auto (prefers Gatling if present, else JDK) | gatling | jdk
-  users: 10                         # default concurrent virtual users
-  rampUp: 10s                       # linear ramp-up duration (e.g. 10s, 1m)
-  hold: 30s                         # peak load sustain duration (e.g. 30s, 5m)
-  cooldown: 5s                      # cooldown period after test run (e.g. 5s)
-  maxUsers: 1000                    # safety ceiling on concurrent users
+  users: 10                         # virtual users started over rampUp (not a concurrency target)
+  rampUp: 10s                       # window over which the users start evenly (e.g. 10s, 1m)
+  hold: 30s                         # how long each user loops, counted from its own start (e.g. 30s, 5m)
+  cooldown: 5s                      # accepted but not applied by any engine yet (logs a WARN)
+  maxUsers: 1000                    # safety ceiling: users is clamped; workloads above it are rejected
   resultsDir: target/loadtest       # target directory for metrics and reports
   reportEnabled: true               # generate standalone HTML load test report
   requestTimeoutSeconds: 30         # HTTP connection and request read timeout in seconds
@@ -947,11 +947,11 @@ Configuration for concurrent load testing powered by Gatling or Java Virtual Thr
 | `enabled` | `boolean` | `false` | Reserved effective flag (overridable via [`features.loadtest`](#features)); the current `LoadTestRunner.run()` path does not enforce it. |
 | `baseUrl` | `string` | `null` | Base URL used for load HTTP calls after scenario/annotation overrides. Gatling falls back to `execution.baseUrl`; the JDK engine requires an explicit load/scenario/annotation URL. |
 | `engine` | `string` | `auto` | Execution engine: `auto` (Gatling if present, else JDK), `gatling` (strictly Gatling), or `jdk` (native virtual threads). |
-| `users` | `int` | `10` | Default number of concurrent virtual users if not specified in test code. |
-| `rampUp` | `string` | `10s` | Linear ramp-up duration to reach peak virtual users (e.g. `10s`, `1m`). |
-| `hold` | `string` | `30s` | Duration to sustain peak virtual users (e.g. `30s`, `5m`). |
-| `cooldown` | `string` | `5s` | Cooldown period after peak load completes (e.g. `5s`). |
-| `maxUsers` | `int` | `1000` | Safety ceiling for maximum allowed concurrent users. |
+| `users` | `int` | `10` | Number of virtual users started evenly over `rampUp` if not specified in code. Each one runs the scenario in a loop for `hold`. This is not a concurrency target: peak concurrency equals `users` only when `rampUp <= hold`. |
+| `rampUp` | `string` | `10s` | Window over which the virtual users start, evenly spaced (e.g. `10s`, `1m`). |
+| `hold` | `string` | `30s` | How long each virtual user loops over the scenario, counted from its own start (e.g. `30s`, `5m`). A run takes about `rampUp + hold`. |
+| `cooldown` | `string` | `5s` | Accepted for compatibility but **not applied** by either engine. When it is greater than zero, one WARN is logged per JVM. |
+| `maxUsers` | `int` | `1000` | Safety ceiling. The resolved `users` value is clamped to it. A [workload](./loadtest/fluent-api.md#workload-models) whose peak exceeds it is rejected before any request. See [Load Testing Configuration](./loadtest/configuration.md). |
 | `resultsDir` | `string` | `target/loadtest` | Output directory where load test metrics and reports are saved. |
 | `reportEnabled` | `boolean` | `true` | Generates standalone HTML load test report and correlates native Gatling interactive reports. |
 | `requestTimeoutSeconds` | `int` | `30` | HTTP connection and request read timeout in seconds. |

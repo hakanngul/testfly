@@ -2162,7 +2162,7 @@
                             <span class="nav-count">RUNS</span>
                         </div>
                         <div id="lt-total-scenarios" class="stat-value">0</div>
-                        <div class="stat-meta">Executed load scenarios</div>
+                        <div class="stat-meta" id="lt-scenarios-meta">Executed load scenarios</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-top">
@@ -4054,6 +4054,9 @@
                 if (ltMeasured(lt.p99LatencyMs) && (maxP99 == null || lt.p99LatencyMs > maxP99)) maxP99 = lt.p99LatencyMs;
             });
 
+            // scenarios with at least one failed SLA rule (aggregate entries excluded, like the KPIs above)
+            const slaFailedScenarios = scenarioTests.filter(lt => (lt.sla || []).some(r => r.passed === false)).length;
+
             const overallErrorRate = totalRequests > 0 ? (totalFailed / totalRequests) : 0;
             const errorRatePercent = (overallErrorRate * 100).toFixed(1) + '%';
 
@@ -4068,6 +4071,13 @@
             const elFailMeta = document.getElementById('lt-failed-meta');
 
             if (elScenarios) elScenarios.innerText = scenarioTests.length;
+            const elScenariosMeta = document.getElementById('lt-scenarios-meta');
+            if (elScenariosMeta) {
+                elScenariosMeta.textContent = slaFailedScenarios > 0
+                    ? `${slaFailedScenarios} with a failed SLA`
+                    : 'Executed load scenarios';
+                elScenariosMeta.style.color = slaFailedScenarios > 0 ? 'var(--bad)' : '';
+            }
             if (elReq) elReq.innerText = totalRequests.toLocaleString();
             if (elSuccMeta) elSuccMeta.innerText = totalSuccessful.toLocaleString() + ' successful';
             if (elThp) elThp.innerText = throughputMeasured ? Math.round(totalThroughput).toLocaleString() + ' rps' : 'n/a';
@@ -4084,7 +4094,11 @@
             if (container) {
                 container.textContent = '';
                 loadTests.forEach((lt, idx) => {
-                    const isSuccess = (lt.failedRequests || 0) === 0;
+                    const slaRules = Array.isArray(lt.sla) ? lt.sla : [];
+                    const slaFailed = slaRules.filter(r => r.passed === false).length;
+                    const isSuccess = (lt.failedRequests || 0) === 0 && slaFailed === 0;
+                    const isPartial = lt.partial === true;
+                    const cardStatus = !isSuccess ? 'FAILED' : isPartial ? 'WARN' : 'PASSED';
                     const card = document.createElement('div');
                     card.className = 'loadtest-scenario-card';
 
@@ -4102,6 +4116,16 @@
                     titleSpan.style.letterSpacing = '-0.01em';
                     titleSpan.textContent = lt.scenarioName || 'Load Scenario';
                     badgeGroup.appendChild(titleSpan);
+
+                    if (lt.aggregate) {
+                        const aggregateBadge = document.createElement('span');
+                        aggregateBadge.className = 'status-badge';
+                        aggregateBadge.style.background = 'var(--surface-hover)';
+                        aggregateBadge.style.color = 'var(--text-muted)';
+                        aggregateBadge.title = 'Sums the scenario entries of this simulation; not counted in the summary';
+                        aggregateBadge.textContent = 'Aggregate';
+                        badgeGroup.appendChild(aggregateBadge);
+                    }
 
                     const engineBadge = document.createElement('span');
                     engineBadge.className = 'status-badge';
@@ -4125,9 +4149,25 @@
                     badgeGroup.appendChild(durBadge);
 
                     const statusBadge = document.createElement('span');
-                    statusBadge.className = `status-badge ${isSuccess ? 'status-passed' : 'status-failed'}`;
-                    statusBadge.textContent = isSuccess ? 'PASSED' : `FAILED (${lt.failedRequests} err)`;
+                    statusBadge.className = `status-badge ${cardStatus === 'FAILED' ? 'status-failed' : cardStatus === 'WARN' ? 'status-broken' : 'status-passed'}`;
+                    if (cardStatus === 'FAILED') {
+                        const reasons = [];
+                        if ((lt.failedRequests || 0) > 0) reasons.push(`${lt.failedRequests} err`);
+                        if (slaFailed > 0) reasons.push(`${slaFailed} SLA`);
+                        statusBadge.textContent = `FAILED (${reasons.join(', ')})`;
+                    } else {
+                        statusBadge.textContent = cardStatus;
+                    }
                     badgeGroup.appendChild(statusBadge);
+
+                    if (isPartial) {
+                        const partialBadge = document.createElement('span');
+                        partialBadge.className = 'status-badge status-broken';
+                        partialBadge.title = 'Some requests have no recorded outcome (the run was cut short): '
+                            + 'latency, status and error figures are incomplete';
+                        partialBadge.textContent = 'PARTIAL';
+                        badgeGroup.appendChild(partialBadge);
+                    }
 
                     headerRow.appendChild(badgeGroup);
 
@@ -4285,6 +4325,7 @@
                             { text: 'Successful', align: 'right' },
                             { text: 'Failed', align: 'right' },
                             { text: 'P95 Latency', align: 'right' },
+                            { text: 'P99 Latency', align: 'right' },
                             { text: 'Error Rate', align: 'right' }
                         ].forEach(col => {
                             const th = document.createElement('th');
@@ -4339,6 +4380,14 @@
                             tdP95.textContent = ltMs(st.p95LatencyMs);
                             str.appendChild(tdP95);
 
+                            // P99 Latency
+                            const tdP99 = document.createElement('td');
+                            tdP99.style.textAlign = 'right';
+                            tdP99.style.fontFamily = 'var(--font-mono)';
+                            tdP99.style.fontWeight = '600';
+                            tdP99.textContent = ltMs(st.p99LatencyMs);
+                            str.appendChild(tdP99);
+
                             // Error Rate
                             const tdErr = document.createElement('td');
                             tdErr.style.textAlign = 'right';
@@ -4355,6 +4404,80 @@
                         tableWrap.appendChild(table);
                         stepWrap.appendChild(tableWrap);
                         card.appendChild(stepWrap);
+                    }
+
+                    // 5. SLA Table (declaration order; an unmeasured actual renders as n/a)
+                    if (slaRules.length > 0) {
+                        const slaWrap = document.createElement('div');
+                        slaWrap.style.marginTop = '14px';
+                        slaWrap.style.border = '1px solid var(--border)';
+                        slaWrap.style.borderRadius = '10px';
+                        slaWrap.style.overflow = 'hidden';
+                        slaWrap.style.background = 'var(--surface)';
+
+                        const slaHeader = document.createElement('div');
+                        slaHeader.style.padding = '8px 14px';
+                        slaHeader.style.borderBottom = '1px solid var(--border)';
+                        slaHeader.style.fontSize = '11px';
+                        slaHeader.style.fontWeight = '700';
+                        slaHeader.style.textTransform = 'uppercase';
+                        slaHeader.style.color = 'var(--text-muted)';
+                        slaHeader.style.background = 'var(--surface-subtle)';
+                        slaHeader.style.letterSpacing = '0.04em';
+                        slaHeader.textContent = 'SLA';
+                        slaWrap.appendChild(slaHeader);
+
+                        const slaTableWrap = document.createElement('div');
+                        slaTableWrap.className = 'table-wrap';
+                        const slaTable = document.createElement('table');
+
+                        const slaThead = document.createElement('thead');
+                        const slaHtr = document.createElement('tr');
+                        ['Scope', 'Metric', 'Comparison', 'Threshold', 'Actual', 'Result', 'Reason'].forEach(text => {
+                            const th = document.createElement('th');
+                            th.textContent = text;
+                            if (text === 'Threshold' || text === 'Actual') th.style.textAlign = 'right';
+                            slaHtr.appendChild(th);
+                        });
+                        slaThead.appendChild(slaHtr);
+                        slaTable.appendChild(slaThead);
+
+                        const slaTbody = document.createElement('tbody');
+                        slaRules.forEach(r => {
+                            const tr = document.createElement('tr');
+                            const cells = [
+                                { text: String(r.scope ?? ''), mono: true },
+                                { text: String(r.metric ?? '') },
+                                { text: String(r.comparison ?? '') },
+                                { text: ltMeasured(r.threshold) ? String(Number(r.threshold)) : 'n/a', mono: true, right: true },
+                                { text: ltMeasured(r.actual) ? String(Number(r.actual)) : 'n/a', mono: true, right: true }
+                            ];
+                            cells.forEach(c => {
+                                const td = document.createElement('td');
+                                if (c.mono) td.style.fontFamily = 'var(--font-mono)';
+                                if (c.right) td.style.textAlign = 'right';
+                                td.textContent = c.text;
+                                tr.appendChild(td);
+                            });
+
+                            const tdResult = document.createElement('td');
+                            const resultBadge = document.createElement('span');
+                            resultBadge.className = `status-badge ${r.passed ? 'status-passed' : 'status-failed'}`;
+                            resultBadge.textContent = r.passed ? 'PASS' : 'FAIL';
+                            tdResult.appendChild(resultBadge);
+                            tr.appendChild(tdResult);
+
+                            const tdReason = document.createElement('td');
+                            tdReason.style.color = 'var(--text-muted)';
+                            tdReason.textContent = r.reason || '';
+                            tr.appendChild(tdReason);
+
+                            slaTbody.appendChild(tr);
+                        });
+                        slaTable.appendChild(slaTbody);
+                        slaTableWrap.appendChild(slaTable);
+                        slaWrap.appendChild(slaTableWrap);
+                        card.appendChild(slaWrap);
                     }
 
                     container.appendChild(card);

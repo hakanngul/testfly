@@ -2560,8 +2560,8 @@ public final class TestFlyConfig {
      *   baseUrl: https://api.example.com
      *   users: 50
      *   rampUp: 30s
-     *   hold: 60s
-     *   cooldown: 10s
+     *   hold: 60s          # per user, from that user's own start
+     *   cooldown: 10s      # accepted, not applied yet: logs a WARN (ADR-0003)
      *   engine: auto
      *   resultsDir: target/loadtest
      *   reportEnabled: true

@@ -183,19 +183,32 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
         return io.testfly.loadtest.LoadTestMetrics.isMeasured(value) ? Math.round(value) + " ms" : "n/a";
     }
 
+    /** A plain number (no exponent, no trailing zeros), or "n/a" when not finite (not measured). */
+    private static String number(double value) {
+        return Double.isFinite(value) ? java.math.BigDecimal.valueOf(value).stripTrailingZeros().toPlainString() : "n/a";
+    }
+
+    /** A Markdown table cell: backslashes and pipes escaped, line breaks flattened, null as empty. */
+    private static String mdCell(String text) {
+        return text == null ? "" : text.replace("\\", "\\\\").replace("|", "\\|").replace("\r", " ").replace("\n", " ");
+    }
+
     private static String buildLoadTestMarkdown(io.testfly.loadtest.LoadTestMetrics metrics) {
         StringBuilder sb = new StringBuilder();
         sb.append("⚡ **Gatling Load Test Metrics Summary**\n\n");
         sb.append("• **Scenario:** `").append(metrics.scenarioName()).append("`\n");
         sb.append("• **Engine:** ").append(metrics.engine() != null ? metrics.engine().toUpperCase(Locale.ROOT) : "GATLING").append("\n");
-        sb.append("• **Concurrent Users:** ").append(metrics.users()).append(" VUs\n");
+        // virtual users started over rampUp, not a concurrency target (ADR 0003)
+        sb.append("• **Virtual Users:** ").append(metrics.users()).append(" VUs\n");
         sb.append("• **Duration:** ").append(String.format(Locale.ROOT, "%.1fs", metrics.durationMs() / 1000.0)).append("\n");
         sb.append("• **Total Requests:** ").append(metrics.totalRequests())
           .append(" (OK: ").append(metrics.successfulRequests())
           .append(", KO: ").append(metrics.failedRequests()).append(")\n");
         sb.append("• **Throughput:** ").append(Double.isNaN(metrics.throughputRps()) ? "n/a"
                 : String.format(Locale.ROOT, "%.1f req/s", metrics.throughputRps())).append("\n");
-        sb.append("• **Error Rate:** ").append(String.format(Locale.ROOT, "%.2f%%", metrics.errorRate() * 100)).append("\n\n");
+        sb.append("• **Error Rate:** ").append(String.format(Locale.ROOT, "%.2f%%", metrics.errorRate() * 100)).append("\n");
+        // partial: some requests have no recorded outcome, so latency, status and error figures are incomplete
+        sb.append("• **Partial:** ").append(metrics.partial() ? "yes" : "no").append("\n\n");
 
         sb.append("**Latency Breakdown:**\n");
         sb.append("• P50: ").append(latency(metrics.p50LatencyMs())).append(" | ")
@@ -218,6 +231,23 @@ public final class ReportPortalAttachmentSender implements io.testfly.reporting.
                   .append(st.failedRequests()).append(" | ")
                   .append(latency(st.p95LatencyMs())).append(" | ")
                   .append(String.format(Locale.ROOT, "%.1f%%", st.errorRate() * 100)).append(" |\n");
+            }
+            sb.append("\n");
+        }
+
+        if (metrics.slaResults() != null && !metrics.slaResults().isEmpty()) {
+            // declaration order; an unmeasured actual is shown as n/a
+            sb.append("**SLA:**\n\n");
+            sb.append("| Scope | Metric | Comparison | Threshold | Actual | Result | Reason |\n");
+            sb.append("| :--- | :--- | :--- | ---: | ---: | :--- | :--- |\n");
+            for (io.testfly.loadtest.SlaResult r : metrics.slaResults()) {
+                sb.append("| ").append(mdCell(r.rule().scope())).append(" | ")
+                  .append(r.rule().metric().name()).append(" | ")
+                  .append(r.rule().comparison().name()).append(" | ")
+                  .append(number(r.rule().threshold())).append(" | ")
+                  .append(number(r.actual())).append(" | ")
+                  .append(r.passed() ? "PASS" : "FAIL").append(" | ")
+                  .append(mdCell(r.reason())).append(" |\n");
             }
             sb.append("\n");
         }

@@ -17,7 +17,19 @@ Senaryoya bir feeder bağlanır. `${name}` değişkenleri path, header ve body i
 | `sequence("orderId", 1000, 1)` | 1000’den başlayan, 1 artan sıra. |
 | `constant("tenant", "demo")` | Sabit string değeri. |
 
-`fromCsv`, `fromList`, `fromSupplier`, `circular()` veya parametresiz `random()` factory/strateji metotları yoktur. CSV ve JSON otomatik döngü yapar. Yerleşik CSV ayrıştırıcısı basit virgülle ayırma kullanır; tam quoted-field CSV parser değildir. İçinde virgül bulunmayan basit veri kullanın ve dosyanın varlığını çalıştırmadan önce doğrulayın.
+`fromCsv`, `fromList`, `fromSupplier`, `circular()` veya parametresiz `random()` factory/strateji metotları yoktur. CSV ve JSON otomatik döngü yapar. Yerleşik CSV ayrıştırıcısı basit virgülle ayırma kullanır; tam quoted-field CSV parser değildir. İçinde virgül bulunmayan basit veri kullanın.
+
+## Eksik veya boş dosyalar hemen hata verir
+
+Bir `csv` veya `json` feeder dosyası şu sırayla aranır: önce classpath'te, sonra dosya sistemi yolu olarak, sonra `src/test/resources/` + yol altında.
+
+Dosya bulunamazsa veya hiç veri satırı yoksa (örneğin yalnızca başlık satırı olan bir CSV veya boş bir JSON dizisi), koşu herhangi bir istek gönderilmeden reddedilir. Senaryoyu ve yolu belirten ve dosyanın "not found or has no rows" (bulunamadı veya satırı yok) olduğunu söyleyen bir `IllegalArgumentException` ile başarısız olur. Bu, iki motor için ve bir [simülasyonun](./simulations-sla.md) her senaryosu için geçerlidir.
+
+`LoadTestFeeder.csv(..)` ve `json(..)` kendileri exception fırlatmaz: bir WARN loglar ve feeder'ı döndürür; denetim senaryo doğrulanırken çalışır.
+
+:::caution 1.1.0'da davranış değişikliği
+Önceki sürümler eksik veya boş bir CSV/JSON feeder'ı olan senaryoyu yine de çalıştırıyordu ve her `${var}` çözümlenmemiş kalıyordu.
+:::
 
 ## Örnek
 
@@ -47,4 +59,4 @@ public class SearchLoadTest extends BaseLoadTest {
 ```
 
 
-CSV/JSON dosyaları filesystem veya classpath üzerinde bulunabilir. Sentetik kimlik bilgileri kullanın; gerçek parolaları commit etmeyin. JSON login body’sinde feeder kullanımı için [çok adımlı örneğe](./examples.md) bakın.
+CSV/JSON dosyaları classpath veya dosya sistemi üzerinde bulunabilir (yukarıdaki arama sırasına bakın). Sentetik kimlik bilgileri kullanın; gerçek parolaları commit etmeyin. JSON login body’sinde feeder kullanımı için [çok adımlı örneğe](./examples.md) bakın.

@@ -344,7 +344,17 @@ public final class GatlingEngine implements LoadTestEngine {
                         + "s and was terminated");
             }
 
-            return checkExitCode(process.exitValue(), runDescription, logFile, nativeAssertionsRegistered);
+            int exitCode = process.exitValue();
+            if (exitCode == 1 && runConfig.metricsSidecarPath != null
+                    && noRequestCouldBeSent(Path.of(runConfig.metricsSidecarPath))) {
+                // Gatling 3.16 exits with 1 when no request got a response (e.g. every request failed to build);
+                // the sidecar is complete, so this is an all-KO run, not a crash
+                LOGGER.warn("[LoadTest] {}: no request got a response or could be sent, so Gatling "
+                        + "wrote no HTML report (exit code 1); every request is reported as KO with status -1",
+                        runDescription);
+                return false;
+            }
+            return checkExitCode(exitCode, runDescription, logFile, nativeAssertionsRegistered);
         } finally {
             if (shutdownHook != null) {
                 try {
@@ -359,6 +369,51 @@ public final class GatlingEngine implements LoadTestEngine {
                 // best effort
             }
         }
+    }
+
+    /**
+     * {@code true} only if the metrics sidecar shows a complete run in which no request got a response: a readable
+     * JSON object with {@code schemaVersion} 1 or 2 and {@code endMs} (written last, atomically, by the simulation's
+     * {@code after()}), total {@code attempts} greater than 0, and no status code or latency sample in any entry
+     * (redirect hops included; empty maps count as none). Never throws: anything else is {@code false}.
+     */
+    static boolean noRequestCouldBeSent(Path sidecar) {
+        try {
+            if (sidecar == null || !Files.isReadable(sidecar)) {
+                return false;
+            }
+            com.fasterxml.jackson.databind.JsonNode root =
+                    new com.fasterxml.jackson.databind.ObjectMapper().readTree(sidecar.toFile());
+            if (root == null || !root.isObject()) {
+                return false;
+            }
+            com.fasterxml.jackson.databind.JsonNode version = root.path("schemaVersion");
+            if (!version.isIntegralNumber() || (version.asInt() != 1 && version.asInt() != 2)
+                    || !root.hasNonNull("endMs")) {
+                return false;
+            }
+            long attempts = 0;
+            for (java.util.Iterator<com.fasterxml.jackson.databind.JsonNode> it = root.path("requests").elements();
+                    it.hasNext();) {
+                com.fasterxml.jackson.databind.JsonNode entry = it.next();
+                attempts += Math.max(0, entry.path("attempts").asLong(0));
+                if (hasPositiveCount(entry.path("status")) || hasPositiveCount(entry.path("latencyMs"))) {
+                    return false;
+                }
+            }
+            return attempts > 0;
+        } catch (IOException | RuntimeException e) {
+            return false;
+        }
+    }
+
+    private static boolean hasPositiveCount(com.fasterxml.jackson.databind.JsonNode counts) {
+        for (java.util.Iterator<com.fasterxml.jackson.databind.JsonNode> it = counts.elements(); it.hasNext();) {
+            if (it.next().asLong(0) > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -481,7 +536,7 @@ public final class GatlingEngine implements LoadTestEngine {
 
         List<Long> alive = tree.stream().filter(ProcessHandle::isAlive).map(ProcessHandle::pid).toList();
         if (!alive.isEmpty()) {
-            System.err.println("[LoadTest] Gatling child process(es) still alive after termination: " + alive);
+            LOGGER.warn("[LoadTest] Gatling child process(es) still alive after termination: {}", alive);
             return false;
         }
         return true;

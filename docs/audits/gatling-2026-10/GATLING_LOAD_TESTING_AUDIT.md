@@ -352,7 +352,7 @@ flowchart LR
 
 ## 7. Real Execution Validation
 
-**Ortam:** Gatling 3.13.5, JDK 21, `127.0.0.1` üzerinde JDK `HttpServer` (`/ok`, `/created`(201), `/bizfail`(200 + `success:false`), `/login`, `/secure`, `/conc`(200 ms, eşzamanlılık sayacı), `/echo`, `/form`). Harness repo kodunu değiştirmeden public API'yi kullanıyor: `harness/AuditHarness.java`, `harness/Probe.java`, ham çıktı `harness/harness-run.log`. **PASS = beklenen (doğru) davranış gözlendi.**
+**Ortam:** Gatling 3.13.5, JDK 21, `127.0.0.1` üzerinde JDK `HttpServer` (`/ok`, `/created`(201), `/bizfail`(200 + `success:false`), `/login`, `/secure`, `/conc`(200 ms, eşzamanlılık sayacı), `/echo`, `/form`). Harness repo kodunu değiştirmeden public API'yi kullanıyor: `harness/AuditHarness.java`, `harness/Probe.java`, ham çıktı `harness/harness-run.txt`. **PASS = beklenen (doğru) davranış gözlendi.**
 
 Ayrıca mevcut test paketleri çalıştırıldı: `GatlingEngineIntegrationTest` (3), `GatlingResultsParserTest` (5), `GatlingBridgeTest` (2), `EngineSelectionTest` (10), `LoadScenarioBuilderTest` (11), `LoadTestAssertTest` (36), `PercentileCalculatorTest` (8), `JdkLoadEngineTest` (24) — **99/99 geçti**. Bu testler BUG-01/02/03'ü yakalamıyor.
 
@@ -541,7 +541,7 @@ Her testte TestFly'ın raporladığı değerler, yerel sunucunun gerçekten göz
 | R-14 | `LogRedactor` tırnaklı değerleri yalnızca kısmen maskeliyordu | **FIXED** |
 | R-15 | PR'daki `BlazeDemoLoadTest` sınıfına eklenen sınıf seviyesi `@Test(singleThreaded)`, miras alınan `step(..)` metotlarını test yapıyordu (5 sahte hata) | **FIXED** (geri alındı) |
 
-### 8.3 Gerçek çalıştırma sonuçları (V01–V20, `harness/harness-run.log`)
+### 8.3 Gerçek çalıştırma sonuçları (V01–V20, `harness/harness-run.txt`)
 
 Sayım senaryo bazındadır. V07, V08, V11, V12 ve V19 her engine için ayrı bir sonuç satırı yazar; bir senaryo, satırlarından biri FAIL ise FAIL sayılır.
 
@@ -616,10 +616,10 @@ Commit'ler `development` dalında:
 | ID | Bulgu | Durum |
 |---|---|---|
 | R-16 | 3.16'nın daha uzun stack trace'i kök hatayı (ör. `ElParserException … unclosed`) çökme mesajındaki son 20 satırın dışına itiyordu (V14) | **FIXED**: kök hata satırları maskelenmiş olarak tail'in önüne eklenir (`GatlingEngineLogTailTest`) |
-| R-17 | Paralel surefire fork'ları ortak `target/testfly-metrics.json` dosyasını birbirinin elinden siliyordu; `MobileEngineBridgeTest` JVM genelindeki `testfly.reports.dir`'i kilitsiz değiştiriyordu | **FIXED** (yalnızca testler): load-test rapor testleri kendi dizinlerini kullanır. `ExecutionMetricsTest` gibi eski sınıflar hâlâ ortak dosyayı kullanıyor (**OPEN**) |
-| R-18 | Hiç istek gönderilmeyen bir koşuda (ör. bulunamayan CSV feeder, değişkeni çözülemeyen tek adım) Gatling 3.16 rapor üretmeden exit 1 ile çıkar. Eksik CSV dosyası yalnızca `System.err`'e yazılır, fail-fast olmaz. | **OPEN**. Çökme mesajı artık nedeni gösteriyor. 3.13.5 davranışı doğrulanmadı. |
+| R-17 | Paralel surefire fork'ları ortak `target/testfly-metrics.json` dosyasını birbirinin elinden siliyordu; `MobileEngineBridgeTest` JVM genelindeki `testfly.reports.dir`'i kilitsiz değiştiriyordu | **FIXED** (yalnızca testler): load-test rapor testleri kendi dizinlerini kullanır. Sonraki turda `ExecutionMetricsTest`, `HtmlReportGeneratorTest` ve `JUnitXmlReporterTest` de sınıf başına dizine taşındı (§9.6) |
+| R-18 | Hiç istek gönderilmeyen bir koşuda (ör. bulunamayan CSV feeder, değişkeni çözülemeyen tek adım) Gatling 3.16 rapor üretmeden exit 1 ile çıkar. Eksik CSV dosyası yalnızca `System.err`'e yazılır, fail-fast olmaz. | **FIXED** (§9.6): boş veya bulunamayan csv/json feeder istekten önce `IllegalArgumentException` ile reddedilir; hiç istek gönderilemeyen koşu çökme yerine tüm istekleri KO/-1 olan metrik döndürür. 3.13.5 davranışı doğrulanmadı. |
 
-### 9.3 Gerçek çalıştırma sonuçları (V01–V20, Gatling 3.16.0, `harness/harness-run-p1.log`)
+### 9.3 Gerçek çalıştırma sonuçları (V01–V20, Gatling 3.16.0, `harness/harness-run-p1.txt`)
 
 | V01–V20 senaryoları | Audit (önce) | P0 sonrası | P1 sonrası (3.16.0) |
 |---|---|---|---|
@@ -654,20 +654,32 @@ Koşulmayanlar:
 | Scenario Management | 3 | **5** | Çok senaryolu simülasyon. Döngü ve koşul yok |
 | HTTP & API Testing | 4 | **5** | Form ve timeout düzeldi (P0). V18 açık; auth, multipart ve TLS yok |
 | Checks & Assertions | 3 | **7** | Tüm check tipleri iki engine'de (parity 19/19), SLA, native assertion |
-| Feeders & Correlation | 5 | **5** | Değişmedi. Eksik CSV fail-fast değil (R-18) |
+| Feeders & Correlation | 5 | **6** | Eksik veya boş csv/json feeder istekten önce reddedilir (R-18). Feeder türleri değişmedi |
 | Metrics Accuracy | 3 | **8** | Sayımlar sunucu sayaçlarına eşit, p90 ölçülüyor, yüzdelikler tam, partial bayrağı var |
-| Reporting & Analytics | 4 | **6** | Baseline/regresyon karşılaştırması, koşu başına sonuç dosyası, SLA JSON'da. HTML rapor SLA ve partial'ı henüz göstermiyor |
-| UI/UX | 1 | **1** | No-code UI yok. `users`/`cooldown` terminolojisi hâlâ yanıltıcı (`docs-site/docs/configuration.md`) |
+| Reporting & Analytics | 4 | **6** | Baseline/regresyon karşılaştırması, koşu başına sonuç dosyası, SLA ve partial HTML raporda, Allure'da ve ReportPortal'da görünür. Regresyon sonuçları raporda yok |
+| UI/UX | 1 | **1** | No-code UI yok. `users`/`cooldown` açıklamaları doküman, Javadoc ve rapor etiketlerinde düzeltildi ("Virtual Users") |
 | Security | 6 | **7** | Temp config `rw-------`; log maskeleme kök hata satırlarını da kapsıyor |
 | Scalability | 3 | **3** | Tek host; Gatling koşuları serileştirilmiş (V16) |
-| Production Readiness | 3 | **6** | CI'da güvenilir PASS/FAIL ve baseline akışı var. Eksikler: V18, R-17, R-18 |
+| Production Readiness | 3 | **7** | CI'da güvenilir PASS/FAIL, baseline akışı, raporlarda SLA, fail-fast feeder. Eksik: V18 |
+
+### 9.6 Açık kalanların kapatılması (2026-10-26)
+
+| Açık | Sonuç | Test |
+|---|---|---|
+| R-18: eksik veya boş csv/json feeder | Validator istekten önce `IllegalArgumentException` atar (iki engine, simülasyonlar). `csv(..)`/`json(..)` exception atmaz, WARN loglar. Özel feeder'lara doğrulamada dokunulmaz (`next()`/`reset()` çağrılmaz). | `FeederValidationTest` (12) |
+| R-18: hiç istek gönderilemeyen Gatling koşusu | Exit 1 ve tamamlanmış sidecar, hiçbir istek yanıt almamışsa normal koşu olarak okunur: tüm istekler KO/-1 ve bir WARN. Konsol metni okunmaz. | `GatlingNoRequestSentTest` (10), `GatlingOwnedMetricsIntegrationTest.allStepsUnbuildable_*` |
+| SLA/partial raporlarda | HTML kartında SLA tablosu, PARTIAL ve Aggregate rozetleri, P99 sütunu; özet başarısız SLA'lı senaryoları sayar. Allure ve ReportPortal'da Partial satırı ve SLA tablosu var. Tüm veri `textContent` ile yazılır. | `HtmlReportGeneratorLoadTestTest`, `AllureReportAdapterTest`, `ReportPortalAttachmentSenderTest` |
+| `users`/`cooldown` terminolojisi | Doküman (EN/TR), Javadoc ve rapor etiketleri ADR-0003'e göre düzeltildi ("Virtual Users") | `verify.sh docs` |
+| R-17: ortak `target/` rapor dosyaları | `ExecutionMetricsTest`, `HtmlReportGeneratorTest`, `JUnitXmlReporterTest` sınıf başına dizin kullanır | 10 tekrarda 10/10 |
+| Mobil başlatma kararsızlığı | `MobileServerLauncher` başlangıçta zaman aşımını "henüz cevap yok" sayar; 50 ms'den az kalan bütçeyle yoklama başlatmaz | `MobileServerLauncherTest` (8), 10 tekrarda 10/10 |
+| `check-public-api.sh` iç içe tipleri görmüyordu | Public iç içe tipler de karşılaştırılır. Negatif kontrol: kaldırılan `StepMetrics` kurucusunu yeni script yakaladı, eski script PASS demişti. | `verify.sh agent` (43), `check-public-api.sh 64de3a5` PASS |
+
+Doğrulama kapıları (ana oturum): `verify.sh api HEAD` PASS, 2263 test, 0 hata; 9 load-test entegrasyon sınıfı 81/81; `Mobile*Test` 79/79; `verify.sh docs` PASS; artık Gatling child JVM yok.
 
 Kalan P2 adayları:
 - flow control (`repeat`/`doIf`/`group`);
 - Content-Type tahmini (V18);
-- eksik feeder dosyası için fail-fast (R-18);
-- HTML raporda SLA, partial ve baseline gösterimi;
-- `docs-site/docs/configuration.md` içindeki eski `users`/`cooldown` açıklamaları;
+- HTML raporda baseline/regresyon sonuçlarının gösterimi;
 - dağıtık yük.
 
 ## Kaynaklar

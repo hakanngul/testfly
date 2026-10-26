@@ -20,8 +20,11 @@ Bir yük testi çalıştırıldığında HTML raporunda (`target/testfly-report.
 - **İnteraktif Grafikler (Chart.js):**
   - **Gecikme Dağılımı Çubuk Grafiği:** Min, Mean, P50, P90, P95, P99 ve Max süreleri. P75 ve P90 ayrıca her senaryo kartında kutucuk olarak görünür. İki motor da her yüzdeliği ölçer; ölçülmemiş bir değer (örneğin hiçbir isteğin yanıt almadığı bir koşudaki gecikme) asla 0 olarak değil, `n/a` olarak gösterilir.
   - **Durum Kodları Halka Grafiği:** Kaydedilen her HTTP durum kodu için bir dilim. Yanıt alamayan istekler `-1` anahtarı altında, "No response" etiketiyle görünür. Durum kodları ölçülemediyse grafik dilim çizmez, "Status codes not measured" yazar.
-- **Senaryo Kartları:** Sanal kullanıcı (ölçülen zirve eşzamanlılık değil; yapılandırılan `users` değeri veya iş yükünün planlanan kullanıcıları), test süresi, toplam istek sayısı, throughput ve hata yüzdesi. Bir [simülasyon](./simulations-sla.md) her senaryo için bir kart ve bir `<simulation> (global)` kartı ekler; özet KPI'lar yalnızca senaryo kartlarını sayar.
-- **Senaryo Adım Tablosu:** Her bir senaryo adımı için istek sayısı, başarılı/hatalı adetleri, P95 gecikmesi ve hata oranı.
+- **Senaryo Kartları:** Sanal kullanıcı (ölçülen zirve eşzamanlılık değil; yapılandırılan `users` değeri veya iş yükünün planlanan kullanıcıları), test süresi, toplam istek sayısı, throughput ve hata yüzdesi. Bir [simülasyon](./simulations-sla.md) her senaryo için bir kart ve **Aggregate** etiketli bir `<simulation> (global)` kartı ekler; özet KPI'lar yalnızca senaryo kartlarını sayar.
+  - **Kart durumu:** Herhangi bir [SLA](./simulations-sla.md) kuralı başarısız olduysa FAILED. [Eksik (partial)](./engines.md#4-gatling-koşu-yaşam-döngüsü) bir koşu **PARTIAL** rozeti gösterir; kart durumu FAILED değilse (KO istek ya da başarısız SLA kuralı; eksik koşuda her SLA kuralı başarısız olur) WARN olur.
+  - **SLA tablosu:** SLA kuralı başına bir satır: Scope, Metric, Comparison, Threshold, Actual (metrik ölçülmediyse `n/a`), Result (PASS veya FAIL) ve Reason.
+- **SLA özeti:** Özet, SLA'sı başarısız olan senaryo sayısını gösterir. Aggregate (`(global)`) girdileri sayılmaz; bu yüzden başarısız bir simülasyon düzeyi SLA yalnızca Aggregate kartında (durum FAILED) görünür.
+- **Senaryo Adım Tablosu:** Her bir senaryo adımı için istek sayısı, başarılı/hatalı adetleri, P95 ve P99 gecikmesi ve hata oranı.
 - **Doğrudan Gatling Raporu Bağlantısı:** Gatling'in interaktif Highcharts raporunu yeni sekmede açan `📊 Open Gatling Report →` butonu.
 
 ### Müstakil Yük Testi Raporu
@@ -33,10 +36,10 @@ Bir yük testi çalıştırıldığında HTML raporunda (`target/testfly-report.
 
 TestFly, `target/allure-results/` dizinine yazılan Allure 2 JSON dosyalarını zenginleştirir:
 
-- **Parametreler:** `Load Engine`, `Concurrent Users`, `Total Requests`, `Throughput`, `P95 Latency` ve `Error Rate` parametreleri Allure testine basılır.
+- **Parametreler:** `Load Engine`, `Virtual Users`, `Total Requests`, `Throughput`, `P95 Latency` ve `Error Rate` parametreleri Allure testine basılır.
 - **Rapor Linki:** Gatling HTML raporuna doğrudan giden `📊 Gatling Interactive Report` bağlantısı eklenir.
 - **Ekler (Attachments):**
-  - `⚡ Load Test Summary` (`text/markdown`): Yüzdelik tablosu ve adım kırılımları. Ölçülmemiş P75/P90 değerleri `n/a` olarak gösterilir.
+  - `⚡ Load Test Summary` (`text/markdown`): Yüzdelik tablosu ve adım kırılımları. Ölçülmemiş P75/P90 değerleri `n/a` olarak gösterilir. Ayrıca bir `Partial` satırı ve koşuda SLA kuralı varsa bir SLA tablosu içerir.
   - `📋 Gatling Subprocess Log` (`text/plain`): Gatling sürecinin tüm konsol çıktıları.
 
 Allure raporunu görüntülemek için:
@@ -50,7 +53,7 @@ allure serve target/allure-results
 
 ReportPortal kullanıldığında test öğesi açıkken yük testi verileri anında iletilir:
 
-- **Markdown Özeti:** Sanal kullanıcı sayısı, Throughput, gecikme yüzdelikleri ve hata oranı `INFO` seviyesinde bir tablo olarak log akışına düşer.
+- **Markdown Özeti:** Sanal kullanıcı sayısı, Throughput, gecikme yüzdelikleri ve hata oranı `INFO` seviyesinde bir tablo olarak log akışına düşer; bir `Partial` satırı ve koşuda SLA kuralı varsa bir SLA tablosu da eklenir.
 - **Alt Süreç Log Eki:** `gatling-subprocess.log` dosyası ReportPortal testine ikili dosya eki (binary attachment) olarak yüklenir.
 - **Hatalar:** Eğer test bir performans kriteri nedeniyle fail olursa, hata mesajı ve tüm metrikler otomatik olarak eklenir.
 
@@ -67,7 +70,7 @@ CI ortamlarında terminal çıktılarının bozulmaması için:
   [LoadTest] Gatling results parsed from: target/loadtest/...
   ```
 - TestFly'ın metrik dosyası `testfly-metrics.json` ve sonuç dosyası `testfly-loadtest-result.json` aynı koşu dizinine yazılır (bkz. [5. bölüm](#run-directory)).
-- Gatling süreci sıfırdan farklı bir kodla çıkarsa koşu, alt süreç logundaki kök hata satırlarını (ör. exception mesajı) ve son 20 satırını kimlik bilgileri `***` ile maskelenmiş olarak içeren bir exception ile başarısız olur. Ham log satırları artık `System.err` akışına yazdırılmaz. Bkz. [Gatling Koşu Yaşam Döngüsü](./engines.md#4-gatling-koşu-yaşam-döngüsü).
+- Gatling süreci sıfırdan farklı bir kodla çıkarsa koşu, alt süreç logundaki kök hata satırlarını (ör. exception mesajı) ve son 20 satırını kimlik bilgileri `***` ile maskelenmiş olarak içeren bir exception ile başarısız olur. Ham log satırları artık `System.err` akışına yazdırılmaz. İki istisna vardır: SLA yerel assertion olarak kaydedildiyse 2 çıkış kodu, ve hiç istek gönderilemeyen koşu (tüm istekler `-1` status ile KO). Bkz. [Gatling Koşu Yaşam Döngüsü](./engines.md#4-gatling-koşu-yaşam-döngüsü).
 
 ---
 
@@ -88,7 +91,7 @@ Sonuç dosyası en iyi çaba (best effort) ile yazılır: yazma hatası bir WARN
 TestFly koşu dizinlerini asla silmez. Her koşu küçük bir dizin ekler (JDK koşusu yalnızca sonuç dosyasını, Gatling koşusu ayrıca Gatling raporunu ve logunu); bu yüzden `resultsDir` her koşuyla büyür. CI'da temizleyin veya `mvn clean` silsin diye `target/` altında tutun.
 :::
 
-HTML raporunu besleyen suite düzeyindeki `target/testfly-metrics.json`, aynı ada sahip farklı bir dosyadır. Bu dosyadaki yük testi girdileri ayrıca `partial`, `aggregate` (simülasyonun genel girdisi için `true`) ve `sla` alanlarını taşır: SLA kuralı başına `scope`, `metric`, `comparison`, `threshold`, `actual`, `passed` ve `reason` içeren bir girdi. HTML gösterge paneli SLA sonuçlarını henüz göstermez; bunları bu dosyadan veya `slaResults()` üzerinden okuyun.
+HTML raporunu besleyen suite düzeyindeki `target/testfly-metrics.json`, aynı ada sahip farklı bir dosyadır. Bu dosyadaki yük testi girdileri ayrıca `partial`, `aggregate` (simülasyonun genel girdisi için `true`) ve `sla` alanlarını taşır: SLA kuralı başına `scope`, `metric`, `comparison`, `threshold`, `actual`, `passed` ve `reason` içeren bir girdi. HTML gösterge paneli bu alanları senaryo kartlarında gösterir (bkz. [1. bölüm](#1-testfly-html-raporu)); kodda SLA sonuçlarını `slaResults()` ile okuyun. Bir [baseline](./baselines.md)'a karşı regresyon sonuçları hiçbir raporda gösterilmez.
 
 ### Yüzdelikler: TestFly ve Gatling raporu {#percentiles}
 

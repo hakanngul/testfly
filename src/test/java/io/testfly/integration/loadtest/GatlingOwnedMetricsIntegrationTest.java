@@ -76,6 +76,7 @@ public class GatlingOwnedMetricsIntegrationTest extends BaseLoadTest {
         jitter("/owned-ok");
         jitter("/owned-ko");
         jitter("/mv-ok");
+        jitter("/mv-none");
         jitter("/redir-to");
         server.createContext("/redir-from", ex -> {
             hits.computeIfAbsent("/redir-from", k -> new AtomicInteger()).incrementAndGet();
@@ -187,6 +188,40 @@ public class GatlingOwnedMetricsIntegrationTest extends BaseLoadTest {
         assertEquals(m.statusCodeCount(-1), (long) missing.totalRequests(),
                 "unbuildable requests got no response → status -1; statusCodes=" + m.statusCodes());
         assertStepEqualsServer(m, "mvFine", "/mv-ok");
+    }
+
+    /**
+     * R-18 (plan item 2): when every step is unbuildable, Gatling 3.16 sends no request and exits with code 1
+     * ("no requests sent, reports won't be generated") after the sidecar is complete. TestFly must treat that as a
+     * run in which every request is KO with no response (ADR 0004: requests that cannot be built are KO), not as a
+     * crash.
+     */
+    @Test
+    public void allStepsUnbuildable_runDoesNotThrow_everyRequestIsKoWithMinusOne() {
+        String name = "OwnedNoneSent_" + UUID.randomUUID().toString().replace("-", "");
+        LoadTestMetrics m;
+        try {
+            m = LoadScenario.named(name)
+                    .baseUrl(baseUrl)
+                    .engine("gatling")
+                    .step("noneBuilt").get("/mv-none?v=${nope}").and()
+                    .users(2).rampUp(Duration.ofSeconds(1)).hold(Duration.ofSeconds(2))
+                    .run().metrics();
+        } catch (RuntimeException e) {
+            throw new AssertionError("a run in which no request could be built must not fail with Gatling's "
+                    + "exit code 1; it is an all-KO run", e);
+        }
+
+        assertTrue(m.totalRequests() > 0, "the unbuildable requests must be counted; metrics=" + m);
+        assertEquals(m.failedRequests(), m.totalRequests(), "every request must be KO");
+        assertEquals(m.successfulRequests(), 0);
+        assertEquals(m.statusCodeCount(-1), (long) m.totalRequests(),
+                "no request got a response → status -1 for each; statusCodes=" + m.statusCodes());
+        assertEquals(m.statusCodes().keySet(), java.util.Set.of(-1), "statusCodes=" + m.statusCodes());
+        LoadTestMetrics.StepMetrics step = m.step("noneBuilt");
+        assertNotNull(step, "steps=" + m.steps().keySet());
+        assertEquals(step.failedRequests(), step.totalRequests(), "the step must be all KO");
+        assertEquals(served("/mv-none"), 0, "no request may reach the server");
     }
 
     // ── a real 302 → 200 redirect ────────────────────────────────────────

@@ -99,6 +99,7 @@ public final class LoadScenarioValidator {
                     "[LoadTest] Scenario '" + scenario.name() + "' has no steps. " +
                             "Add at least one step via .get(), .post(), or .step().");
         }
+        validateFeeder(scenario);
         boolean jdk = "jdk".equals(engineName);
         for (LoadStep step : scenario.steps()) {
             String where = "[LoadTest] Scenario '" + scenario.name() + "', step '" + step.name() + "': ";
@@ -337,6 +338,31 @@ public final class LoadScenarioValidator {
             // no usable configuration: default cap
         }
         return DEFAULT_MAX_USERS;
+    }
+
+    /**
+     * A csv or json file feeder must have rows: {@code LoadTestFeeder.csv/json} only log a WARN for a missing file
+     * and give an empty feeder, which would make every request that uses a fed variable fail to build (Gatling) or
+     * be sent unresolved (JDK).
+     *
+     * <p>Side-effect free for every feeder: a feeder that has a next value is accepted from {@code hasNext()}
+     * alone (no row is consumed), and only an empty built-in feeder is described. A custom feeder is never
+     * described, because {@code describe()} would reset it and sample up to 5000 values.
+     */
+    private static void validateFeeder(LoadScenario scenario) {
+        io.testfly.loadtest.LoadTestFeeder feeder = scenario.feeder();
+        if (feeder == null || feeder.hasNext()
+                || feeder.getClass().getDeclaringClass() != io.testfly.loadtest.LoadTestFeeder.class) {
+            return;
+        }
+        // an empty built-in feeder: describe() only copies the (empty) rows of a csv/json feeder
+        io.testfly.loadtest.LoadTestFeeder.FeederDescriptor d = feeder.describe();
+        if (d != null && ("csv".equals(d.type()) || "json".equals(d.type()))
+                && (d.records() == null || d.records().isEmpty())) {
+            throw new IllegalArgumentException("[LoadTest] Scenario '" + scenario.name() + "': " + d.type()
+                    + " feeder file '" + d.path() + "' not found or has no rows (looked up on the classpath, "
+                    + "the file system and src/test/resources)");
+        }
     }
 
     private static void validateCheck(String where, CheckCondition check, boolean jdk) {

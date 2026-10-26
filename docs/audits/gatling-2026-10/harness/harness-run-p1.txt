@@ -1,0 +1,220 @@
+
+##### V01_smoke
+02:38:58.121 [main] WARN io.testfly.loadtest.LoadTestRunner -- loadtest cooldown is accepted but not applied by any engine yet (ADR-0003)
+02:38:58.138 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V01 (3 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V01 (3 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:39:04.033 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V01-1792982338147/testfly-metrics.json (V01 (global))
+02:39:04.034 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V01-1792982338147/testfly-metrics.json (V01)
+  metrics: total=135 ok=135 ko=0 rps=45.52 p50=44.0 p90=44.60000000000001 p95=48.0 p99=49.31999999999999 durationMs=2966 status={200=135} steps=[ok]
+RESULT: PASS | requests=135 ko=0 engine=gatling serverHits=135
+
+##### V02_statusCodeFidelity_201
+02:39:04.066 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V02 (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V02 (2 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:39:09.356 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V02-1792982344066/testfly-metrics.json (V02 (global))
+02:39:09.356 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V02-1792982344066/testfly-metrics.json (V02)
+  metrics: total=89 ok=89 ko=0 rps=31.88 p50=43.0 p90=46.0 p95=47.0 p99=54.24000000000012 durationMs=2792 status={201=89} steps=[create]
+RESULT: PASS | server returned only 201; expected {201=89}, TestFly statusCodes={201=89}
+
+##### V03_correlation_extract_token
+02:39:09.383 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V03 (3 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V03 (3 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:39:14.940 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V03-1792982349383/testfly-metrics.json (V03 (global))
+02:39:14.941 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V03-1792982349383/testfly-metrics.json (V03)
+  metrics: total=136 ok=136 ko=0 rps=47.27 p50=43.0 p90=46.0 p95=47.0 p99=48.0 durationMs=2877 status={200=136} steps=[login, secure]
+RESULT: PASS | authOk=68 authFail=0 ko=0
+
+##### V04_sequence_feeder
+02:39:14.948 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V04 (3 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V04 (3 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:39:20.418 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V04-1792982354962/testfly-metrics.json (V04 (global))
+02:39:20.418 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V04-1792982354962/testfly-metrics.json (V04)
+RESULT: PASS | distinctIds=134 literalPlaceholderSeen=false requests=134
+
+##### V05_csv_feeder
+[LoadTest] CSV feeder file not found: loadtest/users.csv
+02:39:20.429 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V05 (3 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V05 (3 users, rampUp=1s, hold=2s)
+RESULT: ERROR java.lang.IllegalStateException: [LoadTest] Gatling subprocess failed with exit code 1 (invalid arguments or crash). Last lines of <scratch>/hrun316b/target/loadtest/V05-1792982360430/gatling-subprocess.log (redacted):
+  [gatling] 02:39:25.842 [main] INFO io.gatling.charts.stats.SecondPassParser -- Second pass: read 103290 records
+  [gatling] Parsing log file(s) done in 0s.
+  [gatling] Generating reports...
+  [gatling] 02:39:25.848 [main] ERROR io.gatling.app.Gatling$ -- Run crashed
+  [gatling] java.lang.UnsupportedOperationException: There were no requests sent during the simulation, reports won't be generated
+  [gatling] 	at io.gatling.charts.report.ReportsGenerator.generateFor(ReportsGenerator.scala:52)
+  [gatling] 	at io.gatling.app.RunResultProcessor.generateReports(RunResultProcessor.scala:67)
+  [gatling] 	at io.gatling.app.RunResultProcessor.processRunResult(RunResultProcessor.scala:38)
+  [gatling] 	at io.gatling.app.Gatling$.start(Gatling.scala:77)
+  [gatling] 	at io.gatling.app.Gatling$.fromArgs(Gatling.scala:48)
+  [gatling] 	at io.gatling.app.Gatling$.main(Gatling.scala:40)
+  [gatling] 	at io.gatling.app.Gatling.main(Gatling.scala)
+  [gatling] Exception in thread "main" java.lang.UnsupportedOperationException: There were no requests sent during the simulation, reports won't be generated
+  [gatling] 	at io.gatling.charts.report.ReportsGenerator.generateFor(ReportsGenerator.scala:52)
+  [gatling] 	at io.gatling.app.RunResultProcessor.generateReports(RunResultProcessor.scala:67)
+  [gatling] 	at io.gatling.app.RunResultProcessor.processRunResult(RunResultProcessor.scala:38)
+  [gatling] 	at io.gatling.app.Gatling$.start(Gatling.scala:77)
+  [gatling] 	at io.gatling.app.Gatling$.fromArgs(Gatling.scala:48)
+  [gatling] 	at io.gatling.app.Gatling$.main(Gatling.scala:40)
+  [gatling] 	at io.gatling.app.Gatling.main(Gatling.scala)
+
+##### V06_failing_status_check
+02:39:26.844 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V06 (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V06 (2 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:39:32.205 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V06-1792982366844/testfly-metrics.json (V06 (global))
+02:39:32.206 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V06-1792982366844/testfly-metrics.json (V06)
+  metrics: total=86 ok=0 ko=86 rps=30.74 p50=43.0 p90=47.0 p95=47.0 p99=74.45000000000013 durationMs=2798 status={200=86} steps=[ok]
+RESULT: PASS | errorRate=1.0 statusCodes={200=86} (server only ever returned 200)
+
+##### V07_status_in_check_dropped
+02:39:32.209 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V07-gatling (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V07-gatling (2 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:39:37.655 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V07-gatling-1792982372209/testfly-metrics.json (V07-gatling (global))
+02:39:37.655 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V07-gatling-1792982372209/testfly-metrics.json (V07-gatling)
+RESULT: PASS | [gatling] status().in(200,204) vs actual 201 -> errorRate=1.0
+02:39:37.657 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V07-jdk (2 users, engine=jdk)
+RESULT: PASS | [jdk] status().in(200,204) vs actual 201 -> errorRate=1.0
+
+##### V08_http200_business_failure
+02:39:40.843 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V08-gatling (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V08-gatling (2 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:39:46.181 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V08-gatling-1792982380843/testfly-metrics.json (V08-gatling (global))
+02:39:46.181 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V08-gatling-1792982380843/testfly-metrics.json (V08-gatling)
+RESULT: PASS | [gatling] body {success:false} with body-regex check -> errorRate=1.0
+02:39:46.183 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V08-jdk (2 users, engine=jdk)
+RESULT: PASS | [jdk] body {success:false} with body-regex check -> errorRate=1.0
+
+##### V09_jsonPath_is_becomes_status_check
+02:39:49.195 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V09 (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V09 (1 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:39:54.068 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V09-1792982389195/testfly-metrics.json (V09 (global))
+02:39:54.068 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V09-1792982389195/testfly-metrics.json (V09)
+RESULT: PASS | jsonPath("$.id").is(5) -> type=JSON_EQUALS target=$.id; run on body {id:'abc'}: errorRate=1.0 statusCodes={201=42}
+
+##### V10_p90_fabricated
+02:39:54.072 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V10 (3 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V10 (3 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:39:59.445 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V10-1792982394072/testfly-metrics.json (V10 (global))
+02:39:59.445 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V10-1792982394072/testfly-metrics.json (V10)
+RESULT: PASS | p50=243.0 p90=247.0 p95=249.25 p50+(p95-p50)*0.8=248.0 -> p90 is interpolated, not measured
+
+##### V11_cooldown_ignored
+02:39:59.449 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V11-gatling (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V11-gatling (2 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:40:04.759 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V11-gatling-1792982399450/testfly-metrics.json (V11-gatling (global))
+02:40:04.759 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V11-gatling-1792982399450/testfly-metrics.json (V11-gatling)
+RESULT: FAIL | [gatling] ramp=1s hold=2s cooldown=8s -> reported durationMs=2791 wallMs=5311
+02:40:04.764 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V11-jdk (2 users, engine=jdk)
+RESULT: FAIL | [jdk] ramp=1s hold=2s cooldown=8s -> reported durationMs=3023 wallMs=3025
+
+##### V12_users_semantics_open_vs_closed
+02:40:07.789 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V12-gatling (10 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V12-gatling (10 users, rampUp=6s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:40:17.761 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V12-gatling-1792982407789/testfly-metrics.json (V12-gatling (global))
+02:40:17.762 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V12-gatling-1792982407789/testfly-metrics.json (V12-gatling)
+RESULT: FAIL | [gatling] users(10) rampUp=6s hold=2s -> server-observed peak concurrency=5 (metrics.users=10)
+02:40:17.765 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V12-jdk (10 users, engine=jdk)
+RESULT: FAIL | [jdk] users(10) rampUp=6s hold=2s -> server-observed peak concurrency=4 (metrics.users=10)
+
+##### V13_connection_refused_reported_as_500
+02:40:25.839 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V13 (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V13 (1 users, rampUp=1s, hold=1s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:40:30.056 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V13-1792982425839/testfly-metrics.json (V13 (global))
+02:40:30.056 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V13-1792982425839/testfly-metrics.json (V13)
+  metrics: total=612 ok=0 ko=612 rps=467.53 p50=NaN p90=NaN p95=NaN p99=NaN durationMs=1309 status={-1=612} steps=[down]
+RESULT: PASS | no HTTP response at all; statusCodes={-1=612} ko=612
+
+##### V14_simulation_build_failure_error_propagation
+02:40:30.062 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V14 (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V14 (1 users, rampUp=1s, hold=1s)
+RESULT: PASS | exception=IllegalStateException: [LoadTest] Gatling subprocess failed with exit code 1 (invalid arguments or crash). Last lines of <scratch>/hrun316b/target/loadtest/V14-1792982430062/gatling-subprocess.log (redacted):
+  [gatling] Exception in thread "main" io.gatling.core.session.el.ElParserException: Failed to parse /ok?x=#{unclosed with error ''}' expected but end of source found'
+  [gatling] 	at io.gatling.core.session.el.ElCompiler$.compile(ElCompiler.scala:420)
+  [gatling] 	at io.gatling.core.session.el.package$El$.el$extension(package.scala:26)
+  [gatling] 	at io.gatling.javaapi.core.internal.Expressions$.toStringExpression(Expressions.scala:86)
+  [gatling] 	at io.gatling.javaapi.core.internal.Expressions.toStringExpression(Expressions.scala)
+  [gatling] 	at io.gatling.javaapi.http.Http.get(Http.java:48)
+  [gatling] 	at io.testfly.loadtest.internal.TestFlyGatlingSimulation.buildRequest(TestFlyGatlingSimulation.java:462)
+  [gatling] 	at io.testfly.loadtest.internal.TestFlyGatlingSimulation.buildStepsChain(TestFlyGatlingSimulation.java:388)
+  [gatling] 	at io.testfly.loadtest.internal.TestFlyGatlingSimulation.population(TestFlyGatlingSimulation.java:179)
+  [gatling] 	at io.testfly.loadtest.internal.TestFlyGatlingSimulation.<init>(TestFlyGatlingSimulation.java:106)
+  [gatling] 	at java.base/jdk.internal.reflect.DirectConstructorHandleAccessor.newInstance(DirectConstructorHandleAccessor.java:62)
+  [gatling] 	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:502)
+  [gatling] 	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:486)
+  [gatling] 	at io.gatling.app.SimulationClass$Java.params(SimulationClass.scala:52)
+  [gatling] 	at io.gatling.app.Runner.instantiateSimulation(Runner.scala:108)
+  [gatling] 	at io.gatling.app.Runner.load(Runner.scala:78)
+  [gatling] 	at io.gatling.app.Runner.run(Runner.scala:53)
+  [gatling] 	at io.gatling.app.Gatling$.start(Gatling.scala:71)
+  [gatling] 	at io.gatling.app.Gatling$.fromArgs(Gatling.scala:48)
+  [gatling] 	at io.gatling.app.Gatling$.main(Gatling.scala:40)
+  [gatling] 	at io.gatling.app.Gatling.main(Gatling.scala)
+
+##### V15_cancellation_orphan_process
+02:40:33.209 [Thread-1] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V15 (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V15 (2 users, rampUp=1s, hold=25s)
+  runner ended: IllegalStateException: [LoadTest] Gatling run for 'V15' was cancelled; child JVM terminated
+RESULT: PASS | observed child pids=[21107]; still alive 5s after interrupt=0
+
+##### V16_concurrent_executions_serialized
+02:40:35.391 [pool-2-thread-2] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V16-1 (2 users, engine=gatling)
+02:40:35.391 [pool-2-thread-1] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V16-0 (2 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V16-1 (2 users, rampUp=1s, hold=3s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:40:41.716 [pool-2-thread-2] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V16-1-1792982435391/testfly-metrics.json (V16-1 (global))
+02:40:41.716 [pool-2-thread-2] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V16-1-1792982435391/testfly-metrics.json (V16-1)
+[LoadTest] Starting Gatling engine: V16-0 (2 users, rampUp=1s, hold=3s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:40:47.919 [pool-2-thread-1] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V16-0-1792982441717/testfly-metrics.json (V16-0 (global))
+02:40:47.919 [pool-2-thread-1] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V16-0-1792982441717/testfly-metrics.json (V16-0)
+RESULT: PASS | results isolated=true steps0=[ok0] steps1=[ok1] totalWallMs=12533 (serialized by static GATLING_LOCK)
+
+##### V17_html_report_generated
+02:40:47.924 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V17 (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V17 (1 users, rampUp=1s, hold=1s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:40:52.024 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V17-1792982447925/testfly-metrics.json (V17 (global))
+02:40:52.025 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V17-1792982447925/testfly-metrics.json (V17)
+RESULT: PASS | index.html=target/loadtest/V17-1792982447925/testflygatlingsimulation-20261026024050291/index.html (30617 bytes)
+
+##### V18_xml_body_content_type
+02:40:52.035 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V18 (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V18 (1 users, rampUp=1s, hold=1s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:40:55.708 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V18-1792982452035/testfly-metrics.json (V18 (global))
+02:40:55.708 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V18-1792982452035/testfly-metrics.json (V18)
+RESULT: FAIL | XML body sent with Content-Type=[application/json]
+
+##### V19_formParam_ignored
+02:40:55.711 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V19-gatling (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V19-gatling (1 users, rampUp=1s, hold=1s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:40:59.593 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V19-gatling-1792982455711/testfly-metrics.json (V19-gatling (global))
+02:40:59.593 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V19-gatling-1792982455711/testfly-metrics.json (V19-gatling)
+RESULT: PASS | [gatling] formParam(user,alice) -> bodies seen=[user=alice] contentTypes=[application/x-www-form-urlencoded]
+02:40:59.599 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V19-jdk (1 users, engine=jdk)
+RESULT: PASS | [jdk] formParam(user,alice) -> bodies seen=[user=alice] contentTypes=[application/x-www-form-urlencoded]
+
+##### V20_assertion_failure_propagates
+02:41:00.650 [main] WARN io.testfly.steps.StepLogger -- [STEP] No active test context — step ignored: Load Test: V20 (1 users, engine=gatling)
+[LoadTest] Starting Gatling engine: V20 (1 users, rampUp=1s, hold=2s)
+[LoadTest] Gatling execution complete. Parsing results...
+02:41:05.459 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V20-1792982460651/testfly-metrics.json (V20 (global))
+02:41:05.459 [main] INFO io.testfly.loadtest.internal.GatlingResultsParser -- [LoadTest] Gatling results parsed from: <scratch>/hrun316b/target/loadtest/V20-1792982460651/testfly-metrics.json (V20)
+RESULT: PASS | AssertionError: [LoadTest] V20: p95 latency 275ms is not below 50ms
+
+FAIL/ERROR results: 6
+
+##### V05_csv_feeder (rerun with target/test-classes on the classpath; the first run lacked the CSV fixture)
+RESULT: PASS | usersSeen=[bob, alice, charlie] requests=135

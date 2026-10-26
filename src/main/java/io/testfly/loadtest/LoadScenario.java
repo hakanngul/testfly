@@ -77,19 +77,28 @@ public final class LoadScenario {
 
     // ── Configuration ────────────────────────────────────────────────────
 
-    /** Sets the number of concurrent virtual users. */
+    /**
+     * Sets the number of virtual users, started over {@link #rampUp(Duration) rampUp}. This is not a concurrency
+     * target: how many users are active at once depends on the ramp-up, the hold and the response times.
+     */
     public LoadScenario users(int users) {
         this.users = users;
         return this;
     }
 
-    /** Sets the ramp-up duration — time to reach full user count. */
+    /**
+     * Sets the ramp-up duration: the window over which the virtual users start, evenly spaced (not a concurrency
+     * target).
+     */
     public LoadScenario rampUp(Duration duration) {
         this.rampUp = duration;
         return this;
     }
 
-    /** Sets the hold duration — how long all users stay active. */
+    /**
+     * Sets the hold duration: how long each user keeps iterating, counted from that user's own start (users that
+     * start later in the ramp-up also stop later).
+     */
     public LoadScenario hold(Duration duration) {
         this.hold = duration;
         return this;
