@@ -300,7 +300,7 @@ public final class JdkLoadEngine implements LoadTestEngine {
                     percentile(sorted, 99)));
         }
 
-        return new LoadTestMetrics(
+        LoadTestMetrics metrics = new LoadTestMetrics(
                 scenario.name(),
                 totalRequests.get(),
                 successRequests.get(),
@@ -320,6 +320,10 @@ public final class JdkLoadEngine implements LoadTestEngine {
                 name(),
                 stepMetrics,
                 percentile(sortedLatencies, 75));
+
+        // the per-run artefact (never fails the run): <resultsDir>/<slug>-<millis>/testfly-loadtest-result.json
+        RunArtefacts.writeJdkRunResult(config.getResultsDir(), scenario.name(), metrics);
+        return metrics;
     }
 
     /**

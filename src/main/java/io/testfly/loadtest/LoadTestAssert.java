@@ -38,6 +38,8 @@ import io.testfly.api.TestFlyApi;
 @TestFlyApi(since = "1.1.0")
 public final class LoadTestAssert {
 
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(LoadTestAssert.class);
+
     private final LoadTestMetrics metrics;
 
     public LoadTestAssert(LoadTestMetrics metrics) {
@@ -250,6 +252,79 @@ public final class LoadTestAssert {
             throw new AssertionError(String.format(
                     "[LoadTest] %s → step '%s': error rate %.4f is not below %.4f",
                     metrics.scenarioName(), stepName, step.errorRate(), rate));
+        }
+        return this;
+    }
+
+    // ── Baseline regression ──────────────────────────────────────────────
+
+    /**
+     * Compares this run with a baseline without asserting: one {@link RegressionResult} per metric, in the order
+     * p95, p99, mean, errorRate, throughput. A metric unmeasured on either side is not compared
+     * ({@value LoadBaseline#NOT_COMPARED}). Logs a WARN when the baseline came from another engine or another
+     * scenario; the comparison continues.
+     */
+    @TestFlyApi(since = "1.1.0")
+    public java.util.List<RegressionResult> regressionResults(LoadBaseline baseline, Tolerance tolerance) {
+        if (baseline == null || tolerance == null) {
+            throw new IllegalArgumentException("[LoadTest] regressionResults needs a baseline and a tolerance");
+        }
+        if (baseline.engine() != null && !baseline.engine().equals(metrics.engine())) {
+            LOGGER.warn("[LoadTest] {}: the baseline was recorded with engine '{}', this run used '{}'; the engines "
+                    + "measure latency differently, so the comparison may drift", metrics.scenarioName(),
+                    baseline.engine(), metrics.engine());
+        }
+        if (baseline.scenarioName() != null && !baseline.scenarioName().equals(metrics.scenarioName())) {
+            LOGGER.warn("[LoadTest] {}: the baseline was recorded for scenario '{}'; comparing anyway",
+                    metrics.scenarioName(), baseline.scenarioName());
+        }
+        return baseline.compare(metrics, tolerance);
+    }
+
+    /**
+     * Asserts that no metric regressed against the baseline beyond the tolerance: latency (p95, p99, mean) may not
+     * exceed {@code baseline × (1 + percent/100)}, throughput may not fall below {@code baseline × (1 − percent/100)},
+     * and the error rate may not exceed {@code baseline + errorRateDelta} (all strict, limits computed exactly in
+     * decimal). A metric unmeasured on either side is not compared and never counts as a pass: if nothing could be
+     * compared the assertion fails, and when it passes with some metrics not compared a WARN lists them. An engine or
+     * scenario mismatch only logs a WARN.
+     *
+     * @throws AssertionError if the metrics are partial, if no metric could be compared, or listing every regressed
+     *                        metric with its baseline, actual value and limit, plus the metrics that were not compared
+     */
+    @TestFlyApi(since = "1.1.0")
+    public LoadTestAssert assertNoRegression(LoadBaseline baseline, Tolerance tolerance) {
+        requireComplete("no regression");
+        java.util.List<RegressionResult> results = regressionResults(baseline, tolerance);
+        StringBuilder regressed = new StringBuilder();
+        java.util.List<String> notCompared = new java.util.ArrayList<>();
+        for (RegressionResult r : results) {
+            if (r.regressed()) {
+                regressed.append(regressed.isEmpty() ? "" : "; ").append(r.metric())
+                        .append(" baseline ").append(LoadBaseline.plain(r.baseline()))
+                        .append(" actual ").append(LoadBaseline.plain(r.actual()))
+                        .append(" limit ").append(LoadBaseline.plain(
+                                LoadBaseline.limit(r.metric(), r.baseline(), tolerance)));
+                if (r.reason() != null && r.reason().endsWith(LoadBaseline.ZERO_BASELINE)) {
+                    regressed.append(' ').append(LoadBaseline.ZERO_BASELINE);
+                }
+            } else if (LoadBaseline.NOT_COMPARED.equals(r.reason())) {
+                notCompared.add(r.metric());
+            }
+        }
+        if (notCompared.size() == results.size()) {
+            throw new AssertionError(String.format("[LoadTest] %s: nothing compared: %s are not measured in the "
+                    + "baseline of '%s' or in this run", metrics.scenarioName(), notCompared, baseline.scenarioName()));
+        }
+        if (!regressed.isEmpty()) {
+            throw new AssertionError(String.format("[LoadTest] %s: regression against the baseline of '%s' (%s, "
+                            + "%s): %s%s", metrics.scenarioName(), baseline.scenarioName(), baseline.engine(),
+                    tolerance, regressed,
+                    notCompared.isEmpty() ? "" : "; not compared (not measured): " + String.join(", ", notCompared)));
+        }
+        if (!notCompared.isEmpty()) {
+            LOGGER.warn("[LoadTest] {}: no regression, but {} not compared (not measured in the baseline or in this "
+                    + "run)", metrics.scenarioName(), notCompared);
         }
         return this;
     }

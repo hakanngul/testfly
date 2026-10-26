@@ -128,9 +128,8 @@ public final class GatlingEngine implements LoadTestEngine {
         GATLING_LOCK.lock();
         try {
             // Dedicated subfolder for this specific run to prevent collisions
-            String runId = simulationName.replaceAll("[^a-zA-Z0-9_-]", "_") + "-" + System.currentTimeMillis();
-            File specificResultsDir = new File(resultsDir, runId);
-            specificResultsDir.mkdirs();
+            // created atomically: a concurrent run of the same name never shares it
+            File specificResultsDir = RunArtefacts.newRunDir(resultsDir, simulationName);
 
             for (ScenarioRun run : runs) {
                 LoadScenario scenario = run.scenario();
@@ -173,6 +172,7 @@ public final class GatlingEngine implements LoadTestEngine {
                                 + "rules in a multi-scenario run, or steps the run does not have); only TestFly "
                                 + "evaluates them", simulationName, rules - runConfig.assertions.size(), rules);
             }
+            writeRunResults(specificResultsDir.toPath(), runs, metrics);
             return metrics;
 
         } catch (IllegalStateException | IllegalArgumentException e) {
@@ -212,6 +212,29 @@ public final class GatlingEngine implements LoadTestEngine {
                         + "uses t-digest estimates over all responses.",
                 simulationName, testflyPassed ? "passed" : "failed",
                 nativeAssertionsFailed ? "failed" : "passed", nativeAssertionsFailed ? 2 : 0);
+    }
+
+    /**
+     * Writes the per-run artefact next to {@code testfly-metrics.json}: for a single scenario
+     * {@value io.testfly.loadtest.LoadBaseline#RESULT_FILE} holds that scenario's metrics; for several scenarios it
+     * holds the global metrics and each scenario gets {@code testfly-loadtest-result-<scenario-slug>.json}.
+     * A write failure only logs a WARN.
+     */
+    private static void writeRunResults(Path dir, List<ScenarioRun> runs,
+            GatlingResultsParser.SimulationMetrics metrics) {
+        try {
+            if (runs.size() == 1) {
+                RunArtefacts.writeResult(dir, metrics.scenario(runs.get(0).scenario().name()));
+                return;
+            }
+            RunArtefacts.writeResult(dir, metrics.global());
+            Map<String, String> files = RunArtefacts.scenarioResultFiles(
+                    runs.stream().map(r -> r.scenario().name()).toList());
+            files.forEach((name, file) -> RunArtefacts.writeResult(dir, file, metrics.scenario(name)));
+        } catch (RuntimeException e) {
+            LOGGER.warn("[LoadTest] Could not write the run results in {} ({}); the run itself is not affected", dir,
+                    e.toString());
+        }
     }
 
     /** The scenario's own base URL, else the run's, else the resolved config's, else {@code execution.baseUrl}. */

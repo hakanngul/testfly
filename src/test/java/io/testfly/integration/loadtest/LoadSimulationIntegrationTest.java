@@ -160,7 +160,7 @@ public class LoadSimulationIntegrationTest extends BaseLoadTest {
     // ── the same step name in two scenarios ──────────────────────────────
 
     @Test
-    public void sameStepName_inTwoScenarios_countsAreNotMixed() {
+    public void sameStepName_inTwoScenarios_countsAreNotMixed() throws IOException {
         requireGatling();
         LoadScenario a = LoadScenario.named("Alpha")
                 .step("home").get("/sim-home-a").and()
@@ -187,6 +187,30 @@ public class LoadSimulationIntegrationTest extends BaseLoadTest {
         assertEquals(ma.step("home").totalRequests(), 3);
         assertEquals(mb.step("home").totalRequests(), 5);
         assertEquals(SimulationApi.globalMetrics(result).totalRequests(), 8, "global = 3 + 5");
+
+        // per-run artefacts of a multi-scenario run: the global file plus one file per scenario
+        String simName = SimulationApi.name(sim);
+        java.nio.file.Path runDir = runDir(a, simName);
+        io.testfly.loadtest.LoadBaseline global = io.testfly.loadtest.LoadBaseline.load(
+                runDir.resolve(io.testfly.loadtest.LoadBaseline.RESULT_FILE));
+        assertEquals(global.scenarioName(), simName + " (global)");
+        assertEquals(io.testfly.loadtest.LoadBaseline.load(runDir.resolve("testfly-loadtest-result-Alpha.json"))
+                .scenarioName(), "Alpha");
+        assertEquals(io.testfly.loadtest.LoadBaseline.load(runDir.resolve("testfly-loadtest-result-Beta.json"))
+                .scenarioName(), "Beta");
+    }
+
+    /** The simulation's run dir {@code <resultsDir>/<simulation-slug>-<millis>} (UUID-unique name). */
+    private java.nio.file.Path runDir(LoadScenario anyScenario, String simulationName) throws IOException {
+        java.nio.file.Path resultsDir = java.nio.file.Path.of(io.testfly.loadtest.LoadTestConfig
+                .resolveFor(anyScenario, getClass(), null).getResultsDir()).toAbsolutePath();
+        String prefix = simulationName.replaceAll("[^a-zA-Z0-9_-]", "_") + "-";
+        try (java.util.stream.Stream<java.nio.file.Path> dirs = java.nio.file.Files.list(resultsDir)) {
+            List<java.nio.file.Path> found = dirs.filter(java.nio.file.Files::isDirectory)
+                    .filter(d -> d.getFileName().toString().startsWith(prefix)).toList();
+            assertEquals(found.size(), 1, "one run dir for " + simulationName + ": " + found);
+            return found.get(0);
+        }
     }
 
     // ── a legacy-shape scenario next to a workload scenario ──────────────
